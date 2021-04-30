@@ -1,0 +1,2393 @@
+<!doctype html>
+<!-- The DOCTYPE declaration above will set the     -->
+<!-- browser's rendering engine into                -->
+<!-- "Standards Mode". Replacing this declaration   -->
+<!-- with a "Quirks Mode" doctype is not supported. -->
+
+
+<html>
+
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>EMSL Arrows</title>
+
+<!-- Alternative location for ace editor -->
+<!-- script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.3.1/ace.js" type="text/javascript" charset="utf-8"></script> -->
+
+<!-- Location scripts for EMSL Arrows API -->
+<script type="text/javascript" language="javascript" src="{{ url_for('static', filename='jsme/jsme.nocache.js')}}"></script>
+<script type="text/javascript" language="javascript" src="{{ url_for('static', filename='jsmol/JSmol.min.js')}}"></script>
+<script src="https://unpkg.com/ace-builds@1.3.1/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<!-- Location scripts for debugging and development -->
+<!--script type="text/javascript" language="javascript" src="/static/jsme/jsme.nocache.js"></script-->
+<!--script type="text/javascript" language="javascript" src="/static/jsmol/JSmol.min.js"></script-->
+<!--script src="https://unpkg.com/ace-builds@1.3.1/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script-->
+
+<style>
+   blink, .blink {
+   animation: blinker 1s linear infinite;
+   }
+   @keyframes blinker {
+   50% { opacity: 0; }
+   }
+</style>
+
+
+<style type="text/css" media="screen">
+    #editor {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+   .button2 {width:75px;text-align: left;}
+   .button3 {width:100px;text-align: left;}
+
+/* Style the tab */
+.tab {
+    //overflow: hidden;
+    //border: 2px solid #ccc;
+   // background-color: #f1f1f1;
+   // margin: auto;
+
+background-image: linear-gradient(#FEFEFE, #F1F1F1);
+    position: relative;
+    margin: auto;
+    overflow: hidden;
+    border-radius: 6px;
+    border-color: #DEDEDE;
+}
+
+.tabBlock {
+  margin: 0 0 2.5rem;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab button {
+    display: inline-block;
+    list-style-type: none;
+    background-color: inherit;
+    display: block;
+    position: relative;
+    float: left;
+    border: none;
+    border-style: solid;
+    border-width: 1px;
+    border-color: #DEDEDE;
+    outline: none;
+    //outline: 2px solid #ccc;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: times;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #cfc;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #add;
+}
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    //border: 1px solid #ccc;
+    border-top: none;
+}
+
+.tabcontent {
+    animation: fadeEffect 1s; /* Fading effect takes 1 second */
+}
+
+/* Go from zero to full opacity */
+@keyframes fadeEffect {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+</style>
+
+
+
+
+<script type="text/javascript">
+
+	//this function will be called after the JavaScriptApplet code has been loaded.
+	function jsmeOnLoad() {
+
+		//Instantiate a new JSME: 380px  340px
+		//arguments: HTML id, width, height (must be string not number!)
+		//jsmeApplet = new JSApplet.JSME("appletContainer", "700px", "467px", {
+
+		jsmeApplet = new JSApplet.JSME("appletContainer", "750px", "500px", {
+			//optional parameters
+			"options" : "query,hydrogens,canonize,removehs"
+		});
+
+		//Alternative method: the size is not specified: the applet will use 100% of the space of its parent container "appletContainer".
+		//Be sure that the parent container size > 0, otherwise the applet will not be visible
+
+		/*    	jsmeApplet = new JSApplet.JSME("appletContainer",  {
+		 //optional parameters
+		 "options" : "query,hydrogens",
+		 "jme" : startingStructure
+		 });
+		 */
+
+		//Opera patch: if some applet elements are not displayed, force repaint
+		//jsmeApplet.deferredRepaint(); //the applet will be repainted after the browser event loop returns
+		//it is recommended to use it if the JSME is created outside this jsmeOnLoad() function
+
+		//jsmeApplet has the same API as the original Java applet
+		//One can mimic the JME Java applet access to simplify the adaptation of HTML and JavaScript code:
+		document.JME = jsmeApplet;
+
+		//suggestion 
+		//all buttons that access the jsme variable were disabled in the html
+		//Now enable all buttons that can access the jsme variable since the applet is ready
+		//example:
+		//document.getElementById("button").disabled=false;
+
+	}
+        function jsmereaction() {
+           jsmeApplet.options("query,hydrogens,canonize,removehs,reaction");
+           //jsmeApplet.reset();
+        }
+        function jsmenoreaction() {
+           jsmeApplet.options("query,hydrogens,canonize,removehs,noreaction");
+           //jsmeApplet.reset();
+        }
+
+     function jmolOnLoad() {
+            Info = {
+            width: 750,
+            height: 500,
+            debug: false,
+            //File location for EMSL Arrows API
+            j2sPath: "{{ url_for('static', filename='jsmol/j2s')}}",
+
+            //File location for debugging and development
+            //j2sPath: "/static/jsmol/j2s",
+            
+            //color: "0x3BBC52",
+            //color: "0x3BBC52",
+            //color: "0xc6ed80",
+            color: "#4A9FF9",
+            disableJ2SLoadMonitor: true,
+            disableInitialConsole: true,
+            addSelectionOptions: true,
+
+            //File location for EMSL Arrows API
+            serverURL: "{{ url_for('static', filename='jsmol/jsmol.php')}}",
+
+            //File location for debugging and development
+            //serverURL: "/static/jsmol/jsmol.php",
+
+            use: "HTML5",
+            readyFunction: null,
+            //script: "load  /static/jjj.xyz ; set modelKitMode "
+            script: "set modelKitMode "
+         };
+         $("#jsmoldiv").html(Jmol.getAppletHtml("jmolApplet0", Info));
+         $("#jsmolbtns").html(Jmol.jmolButton(jmolApplet0,"select *;spacefill 75%" ,"Space Fill") + Jmol.jmolButton(jmolApplet0, "select *; wireframe 0.15; spacefill 23%;","Ball and Stick") +  Jmol.jmolButton(jmolApplet0, "select *; wireframe 0.03; spacefill 1%;","Stick") ); 
+
+         jm_cmdlist_add();
+      }
+
+        function convertMOL2XYZ(str) {
+           var i,n,x,data;
+           var lines = str.split("\n");
+           if (str.includes("V2000")) {
+              data = lines[3].trim().split(" ")[0];
+              n = eval(data);
+              data += "\n\n";
+              n += 4;
+              for (i=4; i<n; i++) {
+                 x = lines[i].trim().split(/[ ,]+/);
+                 data += x[3] + " "; 
+                 data += x[0] + " ";
+                 data += x[1] + " ";
+                 data += x[2] + "\n";
+              }
+           } 
+           else { 
+              data=str;
+           }
+           return data;
+        } 
+
+        // fetches the xyz data from the editor
+        function editor_fetchXYZ() {
+           var i,n,x,m;
+           var data = editor.getValue(); // or session.getValue
+           var lines = data.split("\n");
+           if (data.includes("V2000")) {
+              data = lines[3].trim().split(" ")[0];
+              n = eval(data);
+              data += "\n\n";
+              n += 4;
+              for (i=4; i<n; i++) {
+                 x = lines[i].trim().split(/[ ,]+/);
+                 data += x[3] + " "; 
+                 data += x[0] + " ";
+                 data += x[1] + " ";
+                 data += x[2] + "\n";
+              }
+           } 
+
+           if (data.includes("geometry")) {
+              n = lines.length;
+              m = 0;
+              x = false;
+              data = "";
+              for (i=0; i<n; i++) {
+                 if (lines[i].includes("geometry")) {
+                    x = true;
+                 } else if (lines[i].includes("end")) {
+                    x = false;
+                 } else if (x) {
+                    data += lines[i] + "\n";
+                    m += 1;
+                 }
+              }
+              data = m.toString() + "\n\n" + data;
+           }
+           return data;
+        } 
+
+        // fetches the unitcell data from the editor
+        function editor_fetchUnitCell() {
+           var data = editor.getValue(); // or session.getValue
+        }
+
+        function myPick() {
+           alert('you clicked on atom with index=' + arguments[2]);
+        }
+
+        var jm_cmdlist = [];
+        var jm_cmdlist2 = [];
+
+        function jm_cmdlist_reset() {
+           m_cmdlist  = [];
+           jm_cmdlist2 = [];
+        }
+        function jm_cmdlist_add() {
+           var moldat = "\"model reset\"\n" + exMod() + "end \"model reset\"";
+           var orient = jmvar("script('show orientation')");
+           orient =  "reset; " + orient.split("reset;")[1];
+           jm_cmdlist.push([moldat,orient]);
+           var n = jm_cmdlist.length;
+           if (n>20) {
+              jm_cmdlist.shift();
+           }
+        }
+        function jm_cmdlist2_add() {
+           var moldat = "\"model reset\"\n" + exMod() + "end \"model reset\"";
+           var orient = jmvar("script('show orientation')");
+           orient =  "reset; " + orient.split("reset;")[1];
+           jm_cmdlist2.push([moldat,orient]);
+           var m = jm_cmdlist2.length;
+           if (m>40) {
+              jm_cmdlist2.shift();
+           }
+        }
+
+        function jm_cmdlist_undo() {
+           var n = jm_cmdlist.length;
+           if (n>0) {
+              jm_cmdlist2_add();
+              var cdat = jm_cmdlist.pop();
+              var moldat = cdat[0];
+              var orient = cdat[1];
+              var scpt = "load data "+moldat + " ;";
+                  scpt += 'select Meitnerium; color atoms TRANSLUCENT orange; label "e-"; color label cpk; ';
+              //Jmol.script(jmolApplet0, "load data "+moldat);
+              Jmol.script(jmolApplet0, scpt);
+              //Jmol.script(jmolApplet0, orient);
+           }
+        }
+        function jm_cmdlist_redo() {
+           var m = jm_cmdlist2.length;
+           if (m>0) {
+              jm_cmdlist_add();
+              var cdat = jm_cmdlist2.pop();
+              var moldat = cdat[0];
+              var orient = cdat[1];
+              var scpt = "load data "+moldat + " ;";
+                  scpt += 'select Meitnerium; color atoms TRANSLUCENT orange; label "e-"; color label cpk; ';
+              //Jmol.script(jmolApplet0, "load data "+moldat);
+              Jmol.script(jmolApplet0, scpt);
+              //Jmol.script(jmolApplet0, orient);
+           }
+        }
+
+
+        // basic JMOL routines - all other routines call these functions
+        function jms(scpt) { 
+           jm_cmdlist_add();
+           Jmol.script(jmolApplet0, scpt); 
+        }
+        function jms0(scpt) { 
+           Jmol.script(jmolApplet0, scpt); 
+        }
+        function jmstr(scpt) { 
+           return Jmol.getPropertyAsString(jmolApplet0,scpt); 
+        }
+        function jmvar(x) {
+           return Jmol.evaluateVar(jmolApplet0, x);
+        }
+
+
+
+        function jmreset() { jms("load smiles \"" + "C" + "\"; set modelKitMode;"); }
+
+        function jmresetPointer() {
+           var scpt = 'set picking off; unbind; set picking on; set picking identify; set pickingStyle toggle; set PickCallback \"\"';
+           Jmol.script(jmolApplet0, scpt); 
+        }
+
+
+
+	function jmredrawMolecule() {
+                //jms("saveOrientation 99");
+                //jms("restore orientation 99");
+                //orient =  orient.split("reset;")[0];
+                var orient = jmvar("script('show orientation')");
+                orient =  "reset; " + orient.split("reset;")[1];
+		var mol = exMod();
+                var moldat = "\"model reset\"\n" + mol + "end \"model reset\"";
+                jms("load data "+moldat);
+                jms(orient);
+	}
+
+        function jmsmiles() { jms("load smiles \"" + document.JME.smiles() + "\""); }
+        function jmasmiles() { jms("set appendNew false;load append smiles \"" + document.JME.smiles() + "\"; select all; select within(molecule,(*)[0]); minimize select selected;"); }
+        function exMod() { return jmstr("extractModel"); }
+        function jmoltoeditor() {editor.setValue(convertMOL2XYZ(exMod()));}
+        function jmtesting() {
+           var natoms = jmstr("atomInfo");
+           alert(natoms);
+           var atoms = Jmol.getPropertyAsArray(jmolApplet0, "atomInfo", "all");
+           //var atoms = Jmol.getPropertyAsString(jmolApplet0, "atomInfo", "all");
+           alert(atoms);
+        }
+
+        function uploadFiles(url, files) {
+          var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
+          var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/Eric_ljsd.nw';
+          var textToSave = editor.getValue();
+
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', url, true);
+          xhr.onload = function(e) {
+          if (this.status == 200) {
+             console.log(this.responseText);
+           }
+         };
+
+          xhr.send(textToSave);  // multipart/form-data
+
+         xhr.open('GET',arrows_get_url,true);
+         xhr.send();
+
+
+        }
+
+       //document.querySelector('input[type="file"]').addEventListener('change', function(e) { uploadFiles('https://arrows.emsl.pnnl.gov/api/upload/', this.files); }, false);
+
+
+        function submit_nwchemjob() {
+           var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
+           var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
+           var textToSave = editor.getValue();
+           var fileInput = document.getElementById("fileInput");
+           console.log(fileInput.files); 
+
+           var ffle = fileInput.files[0];
+           console.log("Hello=" + ffle.name); // "my-holiday-photo.jpg"
+           console.log("hellosize=" + ffle.size); // 1282632
+           console.log("hellotype=" + ffle.type); 
+
+           var formD = new FormData();
+           formD.append('file', ffle);
+
+           var xhr = new XMLHttpRequest();
+           //xhr.upload.addEventListener('progress', onprogressHandler, false);
+           xhr.open("POST",  arrows_post_url, true);
+           xhr.send(formD);
+
+           function onprogressHandler(evt) {
+              var percent = evt.loaded/evt.total*100;
+              console.log('Upload progress: ' + percent + '%');
+           }
+
+           var request = new XMLHttpRequest();
+           request.open('GET', arrows_get_url+ffle.name, true);
+           request.send();
+        }
+
+
+        // This routine loads xyzdata into jmol from editor
+        //load data "model example"|2|testing|C 1.22 1 1|O 12 2 2|end "model example"
+        function jmloadxyz() {
+           var xyzdat = "\"model editor\"|" + editor_fetchXYZ().trim().replace(/\n/g,' | ') + "|end \"model editor\"";
+           jms("load data "+xyzdat); 
+        }
+
+        // This routine appends xyzdata into jmol from editor
+        function jmappendxyz() {
+           var xyzdat = "\"append\"|" + editor_fetchXYZ().trim().replace(/\n/g,' | ') + "|end \"append\"";
+           jms("set appendNew false; data "+xyzdat); 
+        }
+
+
+
+
+
+        function editorsave() {
+           var textToSave = editor.getValue();
+           var filenameguess = "nwchem.xyz";
+           if (textToSave.includes("geometry")) {
+              filenameguess = "nwchem.nw"
+           }
+           var textToSaveAsBlob = new Blob([textToSave], {type:"text/plain"});
+           var textToSaveAsURL  = window.URL.createObjectURL(textToSaveAsBlob);
+	   var fileNameToSaveAs =  prompt("Please enter filename:", filenameguess);
+
+           var downloadLink = document.createElement("a");
+           downloadLink.download = fileNameToSaveAs;
+           downloadLink.innerHTML = "Download File";
+           downloadLink.href = textToSaveAsURL;
+           downloadLink.onclick = destroyClickedElement;
+           downloadLink.style.display = "none";
+           document.body.appendChild(downloadLink);
+
+           downloadLink.click();
+        }
+
+        function destroyClickedElement(event) {
+           document.body.removeChild(event.target);
+        }
+        function loadfiletoeditor() {
+           var data = "no data";
+	   var fileToLoad = document.getElementById("fileToLoad").files[0];
+
+           var fileReader = new FileReader();
+           fileReader.onload = function(fileLoadedEvent) {
+              var textFromFileLoaded = fileLoadedEvent.target.result;
+              editor.setValue(textFromFileLoaded);
+           };
+           fileReader.readAsText(fileToLoad, "UTF-8");
+        }
+
+
+        function deleteMoleculePick() {
+           var anum = arguments[1].split("#")[1].split(" ")[0];
+           //var anum = arguments[1].split("#")[0].trim();
+           //var anum0 = arguments[1].split("#")[1].split(" ")[0];
+           //var anum1 = parseInt(anum0) - 1;
+           //var anum  = anum1.toString();
+           var scpt = "select within(molecule,{*}[" + anum + "]); delete selected; unbind; set picking identify; set PickCallback \"\";";
+           jms(scpt);
+        }
+        function jmdeletemolecule() {
+           jms0("unbind; unbind \"DOUBLE\"; set picking off;set picking on; set atomPicking true;  set PickCallback \"deleteMoleculePick\";");
+        }
+
+        function minimizeMoleculePick() {
+           var anum = arguments[1].split("#")[1].split(" ")[0];
+           //var anum = arguments[1].split("#")[0].trim();
+           //var anum0 = arguments[1].split("#")[1].split(" ")[0];
+           //var anum1 = parseInt(anum0) - 1;
+           //var anum  = anum1.toString();
+           var scpt = "x = within(molecule,{*}[" + anum + "]); minimize select x only; unbind; set picking identify; set PickCallback \"\";";
+           jms(scpt);
+        }
+        function jmminimizemolecule() {
+           jms0("unbind; unbind \"DOUBLE\"; set picking off;set picking on; set atomPicking true;  set PickCallback \"minimizeMoleculePick\";");
+        }
+
+
+        function hcleanMoleculePick() {
+           var anum = arguments[1].split("#")[1].split(" ")[0];
+           //var anum = arguments[1].split("#")[0].trim();
+           //var anum0 = arguments[1].split("#")[1].split(" ")[0];
+           //alert(anum0);
+           //var anum1 = parseInt(anum0) - 1;
+           //var anum  = anum1.toString();
+           var scpt = "x = within(molecule,{*}[" + anum + "]); delete hydrogens and x; calculate hydrogens x; unbind; set picking identify; set PickCallback \"\";";
+           jms(scpt);
+        }
+        function jmhcleanmolecule() {
+           jms0("unbind; unbind \"DOUBLE\"; set picking off;set picking on; set atomPicking true;  set PickCallback \"hcleanMoleculePick\";");
+        }
+
+
+
+        function centerAtomPick() {
+           //var anum = arguments[1].split("#")[1].split(" ")[0];
+           var anum = arguments[1].split("#")[0].split(" ")[0];
+           var scpt = 'set picking off; unbind; set picking on; set picking identify; set pickingStyle toggle; set PickCallback \"\"; ';
+               scpt += "select "+ anum + "; center selected; "
+           jms0(scpt);
+        }
+        function jmcenteratom() {
+           jms0("unbind; unbind \"DOUBLE\"; set picking off;set picking on; set atomPicking true;  set PickCallback \"centerAtomPick\";");
+        }
+
+        function jmcenterorigin() {
+           var scpt = 'unbind; unbind \"DOUBLE\"; set picking off; set picking on; set picking identify; set pickingStyle toggle; center {0,0,0}';
+           jms0(scpt);
+        }
+
+
+
+        function jmpickatom(symbol0) {
+           var scpt  = "set picking off; set picking on; set atomPicking true; set picking assignatom_";
+           var symbol = symbol0;
+           if (symbol0=='X1'){
+              if (document.getElementById("atomX1").value=="??") {
+                 symbol = prompt("Please enter atom symbol:", "Fe");
+                 document.getElementById("atomX1").value = symbol;
+              } else {
+                 symbol = document.getElementById("atomX1").value;
+              }
+           } 
+           if (symbol0=='X2'){
+              if (document.getElementById("atomX2").value=="??") {
+                 symbol = prompt("Please enter atom symbol:", "Fe");
+                 document.getElementById("atomX2").value = symbol;
+              } else {
+                 symbol = document.getElementById("atomX2").value;
+              }
+           } 
+           if (symbol0=='X3'){
+              if (document.getElementById("atomX3").value=="??") {
+                 symbol = prompt("Please enter atom symbol:", "Fe");
+                 document.getElementById("atomX3").value = symbol;
+              } else {
+                 symbol = document.getElementById("atomX3").value;
+              }
+           } 
+           if (symbol0=='X4'){
+              if (document.getElementById("atomX4").value=="??") {
+                 symbol = prompt("Please enter atom symbol:", "Fe");
+                 document.getElementById("atomX4").value = symbol;
+              } else {
+                 symbol = document.getElementById("atomX4").value;
+              }
+           } 
+           if (symbol0=='X5'){
+              if (document.getElementById("atomX5").value=="??") {
+                 symbol = prompt("Please enter atom symbol:", "Fe");
+                 document.getElementById("atomX5").value = symbol;
+              } else {
+                 symbol = document.getElementById("atomX5").value;
+              }
+           } 
+           if (symbol0=='X6'){
+              if (document.getElementById("atomX6").value=="??") {
+                 symbol = prompt("Please enter atom symbol:", "Fe");
+                 document.getElementById("atomX6").value = symbol;
+              } else {
+                 symbol = document.getElementById("atomX6").value;
+              }
+           } 
+           if (symbol0=='X7'){
+              if (document.getElementById("atomX7").value=="??") {
+                 symbol = prompt("Please enter atom symbol:", "Fe");
+                 document.getElementById("atomX7").value = symbol;
+              } else {
+                 symbol = document.getElementById("atomX7").value;
+              }
+           } 
+           if (symbol0=='Xx'){
+              symbol = prompt("Please enter atom symbol:", "Fe");
+           } 
+           
+           if (document.getElementById("insertatom").value == "++") { 
+              jmaddsmiles(symbol);
+              jminsertatom(false);
+           } else {
+              scpt += symbol;
+              jms(scpt);
+           }
+        }
+        document.getElementById("atomX1").value = "??";
+        document.getElementById("atomX2").value = "??";
+        document.getElementById("atomX3").value = "??";
+        document.getElementById("atomX4").value = "??";
+        document.getElementById("atomX5").value = "??";
+        document.getElementById("atomX6").value = "??";
+        document.getElementById("atomX7").value = "??";
+
+        function fetch_smilesprompt() {
+           var smiles = prompt("Please enter smiles:", "CCO");
+           if (smiles.includes("http")) {
+              alert("Running OSRA for " + smiles);
+              var url = "https://arrows.emsl.pnnl.gov/api/osra/'" + smiles + "'";
+              var ajax = new XMLHttpRequest();
+              ajax.onload = functionName;
+              ajax.onerror = errorFunctionName;
+              ajax.open("GET", url, false); // third parameter is async flag
+              ajax.send();
+              function functionName() {
+                  console.log(this); // log the response
+                  if (this.status == 200) { // request succeeded
+                      // do something with this.responseText;
+                      //alert(this.responseText);
+                      if (this.responseText.includes("OSRA_RESULT:")) {
+                         var allsmiles = this.responseText.split("OSRA_RESULT:")[1].split(":OSRA_RESULT")[0].trim().split("\n"); 
+                         var i,j,tstr,smilesentry,smiles0;
+                         tstr = 'SMILES generated by OSRA:\n';
+                         for (i=0; i<allsmiles.length; ++i) {
+                            j = i+1;
+                            tstr += j.toString() + " " + allsmiles[i] + "\n";
+                         }
+                         smilesentry = prompt(tstr+"Please choose entry:", "1");
+                         i = parseInt(smilesentry) - 1;
+                         smiles0 = allsmiles[i];
+                         smiles = prompt("Please enter smiles:", smiles0);
+                      } else {
+                         smiles = "CCO";
+                      }
+                  } else {
+                      smiles = "CCO";
+                  }
+              }
+              function errorFunctionName(e) {
+                  console.log(this);
+                  console.error(e);
+                  // do something with this.status, this.statusText
+              }
+           }
+           return smiles;
+        }
+
+        function jmaddsmiles(option0) {
+           var smiles,scpt;
+
+           smiles = "["+option0+"]" //default to atom smiles
+
+           if (option0=='H2O'){ 
+              smiles = "O"; 
+           }
+           if (option0=='CH4'){ 
+              smiles = "C"; 
+           }
+           if (option0=='SHE'){ 
+              smiles = "[Mt]"; 
+           }
+           if (option0=='X1'){
+              if (document.getElementById("smilesX1").value=="smiles?") {
+                 //smiles = prompt("Please enter smiles:", "CCO");
+                 smiles = fetch_smilesprompt();
+                 document.getElementById("smilesX1").value = smiles;
+              } else {
+                 smiles = document.getElementById("smilesX1").value;
+              }
+           } 
+           if (option0=='X2'){
+              if (document.getElementById("smilesX2").value=="smiles?") {
+                 //smiles = prompt("Please enter smiles:", "CCO");
+                 smiles = fetch_smilesprompt();
+                 document.getElementById("smilesX2").value = smiles;
+              } else {
+                 smiles = document.getElementById("smilesX2").value;
+              }
+           } 
+           if (option0=='X3'){
+              if (document.getElementById("smilesX3").value=="smiles?") {
+                 //smiles = prompt("Please enter smiles:", "CCO");
+                 smiles = fetch_smilesprompt();
+                 document.getElementById("smilesX3").value = smiles;
+              } else {
+                 smiles = document.getElementById("smilesX3").value;
+              }
+           } 
+           if (option0=='Xx'){
+              smiles = fetch_smilesprompt();
+           } 
+           var scpt = 'set appendNew false; load append smiles \"' + smiles + '\"; select all; select within(molecule,(*)[0]); minimize select selected; ';
+           if (option0=='SHE'){ 
+              var scpt = 'set appendNew false; '
+              scpt += 'data \"append\"|1|testing|Mt 0.22 0.2 0.1|end \"append\"; ';
+              scpt += 'select all; select within(molecule,(*)[0]); minimize select selected; ';
+              scpt += 'select Meitnerium; color atoms TRANSLUCENT orange; label "e-"; color label cpk; ';
+           } else {
+              scpt += 'select {*}[0]; ' 
+           }
+           jms(scpt);
+        }
+        document.getElementById("smilesX1").value = "smiles?";
+        document.getElementById("smilesX2").value = "smiles?";
+        document.getElementById("smilesX3").value = "smiles?";
+
+        function jminsertatom(option0) {
+           if (option0) {
+              document.getElementById("insertatom").value = '++';
+           } else {
+              document.getElementById("insertatom").value = "^^";
+           }
+        }
+        document.getElementById("insertatom").value = "^^";
+
+        function jmspin() {
+           var scpt;
+           var jjj = document.getElementById("jmolspin").value;
+           if  (jjj == "Spin off") {
+              scpt = "Spin off;";
+              document.getElementById("jmolspin").value = "Spin on";
+           } else {
+              scpt = "Spin on;";
+              document.getElementById("jmolspin").value = "Spin off";
+           }
+           jms0(scpt);
+        }
+        document.getElementById("jmolspin").value = "Spin on";
+
+        function jmlabel() {
+           var scpt;
+           var jjj = document.getElementById("jmollabel").value;
+           if  (jjj == "Labels off") {
+              scpt = "select all; label off";
+              document.getElementById("jmollabel").value = "Labels on";
+           } else {
+              scpt = "select all; label %a; ";
+              scpt += 'select Meitnerium; color atoms TRANSLUCENT orange; label "e-"; ';
+              document.getElementById("jmollabel").value = "Labels off";
+           }
+           jms0(scpt);
+        }
+        document.getElementById("jmollabel").value = "Labels on";
+
+        function jmaxes() {
+           var scpt;
+           var jjj = document.getElementById("jmolaxes").value;
+           if  (jjj == "Axes off") {
+              scpt = "unitcell 0; axes 0"
+              document.getElementById("jmolaxes").value = "Axes on";
+           } else {
+              scpt = "unitcell 1; axes 1"
+              document.getElementById("jmolaxes").value = "Axes off";
+           }
+           jms0(scpt);
+        }
+        document.getElementById("jmolaxes").value = "Axes on";
+
+
+        function jmbackground() {
+           var scpt;
+           var jjj = document.getElementById("jmbackcolor").value;
+           if (jjj=="Bckgrnd black") {
+              scpt="background black;";
+              document.getElementById("jmbackcolor").value = "Bckgrnd default";
+           } else {
+              scpt="background [xc6ed80];";
+              document.getElementById("jmbackcolor").value = "Bckgrnd black";
+           }
+           jms0(scpt);
+        }
+        document.getElementById("jmbackcolor").value = "Bckgrnd black";
+
+        function jmlabelcolor() {
+           var scpt;
+           var jjj = document.getElementById("jmlblcolor").value;
+           if (jjj=="Label black") {
+              scpt="select all; color label black;";
+              document.getElementById("jmlblcolor").value = "Label CPK";
+           } else {
+              scpt="select all; color label cpk;";
+              document.getElementById("jmlblcolor").value = "Label black";
+           }
+           jms0(scpt);
+        }
+        document.getElementById("jmlblcolor").value = "Label black";
+
+
+        function jmmodelkit() {
+           var scpt;
+           var jjj = document.getElementById("jmolmodelkit").value;
+           if  (jjj == "ModelKit off") {
+              scpt = "set modelkitMode = false;"
+              document.getElementById("jmolmodelkit").value = "ModelKit on";
+           } else {
+              scpt = "set modelkitMode = true;"
+              document.getElementById("jmolmodelkit").value = "ModelKit off";
+           }
+           jms0(scpt);
+        }
+        document.getElementById("jmolmodelkit").value = "ModelKit off";
+
+        function jmmovemolecule() {
+           jms('unbind; unbind _wheelZoom; unbind "DOUBLE"; set picking off; set picking on; set allowRotateSelected false; set modelKitMode false;');
+           jms('set picking off; set picking ON; set atomPicking true; set allowRotateSelected TRUE; set picking dragmolecule;bind "double" "javascript moveMol(2)";');
+        }
+        function jmmoveatom() {
+           jms('unbind; unbind _wheelZoom; unbind "DOUBLE"; set picking off; set picking on; set allowRotateSelected false; set modelKitMode false;');
+           jms('set picking off; set picking ON; set picking DRAGATOM; bind "double" "javascript moveMol(1)";');
+        }
+        function jmrotatebond() {
+           jms('unbind; unbind _wheelZoom; unbind "DOUBLE"; set picking off; set picking on; set allowRotateSelected false; set modelKitMode false;');
+           jms('set Picking OFF;set Picking ON;set Picking ROTATEBOND;unbind "LEFT-DRAG";bind "LEFT-DRAG" "_rotateBranch";hover off;unbind "WHEEL";bind "WHEEL" "select *;color cpk"');
+        }
+        function jmrotatemolecule() {
+           jms('unbind; unbind _wheelZoom; unbind "DOUBLE"; set picking off; set picking on; set allowRotateSelected false; set modelKitMode false;');
+           jms('set picking off; set picking ON;set atomPicking true;set picking dragmolecule;set allowRotateSelected TRUE;bind "drag" "_rotateselected";bind "double" "javascript moveMol(3)";');
+        }
+
+        function charge_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var charge = eval(jmvar("{*}.formalCharge.sum"));
+           if (arrows_input.includes("^{")) {
+              charge = eval(arrows_input.split("^{")[1].split("}")[0].trim());
+           }
+           return charge;
+        }
+        function mult_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var charge = eval(jmvar("{*}.formalCharge.sum"));
+           if (arrows_input.includes("^{")) {
+              charge = eval(arrows_input.split("^{")[1].split("}")[0].trim());
+           }
+           var mult = (eval(jmvar("{*}.elemno.sum")) + charge) % 2 + 1;
+           if (arrows_input.includes("mult{")) {
+              mult = eval(arrows_input.split("mult{")[1].split("}")[0].trim());
+           }
+           return mult;
+        }
+        function theory_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var theory = "dft";
+           if (arrows_input.includes("theory{")) {
+              theory = arrows_input.split("theory{")[1].split("}")[0].trim();
+           }
+           return theory;
+        }
+        function theory_property_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var theory = "dft";
+           if (arrows_input.includes("theory_property{")) {
+              theory = arrows_input.split("theory_property{")[1].split("}")[0].trim();
+           }
+           return theory;
+        }
+        function basis_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var basis = "default";
+           if (arrows_input.includes("basis{")) {
+              basis = arrows_input.split("basis{")[1].split("}")[0].trim();
+           }
+           return basis;
+        }
+        function basis_property_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var basis = "default";
+           if (arrows_input.includes("basis_property{")) {
+              basis = arrows_input.split("basis_property{")[1].split("}")[0].trim();
+           }
+           return basis;
+        }
+        function basisHZ_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var basis = "default";
+           if (arrows_input.includes("basisHZ{")) {
+              basis = arrows_input.split("basisHZ{")[1].split("}")[0].trim();
+           }
+           return basis;
+        }
+        function basisHZ_property_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var basis = "default";
+           if (arrows_input.includes("basisHZ_property{")) {
+              basis = arrows_input.split("basisHZ_property{")[1].split("}")[0].trim();
+           }
+           return basis;
+        }
+        function xc_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var xc = "b3lyp";
+           if (arrows_input.includes("theory{pspw")) {
+              xc = "pbe";
+           }
+           if (arrows_input.includes("xc{")) {
+              xc = arrows_input.split("xc{")[1].split("}")[0].trim();
+           }
+           return xc;
+        }
+        function xc_property_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var xc = "b3lyp";
+           if (arrows_input.includes("xc_property{")) {
+              xc = arrows_input.split("xc_property{")[1].split("}")[0].trim();
+           }
+           return xc;
+        }
+        function solvation_type_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var solvation_type = "COSMO";
+           if (arrows_input.includes("theory{pspw")) {
+              solvation_type = "None";
+           }
+           if (arrows_input.includes("solvation_type{")) {
+              solvation_type = arrows_input.split("solvation_type{")[1].split("}")[0].trim();
+           }
+           return solvation_type;
+        }
+        function calculation_type_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var calculation_type = "ovcb";
+           if (arrows_input.includes("theory{pspw")) {
+              calculation_type = "ovb";
+           }
+           if (arrows_input.includes("calculation_type{")) {
+              calculation_type = arrows_input.split("calculation_type{")[1].split("}")[0].trim();
+           }
+           return calculation_type;
+        }
+
+
+
+	function readMolecule() {
+		var mol = exMod();
+                jsmeApplet.reset();
+                jsmeApplet.readMolFile(mol);
+	}
+
+	function appendMolecule() {
+		var mol = exMod();
+                jsmeApplet.readMolFile(mol);
+	}
+
+	function readMultipart() {
+		var jme = "9 9 C 6.68 -7.15 C 5.47 -6.45 C 4.26 -7.15 C 4.26 -8.55 C 5.47 -9.25 C 6.68 -8.55 C 5.47 -5.05 O- 6.68 -4.35 O 4.26 -4.35 1 2 1 2 3 2 3 4 1 4 5 2 5 6 1 6 1 2 2 7 1 7 8 1 7 9 2|1 0 Na+ 12.21 -6.61";
+		jsmeApplet.readMolecule(jme) // or document.JME.readMolecule(jme
+	}
+
+	function readReaction() {
+		var jme = "3 2 C:1 1.41 -7.12 O:2 1.41 -5.72 Cl 2.63 -7.82 1 2 2 1 3 1|3 2 N:3 5.72 -6.78 C:4 7.12 -6.78 H:5 5.02 -7.99 1 2 1 1 3 1 >> 5 4 C:1 13.51 -6.40 O:2 13.51 -5.00 N:3 14.72 -7.10 C:4 15.94 -6.40 H:5 14.71 -8.50 1 2 2 1 3 1 3 4 1 3 5 1";
+		jsmeApplet.readMolecule(jme);
+	}
+
+	function getMolfile() {
+		var data = document.JME.molFile();
+		document.getElementById("jme_output").value = data;
+
+	}
+	function getSmiles() {
+                var drawing = document.JME.smiles();
+                document.form.smi.value = drawing;
+	}
+	function appendSmiles() {
+                var drawing = document.JME.smiles();
+                var re = /\./g;
+                drawing = drawing.replace(re, " + ");
+                drawing = drawing.replace(">>"," --> ");
+                document.form2.smi.value += drawing;
+	}
+
+	function appendSmiles2() {
+                //jms("xxsmiles = {1.1}.find(\"SMILES\");");
+                //var drawing = jmvar("xxsmiles");
+                var drawing = jmvar("{1.1}.find(\"SMILES\")");
+                //var re = /\./g;
+                //drawing = drawing.replace(re, " + ");
+                drawing = drawing.replace(">>"," --> ");
+                document.form.smi.value += drawing;
+	}
+
+	function appendXYZ2() {
+           
+             var charge  = charge_arrowsdata();
+             var xyzdat  = jmvar("data({1.1},\"xyz\")");
+             if (xyzdat.includes('Mt')) {
+                var ss = xyzdat.split('\n');
+                xyzdat = ''
+                for (var i=0; i<ss.length; ++i) {
+                   if (!ss[i].includes('Mt')) {
+                      xyzdat += ss[i] + '\n';
+                   }
+                }
+             }
+             var drawing = " xyzdata{" + xyzdat.trim().replace(/\n/g,' | ') + "}";
+             if (charge!=0.0) {
+                drawing += " ^{" + charge.toString() + "}"
+             }
+             document.form.smi.value += drawing;
+	  
+	}
+
+	function convert2XYZ() {
+           var i,n,x,m;
+           var data = editor.getValue(); // or session.getValue
+           var lines = data.split("\n");
+           if (data.includes("V2000")) {
+              data = lines[3].trim().split(" ")[0];
+              n = eval(data);
+              data += "\n\n";
+              n += 4;
+              for (i=4; i<n; i++) {
+                 x = lines[i].trim().split(/[ ,]+/);
+                 data += x[3] + " "; 
+                 data += x[0] + " ";
+                 data += x[1] + " ";
+                 data += x[2] + "\n";
+              }
+              editor.setValue(data);
+           } 
+
+           if (data.includes("geometry")) {
+              n = lines.length;
+              m = 0;
+              x = false;
+              data = "";
+              for (i=0; i<n; i++) {
+                 if (lines[i].includes("geometry")) {
+                    x = true;
+                 } else if (lines[i].includes("end")) {
+                    x = false;
+                 } else if (x) {
+                    data += lines[i] + "\n";
+                    m += 1;
+                 }
+              }
+              data = m.toString() + "\n\n" + data;
+              editor.setValue(data);
+           }
+        } 
+
+        function symbols_ncharge(symbols,q) {
+           var periodic_table_charge = { 'H'  : 1, 'He' : 2, 'Li' : 3, 'Be' : 4, 'B'  : 5, 'C'  : 6, 'N'  : 7, 'O'  : 8, 'F'  : 9, 'Ne' : 10, 'Na' : 11, 'Mg' : 12, 'Al' : 13, 'Si' : 14, 'P'  : 15, 'S'  : 16, 'Cl' : 17, 'Ar' : 18, 'K'  : 19, 'Ca' : 20, 'Sc' : 21, 'Ti' : 22, 'V'  : 23, 'Cr' : 24, 'Mn' : 25, 'Fe' : 26, 'Co' : 27, 'Ni' : 28, 'Cu' : 29, 'Zn' : 30, 'Ga' : 31, 'Ge' : 32, 'As' : 33, 'Se' : 34, 'Br' : 35, 'Kr' : 36, 'Rb' : 37, 'Sr' : 38, 'Y'  : 39, 'Zr' : 40, 'Nb' : 41, 'Mo' : 42, 'Tc' : 43, 'Ru' : 44, 'Rh' : 45, 'Pd' : 46, 'Ag' : 47, 'Cd' : 48, 'In' : 49, 'Sn' : 50, 'Sb' : 51, 'Te' : 52, 'I'  : 53, 'Xe' : 54, 'Cs' : 55, 'Ba' : 56, 'La' : 57, 'Ce' : 58, 'Pr' : 59, 'Nd' : 60, 'Pm' : 61, 'Sm' : 62, 'Eu' : 63, 'Gd' : 64, 'Tb' : 65, 'Dy' : 66, 'Ho' : 67, 'Er' : 68, 'Tm' : 69, 'Yb' : 70, 'Lu' : 71, 'Hf' : 72, 'Ta' : 73, 'W'  : 74, 'Re' : 75, 'Os' : 76, 'Ir' : 77, 'Pt' : 78, 'Au' : 79, 'Hg' : 80, 'Tl' : 81, 'Pb' : 82, 'Bi' : 83, 'Po' : 84, 'At' : 85, 'Rn' : 86, 'Fr' : 87, 'Ra' : 88, 'Ac' : 89, 'Th' : 90, 'Pa' : 91, 'U'  : 92, 'Np' : 93, 'Pu' : 94, 'Am' : 95, 'Cm' : 96, 'Bk' : 97, 'Cf' : 98, 'Es' : 99, 'Fm' : 100, 'Md' : 101, 'No' : 102, 'Lr' : 103, 'Rf' : 104, 'Ha' : 105, 'Sg' : 106, 'Bh' : 107, 'Hs' : 108, 'Mt' : 109 };
+           var i;
+           var ncharge = -q;
+           for (i=0; i<symbols.length; i++) {
+               ncharge += periodic_table_charge[symbols[i]];
+           }
+           return ncharge;
+        }
+
+        function makegaussianbasis(basis,basisHZ,katom) {
+           var i,aa;
+           var periodic_table_charge = { 'H'  : 1, 'He' : 2, 'Li' : 3, 'Be' : 4, 'B'  : 5, 'C'  : 6, 'N'  : 7, 'O'  : 8, 'F'  : 9, 'Ne' : 10, 'Na' : 11, 'Mg' : 12, 'Al' : 13, 'Si' : 14, 'P'  : 15, 'S'  : 16, 'Cl' : 17, 'Ar' : 18, 'K'  : 19, 'Ca' : 20, 'Sc' : 21, 'Ti' : 22, 'V'  : 23, 'Cr' : 24, 'Mn' : 25, 'Fe' : 26, 'Co' : 27, 'Ni' : 28, 'Cu' : 29, 'Zn' : 30, 'Ga' : 31, 'Ge' : 32, 'As' : 33, 'Se' : 34, 'Br' : 35, 'Kr' : 36, 'Rb' : 37, 'Sr' : 38, 'Y'  : 39, 'Zr' : 40, 'Nb' : 41, 'Mo' : 42, 'Tc' : 43, 'Ru' : 44, 'Rh' : 45, 'Pd' : 46, 'Ag' : 47, 'Cd' : 48, 'In' : 49, 'Sn' : 50, 'Sb' : 51, 'Te' : 52, 'I'  : 53, 'Xe' : 54, 'Cs' : 55, 'Ba' : 56, 'La' : 57, 'Ce' : 58, 'Pr' : 59, 'Nd' : 60, 'Pm' : 61, 'Sm' : 62, 'Eu' : 63, 'Gd' : 64, 'Tb' : 65, 'Dy' : 66, 'Ho' : 67, 'Er' : 68, 'Tm' : 69, 'Yb' : 70, 'Lu' : 71, 'Hf' : 72, 'Ta' : 73, 'W'  : 74, 'Re' : 75, 'Os' : 76, 'Ir' : 77, 'Pt' : 78, 'Au' : 79, 'Hg' : 80, 'Tl' : 81, 'Pb' : 82, 'Bi' : 83, 'Po' : 84, 'At' : 85, 'Rn' : 86, 'Fr' : 87, 'Ra' : 88, 'Ac' : 89, 'Th' : 90, 'Pa' : 91, 'U'  : 92, 'Np' : 93, 'Pu' : 94, 'Am' : 95, 'Cm' : 96, 'Bk' : 97, 'Cf' : 98, 'Es' : 99, 'Fm' : 100, 'Md' : 101, 'No' : 102, 'Lr' : 103, 'Rf' : 104, 'Ha' : 105, 'Sg' : 106, 'Bh' : 107, 'Hs' : 108, 'Mt' : 109 };
+           var foundHZ = false;
+           var str = "basis \"ao basis\" cartesian print\n";
+
+           for (i=0; i<katom.length; i++) {
+              aa = katom[i];
+              if (periodic_table_charge[aa]<21) {
+                 if (basis=='default') { 
+                    str += " " + aa + " library \"6-311++G(2d,2p)\"" + "\n";
+                 } else {
+                    str += " " + aa + " library " + basis + "\n";
+                 }
+              } else {
+                 if (basisHZ=='default') {
+                    if (periodic_table_charge[aa]<37) {
+                       str += " " + aa + " library aug-cc-pVTZ" + "\n";
+                    } else if (periodic_table_charge[aa]<87) {
+                       str += " " + aa + " library Def2-TZVPD" + "\n";
+                       foundHZ = true;
+                    } else {
+                       str += " " + aa + " library crenbl_ecp" + "\n";
+                       foundHZ = true;
+                    }
+                 } else {
+                    str += " " + aa + " library " + basisHZ + "\n";
+                    if (periodic_table_charge[aa]>=37) {
+                       foundHZ = true;
+                    }
+                 } 
+              } 
+           }
+           str += "end\n";
+
+           if (foundHZ) { 
+              str += "ecp\n"
+              for (i=0; i<katom.length; i++) {
+                 aa = katom[i];
+                 if (periodic_table_charge[aa]>=37) {
+                    if (basisHZ=='default') { 
+                       if (periodic_table_charge[aa]<87) {
+                          str += " " + aa + " library Def2-TZVPD" + "\n";
+                       } else {
+                          str += " " + aa + " library crenbl_ecp" + "\n";
+                       }
+                    } else {
+                       str += " " + aa + " library " + basisHZ + "\n";
+                    }
+                 }
+              }
+              str += "end\n";
+           }
+           str += "\n";
+           return str;
+        }
+
+	function convert2geometry() {
+           var i,n,x;
+           var symbols = [];
+           var xyz     = [];
+           var data  = editor.getValue(); // or session.getValue
+           var lines = data.split("\n");
+           if (!data.includes("geometry")) {
+              n = eval(lines[0].trim().split(" ")[0]);
+              data = "geometry\n";
+              n += 2;
+              for (i=2; i<n; i++) {
+                 data += lines[i] + "\n";
+                 symbols.push(lines[i].trim().split(/[ ,]+/)[0]);
+                 xyz.push(lines[i].trim().split(/[ ,]+/)[1]);
+                 xyz.push(lines[i].trim().split(/[ ,]+/)[2]);
+                 xyz.push(lines[i].trim().split(/[ ,]+/)[3]);
+              }
+              data = data.trim() + "\n";
+              data += "end\n";
+           } else {
+              n = lines.length;
+              x = false;
+              data = "";
+              for (i=0; i<n; i++) {
+                 if (lines[i].includes("geometry")) {
+                    x = true;
+                    data += lines[i] + "\n";
+                 } else if ((lines[i].includes("end")) && (x)) {
+                    x = false;
+                    data += lines[i] + "\n";
+                 } else if (x) {
+                    data += lines[i] + "\n";
+                    symbols.push(lines[i].trim().split(/[ ,]+/)[0]);
+                    xyz.push(lines[i].trim().split(/[ ,]+/)[1]);
+                    xyz.push(lines[i].trim().split(/[ ,]+/)[2]);
+                    xyz.push(lines[i].trim().split(/[ ,]+/)[3]);
+                 }
+              }
+           } 
+           
+           // Add Header
+           var katom    = jmvar("{*}.find(\"MF\")").replace(/[0-9]/g,'').trim().split(/[ ,]+/);
+           var mformula = jmvar("{*}.find(\"MF\")").replace(/ /g,'');
+           var theory  = theory_arrowsdata();
+           var basis   = basis_arrowsdata();
+           var basisHZ = basisHZ_arrowsdata();
+           var xc      = xc_arrowsdata();
+           var charge  = charge_arrowsdata();
+           var mult    = mult_arrowsdata();
+           var calculation_type = calculation_type_arrowsdata();
+           var solvation_type   = solvation_type_arrowsdata();
+           var jobname = theory + "_" + xc + "_" + mformula;
+
+           x = "title \"swnc: " + calculation_type;
+           x += " theory=" + theory;
+           x += " xc=" + xc;
+           x += " formula=" + mformula;
+           x += " charge=" + charge.toString();
+           x += " mult=" + mult.toString();
+           x += " machinejob:expert" 
+           x += "\" \n\n";
+           x += "echo\n\n"
+           x += "start " + jobname + "\n\n";
+           x += "memory 1900 mb\n\n"
+           x += "charge " + charge.toString() + "\n\n";
+           data = x + data + "\n\n";
+
+           // Add theory
+           x = "";
+           if ((theory=="pspw") || (theory=="pspw4") || (theory=="paw") || (theory=="paw4")) {
+              x = "nwpw\n";
+              if ((theory=="paw")||(theory=="paw4")) {
+                 x += "pseudopotentials\n";
+                 x += " *  library paw_default\n";
+                 x += "end\n";
+              }
+              if (basis=="default") {
+                 x += "  cutoff 50.0\n";
+              }
+              else {
+                 x += "  cutoff " + basis + "\n";
+              }
+              x += "  mult " + mult.toString() + "\n";
+              if (xc=="lda")    {x += "  xc vosko";}
+              if (xc=="pbe")    {x += "  xc pbe96";}
+              if (xc=="blyp")   {x += "  xc blyp";}
+              if (xc=="b3lyp")  {x += "  xc b3lyp";}
+              if (xc=="pbe0")   {x += "  xc pbe0";}
+              if (xc=="m06-2x") {x += "  xc m06-2x";}
+              x += "\n";
+              x += "  lmbfgs\n";
+              x += "end\n\n";
+
+              x += "nwpw\n";
+              x += "  simulation_cell\n";
+              x += "    fcc 38.0\n";
+              if ((theory=="pspw4")||(theory=="paw4")) {x += "    boundary_conditions aperiodic\n";}
+              x += "  end\n";
+              x += "end\n"; 
+
+              data += x;
+      
+           } else if (theory=="dft") {
+
+              x = makegaussianbasis(basis,basisHZ,katom);
+
+              x += "dft\n";
+              x += "  direct\n";
+              x += "  noio\n"; 
+              x += "  grid nodisk\n";
+              x += "  mult " + mult.toString() + "\n";
+              if (xc.includes("pbe0")) { 
+                 x += "  xc pbe";
+              } else if (xc.includes("pbe")) {
+                 x += "  xc xpbe96 cpbe96";
+              }
+              if (xc.includes("blyp"))   {x += "  xc becke88 lyp";}
+              if (xc.includes("b3lyp"))  {x += "  xc b3lyp";}
+              if (xc.includes("m06-2x")) {x += "  xc m06-2x";}
+              x += "\n";
+              if (xc.includes("coarse")) {x += "  grid coarse";}
+              if (xc.includes("fine"))   {x += "  grid fine";}
+              if (xc.includes("xfine"))  {x += "  grid xfine";}
+              x += "\n";
+              x += "  iterations 5001\n";
+              x += "end\n";
+
+              data += x;
+
+           } else if ((theory=="hf") || (theory=="uhf")) {
+              x  = makegaussianbasis(basis,basisHZ,katom);
+              if (mult==1) { 
+                 x += "scf\n";
+                 if (theory=='uhf') {x += "   uhf\n";}
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==2) { 
+                 x += "scf\n";
+                 if (theory=='uhf') {x += "   uhf\n";}
+                 x += "   doublet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==3) { 
+                 x += "scf\n";
+                 if (theory=='uhf') {x += "   uhf\n";}
+                 x += "   triplet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==4) { 
+                 x += "scf\n";
+                 if (theory=='uhf') {x += "   uhf\n";}
+                 x += "   quartet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==5) { 
+                 x += "scf\n";
+                 if (theory=='uhf') {x += "   uhf\n";}
+                 x += "   quintet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+
+              data += x;
+
+           } else if (theory=="mp2") {
+              x  = makegaussianbasis(basis,basisHZ,katom);
+              if (mult==1) { 
+                 x += "scf\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==2) { 
+                 x += "scf\n";
+                 x += "   uhf\n";
+                 x += "   doublet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==3) { 
+                 x += "scf\n";
+                 x += "   uhf\n";
+                 x += "   triplet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==4) { 
+                 x += "scf\n";
+                 x += "   uhf\n";
+                 x += "   quartet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==5) { 
+                 x += "scf\n";
+                 x += "   uhf\n";
+                 x += "   quintet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              x += "mp2\n"; 
+              x += "   freeze atomic\n"; 
+              x += "end\n";
+              x += "set cphf:maxiter 1500\n";
+
+              data += x;
+
+           } else if (theory=="ccsd(t)") {
+              x  = makegaussianbasis(basis,basisHZ,katom);
+              if (mult==1) {
+                 x += "scf\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==2) {
+                 x += "scf\n";
+                 x += "   rohf\n";
+                 x += "   doublet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==3) {
+                 x += "scf\n";
+                 x += "   rohf\n";
+                 x += "   triplet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==4) {
+                 x += "scf\n";
+                 x += "   rohf\n";
+                 x += "   quartet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult==5) {
+                 x += "scf\n";
+                 x += "   rohf\n";
+                 x += "   quintet\n";
+                 x += "   maxiter 501\n";
+                 x += "end\n";
+              }
+              if (mult>1) { 
+                 x += "tce\n";
+                 x += "   freeze atomic\n"; 
+                 x += "   ccsd(t)\n"; 
+                 x += "   io ga\n"; 
+                 x += "   2eorb\n"; 
+                 x += "   2emet 13\n"; 
+                 x += "   tilesize 20\n"; 
+                 x += "end\n";
+              } else {
+                 x += "ccsd\n"; 
+                 x += "   freeze atomic\n";
+                 x += "   maxiter 51\n";
+                 x += "end\n";
+              } 
+
+              data += x;
+           }
+
+           // define cosmo radii
+           var radii=[];
+           var j,xx,yy,zz,r,dsigma;
+           for (i=0; i<symbols.length; i++) {radii.push(0.0); }
+           for (i=0; i<symbols.length; i++) {
+              if (symbols[i]=='H') {radii[i] = 1.172; } 
+              else if (symbols[i]=='N') {radii[i] = 2.126;}
+              else if (symbols[i]=='O') {radii[i] = 1.576;}
+              else if (symbols[i]=='F') {radii[i] = 1.28;}
+              else if (symbols[i]=='P') {radii[i] = 2.279;}
+              else if (symbols[i]=='S') {radii[i] = 2.023;}
+              else if (symbols[i]=='Cl'){radii[i] = 1.75;}
+              else if (symbols[i]=='Al'){radii[i] = 1.404;}
+              else if (symbols[i]=='Si'){radii[i] = 2.457;}
+              else if (symbols[i]=='Br'){radii[i] = 2.16;}
+              else if (symbols[i]=='I') {radii[i] = 2.32;}
+              else if (symbols[i]=='C') { 
+                dsigma = true;
+                for (j=0; j<symbols.length; j++) {
+                   if ((symbols[j]=='C') && (j!=i)) {
+                     xx=xyz[3*i]-xyz[3*j]; yy=xyz[3*i+1]-xyz[3*j+1]; zz=xyz[3*i+2]-xyz[3*j+2];
+                     r = Math.sqrt(xx*xx + yy*yy + zz*zz);
+                     if (r<=1.46) {dsigma = false;}
+                   }
+                }
+                if (dsigma) {
+                   radii[i] = 2.096;
+                } else {
+                   radii[i] = 1.635;
+                }
+              } else {
+                radii[i] = 2.223;
+              }
+           }
+
+
+           // Add tasks
+           var svnt,nup,ndn;
+           var ncharge = symbols_ncharge(symbols,charge);
+           var tasks = calculation_type.split("");
+           if ((theory=="pspw4") || (theory=="paw") || (theory=="paw4")) {theory="pspw";}
+           x = "";
+           for (i=0; i<tasks.length; i++) {
+              if (tasks[i]=="e") {x += "task "+ theory + " energy ignore\n";}
+              if (tasks[i]=="g") {x += "task "+ theory + " gradient\n";}
+              if (tasks[i]=="o") {
+                 x += "\ndriver; default; maxiter 50; clear; end\n";
+                 x += "task "+ theory + " optimize ignore\n";
+              }
+              if (tasks[i]=="v") {x += "task "+ theory + " freq numerical\n";}
+              if (tasks[i]=="w") {x += "task "+ theory + " freq\n";}
+              if (tasks[i]=="c") { 
+                 if (solvation_type.includes("COSMO-SMD")) { 
+                    if (solvation_type.includes(":")) { 
+                       svnt = solvation_type.split(":")[1];
+                    } else {
+                       svnt = "h2o";
+                    }
+                    x += "cosmo\n"
+                    x += "   do_cosmo_smd .true.\n";
+                    x += "   solvent " + svnt + "\n";
+                    x += "\nend\n"
+                    x += "task " + theory + " energy ignore\n";
+                 } else if (solvation_type=='COSMO') { 
+                    x += "unset dft:converged\n";
+                    x += "unset scf:converged\n";
+                    x += "cosmo\n";
+                    x += "   do_gasphase .true.\n";
+                    x += "   rsolv  0.0\n";
+                    x += "   ifscrn 2\n";
+                    x += "   minbem 3\n";
+                    x += "   maxbem 3\n";
+                    x += "   radius ";
+                    for (j=0; j<radii.length; j++) {
+                      x +=  radii[j].toString() + " ";
+                    }
+                    x += "\nend\n";
+                    x += "task " + theory + " energy ignore\n";
+                 }
+              }
+              if (tasks[i]=="b") { 
+                 if ((theory=="pspw") && (mult==1)) {
+                    x += "\n\n### Generating HOMO and LUMO Gaussian cube files ###\n";
+                    x += "nwpw\n";
+                    x += "   virtual 8\n";
+                    x += "   dplot\n";
+                    x += "      orbital 1 homo-restricted.cube\n";
+                    x += "      density total density.cube\n";
+                    x += "   end\n";
+                    x += "end\n";
+                    x += "task pspw energy ignore\n";
+                    x += "task pspw pspw_dplot\n\n";
+                    x +=  "nwpw\n";
+                    x += "   dplot\n";
+                    x += "      vectors " + jobname + ".emovecs\n";
+                    x += "      orbital 1 lumo-restricted.cube\n";
+                    x += "   end\n";
+                    x += "end\n";
+                    x += "task pspw pspw_dplot\n\n";
+                 }
+                 if ((theory=="pspw") && (mult>1)) {
+                    ndn = (ncharge-mult+1)/2;
+                    nup = ndn + mult - 1;
+                    x += "\n\n### Generating HOMO and LUMO Gaussian cube files ###\n";
+                    x +=  "nwpw\n";
+                    x += "   virtual 8\n";
+                    x += "   dplot\n";
+                    x += "      orbital 1         homo-alpha.cube\n";
+                    if (ndn>0) {
+                       x += "      orbital 123456789 homo-beta.cube\n";
+                    } else {
+                       x += "      orbital 1 homo-beta.cube\n";
+                    }
+                    x += "      density total density.cube\n";
+                    x += "   end\n";
+                    x += "end\n";
+                    x += "task pspw energy ignore\n";
+                    x += "task pspw pspw_dplot\n\n";
+                    x +=  "nwpw\n";
+                    x += "   dplot\n";
+                    x += "      vectors " + jobname + ".emovecs\n";
+                    x += "      orbital 1 lumo-alpha.cube\n";
+                    x += "      orbital 123456789 lumo-beta.cube\n";
+                    x += "   end\n";
+                    x += "end\n";
+                    x += "task pspw pspw_dplot\n\n";
+                 }
+                 if (((theory=="dft")||(theory=="hf")) && (mult==1)) {
+                    nup = ncharge/2;
+                    ndn = nup+1;
+                    x += "\n\n### Generating HOMO and LUMO Gaussian cube files ###\n";
+                    x += "dplot\n";
+                    x += "   TITLE HOMO_Orbital\n";
+                    x += "   vectors " + jobname + ".movecs\n" 
+                    x += "   LimitXYZ\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   spin total\n";
+                    x += "   orbitals view\n";
+                    x += "   1\n";
+                    x += "  " +  nup.toString() + "\n";
+                    x += "   gaussian\n";
+                    x += "   output homo-restricted.cube\n";
+                    x += "end\n";
+                    x += "task dplot\n";
+                    x += "dplot\n";
+                    x += "   TITLE LUMO_Orbital\n";
+                    x += "   vectors " + jobname + ".movecs\n" 
+                    x += "   LimitXYZ\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   spin total\n";
+                    x += "   orbitals view\n";
+                    x += "   1\n";
+                    x += "   " + ndn.toString() + "\n";
+                    x += "   gaussian\n";
+                    x += "   output lumo-restricted.cube\n";
+                    x += "end\n";
+                    x += "task dplot\n";
+                 }
+                 if (((theory=="dft")||(theory=="hf")) && (mult>1)) {
+                    ndn = (ncharge-mult+1)/2;
+                    nup = ndn + mult - 1;
+                    var nup1 = nup + 1;
+                    var ndn1 = ndn + 1;
+                    x += "\n\n### Generating HOMO and LUMO Gaussian cube files ###\n";
+                    x += "dplot\n";
+                    x += "   TITLE HOMO_Alpha_Orbital\n";
+                    x += "   vectors " + jobname + ".movecs\n" ;
+                    x += "   LimitXYZ\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   spin alpha\n";
+                    x += "   orbitals view\n";
+                    x += "   1\n";
+                    x += "   " + nup.toString() + "\n";
+                    x += "   gaussian\n";
+                    x += "   output homo-alpha.cube\n";
+                    x += "end\n";
+                    x += "task dplot\n";
+                    x += "dplot\n";
+                    x += "   TITLE LUMO_Alpha_Orbital\n";
+                    x += "   vectors " + jobname + ".movecs\n" ;
+                    x += "   LimitXYZ\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   spin alpha\n";
+                    x += "   orbitals view\n";
+                    x += "   1\n";
+                    x += "   " + nup1.toString() + "\n";
+                    x += "   gaussian\n";
+                    x += "   output lumo-alpha.cube\n";
+                    x += "end\n";
+                    x += "task dplot\n";
+                    x += "dplot\n";
+                    x += "   TITLE HOMO_Beta_Orbital\n";
+                    x += "   vectors " + jobname + ".movecs\n";
+                    x += "   LimitXYZ\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   spin beta\n";
+                    x += "   orbitals view\n";
+                    x += "   1\n";
+                    if (ndn>0) {
+                       x += "   " + ndn.toString() + "\n";
+                    } else {
+                       x += "   " + ndn1.toString() + "\n";
+                    }
+                    x += "   gaussian\n";
+                    x += "   output homo-beta.cube\n";
+                    x += "end\n";
+                    x += "task dplot\n";
+                    x += "dplot\n";
+                    x += "   TITLE LUMO_Beta_Orbital\n";
+                    x += "   vectors " + jobname + ".movecs\n";
+                    x += "   LimitXYZ\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   -15.0 15.0 96\n";
+                    x += "   spin beta\n";
+                    x += "   orbitals view\n";
+                    x += "   1\n";
+                    x += "   " + ndn1.toString() + "\n";
+                    x += "   gaussian\n";
+                    x += "   output lumo-beta.cube\n";
+                    x += "end\n";
+                    x += "task dplot\n";
+                 }
+
+              }
+           }
+           data += x;
+
+           editor.setValue(data);
+
+        }
+
+
+	function clearSmiles() {
+                document.form.smi.value = ""
+	}
+	function clearSmiles2() {
+                document.form2.smi.value = ""
+	}
+
+        function emailSmiles() {
+                var email=('arrows@emsl.pnnl.gov');
+                var subject = (document.form.smi.value);
+                var subjectEncoded = encodeURIComponent(subject);
+                var body = ('I am the body of the feedback that you are sending.');
+                var link = 'mailto:'+email+'?subject='+subjectEncoded;
+                window.location.href = link;
+                //document.write( '<a href="mailto:' + email +
+                //                '?subject=' +subject+
+                //                '">' + 'Click here to send email to arrows' + '<' + '/a>');
+        }
+
+	function getJMEstring() {
+		var data = document.JME.jmeFile();
+		document.getElementById("jme_output").value = data;
+	}
+
+        function enternroots() {
+           var nroots0 = 1;
+           var nroots = prompt("Please enter the number of excited states (nroots):", nroots0);
+           if (document.form.smi.value.includes("qsharp_chem_nroots{")) {
+              rr = document.form.smi.value.split("qsharp_chem_nroots{")[1].split("}")[0];
+              rr = "qsharp_chem_nroots{" + rr + "}";
+              document.form.smi.value = document.form.smi.value.replace(rr,"");
+           }
+
+           document.form.smi.value += " qsharp_chem_nroots{"+nroots+"}";
+        }
+
+        function enterfilling() {
+           var norbs = prompt("Please enter the number of orbitals:", 2);
+           var na    = prompt("Please enter the number of up electrons:", 1);
+           var nb    = prompt("Please enter the number of down electrons:", 1);
+           if (document.form.smi.value.includes("qsharp_chem_filling{")) {
+              rr = document.form.smi.value.split("qsharp_chem_filling{")[1].split("}")[0];
+              rr = "qsharp_chem_filling{" + rr + "}";
+              document.form.smi.value = document.form.smi.value.replace(rr,"");
+           }
+
+           document.form.smi.value += " qsharp_chem_filling{"+norbs + " " + na + " " + nb+"}";
+        }
+      
+
+        function entermult() {
+           var rr;
+           var mult0 = mult_arrowsdata();
+           var mult = prompt("Please enter multiplicity:", mult0);
+           if (document.form.smi.value.includes("mult{")) {
+              rr = document.form.smi.value.split("mult{")[1].split("}")[0];
+              rr = "mult{" + rr + "}";
+              document.form.smi.value = document.form.smi.value.replace(rr,"");
+           }
+           document.form.smi.value += " mult{"+mult+"}";
+        }
+        function entercharge() {
+           var rr;
+           var charge0 = charge_arrowsdata();
+           var charge = prompt("Please enter charge:", charge0);
+           if (document.form.smi.value.includes("^{")) {
+              rr = document.form.smi.value.split("^{")[1].split("}")[0];
+              rr = "^{" + rr + "}";
+              document.form.smi.value = document.form.smi.value.replace(rr,"");
+           }
+           document.form.smi.value += " ^{"+charge+"}";
+        }
+
+
+        function sleep(milliseconds) {
+            var start = new Date().getTime();
+            for (var i = 0; i < 1e7; i++) {
+               if ((new Date().getTime() - start) > milliseconds){
+                  break;
+               }
+            }
+        }
+
+        function Confirm(form){
+            //alert("Record insert successfully!");
+            //var mytext = "Your Arrows job for " + document.form.smi.value + " is running. Please be patient for it to finish.";
+            var mytext = "Your Arrows job is running. Please be patient for it to finish.";
+            document.getElementById('runmebanner').innerHTML=mytext;
+            document.getElementById('runmebanner2').innerHTML=mytext;
+
+            //var node = document.getElementById('runmebanner');
+            //while (node.firstChild) node.removeChild( node.firstChild);
+            //node.appendChild(document.createTextNode(mytext)); 
+            sleep(250);
+            form.submit();
+        }
+
+
+        function txspressed(button0) {
+           var mystr = document.form.smi.value;
+           var headstr   = "";
+           var tailstr   = "";
+           var theorystr = "qsharp_chem";
+           var xcstr     = "";
+           var solvstr   = "";
+           var basisstr  = "";
+
+           if (mystr.includes("theory{") || mystr.includes("xc{") || mystr.includes("solvation_type{") || mystr.includes("basis{")) {
+              ss = mystr.trim().split(" ");
+              sslen = ss.length;
+              for (var i=0; i<sslen; ++i) {
+                 if (ss[i].includes("theory{") || ss[i].includes("xc{") || ss[i].includes("solvation_type{") || ss[i].includes("basis{")) {
+                    tailstr += ss[i] + " "
+                 } 
+                 else {
+                    headstr += ss[i] + " "
+                 }
+              }
+              headstr = headstr.trim();
+              tailstr = tailstr.trim();
+           }
+           else {
+              headstr = mystr.trim();
+           }
+
+           if (tailstr.includes("theory{")) {
+              theorystr = tailstr.split("theory{")[1].split("}")[0].trim();
+           }
+
+           if (tailstr.includes("xc{")) {
+              xcstr = tailstr.split("xc{")[1].split("}")[0].trim();
+           }
+
+           if (tailstr.includes("solvation_type{")) {
+              solvstr = tailstr.split("solvation_type{")[1].split("}")[0].trim();
+           }
+
+           if (tailstr.includes("basis{")) {
+               basisstr = tailstr.split("basis{")[1].split("}")[0].trim();
+           }
+
+           if (button0=="qsharp_chem") { theorystr = "qsharp_chem"; }
+
+           if (button0=="sto-3g")          { basisstr = "sto-3g"; }
+           if (button0=="6-31G*")          { basisstr = "6-31G*"; }
+           if (button0=="6-311++G(2d,2p)") { basisstr = "6-311++G(2d,2p)"; }
+
+
+           // remove conflicting options
+
+           // set the button colors
+           var color1="background-color:#f8f8ff; color:#298DB4;";
+           var color2="background-color:#f8f8ff; color:#74A52B;";
+
+
+           // set the esmiles string
+           document.form.smi.value = headstr;
+           //if ((theorystr!="") || (xcstr!="") || (solvstr!="")) { document.form.smi.value += " ~ "; }
+           if ((headstr.includes("-->") || headstr.includes("==>"))  && (!headstr.includes("~"))) { document.form.smi.value += " ~ "; }
+           if (theorystr!="") { document.form.smi.value += " theory{" + theorystr + "}"; }
+           if (xcstr!="")     { document.form.smi.value += " xc{" + xcstr + "}"; }
+           if (solvstr!="")   { document.form.smi.value += " solvation_type{" + solvstr + "}"; }
+           if (basisstr!="")   { document.form.smi.value += " basis{" + basisstr + "}"; }
+
+        }
+
+
+        function txspressed2(button0) {
+           var mystr = document.form2.smi.value;
+           var headstr   = "";
+           var tailstr   = "";
+           var theorystr = "qsharp_chem";
+           var xcstr     = "";
+           var solvstr   = "";
+           var basisstr  = ""
+
+           if (mystr.includes("theory{") || mystr.includes("xc{") || mystr.includes("solvation_type{") || mystr.includes("basis{")) {
+              ss = mystr.trim().split(" ");
+              sslen = ss.length;
+              for (var i=0; i<sslen; ++i) {
+                 if (ss[i].includes("theory{") || ss[i].includes("xc{") || ss[i].includes("solvation_type{") || ss[i].includes("basis{")) {
+                    tailstr += ss[i] + " "
+                 } 
+                 else {
+                    headstr += ss[i] + " "
+                 }
+              }
+              headstr = headstr.trim();
+              tailstr = tailstr.trim();
+           }
+           else {
+              headstr = mystr.trim();
+           }
+
+           if (tailstr.includes("theory{")) {
+              theorystr = tailstr.split("theory{")[1].split("}")[0].trim();
+           }
+
+           if (tailstr.includes("xc{")) {
+              xcstr = tailstr.split("xc{")[1].split("}")[0].trim();
+           }
+
+           if (tailstr.includes("solvation_type{")) {
+              solvstr = tailstr.split("solvation_type{")[1].split("}")[0].trim();
+           }
+
+           if (tailstr.includes("basis{")) {
+               basisstr = tailstr.split("basis{")[1].split("}")[0].trim();
+           }
+
+           if (button0=="qsharp_chem") { theorystr = "qsharp_chem"; }
+
+           if (button0=="sto-3g")          { basisstr = "sto-3g"; }
+           if (button0=="6-31G*")          { basisstr = "6-31G*"; }
+           if (button0=="6-311++G(2d,2p)") { basisstr = "6-311++G(2d,2p)"; }
+
+
+           // remove conflicting options
+
+           // set the button colors
+           var color1="background-color:#f8f8ff; color:#298DB4;";
+           var color2="background-color:#f8f8ff; color:#74A52B;";
+
+
+           // set the esmiles string
+           document.form2.smi.value = headstr;
+           //if ((theorystr!="") || (xcstr!="") || (solvstr!="")) { document.form2.smi.value += " ~ "; }
+           if ((headstr.includes("-->") || headstr.includes("==>"))  && (!headstr.includes("~"))) { document.form2.smi.value += " ~ "; }
+           if (theorystr!="") { document.form2.smi.value += " theory{" + theorystr + "}"; }
+           if (xcstr!="")     { document.form2.smi.value += " xc{" + xcstr + "}"; }
+           if (solvstr!="")   { document.form2.smi.value += " solvation_type{" + solvstr + "}"; }
+           if (basisstr!="")   { document.form2.smi.value += " basis{" + basisstr + "}"; }
+
+        }
+
+
+
+
+</script>
+
+
+</head>
+
+
+<body onload="jmolOnLoad()">
+
+
+	<!-- RECOMMENDED if your web app will not function without JavaScript enabled -->
+    <noscript>
+	<div style="width: 22em; position: absolute; left: 50%; margin-left: -11em; color: red; background-color: white; border: 1px solid red; padding: 4px; font-family: sans-serif">
+   Your web browser must have JavaScript enabled in order for this
+    application to display correctly.</div>
+    </noscript>
+
+        <table> <tr>
+         <td><center> <a href="https://dl.dropboxusercontent.com/s/ttekdmkebqdfjma/arrows4.png"> <img src="https://dl.dropboxusercontent.com/s/ttekdmkebqdfjma/arrows4.png" alt="Copyright Arrows Logo" width="500" height="250"> </a> </center>
+           <font color="298DB4"><p> {{ calculations }}</b> Arrows calculations carried out to date <br>
+                                    {{ moleculecalculations }} Molecular calculations in database to date </p></font>
+        </td>
+        <td>
+         <center><font color="4A9FF9" size="+2"> <p><b>EMSL Arrows Builder for Microsoft Quantum Development Kit</b></p></font></center>
+         <font color="1E1C2A" size="+1"><p align="center"> EMSL Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email.</p></font>
+          <p align="center"><a href="https://www.microsoft.com/en-us/quantum/development-kit">Click here for the Microsoft Quantum Development Kit manual</a> </p>
+          <p align="center"><a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Click here for the EMSL Arrows manual</a> </p>
+        </td>
+       </tr>
+       <tr>  <p> <a href="https://arrows.emsl.pnnl.gov/api">Switch to 2D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/3dbuilder">Switch to 3D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/expert">Switch to Expert Editor</a> &nbsp; </p>
+       </tr>
+       </table>
+
+
+<!-- Tab links -->
+<div class="tab">
+  <button class="tablinks" onclick="openCity(event, 'Arrows Entry - 2D Builder')" id="defaultOpen">Arrows Entry - 2D Builder</button>
+  <button class="tablinks" onclick="openCity(event, 'Arrows Entry - 3D Builder')">Arrows Entry - 3D Builder</button>
+  <button class="tablinks" onclick="openCity(event, 'NWChem Input Entry')">NWChem Input Entry</button>
+</div>
+
+<!-- Tab content -->
+<div id="Arrows Entry - 3D Builder" class="tabcontent">
+
+    <h2>Enter an <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>, <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#ESMILES_Reactions_-_How_to_Calculate_Reaction_Energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
+
+
+    <form action="." name="form"  method="POST">
+       <table>
+          <tr>
+             <!--td> <input type="text" name="smi" SIZE=120> </td-->
+             <td> <textarea  name="smi" rows="10" cols="140"></textarea></td>
+             <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
+             <td> <input type="button" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
+          </tr>
+          <tr>
+             <td> <INPUT TYPE="button" VALUE="Append SMILES from JSMol Editor" onClick="appendSmiles2()"> &nbsp;
+                  <INPUT TYPE="button" VALUE="Append xyzdata{} from JSMol Editor" onClick="appendXYZ2()"> &nbsp;
+                  <INPUT TYPE="button" VALUE="no html5" 
+                          onClick="document.form.smi.value+=' nohtml5'" >
+                  <INPUT TYPE="button" VALUE="Clear" onClick="clearSmiles()"> </td>
+             <td> <INPUT TYPE="button" VALUE="Email Submit" onClick="emailSmiles()"> </td>
+          </tr>
+       </table>
+    </form>
+   <section class="blink" style="color: red"> <b id="runmebanner"> </b> </section> 
+    <br>
+    <FORM METHOD="POST" ONSUBMIT="return false;">
+       <INPUT TYPE="button" VALUE="theory{qsharp_chem}" id="qsharp_chem"
+              onClick="txspressed('qsharp_chem')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="filling" 
+              onClick="enterfilling()" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="nroots" 
+              onClick="enternroots()" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="basis{sto-3g}" id="sto-3g"
+              onClick="txspressed('sto-3g')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+
+       <INPUT TYPE="button" VALUE="basis{6-31G*}" id="6-31G*"
+              onClick="txspressed('6-31G*')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="basis{6-311++G(2d,2p)}" id="6-311++G(2d,2p)"
+              onClick="txspressed('6-311++G(2d,2p)')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <br>
+       <INPUT TYPE="button" VALUE="-->" 
+              onClick="document.form.smi.value+=' --> '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="+" 
+              onClick="document.form.smi.value+=' + '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="~" 
+              onClick="document.form.smi.value+=' ~ '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="1" 
+              onClick="document.form.smi.value+='1'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="2" 
+              onClick="document.form.smi.value+='2'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="3" 
+              onClick="document.form.smi.value+='3'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="4" 
+              onClick="document.form.smi.value+='4'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="5" 
+              onClick="document.form.smi.value+='5'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="6" 
+              onClick="document.form.smi.value+='6'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="7" 
+              onClick="document.form.smi.value+='7'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="8" 
+              onClick="document.form.smi.value+='8'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="9" 
+              onClick="document.form.smi.value+='9'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="0" 
+              onClick="document.form.smi.value+='0'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE=" " 
+              onClick="document.form.smi.value+=' '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="charge" 
+              onClick="entercharge()" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="mult" 
+              onClick="entermult()" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+    </FORM>
+
+
+    <table> 
+       <!--  start of jsmol block -->
+       <tr> 
+            <td align="left" id="jsmoldiv"></td>
+            <td>
+               <table>
+                   <tr><td align="center"> JSMol Builder Options </td> </tr>
+                   <tr> <td id="jsmolbtns"></td></tr>
+                   <tr>
+                      <td>
+                         <input type="button" value="Center atom"  onClick="jmcenteratom()"/> 
+                         <input type="button" value="Origin"  onClick="jmcenterorigin()"/> 
+                         <input type="button" value="Console" onClick="jms0('console;')"/> 
+                         <input type="button" value="Reset pointer"  onClick="jmresetPointer()"/> 
+                      </td>
+                   </tr>
+                   <tr>
+                      <td>
+                         <table>
+                            <tr>
+                               <td>
+                                  <table align="center">
+                                     <tr>
+                                        <td> <input type="button" value="H " onClick="jmpickatom('H')" style="background-color:#f8f8ff; color:#606f7d; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="B " onClick="jmpickatom('B')" style="background-color:#f8f8ff; color:#ff6699; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="C " onClick="jmpickatom('C')" style="background-color:#f8f8ff; color:#000000; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="N " onClick="jmpickatom('N')" style="background-color:#f8f8ff; color:#1f2bd5; font-weight:bold"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" value="O " onClick="jmpickatom('O')"  style="background-color:#f8f8ff; color:#e6000d; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="F " onClick="jmpickatom('F')"  style="background-color:#f8f8ff; color:#7ed83d; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="Al" onClick="jmpickatom('Al')" style="background-color:#f8f8ff; color:#a08c8c; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="Si" onClick="jmpickatom('Si')" style="background-color:#f8f8ff; color:#dcaf82; font-weight:bold"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" value="P " onClick="jmpickatom('P')"  style="background-color:#f8f8ff; color:#e6640a; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="S " onClick="jmpickatom('S')"  style="background-color:#f8f8ff; color:#cccc00; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="Cl" onClick="jmpickatom('Cl')" style="background-color:#f8f8ff; color:#23c814; font-weight:bold"/> </td>
+                                        <td> <input type="button" value="Br" onClick="jmpickatom('Br')" style="background-color:#f8f8ff; color:#8c191e; font-weight:bold"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" name="atomX1" id="atomX1" value="??" onClick="jmpickatom('X1')"/> </td>
+                                        <td> <input type="button" name="atomX2" id="atomX2" value="??" onClick="jmpickatom('X2')"/> </td>
+                                        <td> <input type="button" name="atomX3" id="atomX3" value="??" onClick="jmpickatom('X3')"/> </td>
+                                        <td> <input type="button" name="atomX4" id="atomX4" value="??" onClick="jmpickatom('X4')"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" name="atomX5" id="atomX5" value="??" onClick="jmpickatom('X5')"/> </td>
+                                        <td> <input type="button" name="atomX6" id="atomX6" value="??" onClick="jmpickatom('X6')"/> </td>
+                                        <td> <input type="button" name="atomX7" id="atomX7" value="??" onClick="jmpickatom('X7')"/> </td>
+                                        <td> <input type="button" value="Xx" onClick="jmpickatom('Xx')"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" value="Q+" onClick="jms('set picking assignAtom_pl')"</td>
+                                        <td> <input type="button" value="Q-" onClick="jms('set picking assignAtom_mi')"</td>
+                                        <td> <input type="button" value="e-" onClick="jmaddsmiles('SHE')"</td>
+                                        <td> <input type="button" name="insertatom" id="insertatom" value="^^" onClick="jminsertatom(true)"</td>
+                                     </tr>
+                                  </table>
+                               <td/>
+                               <td>
+                                  <table align="center">
+                                     <tr>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" class="button2" value="Move atom"  onClick="jmmoveatom()"/> </td>
+                                        <td> <input type="button" class="button2" value="Move mol."  onClick="jmmovemolecule()"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" class="button2" value="Drag atom" onClick="jms('set picking dragMinimize')"/> </td>
+                                        <td> <input type="button" class="button2" value="Docking" onClick="jms('set picking dragMinimizeMolecule')"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" class="button2" value="Rotate bond"  onClick="jmrotatebond()"/> </td>
+                                        <td> <input type="button" class="button2" value="Rotate mol."  onClick="jmrotatemolecule()"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" class="button2" value="Corr. H" onClick="jms('delete hydrogen;calculate hydrogens')"/> </td>
+                                        <td> <input type="button" class="button2" value="Corr. H mol." onClick="jmhcleanmolecule()"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" class="button2" value="Opt. all" onClick="jms('select xenon;select unselected;minimize steps 100; select *; wireframe 0.15; spacefill 23%; boundbox {*}; centerat boundbox; zoom 0; javascript echo(globalVar)')"/> </td>
+                                        <td> <input type="button" class="button2" value="Opt. mol." onClick="jmminimizemolecule()"/> </td>
+                                     </tr>
+                                     <tr>
+                                        <td> <input type="button" class="button2" value="Undo" onClick="jm_cmdlist_undo()"/> </td>
+                                        <td> <input type="button" class="button2" value="Redo" onClick="jm_cmdlist_redo()"/> </td>
+                                     </tr>
+                                  </table>
+                               </td>
+                            <tr/>
+                         </table>
+                      </td>
+                   </tr>
+                   <tr>
+                      <td>
+                         <table>
+                            <tr>
+                               <td> <input type="button" class="button3" value="Add H2O" onClick="jmaddsmiles('H2O')"</td>
+                               <td> <input type="button" class="button3" value="Add CH4" onClick="jmaddsmiles('CH4')"</td>
+                               <td> <input type="button" class="button3" value="Add smiles" onClick="jmaddsmiles('Xx')"</td>
+                            </tr>
+                            <tr>
+                               <td> <input type="button" class="button3" name="smilesX1" id="smilesX1" value="smiles?" onClick="jmaddsmiles('X1')"</td>
+                               <td> <input type="button" class="button3" name="smilesX2" id="smilesX2" value="smiles?" onClick="jmaddsmiles('X2')"</td>
+                               <td> <input type="button" class="button3" name="smilesX3" id="smilesX3" value="smiles?" onClick="jmaddsmiles('X3')"</td>
+                            </tr>
+                            <tr>
+                               <td> <input type="button" class="button3" value="Single" onClick="jms('hover on; set picking assignBond_1; hover off')"/> </td>
+                               <td> <input type="button" class="button3" value="Double" onClick="jms('hover on; set picking assignBond_2; hover off')"/> </td>
+                               <td> <input type="button" class="button3" value="Triple" onClick="jms('hover on; set picking assignBond_3; hover off')"/> </td>
+                            </tr>
+                            <tr>
+                               <td> <input type="button" class="button3" value="Delete atom" onClick="jms('set picking off; set picking on; set atomPicking true;set picking DELETEATOM')"/> </td>
+                               <td> <input type="button" class="button3" value="Delete bond" onClick="jms('hover on; set picking assignBond_0; hover off')"/> </td>
+                               <td> <input type="button" class="button3" value="Delete mol." onClick="jmdeletemolecule()"/> </td>
+                            </tr>
+                            <tr> <td> </td> </tr>
+                            <tr> <td> </td> </tr>
+                            <tr>
+                               <td> <input type="button" class="button3" value="Length" onClick="jms0('set picking off;set picking on;set pickingstyle MEASURE; set picking MEASURE DISTANCE')"/> </td>
+                               <td> <input type="button" class="button3" value="Angle" onClick="jms0('set picking off;set picking on;set pickingstyle MEASURE; set picking MEASURE ANGLE')"/> </td>
+                               <td> <input type="button" class="button3" value="Torsion" onClick="jms0('set picking off;set picking on; set pickingstyle MEASURE; set picking MEASURE TORSION')"/> </td>
+                            </tr>
+                            <tr>
+                               <td> <input type="button" class="button3" name="jmolspin" id="jmolspin" value="Spin on" onClick="jmspin()"/> </td>
+                               <td> <input type="button" class="button3" name="jmolaxes" id="jmolaxes" value="Axes on" onClick="jmaxes()"/>  </td>
+                               <td> <input type="button" class="button3" name="jmollabel" id="jmollabel" value="Labels on" onClick="jmlabel()"/>  </td>
+                            </tr>
+                            <tr>
+                               <td> <input type="button" class="button3" name="jmlblcolor" id="jmlblcolor" value="Label black" onClick="jmlabelcolor()"/>  </td>
+                               <td> <input type="button" class="button3" name="jmbackcolor" id="jmbackcolor" value="Bckgrnd black" onClick="jmbackground()"/>  </td>
+                               <td> <input type="button" class="button3" value="Redraw" onClick="jmredrawMolecule()"/>  </td>
+                            </tr>
+                            <tr>
+                               <td> <input type="button" class="button3" name="jmolmodelkit" id="jmolmodelkit" value="ModelKit off"  onClick="jmmodelkit()"/>  </td>
+                               <td> <input type="button" class="button3" value="Clean restart"  onClick="jmreset()"/>  </td>
+                            </tr>
+                         </table>
+                      </td>
+                   </tr>
+
+               </table>
+            </td>
+       </tr> 
+       <!--  end of jsmol block -->
+    </table>
+    <!--  end of jsmol table -->
+
+</div>
+
+<div id="Arrows Entry - 2D Builder" class="tabcontent">
+
+    <h2>Enter an <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>, <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#ESMILES_Reactions_-_How_to_Calculate_Reaction_Energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
+
+
+    <form action="." name="form2"  method="POST">
+       <table>
+          <tr>
+             <!--td> <input type="text" name="smi" SIZE=120> </td-->
+             <td> <textarea  name="smi" rows="10" cols="140"></textarea></td>
+             <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
+             <td> <input type="button" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
+          </tr>
+          <tr>
+             <td> <INPUT TYPE="button" VALUE="Append SMILES from JSME Editor" onClick="appendSmiles()"> &nbsp;
+                  <INPUT TYPE="button" VALUE="no html5" 
+                          onClick="document.form2.smi.value+=' nohtml5'" >
+                  <INPUT TYPE="button" VALUE="Clear" onClick="clearSmiles2()"> </td>
+             <td> <INPUT TYPE="button" VALUE="Email Submit" onClick="emailSmiles()"> </td>
+          </tr>
+       </table>
+    </form>
+   <section class="blink" style="color: red"> <b id="runmebanner2"> </b> </section> 
+    <br>
+    <FORM METHOD="POST" ONSUBMIT="return false;">
+       <INPUT TYPE="button" VALUE="theory{qsharp_chem}" id="qsharp_chem"
+              onClick="txspressed2('qsharp_chem')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="filling" 
+              onClick="enterfilling2()" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="nroots" 
+              onClick="enternroots2()" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="basis{sto-3g}" id="sto-3g"
+              onClick="txspressed2('sto-3g')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+
+       <INPUT TYPE="button" VALUE="basis{6-31G*}" id="6-31G*"
+              onClick="txspressed2('6-31G*')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="basis{6-311++G(2d,2p)}" id="6-311++G(2d,2p)"
+              onClick="txspressed2('6-311++G(2d,2p)')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <br>
+       <INPUT TYPE="button" VALUE="-->" 
+              onClick="document.form2.smi.value+=' --> '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="+" 
+              onClick="document.form2.smi.value+=' + '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="~" 
+              onClick="document.form2.smi.value+=' ~ '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="1" 
+              onClick="document.form2.smi.value+='1'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="2" 
+              onClick="document.form2.smi.value+='2'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="3" 
+              onClick="document.form2.smi.value+='3'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="4" 
+              onClick="document.form2.smi.value+='4'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="5" 
+              onClick="document.form2.smi.value+='5'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="6" 
+              onClick="document.form2.smi.value+='6'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="7" 
+              onClick="document.form2.smi.value+='7'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="8" 
+              onClick="document.form2.smi.value+='8'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="9" 
+              onClick="document.form2.smi.value+='9'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="0" 
+              onClick="document.form2.smi.value+='0'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE=" " 
+              onClick="document.form2.smi.value+=' '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="charge" 
+              onClick="entercharge2()" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="mult" 
+              onClick="entermult2()" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+    </FORM>
+
+
+
+    <table>
+    <!--  start of ace-jsme table -->
+    <br>
+    <table>
+         <tr>
+            <td>
+               <input type="button" VALUE="JSMol to JSME &#8600;" onClick="readMolecule()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="JSMol append to JSME &#8600;" onClick="appendMolecule()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="&#8598; JSME to JSMol" onClick="jmsmiles()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="&#8598; JSME append to JSMol" onClick="jmasmiles()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+            </td>
+         </tr>
+         <tr>
+             <!--td id="editor" style="height: 500px; width: 750px">some text is here </td-->
+             <td id="appletContainer"></td>
+        </tr>
+    </table>
+    <!--  end of ace-jsme table -->
+
+</div>
+
+<div id="NWChem Input Entry" class="tabcontent">
+
+   <h2> Use the editor below for inputing and running a specialized NWChem job</h2>
+   <table>
+    <tr>
+       <input type="button" VALUE="&#8601; JSMol to Editor" onClick="jmoltoeditor()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+       <input type="button" VALUE="Editor to JSMol &#8601;" onClick="jmloadxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+       <input type="button" VALUE="Editor append to JSMol &#8599;" onClick="jmappendxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+    </tr>
+
+    <tr>
+    <div id="editor" style="height: 500px; width: 750px">some text is here </div>
+    <script>
+       var editor = ace.edit("editor");
+       //editor.setOption('maxLines', 5000);
+       editor.setTheme("ace/theme/gob");
+       editor.session.setMode("ace/mode/fortran");
+    </script>
+    <input type="button" VALUE="XYZ Format" onClick="convert2XYZ()" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" VALUE="NWChem Format" onClick="convert2geometry()" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" VALUE="vim" onClick="editor.setKeyboardHandler('ace/keyboard/vim');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" VALUE="emacs" onClick="editor.setKeyboardHandler('ace/keyboard/emacs');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" VALUE="ace" onClick="editor.setKeyboardHandler('');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <br><br>
+    <input type="button" VALUE="Save to file" onClick="editorsave()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+    <input type="button" VALUE="Load selected file" onClick="loadfiletoeditor()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+    <input type="file" id="fileToLoad" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold">
+    <br> <br>
+    <input type="button" VALUE="Submit NWChem Job File &#8629;" onClick="submit_nwchemjob()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+    <input id="fileInput" type="file"/>
+
+    </tr>
+    </table>
+
+</div>
+
+
+
+
+    <table> 
+
+    <!--  start of ace-jsme table -->
+    <br>
+    <table>
+         <tr>
+            <td>
+               <input type="button" VALUE="JSMol to JSME &#8600;" onClick="readMolecule()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="JSMol append to JSME &#8600;" onClick="appendMolecule()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="&#8598; JSME to JSMol" onClick="jmsmiles()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="&#8598; JSME append to JSMol" onClick="jmasmiles()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="JSMol to JSME &#8600;" onClick="readMolecule()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="JSMol append to JSME &#8600;" onClick="appendMolecule()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="&#8598; JSME to JSMol" onClick="jmsmiles()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+               <input type="button" VALUE="&#8598; JSME append to JSMol" onClick="jmasmiles()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+       <input type="button" VALUE="&#8599; JSMol to Editor" onClick="jmoltoeditor()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+       <input type="button" VALUE="Editor to JSMol &#8601;" onClick="jmloadxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+       <input type="button" VALUE="Editor append to JSMol &#8601;" onClick="jmappendxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+            </td>
+         </tr>
+    </table>
+    <!--  end of ace-jsme table -->
+
+   <br><br>
+
+
+
+
+    <font color="443322" size="2"><p><a href="https://ace.c9.io">ACE: High Performance Code Editor for the Web</a></p></font>
+    <font color="443322" size="2"><p><a href="http://wiki.jmol.org/index.php/JSmol">JSmol: an open-source HTML5 viewer for chemical structures in 3D</a></p></font>
+    <font color="443322" size="2"><p> JSME Editor Citation: <a href="http://jcheminf.springeropen.com/articles/10.1186/1758-2946-5-24"> B. Bienfait and P. Ertl, JSME: a free molecule editor in JavaScript, J. Cheminformatics 5:24 (2013)</a> </p></font>
+    
+    <table> 
+    <tr>
+    <td> <font color="443322" size="2"> <p align="justify"> This software service and its documentation were developed at the Environmental Molecular Sciences Laboratory (EMSL) at Pacific Northwest National Laboratory, a multiprogram national laboratory, operated for the U.S. Department of Energy by Battelle under Contract Number DE-AC05-76RL01830. Support for this work was provided by the Department of Energy Office of Biological and Environmental Research, and Department of Defense environmental science and technology program (SERDP). THE SOFTWARE SERVICE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE SERVICE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE SERVICE. </p></font> </td>
+    <td> <a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a> </td>
+    </tr></table>
+     Keywords: quantum chemistry calculations - quantum chemistry computations - quantum chemistry - molecular modeling calculations - molecular modeling computations - molecular modeling - chemical modeling - chemical reactions calculations - chemical reactions computations - chemical reactions - NWChem calculations - computational chemistry - NWChem 
+
+<br><br>
+<div align="right"><font color="298DB4"> EMSL Arrows API visited {{ visits }} times </font></div>
+
+
+<script type="text/javascript">
+function openCity(evt, cityName) {
+    // Declare all variables
+    var i, tabcontent, tablinks;
+
+    // Get all elements with class="tabcontent" and hide them
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    // Get all elements with class="tablinks" and remove the class "active"
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(cityName).style.display = "block";
+    evt.currentTarget.className += " active";
+}
+document.getElementById("defaultOpen").click();
+</script>
+
+</body>
+</html>

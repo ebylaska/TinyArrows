@@ -1,0 +1,1341 @@
+#!/usr/bin/python
+from flask import Flask, jsonify, render_template,request,redirect,url_for,send_from_directory
+from flask import abort
+from werkzeug.utils import secure_filename
+import os,subprocess,urllib2,time,random,requests
+
+
+#UPLOAD_FOLDER = '/tmp/'
+UPLOAD_FOLDER = '/srv/arrows/Public/uploads/'
+ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo', 'nw', 'eap'])
+
+
+tar                     = "/bin/tar -czf " 
+chemdb_fetch_esmiles5   = "/srv/arrows/bin/chemdb_fetch_esmiles5 "
+chemdb_fetch_reactions  = "/srv/arrows/bin/chemdb_fetch_reactions5 -e "
+chemdb_fetch_reactions0 = "/srv/arrows/bin/chemdb_fetch_reactions5 "
+chemdb_queue            = "/srv/arrows/bin/chemdb_queue "
+chemdb_queue_nwchem     = "/srv/arrows/bin/chemdb_queue_nwchem "
+tnt_submit              = "/srv/arrows/bin/tnt_submit5 -f "
+queue_nwchem3           = "/srv/arrows/bin/queue_nwchem3 -s -a"
+cifocd_gennw            = "/srv/arrows/bin/cifocd_gennw "
+esmiles2xyz             = "/srv/arrows/bin/esmiles2xyz "
+wrkdir                  = "/srv/arrows/Work"
+templatedir             = "/srv/arrows/Public/templates"
+staticdir               = "/srv/arrows/Public/static"
+reactiondir             = "/srv/arrows/Public/reaction"
+chemdbdir               = "/srv/arrows/Public/chemdb_hold"
+counterdir              = "/srv/arrows/Public/counters"
+namecount = 0
+
+
+
+headerfigure = ['<a href="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif"><img src="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif" alt="Arrows Banner Movie"> </a>', '<a href="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg"><img src="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg" alt="EMSL Computing Banner" border=0 /></a>', '<a href="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif"><img src="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a>']
+
+##### define the arrows logos #####
+ArrowsHeader = '''
+   <center> <p><b>EMSL Arrows: Evolultion of Chemical and Materials Simulations</b></p></center>
+   <center> <p>Making molecular modeling accessible by combining NWChem, databases, web APIs, and email</p> </center>
+   <center> %s </center>
+''' % headerfigure[3]
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+
+def ireplace(old, new, text):
+    idx = 0
+    while idx < len(text):
+        index_l = text.lower().find(old.lower(), idx)
+        if index_l == -1:
+            return text
+        text = text[:index_l] + new + text[index_l + len(old):]
+        idx = index_l + len(old)
+    return text
+
+#############################################
+#                                           #
+#             addspaces_reaction            #
+#                                           #
+#############################################
+def addspaces_reaction(reaction):
+   tags = ['^','mult','theory','xc','solvation_type','basis','calculation_type','property','priority','geometry_generation']
+   reaction2 = reaction[:]
+   if (reaction2.find(">")!=-1):
+      reaction2 = reaction2.replace(">","")
+   if (reaction2.find("-->")==-1):
+      reaction2 = reaction2.replace("--","-->")
+   for tag1 in tags: reaction2 = reaction2.replace(tag1," " + tag1)
+   return reaction2
+
+#### parsetosmiles function ####
+def parsetosmiles(str):
+   global xyzdata
+   ss = str.split()
+   str2 = ''
+   for s in ss:
+      if 'kegg=' in s.lower():
+         kegg = s.split('=')[1]
+         mol = geturlresult("http://rest.kegg.jp/get/%s/mol" % kegg)
+         smiles = mol2smiles(mol)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('cid=' in s.lower()) or ('pubchem=' in s.lower()) :
+         cid = s.split('=')[1]
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/property/CanonicalSMILES/TXT" % cid)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('csid=' in s.lower()) or ('chemspider=' in s.lower()):
+         csid = s.split('=')[1]
+         rdfdata = geturlresult("http://rdf.chemspider.com/%s" % csid)
+         if rdfdata=='':
+            smiles='C'
+         else:
+            rdfdata2 = rdfdata.split('<chemdomain:SMILES')[1].split('</chemdomain:SMILES>')[0]
+            smiles   = rdfdata2.split('<chemdomain:hasValue>')[1].split('</chemdomain:hasValue>')[0].strip()
+         str2 += ' '
+         str2 += smiles
+      elif 'cas=' in s.lower():
+         cas = s.split('=')[1]
+         smiles = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/smiles" % cas)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'inchi=' in s.lower():
+         smiles = InChI2smiles("InChI=" + s.split('=')[1])
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      else:
+         str2 += ' '
+         str2 += s
+   str2 = str2.strip()
+
+   return str2
+
+def clean_upload_directory():
+   ### remove files from uploaddir ###
+   for the_file in os.listdir(UPLOAD_FOLDER):
+      file_path = os.path.join(UPLOAD_FOLDER, the_file)
+      try:
+         if os.path.isfile(file_path):
+            os.unlink(file_path)
+      except Exception as e:
+         print(e)
+
+
+
+def clean_directories():
+   ### remove files from templatedir ###
+   for the_file in os.listdir(templatedir):
+      file_path = os.path.join(templatedir, the_file)
+      try:
+         if os.path.isfile(file_path):
+            if ('reaction' in file_path) or ('molecule' in file_path):
+               os.unlink(file_path)
+      except Exception as e:
+         print(e)
+
+   ### remove files from staticdir ###
+   for the_file in os.listdir(staticdir):
+      file_path = os.path.join(staticdir, the_file)
+      try:
+         if os.path.isfile(file_path):
+            os.unlink(file_path)
+      except Exception as e:
+         print(e)
+
+
+def resolve_images(result,html):
+   imagelist = result.split("imagelist:")[1].split(":imagelist")[0]
+   images = [(imagelist.split()[i],imagelist.split()[i+1]) for i in range(0,len(imagelist.split()),2)]
+   for a in images:
+      a1 = "cid:"+a[1]
+      a2 = " {{url_for('static',filename='img-%s')}}" % (a[0].split("/")[-1])
+      cmd8    = "cp " + a[0] + " " + staticdir + "/img-%s" %  (a[0].split("/")[-1])
+      #result2 = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      print "cmd8=",cmd8
+      result2 = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      os.unlink(a[0])
+      html    = html.replace(a1,a2)
+
+   return html
+
+
+def allowed_file(filename):
+    allowed = False
+    suffix = filename.rsplit('.', 1)[1]
+    for a in ALLOWED_EXTENSIONS:
+       if a in suffix: allowed = True
+    return '.' in filename and allowed
+    #return '.' in filename and \
+    #       filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+
+def arrowsjobsrun():
+   try:
+      with open(counterdir+"/arrowsjobsrun",'r') as ff:
+         aa = ff.read()
+   except:
+      aa = "?????"
+   return (aa.strip())
+
+def calculationscount():
+   try:
+      with open(counterdir+"/calculationscount",'r') as ff:
+         aa = ff.read()
+   except:
+      aa = "?????"
+   return (aa.strip())
+
+def apivisited():
+   try:
+      with open(counterdir+"/apivisited",'r') as ff:
+         aa = ff.read()
+   except:
+      aa = "?????"
+   return (aa.strip())
+
+def increment_apivisited():
+   try:
+      with open(counterdir+"/apivisited",'r') as ff:
+         aa = ff.read()
+      count = int(aa.strip()) + 1
+      with open(counterdir+"/apivisited",'w') as ff:
+         ff.write("%d" % count)
+   except:
+      print "increment_apivisited failed"
+
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+tasks = [
+    {
+        'id': 1,
+        'title': u'Buy groceries',
+        'description': u'Milk, Cheese, Pizza, Fruit, Tylenol', 
+        'done': False
+    },
+    {
+        'id': 2,
+        'title': u'Learn Python',
+        'description': u'Need to find a good Python tutorial on the web', 
+        'done': False
+    }
+]
+
+
+
+
+@app.route('/api/tasks', methods=['GET'])
+def get_tasks():
+    return jsonify({'tasks': tasks})
+
+
+@app.route('/api/esmiles2xyz/<esmiles0>', methods=['GET'])
+def get_esmiles2xyz(esmiles0):
+    try:
+       increment_apivisited()
+       esmiles0 = esmiles0.replace("\"",'')
+       esmiles0 = esmiles0.replace("\'",'')
+       ddrand = random.randint(0,999999)
+       xyzfile   = wrkdir + "/jjarrows-%d.xyz" % ddrand
+       cmd7 = esmiles2xyz + "-s " + '\"' + esmiles0 + '\" ' + xyzfile
+       data = subprocess.check_output(cmd7,shell=True)
+       os.unlink(xyzfile)
+    except:
+       data = '????'
+
+    return data
+
+
+@app.route('/api/id/<int:task_id>', methods=['GET'])
+def get_arrowid(task_id):
+    try:
+       increment_apivisited()
+       #task = [task for task in tasks if task['id'] == task_id]
+       esmiles = "id=%d" % task_id
+       cmd7 = chemdb_fetch_esmiles5 + '\"' + esmiles + '\"'
+       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       data = subprocess.check_output(cmd7,shell=True)
+       if len(data) == 0: data=esmiles + " not found\n"
+    except:
+       data = '????'
+    return data
+    #return jsonify({'task': task[0]})
+
+
+@app.route('/api/esmiles/<esmiles0>', methods=['GET'])
+def get_esmiles(esmiles0):
+    try:
+       increment_apivisited()
+       esmiles0 = esmiles0.replace("\"",'')
+       esmiles0 = esmiles0.replace("\'",'')
+       #print "esmiles=",esmiles0
+       cmd7 = chemdb_fetch_esmiles5 + '\"' + esmiles0 + '\"'
+       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       data = subprocess.check_output(cmd7,shell=True)
+       if len(data) == 0: data=esmiles0 + " not found\n"
+    except:
+       data = '????'
+
+    return data
+
+
+@app.route('/api/listallesmiles/', methods=['GET'])
+def get_listallesmiles():
+    global namecount
+    name = "molecule%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+       ### run chemdb_fetch_reactions ###
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/moleculetmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/moleculetmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/moleculetmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          ff.write("listallesmiles\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> listallesmiles failed </html>"
+
+    return  data
+
+
+@app.route('/api/listallreactions/', methods=['GET'])
+def get_listallreactions():
+    global namecount
+    name = "molecule%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+       ### run chemdb_fetch_reactions ###
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/moleculetmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/moleculetmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/moleculetmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          ff.write("listallreactions\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> listallreactions failed </html>"
+
+    return  data
+
+
+
+
+
+@app.route('/api/submitesmiles/<esmiles0>', methods=['GET'])
+def get_submitesmiles(esmiles0):
+    global namecount
+    name = "molecule%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+       ### run chemdb_fetch_reactions ###
+       esmiles0  = esmiles0.replace("\"",'')
+       esmiles0  = esmiles0.replace("\'",'')
+       machines0 = ''
+       if "submitmachines{" in esmiles0:
+          msg2 = esmiles0.split("submitmachines{")
+          msg3 = msg2[1].split("}")[0]
+          esmiles0 = esmiles0.replace("submitmachines{"+msg3+"}","")
+          machines0 = msg3.strip()
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/moleculetmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/moleculetmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/moleculetmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          if (machines0!=''): ff.write("submitmachines: " + machines0 + "  :submitmachines\n")
+          ff.write("submitesmiles: " + esmiles0 + " :submitesmiles\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> submitesmiles failed </html>"
+
+    return  data
+                                             
+
+
+@app.route('/api/molecule/<esmiles0>', methods=['GET'])
+def get_molecule(esmiles0):
+    global namecount
+    name = "molecule%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+       ### run chemdb_fetch_reactions ###
+       esmiles0  = esmiles0.replace("\"",'')
+       esmiles0  = esmiles0.replace("\'",'')
+       machines0 = ''
+       if "submitmachines{" in esmiles0:
+          msg2 = esmiles0.split("submitmachines{")
+          msg3 = msg2[1].split("}")[0]
+          esmiles0 = esmiles0.replace("submitmachines{"+msg3+"}","")
+          machines0 = msg3.strip()
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/moleculetmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/moleculetmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/moleculetmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          if (machines0!=''): ff.write("submitmachines: " + machines0 + "  :submitmachines\n")
+          ff.write("molecule: " + esmiles0 + " :molecule usehtml5\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> molecule failed </html>"
+
+    return  data
+
+
+
+@app.route('/api/nmr/<esmiles0>', methods=['GET'])
+def get_nmr(esmiles0):
+    global namecount
+    name = "molecule%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+       ### run chemdb_fetch_reactions ###
+       esmiles0  = esmiles0.replace("\"",'')
+       esmiles0  = esmiles0.replace("\'",'')
+       machines0 = ''
+       if "submitmachines{" in esmiles0:
+          msg2 = esmiles0.split("submitmachines{")
+          msg3 = msg2[1].split("}")[0]
+          esmiles0 = esmiles0.replace("submitmachines{"+msg3+"}","")
+          machines0 = msg3.strip()
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/moleculetmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/moleculetmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/moleculetmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          if (machines0!=''): ff.write("submitmachines: " + machines0 + "  :submitmachines\n")
+          ff.write("nmr: " + esmiles0 + " :nmr usehtml5\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> nmr failed </html>"
+
+    return  data
+
+
+@app.route('/api/xyz/<esmiles0>', methods=['GET'])
+def get_xyz(esmiles0):
+    global namecount
+    name = "molecule%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+       ### run chemdb_fetch_reactions ###
+       esmiles0  = esmiles0.replace("\"",'')
+       esmiles0  = esmiles0.replace("\'",'')
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/moleculetmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/moleculetmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/moleculetmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          ff.write("xyzfile: " + esmiles0 + " :xyzfile\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> xyz failed </html>"
+
+    return  data
+
+
+
+
+@app.route('/api/nwoutput/<esmiles0>', methods=['GET'])
+def get_nwoutput(esmiles0):
+    global namecount
+    name = "molecule%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+       ### run chemdb_fetch_reactions ###
+       esmiles0  = esmiles0.replace("\"",'')
+       esmiles0  = esmiles0.replace("\'",'')
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/moleculetmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/moleculetmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/moleculetmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          ff.write("nwoutput: " + esmiles0 + " :nwoutput\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> nwoutput failed </html>"
+
+    return  data
+
+
+
+
+@app.route('/api/reaction/<esmiles0>', methods=['GET'])
+def get_reaction(esmiles0):
+    global namecount
+    name = "reaction%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+
+       ### run chemdb_fetch_reactions ###
+       esmiles0  = esmiles0.replace("\"",'')
+       esmiles0  = esmiles0.replace("\'",'')
+       machines0 = ''
+       if "submitmachines{" in esmiles0:
+          msg2 = esmiles0.split("submitmachines{")
+          msg3 = msg2[1].split("}")[0]
+          esmiles0 = esmiles0.replace("submitmachines{"+msg3+"}","")
+          machines0 = msg3.strip()
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/reactiontmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/reactiontmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/reactiontmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          if (machines0!=''): ff.write("submitmachines: " + machines0 + "  :submitmachines\n")
+          ff.write("reaction: " + esmiles0 + " :reaction usehtml5\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> reaction failed </html>"
+
+    return  data
+
+
+
+@app.route('/api/predict/<esmiles0>', methods=['GET'])
+def get_predict(esmiles0):
+    global namecount
+    name = "reaction%d.html" % namecount
+    namecount += 1
+
+    increment_apivisited()
+    clean_directories()
+
+    try:
+
+       ### run chemdb_fetch_reactions ###
+       esmiles0  = esmiles0.replace("\"",'')
+       esmiles0  = esmiles0.replace("\'",'')
+       ddrand = random.randint(0,999999)
+       inpfile   = wrkdir + "/reactiontmp-%d.txt" % ddrand
+       outfile   = wrkdir + "/reactiontmp-%d.plain" % ddrand
+       htmlfile  = wrkdir + "/reactiontmp-%d.html" % ddrand
+       htmlfile1 = templatedir + "/"+name
+       with open(inpfile,'w') as ff:
+          ff.write("predict: " + esmiles0 + " :predict\n")
+       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       result = subprocess.check_output(cmd7,shell=True)
+
+       ### resolve image files in html ###
+       with open(htmlfile,'r') as ff: html = ff.read()
+       html = resolve_images(result,html)
+       with open(htmlfile1,'w') as ff: ff.write(html)
+
+       #print "rendering name=",name
+       data =  render_template(name)
+
+       try:
+          os.unlink(inpfile)
+          os.unlink(outfile)
+          os.unlink(htmlfile)
+       except Exception as e:
+          print(e)
+
+    except:
+       data = "<html> predict failed </html>"
+
+    return  data
+
+
+
+@app.route('/api/input_deck/<esmiles0>', methods=['GET'])
+def get_input_deck(esmiles0):
+    try:
+       increment_apivisited()
+       esmiles0 = esmiles0.replace("\"",'')
+       esmiles0 = esmiles0.replace("\'",'')
+       esmiles0 = addspaces_reaction(esmiles0.strip())
+       esmiles0 = parsetosmiles(esmiles0)
+       cmd7 = tnt_submit + '\"' + esmiles0 + '\"'
+       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       data = subprocess.check_output(cmd7,shell=True)
+       #print "- input_deck: esmiles=",esmiles0
+       if len(data) == 0: data=esmiles0 + " not generated\n"
+       html = "<html>\n" 
+       html += ArrowsHeader
+       html += "<pre style=\"font-size:1.0em;color:black\">\n"
+       html += data
+       html += "</pre> </html>"
+    except:
+       html = "Input generation failed\n"
+    return html
+
+@app.route('/api/crystal_input/<ocd0>', methods=['GET'])
+def get_crystal_input_deck(ocd0):
+    try:
+       ocd0 = ocd0.replace("\"",'')
+       ocd0 = ocd0.replace("\'",'')
+       cmd7 = cifocd_gennw +  ocd0 
+       data = subprocess.check_output(cmd7,shell=True)
+       if len(data) == 0: data=ocd0 + " not generated\n"
+       html = "<html>\n" 
+       html += ArrowsHeader
+       html += "<pre style=\"font-size:1.0em;color:black\">\n"
+       html += data
+       html += "</pre> </html>"
+    except:
+       html = "Input generation failed\n"
+    return html
+
+
+
+
+@app.route('/api/calculation/', methods=['GET'])
+def get_calculation():
+   try:
+      cmd8 = chemdb_fetch_esmiles5 + '-c'
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      calcs = subprocess.check_output(cmd8,shell=True)
+   except:
+      calcs = "calculations not found\n"
+   return calcs
+
+
+############################ queue_nwchem3 ###############################
+
+@app.route('/api/queue_nwchem3/', methods=['GET'])
+def list_queue_nwchem3():
+   try:
+      increment_apivisited()
+      cmd8 = queue_nwchem3
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      calcs = subprocess.check_output(cmd8,shell=True)
+   except:
+      calcs = "arrows queue not found\n"
+
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += calcs
+   html += "</pre> </html>"
+
+   return html
+
+
+############################ queue        ###############################
+
+@app.route('/api/queue/', methods=['GET'])
+def list_queue():
+   try:
+      increment_apivisited()
+      cmd8 = chemdb_queue + '-l'
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      calcs = subprocess.check_output(cmd8,shell=True)
+   except:
+      calcs = "arrows queue not found\n"
+
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += calcs
+   html += "</pre> </html>"
+
+   return html
+
+
+@app.route('/api/queue_submit/', methods=['GET'])
+def submit_queue():
+   try:
+      increment_apivisited()
+      cmd8 = chemdb_queue + '-s'
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      calcs = subprocess.check_output(cmd8,shell=True)
+   except:
+      calcs = "arrows queue not found\n"
+
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += calcs
+   html += "</pre> </html>"
+
+   return html
+
+
+
+
+@app.route('/api/queue_add/<esmiles>', methods=['GET'])
+def add_queue(esmiles):
+   try:
+      increment_apivisited()
+      esmiles = esmiles.replace("\"",'')
+      esmiles = esmiles.replace("\'",'')
+      cmd8 = chemdb_queue + '-a ' + '\"' +  esmiles + '\"'
+      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd8,shell=True)
+   except:
+      result = "queue_add = " + esmiles + " was not added to arrows queue.\n"
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += result
+   html += "</pre> </html>"
+
+   return html
+
+
+
+@app.route('/api/queue_fetch/<jobid>', methods=['GET'])
+def fetch_queue(jobid):
+   try:
+      increment_apivisited()
+      cmd8 = chemdb_queue + '-f ' + jobid
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      calcs = subprocess.check_output(cmd8,shell=True)
+   except:
+      calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += calcs
+   html += "</pre> </html>"
+
+   return html
+
+
+
+
+@app.route('/api/submit_output/<datafiles>', methods=['GET'])
+def submit_output_deck(datafiles):
+   #
+   increment_apivisited()
+   datafiles = datafiles.replace("\"",'')
+   datafiles = datafiles.replace("\'",'')
+
+   #tt1 = time.localtime()
+   #dd1 = "-%d-%d-%d-%d-%d-%d" % (tt1[0],tt1[1],tt1[2],tt1[3],tt1[4],tt1[5])
+   ddrand = random.randint(0,999999)
+   dd1 = "-%d" % (ddrand)
+
+   #### copy data to chemdbdir and find nwoutfile and datafiles ####
+   nwoutfile = ''
+   nwoutfile0 = ''
+   string_of_datafiles = ''
+   string_of_datafiles0 = ''
+   for filename in datafiles.split():
+      nwfilename  = UPLOAD_FOLDER + filename[filename.rfind('/')+1:]
+      nwfilename1 = chemdbdir + "/" + filename[filename.rfind('/')+1:]+dd1
+      nwfilename1 = nwfilename1.replace(",","-")
+      if os.path.exists(nwfilename):
+         ### copy data to chemdbdir ###
+         with open(nwfilename, 'r') as ff: tdata = ff.read()
+         with open(nwfilename1,'w') as ff: ff.write(tdata)
+
+         ### look for nwout file  or datafile ###
+         if ('.out' in filename) or ('.nwo' in filename):
+            nwoutfile  = nwfilename1
+            nwoutfile0 = filename
+         else:
+            string_of_datafiles  += nwfilename1 + " "
+            string_of_datafiles0 += filename  + " "
+   string_of_datafiles  = string_of_datafiles.strip()
+   string_of_datafiles0 = string_of_datafiles0.strip()
+
+   #### call chemdb_queue ###
+   if nwoutfile != '':
+      msg = "Submited " + nwoutfile0 
+      cmd1 = chemdb_queue + "-w " +  nwoutfile 
+      if string_of_datafiles!='':
+         cmd1 +=  " -z \""+string_of_datafiles+"\""
+         msg  += " with the following extra datafiles=" + string_of_datafiles0
+
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+
+   else:
+      msg = "Nothing was submited"
+
+   #### clean the upload directory ####
+   clean_upload_directory()
+
+   return msg
+      
+
+
+
+@app.route('/api/upload/', methods=['GET','POST'])
+def index():
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('index'))
+    return """
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form action="" method=post enctype=multipart/form-data>
+      <p><input type=file name=file>
+         <input type=submit value=Upload>
+    </form>
+    <p>%s</p>
+    """ % "<br>".join(os.listdir(app.config['UPLOAD_FOLDER'],))
+
+
+############################ queue        ###############################
+
+############################ queue_nwchem ###############################
+
+@app.route('/api/queue_nwchem/', methods=['GET'])
+def list_queue_nwchem():
+   try:
+      increment_apivisited()
+      cmd8 = chemdb_queue_nwchem + '-l'
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      calcs = subprocess.check_output(cmd8,shell=True)
+   except:
+      calcs = "arrows queue not found\n"
+
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += calcs
+   html += "</pre> </html>"
+
+   return html
+
+@app.route('/api/queue_nwchem_add/<filename>', methods=['GET'])
+def add_queue_nwchem(filename):
+   increment_apivisited()
+   print "filename=",filename
+   filename = filename.replace("\"",'')
+   filename = filename.replace("\'",'')
+
+   nwfilename  = UPLOAD_FOLDER + filename[filename.rfind('/')+1:]
+
+   #### call chemdb_queue ###
+   if nwfilename != '':
+      msg = "Submited " + nwfilename
+      cmd1 = chemdb_queue_nwchem + "-a " +  nwfilename
+      print "cmd1=",cmd1
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+      print "result=",result
+      qqnum = result.split("QUEUE_ENTRY:")[1].split(":QUEUE_ENTRY")[0]
+      msg += " - queue_entry = " + qqnum + "\n"
+
+   else:
+      msg = "Nothing was submited"
+
+   #### clean the upload directory ####
+   clean_upload_directory()
+
+   return msg
+
+
+@app.route('/api/queue_nwchem_fetch/<jobid>', methods=['GET'])
+def fetch_queue_nwchem(jobid):
+   try:
+      increment_apivisited()
+      cmd8 = chemdb_queue_nwchem + '-f ' + jobid
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      calcs = subprocess.check_output(cmd8,shell=True)
+   except:
+      calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
+
+   if "OUTPUT AVAILABLE!" in calcs:
+      nwoutfile = calcs.split("nwoutfile       =")[1].split("\n")[0].strip()
+      extra_datafiles = calcs.split("extra_datafiles =")[1].split("\n")[0]
+      with open(nwoutfile,'r') as ff:
+         calcs += ff.read()
+      #for dfile in extra_datafiles.split():
+      #   calcs += "\n=================NEXT FILE: " + dfile + ":NEXT FILE===================\n"
+      #   with open(dfile,'r') as ff: calcs += ff.read()
+
+
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += calcs
+   html += "</pre> </html>"
+
+   return html
+
+@app.route('/api/queue_nwchem_delete/<jobid>', methods=['GET'])
+def delete_queue_nwchem(jobid):
+   try:
+      increment_apivisited()
+      cmd8 = chemdb_queue_nwchem + '-d ' + jobid
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+      calcs = subprocess.check_output(cmd8,shell=True)
+   except:
+      calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
+
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += calcs
+   html += "</pre> </html>"
+
+   return html
+
+
+@app.route('/api/download_datafile/<datafile>', methods=['GET'])
+def download_datafiler0(datafile):
+   increment_apivisited()
+   datafile = datafile.replace("\"",'')
+   datafile = datafile.replace("\'",'')
+   filename = datafile
+   ddfile = filename[filename.rfind('/')+1:]
+   return send_from_directory(directory='chemdb_hold', filename=ddfile,as_attachment=True)
+
+
+@app.route('/api/submit_output_nwchem/<datafiles>', methods=['GET'])
+def submit_output_nwchem_deck(datafiles):
+   #
+   increment_apivisited()
+   datafiles = datafiles.replace("\"",'')
+   datafiles = datafiles.replace("\'",'')
+
+   #tt1 = time.localtime()
+   #dd1 = "-%d-%d-%d-%d-%d-%d" % (tt1[0],tt1[1],tt1[2],tt1[3],tt1[4],tt1[5])
+   ddrand = random.randint(0,999999)
+   dd1 = "-%d" % (ddrand)
+
+   #### copy data to chemdbdir and find nwoutfile and datafiles ####
+   nwoutfile = ''
+   nwoutfile0 = ''
+   string_of_datafiles = ''
+   string_of_datafiles0 = ''
+   for filename in datafiles.split():
+      nwfilename  = UPLOAD_FOLDER + filename[filename.rfind('/')+1:]
+      nwfilename1 = chemdbdir + "/" + filename[filename.rfind('/')+1:]+dd1
+      nwfilename1 = nwfilename1.replace(",","-")
+      if os.path.exists(nwfilename):
+         ### copy data to chemdbdir ###
+         with open(nwfilename, 'r') as ff: tdata = ff.read()
+         with open(nwfilename1,'w') as ff: ff.write(tdata)
+
+         ### look for nwout file  or datafile ###
+         if ('.out' in filename) or ('.nwo' in filename):
+            nwoutfile  = nwfilename1
+            nwoutfile0 = filename
+         else:
+            string_of_datafiles  += nwfilename1 + " "
+            string_of_datafiles0 += filename  + " "
+   string_of_datafiles  = string_of_datafiles.strip()
+   string_of_datafiles0 = string_of_datafiles0.strip()
+
+  #### call chemdb_queue ###
+   if nwoutfile != '':
+      msg = "Submited " + nwoutfile0
+      cmd1 = chemdb_queue_nwchem + "-w " +  nwoutfile
+      if string_of_datafiles!='':
+         cmd1 +=  " -z \""+string_of_datafiles+"\""
+         msg  += " with the following extra datafiles=" + string_of_datafiles0
+
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+      print "upload RESULT=",result
+
+   else:
+      msg = "Nothing was submited"
+
+   #### clean the upload directory ####
+   clean_upload_directory()
+
+   return msg
+
+
+
+
+############################ queue_nwchem ###############################
+
+
+
+
+
+@app.route('/api/')
+def arrows_draw_form():
+   increment_apivisited()
+   calcs = arrowsjobsrun()
+   molcalcs = calculationscount()
+   avisits = apivisited()
+   return render_template("JSME-arrows.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+
+@app.route('/api/', methods=['POST'])
+def arrows_draw_post():
+
+    text = request.form['smi']
+    text = text.replace("\"","")
+    text =  " ".join(text.split())
+    if "-->" in text:
+       reaction = text
+       return get_reaction(reaction)
+    elif "nmr for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_nmr(esmiles)
+    elif "predict for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_predict(esmiles)
+    elif ("input deck for" in text.lower()) or ("inputdeck for" in text.lower()) or ("nwinput for" in text.lower()):
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_input_deck(esmiles)
+    elif ("crystal input for" in text.lower()) or ("ocd for" in text.lower()):
+       text2 = ireplace("FOR","for",text)
+       ocd = text2.split('for')[1]
+       return get_crystal_input_deck(ocd)
+    elif ("output deck for" in text.lower()) or ("outputdeck for" in text.lower()) or ("nwoutput for" in text.lower()):
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_nwoutput(esmiles)
+    elif "submitesmiles for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_submitesmiles(esmiles)
+    elif "xyz for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_xyz(esmiles)
+    elif "json for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_esmiles(esmiles)
+    elif ("list all esmiles"  in text.lower()) or ("listallesmiles"  in text.lower()):
+       return get_listallesmiles()
+    elif ("list all reactions"  in text.lower()) or ("listallreactions"  in text.lower()):
+       return get_listallreactions()
+    elif ("queue_nwchem3" in text.lower()):
+       return list_queue_nwchem3()
+    elif ("queue_nwchem" in text.lower()):
+       return list_queue_nwchem()
+    elif ("queue" in text.lower()):
+       return list_queue()
+    elif ("download fetch_nwchem_input" in text.lower()):
+       return send_from_directory(directory='programs', filename='fetch_nwchem_input.py',as_attachment=True)
+    elif ("download upload_nwchem_outfiles" in text.lower()):
+       return send_from_directory(directory='programs', filename='upload_nwchem_outfiles.py',as_attachment=True)
+    elif ("download arrows_esmiles2xyz" in text.lower()):
+       return send_from_directory(directory='programs', filename='arrows_esmiles2xyz.py',as_attachment=True)
+
+    elif ("download datafile" in text):
+       filename = text.strip("download datafile").strip()
+       ddfile = filename[filename.rfind('/')+1:]
+       return send_from_directory(directory='chemdb_hold', filename=ddfile,as_attachment=True)
+
+    else:
+       esmiles = text
+       return get_molecule(esmiles)
+
+    processed_text = "EMSL Arrows did not understand \"" + text + "\"."
+    return processed_text
+
+    print "text=",text
+    return text
+
+
+@app.route('/api/rxn')
+def arrows_reaction_draw_form():
+   increment_apivisited()
+   calcs = arrowsjobsrun()
+   molcalcs = calculationscount()
+   avisits = apivisited()
+   return render_template("JSME-arrows-rxn.html", calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+
+@app.route('/api/rxn', methods=['POST'])
+def arrows_reaction_draw_post():
+
+    text = request.form['smi']
+    text = text.replace("\"","")
+    text =  " ".join(text.split())
+    if "-->" in text:
+       reaction = text
+       return get_reaction(reaction)
+    elif "nmr for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_nmr(esmiles)
+    elif "predict for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_predict(esmiles)
+    elif ("input deck for" in text.lower()) or ("inputdeck for" in text.lower()) or ("nwinput for" in text.lower()):
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_input_deck(esmiles)
+    elif ("crystal input for" in text.lower()) or ("ocd for" in text.lower()):
+       text2 = ireplace("FOR","for",text)
+       ocd = text2.split('for')[1]
+       return get_crystal_input_deck(ocd)
+    elif ("output deck for" in text.lower()) or ("outputdeck for" in text.lower()) or ("nwoutput for" in text.lower()):
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_nwoutput(esmiles)
+    elif "submitesmiles for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_submitesmiles(esmiles)
+    elif "xyz for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_xyz(esmiles)
+    elif "json for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_esmiles(esmiles)
+    elif ("list all esmiles"  in text.lower()) or ("listallesmiles"  in text.lower()):
+       return get_listallesmiles()
+    elif ("queue_nwchem3" in text.lower()):
+       return list_queue_nwchem3()
+    elif ("queue_nwchem" in text.lower()):
+       return list_queue_nwchem()
+    elif ("queue" in text.lower()):
+       return list_queue()
+    elif ("download fetch_nwchem_input" in text.lower()):
+       return send_from_directory(directory='programs', filename='fetch_nwchem_input.py',as_attachment=True)
+    elif ("download upload_nwchem_outfiles" in text.lower()):
+       return send_from_directory(directory='programs', filename='upload_nwchem_outfiles.py',as_attachment=True)
+    elif ("download arrows_esmiles2xyz" in text.lower()):
+       return send_from_directory(directory='programs', filename='arrows_esmiles2xyz.py',as_attachment=True)
+
+    elif ("download datafile" in text):
+       filename = text.strip("download datafile").strip()
+       ddfile = filename[filename.rfind('/')+1:]
+       return send_from_directory(directory='chemdb_hold', filename=ddfile,as_attachment=True)
+
+    else:
+       esmiles = text
+       return get_molecule(esmiles)
+
+    processed_text = "EMSL Arrows did not understand \"" + text + "\"."
+    return processed_text
+
+    print "text=",text
+    return text
+
+
+
+
+
+
+
+@app.route('/api/arrows_input/')
+def arrows_form():
+   increment_apivisited()
+   return render_template("arrows-input.html")
+
+@app.route('/api/arrows_input/', methods=['POST'])
+def arrows_post():
+
+    text = request.form['text']
+    text = text.replace("\"","")
+    text =  " ".join(text.split())
+    if "-->" in text:
+       reaction = text
+       return get_reaction(reaction)
+    elif "nmr for" in text.lower():
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_nmr(esmiles)
+    elif ("input deck for" in text.lower()) or ("inputdeck for" in text.lower()) or ("input_deck for" in text.lower()):
+       text2 = ireplace("FOR","for",text)
+       esmiles = text2.split('for')[1]
+       return get_input_deck(esmiles)
+    else:
+       esmiles = text
+       return get_molecule(esmiles)
+
+    processed_text = "EMSL Arrows did not understand \"" + text + "\"."
+    return processed_text
+
+
+if __name__ == '__main__':
+    #app.run(debug=True)
+    app.run(host='0.0.0.0', threaded=True)

@@ -1,0 +1,76 @@
+#!/usr/bin/python
+import os,sys,subprocess,urllib2,requests,getopt
+
+ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo' ])
+arrows_post_url    = 'https://arrows.pnnl.gov/api/upload/'
+arrows_get_url     = 'https://arrows.pnnl.gov/api/submit_output/'
+
+#def allowed_file(filename):
+#    return '.' in filename and \
+#           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+def allowed_file(filename):
+    allowed = False
+    suffix = filename.rsplit('.', 1)[1]
+    for a in ALLOWED_EXTENSIONS:
+       if a in suffix: allowed = True
+    return '.' in filename and allowed
+
+
+
+############################# main program ###################################
+usage = \
+"""
+upload_nwchem_outfiles
+
+  Usage: upload_nwchem_outfiles -h datafiles 
+
+  -h help
+
+"""
+
+print
+print "add_nwchem_outfiles - version 1.0"
+print
+
+opts, args = getopt.getopt(sys.argv[1:], "h")
+for o, a in opts:
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<1):
+   print usage
+   exit()
+
+datafiles = []
+datafiles_names = ''
+for filename in args:
+   if allowed_file(filename) and os.path.exists(filename):
+      datafiles.append(filename)
+      datafiles_names += filename[filename.rfind('/')+1:] + " "
+   else:
+      print " - filename="+filename + " has bad suffix or does not exist."
+
+datafiles_names = datafiles_names.strip()
+
+
+for filename in datafiles:
+   print " - uploading " + filename
+   ofile = open(filename,'r')
+   files = {'file': ofile}
+   try:
+      r = requests.post(arrows_post_url, files=files)
+      #print "POST return=",r.text
+   finally:
+      ofile.close()
+
+#print "datafiles_names="+datafiles_names
+try:
+   rr = requests.get(arrows_get_url + "\"" + datafiles_names + "\"")
+   print " - API return=",rr.text
+except:
+   print " - API Failed"
+print
+
+

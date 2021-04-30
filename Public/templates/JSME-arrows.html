@@ -1,0 +1,908 @@
+<!doctype html>
+<!-- The DOCTYPE declaration above will set the     -->
+<!-- browser's rendering engine into                -->
+<!-- "Standards Mode". Replacing this declaration   -->
+<!-- with a "Quirks Mode" doctype is not supported. -->
+
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+<link rel="icon" type="image/png" sizes="32x32" href="https://dl.dropboxusercontent.com/s/r0gjpgxp8byjbzr/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="https://dl.dropboxusercontent.com/s/k0kyp30ale2pkod/favicon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://dl.dropboxusercontent.com/s/0l0w2wk9wfxt4el/favicon-16x16.png">
+
+<title>EMSL Arrows</title>
+
+<style>
+   blink, .blink {
+   animation: blinker 1s linear infinite;
+   }
+   @keyframes blinker {  
+   50% { opacity: 0; }
+   }
+
+.linkbanner {
+  position: relative;
+  //display: inline-block;
+  padding: 1px;
+  // background-color: lightblue;
+  //background-image: linear-gradient(blue,#FEFEFE,blue);
+  //background-image: linear-gradient(blue,lightgreen,blue);
+  background-image: linear-gradient(#4286f4,lightgreen,#4286f4);
+  //background-image: linear-gradient(#4286f4,#599a3e,#4286f4);
+  //background-image: linear-gradient(#2f61ce,lightgreen,#2f61ce);
+  //background-image: linear-gradient(#2f61ce,gold,#2f61ce);
+  //background-image: linear-gradient(#4286f4,gold,#4286f4);
+  font-size: 18px;
+  font-weight: bold;
+  font-family: times;
+  color: white;
+}
+
+</style>
+
+
+<script type="text/javascript" language="javascript" src="{{ url_for('static', filename='jsme-latest/jsme.nocache.js')}}"></script>
+
+
+
+<script type="text/javascript">
+
+	//this function will be called after the JavaScriptApplet code has been loaded.
+	function jsmeOnLoad() {
+
+		//Instantiate a new JSME: 380px  340px
+		//arguments: HTML id, width, height (must be string not number!)
+		//jsmeApplet = new JSApplet.JSME("appletContainer", "700px", "467px", {
+
+		jsmeApplet = new JSApplet.JSME("appletContainer", "750px", "500px", {
+			//optional parameters
+			//"options" : "query,hydrogens"
+                        "options" : "query,hydrogens,canonize,removehs,atommovebutton,fullScreenIcon"
+		});
+
+		//Alternative method: the size is not specified: the applet will use 100% of the space of its parent container "appletContainer".
+		//Be sure that the parent container size > 0, otherwise the applet will not be visible
+
+		/*    	jsmeApplet = new JSApplet.JSME("appletContainer",  {
+		 //optional parameters
+		 "options" : "query,hydrogens",
+		 "jme" : startingStructure
+		 });
+		 */
+
+		//Opera patch: if some applet elements are not displayed, force repaint
+		//jsmeApplet.deferredRepaint(); //the applet will be repainted after the browser event loop returns
+		//it is recommended to use it if the JSME is created outside this jsmeOnLoad() function
+
+		//jsmeApplet has the same API as the original Java applet
+		//One can mimic the JME Java applet access to simplify the adaptation of HTML and JavaScript code:
+		document.JME = jsmeApplet;
+
+		//suggestion 
+		//all buttons that access the jsme variable were disabled in the html
+		//Now enable all buttons that can access the jsme variable since the applet is ready
+		//example:
+		//document.getElementById("button").disabled=false;
+                jsmeApplet.setMenuScale(1.2);
+
+	}
+
+	function readMolecule() {
+		var jme = "16 17 C 7.37 -8.99 C 7.37 -7.59 C 6.16 -6.89 C 4.95 -7.59 C 4.95 -8.99 C 6.16 -9.69 N 8.58 -6.89 C 8.58 -5.49 C 7.37 -4.79 O 6.16 -5.49 C 9.80 -7.59 O 9.80 -8.99 C 11.01 -6.89 Cl 12.22 -7.59 Cl 11.01 -5.49 C 9.80 -4.79 1 2 1 2 3 2 3 4 1 4 5 2 5 6 1 6 1 2 7 8 1 8 9 1 9 10 1 3 10 1 2 7 1 7 11 1 11 12 2 11 13 1 13 14 1 13 15 1 8 16 1";
+		jsmeApplet.readMolecule(jme); // or document.JME.readMolecule(jme);
+	}
+
+
+        function esmiles2dWindow() {
+           
+           var mol    = document.form.smi.value.split("~")[0];
+           var re = /\+/g;
+           var re2 = / /g;
+           mol = mol.split("~")[0];
+           
+           mol = mol.replace(re, ".");
+           mol = mol.replace("-->",">>");
+           
+           var smiles = mol.replace(re2,"");
+           
+           jsmeApplet.readGenericMolecularInput(smiles);
+        }
+
+
+	function readMultipart() {
+		var jme = "9 9 C 6.68 -7.15 C 5.47 -6.45 C 4.26 -7.15 C 4.26 -8.55 C 5.47 -9.25 C 6.68 -8.55 C 5.47 -5.05 O- 6.68 -4.35 O 4.26 -4.35 1 2 1 2 3 2 3 4 1 4 5 2 5 6 1 6 1 2 2 7 1 7 8 1 7 9 2|1 0 Na+ 12.21 -6.61";
+		jsmeApplet.readMolecule(jme) // or document.JME.readMolecule(jme
+	}
+
+	function readReaction() {
+		var jme = "3 2 C:1 1.41 -7.12 O:2 1.41 -5.72 Cl 2.63 -7.82 1 2 2 1 3 1|3 2 N:3 5.72 -6.78 C:4 7.12 -6.78 H:5 5.02 -7.99 1 2 1 1 3 1 >> 5 4 C:1 13.51 -6.40 O:2 13.51 -5.00 N:3 14.72 -7.10 C:4 15.94 -6.40 H:5 14.71 -8.50 1 2 2 1 3 1 3 4 1 3 5 1";
+		jsmeApplet.readMolecule(jme);
+	}
+
+	function getMolfile() {
+		var data = document.JME.molFile();
+		document.getElementById("jme_output").value = data;
+
+	}
+	function getSmiles() {
+                var drawing = document.JME.smiles();
+                document.form.smi.value = drawing;
+	}
+	function appendSmiles() {
+                var drawing = document.JME.smiles();
+                 var re = /\./g;
+                drawing = drawing.replace(re, " + ");
+                drawing = drawing.replace(">>"," --> ");
+                document.form.smi.value += drawing;
+	}
+	function clearSmiles() {
+                document.form.smi.value = ""
+                document.getElementById('runmebanner').innerHTML="";
+	}
+
+        function emailSmiles() {
+                var email=('arrows@emsl.pnnl.gov');
+                var subject = (document.form.smi.value);
+                var subjectEncoded = encodeURIComponent(subject);
+                var body = ('I am the body of the feedback that you are sending.');
+                var link = 'mailto:'+email+'?subject='+subjectEncoded;
+                window.location.href = link;
+                //document.write( '<a href="mailto:' + email +
+                //                '?subject=' +subject+
+                //                '">' + 'Click here to send email to arrows' + '<' + '/a>');
+        }
+
+        function jsmereaction() {
+           jsmeApplet.options("query,hydrogens,canonize,removehs,reaction");
+           //jsmeApplet.reset();
+        }
+        function jsmenoreaction() {
+           jsmeApplet.options("query,hydrogens,canonize,removehs,noreaction");
+           //jsmeApplet.reset();
+        }
+
+        function jmreactionplane() {
+           var scpt;
+           var jjj = document.getElementById("jmolreactionplane").value;
+           if  (jjj == "Reaction off") {
+              document.getElementById("jmolreactionplane").value = "Reaction on";
+              jsmenoreaction();
+           } else {
+              document.getElementById("jmolreactionplane").value = "Reaction off";
+              jsmereaction();
+           }
+        }
+        document.getElementById("jmolreactionplane").value = "Reaction on";
+
+
+	function getJMEstring() {
+		var data = document.JME.jmeFile();
+		document.getElementById("jme_output").value = data;
+	}
+
+        function charge_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var charge = 0
+           if (arrows_input.includes("^{")) {
+              charge = eval(arrows_input.split("^{")[1].split("}")[0].trim());
+           }
+           return charge;
+        }
+        function mult_arrowsdata() {
+           var arrows_input = document.form.smi.value;
+           var mult = 1
+           if (arrows_input.includes("mult{")) {
+              mult = eval(arrows_input.split("mult{")[1].split("}")[0].trim());
+           }
+           return mult;
+        }
+        function entermult() {
+           var rr;
+           var mult0 = mult_arrowsdata();
+           var mult = prompt("Please enter multiplicity:", mult0);
+           if (document.form.smi.value.includes("mult{")) {
+              rr = document.form.smi.value.split("mult{")[1].split("}")[0];
+              rr = "mult{" + rr + "}";
+              document.form.smi.value = document.form.smi.value.replace(rr,"");
+           }
+           document.form.smi.value += " mult{"+mult+"}";
+        }
+        function entercharge() {
+           var rr;
+           var charge0 = charge_arrowsdata();
+           var charge = prompt("Please enter charge:", charge0);
+           if (document.form.smi.value.includes("^{")) {
+              rr = document.form.smi.value.split("^{")[1].split("}")[0];
+              rr = "^{" + rr + "}";
+              document.form.smi.value = document.form.smi.value.replace(rr,"");
+           }
+           document.form.smi.value += " ^{"+charge+"}";
+        }
+
+        function sleep(milliseconds) {
+            var start = new Date().getTime();
+            for (var i = 0; i < 1e7; i++) {
+               if ((new Date().getTime() - start) > milliseconds){
+                  break;
+               }
+            }
+        }
+
+        function Confirm(form){
+            //alert("Record insert successfully!"); 
+            var mytext = "Your Arrows job for " + document.form.smi.value + " is running. Please be patient for it to finish.";
+            document.getElementById('runmebanner').innerHTML=mytext;
+
+            //var node = document.getElementById('runmebanner');
+            //while (node.firstChild) node.removeChild( node.firstChild);
+            //node.appendChild(document.createTextNode(mytext));
+            sleep(500);
+            form.submit();
+        }
+
+
+
+
+
+        function txspressed(button0) {
+           var mystr = document.form.smi.value;
+           var headstr   = "";
+           var tailstr   = "";
+           var theorystr = "";
+           var xcstr     = "";
+           var solvstr   = "";
+           var basisstr   = "";
+
+           if (mystr.includes("theory{") || mystr.includes("xc{") || mystr.includes("solvation_type{") || mystr.includes("basis{")) {
+              ss = mystr.trim().split(" ");
+              sslen = ss.length;
+              for (var i=0; i<sslen; ++i) {
+                 if (ss[i].includes("theory{") || ss[i].includes("xc{") || ss[i].includes("solvation_type{") || ss[i].includes("basis{") ) {
+                    tailstr += ss[i] + " "
+                 } 
+                 else {
+                    headstr += ss[i] + " "
+                 }
+              }
+              headstr = headstr.trim();
+              tailstr = tailstr.trim();
+           }
+           else {
+              headstr = mystr.trim();
+           }
+
+           if (tailstr.includes("theory{")) {
+              theorystr = tailstr.split("theory{")[1].split("}")[0].trim();
+           }
+
+           if (tailstr.includes("xc{")) {
+              xcstr = tailstr.split("xc{")[1].split("}")[0].trim();
+           }
+
+           if (tailstr.includes("solvation_type{")) {
+              solvstr = tailstr.split("solvation_type{")[1].split("}")[0].trim();
+           }
+           if (tailstr.includes("basis{")) {
+              basisstr = tailstr.split("basis{")[1].split("}")[0].trim();
+           }
+
+           if (button0=="dft")     { theorystr = "dft"; }
+           if (button0=="pspw")    { theorystr = "pspw"; }
+           if (button0=="pspw4")   { theorystr = "pspw4"; }
+           if (button0=="mp2")     { theorystr = "mp2"; }
+           if (button0=="ccsd(t)") { theorystr = "ccsd(t)"; }
+           if (button0=="pm3")     { theorystr = "pm3"; }
+
+           if (button0=="6-31G*")          { basisstr = "6-31G*"; }
+           if (button0=="6-311++G(2d,2p)") { basisstr = "6-311++G(2d,2p)"; }
+
+           if (button0=="lda")    { xcstr = "lda"; }
+           if (button0=="pbe")    { xcstr = "pbe"; }
+           if (button0=="pbe0")   { xcstr = "pbe0"; }
+           if (button0=="blyp")   { xcstr = "blyp"; }
+           if (button0=="b3lyp")  { xcstr = "b3lyp"; }
+           if (button0=="m06-2x") { xcstr = "m06-2x"; }
+
+           if (button0=="COSMO")     { solvstr = "COSMO"; }
+           if (button0=="COSMO-SMD") { solvstr = document.getElementById("COSMO-SMD").value.split("{")[1].split("}")[0]; }
+           if (button0=="None")      { solvstr = "None"; }
+
+           // remove conflicting options
+           if ((theorystr=="mp2") || (theorystr=="ccsd(t)"))  { xcstr = ""; }
+           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (xcstr=="m06-2x")) { xcstr = ""; }
+           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (solvstr=="COSMO")) { solvstr = ""; }
+           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (solvstr.includes("COSMO-SMD"))) { solvstr = ""; }
+           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (basisstr=="6-31G*")) { basisstr = ""; }
+           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (basisstr=="6-311++G(2d,2p)")) { basisstr = ""; }
+           if (theorystr=="pm3") { 
+              xcstr = ""; 
+              basisstr = ""; 
+              if (solvstr=="COSMO-SMD") {solvstr="";}
+           }
+
+           // set the button colors
+           var color1="background-color:#f8f8ff; color:#298DB4;";
+           var color2="background-color:#f8f8ff; color:#74A52B;";
+           if (theorystr=="dft") {
+               document.getElementById("lda").style     = color1;
+               document.getElementById("pbe").style     = color1;
+               document.getElementById("pbe0").style    = color1;
+               document.getElementById("blyp").style    = color1;
+               document.getElementById("b3lyp").style   = color1;
+               document.getElementById("m06-2x").style  = color1;
+               document.getElementById("COSMO").style     = color1;
+               document.getElementById("COSMO-SMD").style = color1;
+               document.getElementById("None").style      = color1;
+               document.getElementById("6-31G*").style = color1;
+               document.getElementById("6-311++G(2d,2p)").style = color1;
+           } else if (theorystr=="pspw") {
+               document.getElementById("lda").style     = color1;
+               document.getElementById("pbe").style     = color1;
+               document.getElementById("pbe0").style    = color1;
+               document.getElementById("blyp").style   = color1;
+               document.getElementById("b3lyp").style   = color1;
+               document.getElementById("m06-2x").style  = color2;
+               document.getElementById("COSMO").style     = color2;
+               document.getElementById("COSMO-SMD").style = color2;
+               document.getElementById("None").style      = color1;
+               document.getElementById("6-31G*").style = color2;
+               document.getElementById("6-311++G(2d,2p)").style = color2;
+           } else if (theorystr=="pspw4") {
+               document.getElementById("lda").style     = color1;
+               document.getElementById("pbe").style     = color1;
+               document.getElementById("pbe0").style    = color1;
+               document.getElementById("blyp").style   = color1;
+               document.getElementById("b3lyp").style   = color1;
+               document.getElementById("m06-2x").style  = color2;
+               document.getElementById("COSMO").style     = color2;
+               document.getElementById("COSMO-SMD").style = color2;
+               document.getElementById("None").style      = color1;
+               document.getElementById("6-31G*").style = color2;
+               document.getElementById("6-311++G(2d,2p)").style = color2;
+           } else if (theorystr=="mp2") {
+               document.getElementById("lda").style     = color2;
+               document.getElementById("pbe").style     = color2;
+               document.getElementById("pbe0").style    = color2;
+               document.getElementById("blyp").style   = color2;
+               document.getElementById("b3lyp").style   = color2;
+               document.getElementById("m06-2x").style  = color2;
+               document.getElementById("COSMO").style     = color1;
+               document.getElementById("COSMO-SMD").style = color1;
+               document.getElementById("None").style      = color1;
+               document.getElementById("6-31G*").style = color1;
+               document.getElementById("6-311++G(2d,2p)").style = color1;
+           } else if (theorystr=="ccsd(t)") {
+               document.getElementById("lda").style     = color2;
+               document.getElementById("pbe").style     = color2;
+               document.getElementById("pbe0").style    = color2;
+               document.getElementById("blyp").style   = color2;
+               document.getElementById("b3lyp").style   = color2;
+               document.getElementById("m06-2x").style  = color2;
+               document.getElementById("COSMO").style     = color1;
+               document.getElementById("COSMO-SMD").style = color1;
+               document.getElementById("None").style      = color1;
+               document.getElementById("6-31G*").style = color1;
+               document.getElementById("6-311++G(2d,2p)").style = color1;
+           } else if (theorystr=="pm3") {
+               document.getElementById("lda").style     = color2;
+               document.getElementById("pbe").style     = color2;
+               document.getElementById("pbe0").style    = color2;
+               document.getElementById("blyp").style   = color2;
+               document.getElementById("b3lyp").style   = color2;
+               document.getElementById("m06-2x").style  = color2;
+               document.getElementById("COSMO").style     = color1;
+               document.getElementById("COSMO-SMD").style = color2;
+               //document.getElementById("None").style      = color1;
+               document.getElementById("6-31G*").style = color2;
+               document.getElementById("6-311++G(2d,2p)").style = color2;
+           }
+
+           // set the esmiles string
+           document.form.smi.value = headstr;
+           //if ((theorystr!="") || (xcstr!="") || (solvstr!="")) { document.form.smi.value += " ~ "; }
+           if ((headstr.includes("-->") || headstr.includes("==>"))  && (!headstr.includes("~"))) { document.form.smi.value += " ~ "; }
+           if (theorystr!="") { document.form.smi.value += " theory{" + theorystr + "}"; }
+           if (xcstr!="")     { document.form.smi.value += " xc{" + xcstr + "}"; }
+           if (solvstr!="")   { document.form.smi.value += " solvation_type{" + solvstr + "}"; }
+           if (basisstr!="")   { document.form.smi.value += " basis{" + basisstr + "}"; }
+
+        }
+
+
+
+</script>
+</head>
+
+
+<body>
+
+<div class="linkbanner">
+   <a href="https://arrows.emsl.pnnl.gov/api"><img src="https://dl.dropboxusercontent.com/s/s5fof263qwxzcaq/EMSLArrows2019.png" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="https://arrows.emsl.pnnl.gov/api/periodic">3D Periodic Editor</a> &nbsp;
+   <a href="https://arrows.emsl.pnnl.gov/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/expert">Expert Editor</a> &nbsp;   <a href="https://arrows.emsl.pnnl.gov/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="https://arrows.emsl.pnnl.gov/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a> 
+</div>
+
+
+	<!-- RECOMMENDED if your web app will not function without JavaScript enabled -->
+	<noscript>
+		<div
+			style="width: 22em; position: absolute; left: 50%; margin-left: -11em; color: red; background-color: white; border: 1px solid red; padding: 4px; font-family: sans-serif">
+			Your web browser must have JavaScript enabled in order for this
+			application to display correctly.</div>
+	</noscript>
+        
+        <center><font color="74A52B" size="+2"> <p><b>EMSL Arrows 2D Molecular And Reaction Editor</b></p></font></center>
+        <font color="E8613B" size="+1"><p align="center"> EMSL Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email.</p></font><!--p align="center"><a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Click here for the EMSL Arrows manual</a> </p-->
+         
+         <font color="298DB4"><p> {{ calculations }}</b> Arrows calculations carried out to date <br>
+                                    {{ moleculecalculations }} Molecular calculations in database to date </p></font>
+    <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows.html#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows.html#ESMILES_Reactions_-_How_to_Calculate_Reaction_Energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
+    <form action="." name="form"  method="POST">
+       <table>
+          <tr>
+             <td> <input type="text" name="smi" SIZE=120 onkeydown="if (event.keyCode == 13) Confirm(this.form)"> </td>
+             <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
+             <td> <input type="button" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
+          </tr>
+          <tr> 
+             <td> <INPUT TYPE="button" VALUE="Append SMILES from JSME Molecular Editor" onClick="appendSmiles()"> &nbsp;
+                  <input type="button" class="button3" name="jmolreactionplane" id="jmolreactionplane" value="Reaction on" onClick="jmreactionplane()"/> 
+                  <INPUT TYPE="button" VALUE="no html5" 
+                          onClick="document.form.smi.value+=' nohtml5'" > 
+                  <INPUT TYPE="button" VALUE="Clear" onClick="clearSmiles()"> 
+            </td>
+             <td> <INPUT TYPE="button" VALUE="Email Submit" onClick="emailSmiles()"> </td>
+          </tr>
+       </table>
+    </form>
+    <section class="blink" style="color: red"> <b id="runmebanner"> </b> </section> 
+    <br>
+    <FORM METHOD="POST" ONSUBMIT="return false;">
+       <INPUT TYPE="button" VALUE="theory{dft}" id="dft"
+              onClick="txspressed('dft')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{pspw}" id="pspw"
+              onClick="txspressed('pspw')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{pspw4}" id="pspw4"
+              onClick="txspressed('pspw4')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{mp2}" id="mp2"
+              onClick="txspressed('mp2')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{ccsd(t)}" id="ccsd(t)"
+              onClick="txspressed('ccsd(t)')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{pm3}" id="pm3"
+              onClick="txspressed('pm3')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="basis{6-31G*}" id="6-31G*"
+              onClick="txspressed('6-31G*')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="basis{6-311++G(2d,2p)}" id="6-311++G(2d,2p)"
+              onClick="txspressed('6-311++G(2d,2p)')"
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <br>
+       <INPUT TYPE="button" VALUE="xc{lda}" id="lda"
+              onClick="txspressed('lda')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{pbe}" id="pbe"
+              onClick="txspressed('pbe')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{pbe0}" id="pbe0"
+              onClick="txspressed('pbe0')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{blyp}" id="blyp"
+              onClick="txspressed('blyp')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{b3lyp}" id="b3lyp"
+              onClick="txspressed('b3lyp')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{m06-2x}" id="m06-2x"
+              onClick="txspressed('m06-2x')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="solvation_type{None}" id="None"
+              onClick="txspressed('None')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="solvation_type{COSMO}"  id="COSMO"
+              onClick="txspressed('COSMO')"
+              onClick="document.form.smi.value+=' solvation_type{COSMO}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="solvation_type{COSMO-SMD}"  id="COSMO-SMD"
+              onClick="txspressed('COSMO-SMD')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <select id="SMD_solvent" onChange="document.getElementById('COSMO-SMD').value = document.getElementById('SMD_solvent').value;" >
+                 <option value="solvation_type{COSMO-SMD}">water (default)</option>
+                 <option value="solvation_type{COSMO-SMD:acetacid}">acetic acid</option>
+                 <option value="solvation_type{COSMO-SMD:acetone}">acetone</option>
+                 <option value="solvation_type{COSMO-SMD:acetntrl}">acetonitrile</option>
+                 <option value="solvation_type{COSMO-SMD:acetphen}">acetophenone</option>
+                 <option value="solvation_type{COSMO-SMD:aniline}">aniline</option>
+                 <option value="solvation_type{COSMO-SMD:anisole}">anisole</option>
+                 <option value="solvation_type{COSMO-SMD:benzaldh}">benzaldehyde</option>
+                 <option value="solvation_type{COSMO-SMD:benzene}">benzene</option>
+                 <option value="solvation_type{COSMO-SMD:benzntrl}">benzonitrile</option>
+                 <option value="solvation_type{COSMO-SMD:benzylcl}">benzyl chloride</option>
+                 <option value="solvation_type{COSMO-SMD:brisobut}">1-bromo-2-methylpropane</option>
+                 <option value="solvation_type{COSMO-SMD:brbenzen}">bromobenzene</option>
+                 <option value="solvation_type{COSMO-SMD:brethane}">bromoethane</option>
+                 <option value="solvation_type{COSMO-SMD:bromform}">bromoform</option>
+                 <option value="solvation_type{COSMO-SMD:broctane}">1-bromooctane</option>
+                 <option value="solvation_type{COSMO-SMD:brpentan}">1-bromopentane</option>
+                 <option value="solvation_type{COSMO-SMD:brpropa2}">2-bromopropane</option>
+                 <option value="solvation_type{COSMO-SMD:brpropan}">1-bromopropane</option>
+                 <option value="solvation_type{COSMO-SMD:butanal}">butanal</option>
+                 <option value="solvation_type{COSMO-SMD:butacid}">butanoic acid</option>
+                 <option value="solvation_type{COSMO-SMD:butanol}">1-butanol</option>
+                 <option value="solvation_type{COSMO-SMD:butanol2}">2-butanol</option>
+                 <option value="solvation_type{COSMO-SMD:butanone}">butanone</option>
+                 <option value="solvation_type{COSMO-SMD:butantrl}">butanonitrile</option>
+                 <option value="solvation_type{COSMO-SMD:butile}">butyl acetate</option>
+                 <option value="solvation_type{COSMO-SMD:nba}">butylamine</option>
+                 <option value="solvation_type{COSMO-SMD:nbutbenz}">n-butylbenzene</option>
+                 <option value="solvation_type{COSMO-SMD:sbutbenz}">sec-butylbenzene</option>
+                 <option value="solvation_type{COSMO-SMD:tbutbenz}">tert-butylbenzene</option>
+                 <option value="solvation_type{COSMO-SMD:cs2}">carbon disulfide</option>
+                 <option value="solvation_type{COSMO-SMD:carbntet}">carbon tetrachloride</option>
+                 <option value="solvation_type{COSMO-SMD:clbenzen}">chlorobenzene</option>
+                 <option value="solvation_type{COSMO-SMD:secbutcl}">sec-butyl chloride</option>
+                 <option value="solvation_type{COSMO-SMD:chcl3}">chloroform</option>
+                 <option value="solvation_type{COSMO-SMD:clhexane}">1-chlorohexane</option>
+                 <option value="solvation_type{COSMO-SMD:clpentan}">1-chloropentane</option>
+                 <option value="solvation_type{COSMO-SMD:clpropan}">1-chloropropane</option>
+                 <option value="solvation_type{COSMO-SMD:ocltolue}">o-chlorotoluene</option>
+                 <option value="solvation_type{COSMO-SMD:m-cresol}">m-cresol</option>
+                 <option value="solvation_type{COSMO-SMD:o-cresol}">o-cresol</option>
+                 <option value="solvation_type{COSMO-SMD:cychexan}">cyclohexane</option>
+                 <option value="solvation_type{COSMO-SMD:cychexon}">cyclohexanone</option>
+                 <option value="solvation_type{COSMO-SMD:cycpentn}">cyclopentane</option>
+                 <option value="solvation_type{COSMO-SMD:cycpntol}">cyclopentanol</option>
+                 <option value="solvation_type{COSMO-SMD:cycpnton}">cyclopentanone</option>
+                 <option value="solvation_type{COSMO-SMD:declncis}">cis-decalin</option>
+                 <option value="solvation_type{COSMO-SMD:declntra}">trans-decalin</option>
+                 <option value="solvation_type{COSMO-SMD:declnmix}">decalin (cis/trans mixture)</option>
+                 <option value="solvation_type{COSMO-SMD:decane}">n-decane</option>
+                 <option value="solvation_type{COSMO-SMD:decanol}">1-decanol</option>
+                 <option value="solvation_type{COSMO-SMD:edb12}">1,2-dibromoethane</option>
+                 <option value="solvation_type{COSMO-SMD:dibrmetn}">dibromomethane</option>
+                 <option value="solvation_type{COSMO-SMD:butyleth}">dibutyl ether</option>
+                 <option value="solvation_type{COSMO-SMD:odiclbnz}">o-dichlorobenzene</option>
+                 <option value="solvation_type{COSMO-SMD:edc12}">1,2-dichloroethane</option>
+                 <option value="solvation_type{COSMO-SMD:c12dce}">cis-dichloroethylene</option>
+                 <option value="solvation_type{COSMO-SMD:t12dce}">trans-dichloroethylene</option>
+                 <option value="solvation_type{COSMO-SMD:dcm}">dichloromethane</option>
+                 <option value="solvation_type{COSMO-SMD:ether}">diethyl ether</option>
+                 <option value="solvation_type{COSMO-SMD:et2s}">diethyl sulfide</option>
+                 <option value="solvation_type{COSMO-SMD:dietamin}">diethylamine</option>
+                 <option value="solvation_type{COSMO-SMD:mi}">diiodomethane</option>
+                 <option value="solvation_type{COSMO-SMD:dipe}">diisopropyl ether</option>
+                 <option value="solvation_type{COSMO-SMD:dmds}">dimethyl disulfide</option>
+                 <option value="solvation_type{COSMO-SMD:dmso}">dimethyl sulfoxide</option>
+                 <option value="solvation_type{COSMO-SMD:dma}">N,N-dimethylacetamide</option>
+                 <option value="solvation_type{COSMO-SMD:cisdmchx}">cis-1,2-dimethylcyclohexane</option>
+                 <option value="solvation_type{COSMO-SMD:dmf}">N,N-dimethylformamide</option>
+                 <option value="solvation_type{COSMO-SMD:dmepen24}">2,4-dimethylpentane</option>
+                 <option value="solvation_type{COSMO-SMD:dmepyr24}">2,4-dimethylpyridine</option>
+                 <option value="solvation_type{COSMO-SMD:dmepyr26}">2,6-dimethylpyridine</option>
+                 <option value="solvation_type{COSMO-SMD:dioxane}">1,4-dioxane</option>
+                 <option value="solvation_type{COSMO-SMD:phoph}">diphenyl ether</option>
+                 <option value="solvation_type{COSMO-SMD:dproamin}">dipropylamine</option>
+                 <option value="solvation_type{COSMO-SMD:dodecan}">n-dodecane</option>
+                 <option value="solvation_type{COSMO-SMD:meg}">1,2-ethanediol</option>
+                 <option value="solvation_type{COSMO-SMD:etsh}">ethanethiol</option>
+                 <option value="solvation_type{COSMO-SMD:ethanol}">ethanol</option>
+                 <option value="solvation_type{COSMO-SMD:etoac}">ethyl acetate</option>
+                 <option value="solvation_type{COSMO-SMD:etome}">ethyl formate</option>
+                 <option value="solvation_type{COSMO-SMD:eb}">ethylbenzene</option>
+                 <option value="solvation_type{COSMO-SMD:phenetol}">ethyl phenyl ether</option>
+                 <option value="solvation_type{COSMO-SMD:c6h5f}">fluorobenzene</option>
+                 <option value="solvation_type{COSMO-SMD:foctane}">1-fluorooctane</option>
+                 <option value="solvation_type{COSMO-SMD:formamid}">formamide</option>
+                 <option value="solvation_type{COSMO-SMD:formacid}">formic acid</option>
+                 <option value="solvation_type{COSMO-SMD:heptane}">n-heptane</option>
+                 <option value="solvation_type{COSMO-SMD:heptanol}">1-heptanol</option>
+                 <option value="solvation_type{COSMO-SMD:heptnon2}">2-heptanone</option>
+                 <option value="solvation_type{COSMO-SMD:heptnon4}">4-heptanone</option>
+                 <option value="solvation_type{COSMO-SMD:hexadecn}">n-hexadecane</option>
+                 <option value="solvation_type{COSMO-SMD:hexane}">n-hexane</option>
+                 <option value="solvation_type{COSMO-SMD:hexnacid}">hexanoic acid</option>
+                 <option value="solvation_type{COSMO-SMD:hexanol}">1-hexanol</option>
+                 <option value="solvation_type{COSMO-SMD:hexanon2}">2-hexanone</option>
+                 <option value="solvation_type{COSMO-SMD:hexene}">1-hexene</option>
+                 <option value="solvation_type{COSMO-SMD:hexyne}">1-hexyne</option>
+                 <option value="solvation_type{COSMO-SMD:c6h5i}">iodobenzene</option>
+                 <option value="solvation_type{COSMO-SMD:iobutane}">1-iodobutane</option>
+                 <option value="solvation_type{COSMO-SMD:c2h5i}">iodoethane</option>
+                 <option value="solvation_type{COSMO-SMD:iohexdec}">1-iodohexadecane</option>
+                 <option value="solvation_type{COSMO-SMD:ch3i}">iodomethane</option>
+                 <option value="solvation_type{COSMO-SMD:iopentan}">1-iodopentane</option>
+                 <option value="solvation_type{COSMO-SMD:iopropan}">1-iodopropane</option>
+                 <option value="solvation_type{COSMO-SMD:cumene}">isopropylbenzene</option>
+                 <option value="solvation_type{COSMO-SMD:p-cymene}">p-isopropyltoluene</option>
+                 <option value="solvation_type{COSMO-SMD:mesityln}">mesitylene</option>
+                 <option value="solvation_type{COSMO-SMD:methanol}">methanol</option>
+                 <option value="solvation_type{COSMO-SMD:egme}">2-methoxyethanol</option>
+                 <option value="solvation_type{COSMO-SMD:meacetat}">methyl acetate</option>
+                 <option value="solvation_type{COSMO-SMD:mebnzate}">methyl benzoate</option>
+                 <option value="solvation_type{COSMO-SMD:mebutate}">methyl butanoate</option>
+                 <option value="solvation_type{COSMO-SMD:meformat}">methyl formate</option>
+                 <option value="solvation_type{COSMO-SMD:mibk}">4-methyl-2-pentanone</option>
+                 <option value="solvation_type{COSMO-SMD:mepropyl}">methyl propanoate</option>
+                 <option value="solvation_type{COSMO-SMD:isobutol}">2-methyl-1-propanol</option>
+                 <option value="solvation_type{COSMO-SMD:terbutol}">2-methyl-2-propanol</option>
+                 <option value="solvation_type{COSMO-SMD:nmeaniln}">N-methylaniline</option>
+                 <option value="solvation_type{COSMO-SMD:mecychex}">methylcyclohexane</option>
+                 <option value="solvation_type{COSMO-SMD:nmfmixtr}">N-methylformamide (E/Z mixture)</option>
+                 <option value="solvation_type{COSMO-SMD:isohexan}">2-methylpentane</option>
+                 <option value="solvation_type{COSMO-SMD:mepyrid2}">2-methylpyridine</option>
+                 <option value="solvation_type{COSMO-SMD:mepyrid3}">3-methylpyridine</option>
+                 <option value="solvation_type{COSMO-SMD:mepyrid4}">4-methylpyridine</option>
+                 <option value="solvation_type{COSMO-SMD:c6h5no2}">nitrobenzene</option>
+                 <option value="solvation_type{COSMO-SMD:c2h5no2}">nitroethane</option>
+                 <option value="solvation_type{COSMO-SMD:ch3no2}">nitromethane</option>
+                 <option value="solvation_type{COSMO-SMD:ntrprop1}">1-nitropropane</option>
+                 <option value="solvation_type{COSMO-SMD:ntrprop2}">2-nitropropane</option>
+                 <option value="solvation_type{COSMO-SMD:ontrtolu}">o-nitrotoluene</option>
+                 <option value="solvation_type{COSMO-SMD:nonane}">n-nonane</option>
+                 <option value="solvation_type{COSMO-SMD:nonanol}">1-nonanol</option>
+                 <option value="solvation_type{COSMO-SMD:nonanone}">5-nonanone</option>
+                 <option value="solvation_type{COSMO-SMD:octane}">n-octane</option>
+                 <option value="solvation_type{COSMO-SMD:octanol}">1-octanol</option>
+                 <option value="solvation_type{COSMO-SMD:octanon2}">2-octanone</option>
+                 <option value="solvation_type{COSMO-SMD:pentdecn}">n-pentadecane</option>
+                 <option value="solvation_type{COSMO-SMD:pentanal}">pentanal</option>
+                 <option value="solvation_type{COSMO-SMD:npentane}">n-pentane</option>
+                 <option value="solvation_type{COSMO-SMD:pentacid}">pentanoic acid</option>
+                 <option value="solvation_type{COSMO-SMD:pentanol}">1-pentanol</option>
+                 <option value="solvation_type{COSMO-SMD:pentnon2}">2-pentanone</option>
+                 <option value="solvation_type{COSMO-SMD:pentnon3}">3-pentanone</option>
+                 <option value="solvation_type{COSMO-SMD:pentene}">1-pentene</option>
+                 <option value="solvation_type{COSMO-SMD:e2penten}">E-2-pentene</option>
+                 <option value="solvation_type{COSMO-SMD:pentacet}">pentyl acetate</option>
+                 <option value="solvation_type{COSMO-SMD:pentamin}">pentylamine</option>
+                 <option value="solvation_type{COSMO-SMD:pfb}">perfluorobenzene</option>
+                 <option value="solvation_type{COSMO-SMD:benzalcl}">phenylmethanol</option>
+                 <option value="solvation_type{COSMO-SMD:propanal}">propanal</option>
+                 <option value="solvation_type{COSMO-SMD:propacid}">propanoic acid</option>
+                 <option value="solvation_type{COSMO-SMD:propanol}">1-propanol</option>
+                 <option value="solvation_type{COSMO-SMD:propnol2}">2-propanol</option>
+                 <option value="solvation_type{COSMO-SMD:propntrl}">propanonitrile</option>
+                 <option value="solvation_type{COSMO-SMD:propenol}">2-propen-1-ol</option>
+                 <option value="solvation_type{COSMO-SMD:propacet}">propyl acetate</option>
+                 <option value="solvation_type{COSMO-SMD:propamin}">propylamine</option>
+                 <option value="solvation_type{COSMO-SMD:pyridine}">pyridine</option>
+                 <option value="solvation_type{COSMO-SMD:c2cl4}">tetrachloroethene</option>
+                 <option value="solvation_type{COSMO-SMD:thf}">tetrahydrofuran</option>
+                 <option value="solvation_type{COSMO-SMD:sulfolan}">tetrahydrothiophene-S,S-dioxide</option>
+                 <option value="solvation_type{COSMO-SMD:tetralin}">tetralin</option>
+                 <option value="solvation_type{COSMO-SMD:thiophen}">thiophene</option>
+                 <option value="solvation_type{COSMO-SMD:phsh}">thiophenol</option>
+                 <option value="solvation_type{COSMO-SMD:toluene}">toluene</option>
+                 <option value="solvation_type{COSMO-SMD:tbp}">tributyl phosphate</option>
+                 <option value="solvation_type{COSMO-SMD:tca111}">1,1,1-trichloroethane</option>
+                 <option value="solvation_type{COSMO-SMD:tca112}">1,1,2-trichloroethane</option>
+                 <option value="solvation_type{COSMO-SMD:tce}">trichloroethene</option>
+                 <option value="solvation_type{COSMO-SMD:et3n}">triethylamine</option>
+                 <option value="solvation_type{COSMO-SMD:tfe222}">2,2,2-trifluoroethanol</option>
+                 <option value="solvation_type{COSMO-SMD:tmben124}">1,2,4-trimethylbenzene</option>
+                 <option value="solvation_type{COSMO-SMD:isoctane}">2,2,4-trimethylpentane</option>
+                 <option value="solvation_type{COSMO-SMD:undecane}">n-undecane</option>
+                 <option value="solvation_type{COSMO-SMD:m-xylene}">m-xylene</option>
+                 <option value="solvation_type{COSMO-SMD:o-xylene}">o-xylene</option>
+                 <option value="solvation_type{COSMO-SMD:p-xylene}">p-xylene</option>
+                 <option value="solvation_type{COSMO-SMD:xylenemx}">xylene (mixture)</option>
+       </select><br>
+
+       <INPUT TYPE="button" VALUE="-->" 
+              onClick="document.form.smi.value+=' --> '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="+" 
+              onClick="document.form.smi.value+=' + '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="~" 
+              onClick="document.form.smi.value+=' ~ '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="1" 
+              onClick="document.form.smi.value+='1'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="2" 
+              onClick="document.form.smi.value+='2'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="3" 
+              onClick="document.form.smi.value+='3'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="4" 
+              onClick="document.form.smi.value+='4'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="5" 
+              onClick="document.form.smi.value+='5'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="6" 
+              onClick="document.form.smi.value+='6'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="7" 
+              onClick="document.form.smi.value+='7'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="8" 
+              onClick="document.form.smi.value+='8'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="9" 
+              onClick="document.form.smi.value+='9'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="0" 
+              onClick="document.form.smi.value+='0'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE=" " 
+              onClick="document.form.smi.value+=' '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="charge" 
+              onClick="entercharge()" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="mult" 
+              onClick="entermult()" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+    </FORM>
+    <br>
+    <table align="center"> 
+        <tr> <td> <input type="button" VALUE="Arrows input to JSME &#8600;" onClick="esmiles2dWindow()" style="background-color:#f8f8ff; color:#de3e59; font-size: 14px; font-weight:bold"/> </td> </tr>
+        <tr><td align="center" id="appletContainer"></td></tr> 
+     </table>
+     <center><font color="443322" size="2"><p> JSME Editor Citation: <a href="http://jcheminf.springeropen.com/articles/10.1186/1758-2946-5-24"> B. Bienfait and P. Ertl, JSME: a free molecule editor in JavaScript, J. Cheminformatics 5:24 (2013)</a> </p></font></center>
+    <br><br>
+
+    <div id="swapper-first" style="display:block; border:2px dashed; border-color: #102DB0; background-color: white;  padding:25px;>
+    <font color="00008B">
+    <h3>  The following are examples of input that can be used with EMSL Arrows. Clicking on a button places the command into the above entry box. </h3>
+    <form method="POST" ONSUBMIT="return false;">
+       <p><b> <font size="+1.5">Molecular calculations: </font> </b> &nbsp;
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="Pubchem=2519" onClick="document.form.smi.value='Pubchem=2519'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="ChemSpider=2424" onClick="document.form.smi.value='ChemSpider=2424'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="cas=58-08-2" onClick="document.form.smi.value='cas=58-08-2'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="kegg=D00528" onClick="document.form.smi.value='kegg=D00528'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3" 
+              onClick="document.form.smi.value='InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="Caffeine" onClick="document.form.smi.value='Caffeine'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CHEMBL113" onClick="document.form.smi.value='CHEMBL113'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C theory{pspw}" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C xc{pbe}" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C xc{pbe}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C xc{m06-2x}" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C xc{m06-2x}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C theory{mp2}" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C theory{mp2}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b><font size="+1.5">  Reaction calculations: </font> </b> &nbsp;
+       <INPUT TYPE="button" VALUE="CC + hydrogen gas --> 2 methane" onClick="document.form.smi.value='CC + hydrogen gas --> 2 methane'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="C=C + ClCl --> ClCCCl" onClick="document.form.smi.value='C=C + ClCl --> ClCCCl'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="TNT + hydroxide --> TNT-2-OH + nitrite" onClick="document.form.smi.value='TNT + hydroxide --> TNT-2-OH + nitrite'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="TNT + hydroxide --> TNT-2-OH + nitrite ~ xc{m06-2x}" 
+              onClick="document.form.smi.value='TNT + hydroxide --> TNT-2-OH + nitrite ~ xc{m06-2x}'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="TNT + hydroxide --> TNT-2-OH + nitrite ~ theory{pspw4}" 
+              onClick="document.form.smi.value='TNT + hydroxide --> TNT-2-OH + nitrite ~ theory{pspw4}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="TNT + water --> TNT-2-OH + nitrous acid ~ theory{pspw}" 
+              onClick="document.form.smi.value='TNT + water --> TNT-2-OH + nitrous acid ~ theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b> <font size="+1.5"> NMR calculations: </font> </b> &nbsp;
+       <INPUT TYPE="button" VALUE="nmr for O=N(=O)c1cc(N(=O)=O)c(c(c1)N(=O)=O)C basis{6-31G*}" 
+              onClick="document.form.smi.value='nmr for O=N(=O)c1cc(N(=O)=O)c(c(c1)N(=O)=O)C basis{6-31G*}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="nmr for O=N(=O)c1cc(N(=O)=O)c(c(c1)N(=O)=O)C basis{6-31G*} solvation_type{None}" 
+              onClick="document.form.smi.value='nmr for O=N(=O)c1cc(N(=O)=O)c(c(c1)N(=O)=O)C basis{6-31G*} solvation_type{None}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="nmr for aspirin" 
+              onClick="document.form.smi.value='nmr for aspirin'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b><font size="+1.5">  Predict reactions: </font></b> &nbsp;
+       <INPUT TYPE="button" VALUE="TNT + hydroxide -->" 
+              onClick="document.form.smi.value='TNT + hydroxide -->'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="C=C + ClCl -->" 
+              onClick="document.form.smi.value='C=C + ClCl -->'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="TNT + hydroxide --> ~ theory{pspw4}" 
+              onClick="document.form.smi.value='TNT + hydroxide --> ~ theory{pspw4}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="predict for TNT + hydroxide" 
+              onClick="document.form.smi.value='predict for TNT + hydroxide'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="predict for tetryl + hydroxide" 
+              onClick="document.form.smi.value='predict for tetryl + hydroxide'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b><font size="+1.5"> SMARTS searching: </font></b> &nbsp;
+       <INPUT TYPE="button" VALUE="smarts cN(=O)=O  xc{m06-2x}" 
+              onClick="document.form.smi.value='smarts cN(=O)=O  xc{m06-2x}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="smarts c1ccccc1 theory{pspw4}" 
+              onClick="document.form.smi.value='smarts c1ccccc1 theory{pspw4}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="smarts [CX3H1](=O)[#6]" 
+              onClick="document.form.smi.value='smarts [CX3H1](=O)[#6]'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="smarts [CX3](=[OX1])C theory{mp2}" 
+              onClick="document.form.smi.value='smarts [CX3](=[OX1])C theory{mp2}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b><font size="+1.5"> Generate NWChem input, Fetch NWChem output, Fetch XYZ and Fetch JSON: </font></b> &nbsp;
+       <INPUT TYPE="button" VALUE="input deck for aspirin" 
+              onClick="document.form.smi.value='input deck for aspirin'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="input deck for aspirin theory{pspw}" 
+              onClick="document.form.smi.value='input deck for aspirin theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="input deck for aspirin theory{mp2}" 
+              onClick="document.form.smi.value='input deck for aspirin theory{mp2}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="input deck for PubChem=2519 xc{pbe}" 
+              onClick="document.form.smi.value='input deck for PubChem=2519 xc{pbe}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="output deck for aspirin" 
+              onClick="document.form.smi.value='output deck for aspirin'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="nwoutput for aspirin theory{pspw}" 
+              onClick="document.form.smi.value='nwoutput for aspirin theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xyz for aspirin theory{pspw}" 
+              onClick="document.form.smi.value='xyz for aspirin theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="json for aspirin theory{pspw}" 
+              onClick="document.form.smi.value='json for aspirin theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+        <p>
+       <p><b><font size="+1.5"> Other Arrows commands: </font></b> &nbsp;
+       <INPUT TYPE="button" VALUE="list all reactions" 
+              onClick="document.form.smi.value='list all reactions'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="list all esmiles 100" 
+              onClick="document.form.smi.value='list all esmiles 100'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="queue" 
+              onClick="document.form.smi.value='queue'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="download fetch_nwchem_input" 
+              onClick="document.form.smi.value='download fetch_nwchem_input'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="download upload_nwchem_outfiles" 
+              onClick="document.form.smi.value='download upload_nwchem_outfiles'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="download arrows_esmiles2xyz" 
+              onClick="document.form.smi.value='download arrows_esmiles2xyz'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="submitesmiles for ethene theory{pspw}" 
+              onClick="document.form.smi.value='submitesmiles for ethene theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+        </p>
+    </form>
+    </font>
+    </div>
+    <table> <tr>
+    <td> <font color="443322" size="2"> <p align="justify"> This software service and its documentation were developed at the Environmental Molecular Sciences Laboratory (EMSL) at Pacific Northwest National Laboratory, a multiprogram national laboratory, operated for the U.S. Department of Energy by Battelle under Contract Number DE-AC05-76RL01830. Support for this work was provided by the Department of Energy Office of Biological and Environmental Research, and Department of Defense environmental science and technology program (SERDP). THE SOFTWARE SERVICE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE SERVICE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE SERVICE. </p></font> </td>
+    <!--td> <a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a> </td-->
+    </tr></table>
+     Keywords: quantum chemistry calculations - quantum chemistry computations - quantum chemistry - molecular modeling calculations - molecular modeling computations - molecular modeling - chemical modeling - chemical reactions calculations - chemical reactions computations - chemical reactions - NWChem calculations - computational chemistry - NWChem 
+
+<br><br>
+<div align="right"><font color="298DB4"> EMSL Arrows API visited {{ visits }} times </font></div>
+
+</body>
+</html>

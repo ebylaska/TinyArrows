@@ -1,0 +1,322 @@
+<!doctype html>
+<!-- The DOCTYPE declaration above will set the     -->
+<!-- browser's rendering engine into                -->
+<!-- "Standards Mode". Replacing this declaration   -->
+<!-- with a "Quirks Mode" doctype is not supported. -->
+
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>EMSL Arrows</title>
+
+
+
+<script type="text/javascript" language="javascript" src="{{ url_for('static', filename='jsme/jsme.nocache.js')}}"></script>
+
+
+
+<script type="text/javascript">
+
+	//this function will be called after the JavaScriptApplet code has been loaded.
+	function jsmeOnLoad() {
+
+		//Instantiate a new JSME: 380px  340px
+		//arguments: HTML id, width, height (must be string not number!)
+
+		jsmeApplet = new JSApplet.JSME("appletContainer", "700px", "467px", {
+			//optional parameters
+			"options" : "query,hydrogens,reaction"
+		});
+
+		//Alternative method: the size is not specified: the applet will use 100% of the space of its parent container "appletContainer".
+		//Be sure that the parent container size > 0, otherwise the applet will not be visible
+
+		/*    	jsmeApplet = new JSApplet.JSME("appletContainer",  {
+		 //optional parameters
+		 "options" : "query,hydrogens",
+		 "jme" : startingStructure
+		 });
+		 */
+
+		//Opera patch: if some applet elements are not displayed, force repaint
+		//jsmeApplet.deferredRepaint(); //the applet will be repainted after the browser event loop returns
+		//it is recommended to use it if the JSME is created outside this jsmeOnLoad() function
+
+		//jsmeApplet has the same API as the original Java applet
+		//One can mimic the JME Java applet access to simplify the adaptation of HTML and JavaScript code:
+		document.JME = jsmeApplet;
+
+		//suggestion 
+		//all buttons that access the jsme variable were disabled in the html
+		//Now enable all buttons that can access the jsme variable since the applet is ready
+		//example:
+		//document.getElementById("button").disabled=false;
+
+	}
+
+	function readMolecule() {
+		var jme = "16 17 C 7.37 -8.99 C 7.37 -7.59 C 6.16 -6.89 C 4.95 -7.59 C 4.95 -8.99 C 6.16 -9.69 N 8.58 -6.89 C 8.58 -5.49 C 7.37 -4.79 O 6.16 -5.49 C 9.80 -7.59 O 9.80 -8.99 C 11.01 -6.89 Cl 12.22 -7.59 Cl 11.01 -5.49 C 9.80 -4.79 1 2 1 2 3 2 3 4 1 4 5 2 5 6 1 6 1 2 7 8 1 8 9 1 9 10 1 3 10 1 2 7 1 7 11 1 11 12 2 11 13 1 13 14 1 13 15 1 8 16 1";
+		jsmeApplet.readMolecule(jme); // or document.JME.readMolecule(jme);
+	}
+
+	function readMultipart() {
+		var jme = "9 9 C 6.68 -7.15 C 5.47 -6.45 C 4.26 -7.15 C 4.26 -8.55 C 5.47 -9.25 C 6.68 -8.55 C 5.47 -5.05 O- 6.68 -4.35 O 4.26 -4.35 1 2 1 2 3 2 3 4 1 4 5 2 5 6 1 6 1 2 2 7 1 7 8 1 7 9 2|1 0 Na+ 12.21 -6.61";
+		jsmeApplet.readMolecule(jme) // or document.JME.readMolecule(jme
+	}
+
+	function readReaction() {
+		var jme = "3 2 C:1 1.41 -7.12 O:2 1.41 -5.72 Cl 2.63 -7.82 1 2 2 1 3 1|3 2 N:3 5.72 -6.78 C:4 7.12 -6.78 H:5 5.02 -7.99 1 2 1 1 3 1 >> 5 4 C:1 13.51 -6.40 O:2 13.51 -5.00 N:3 14.72 -7.10 C:4 15.94 -6.40 H:5 14.71 -8.50 1 2 2 1 3 1 3 4 1 3 5 1";
+		jsmeApplet.readMolecule(jme);
+	}
+
+	function getMolfile() {
+		var data = document.JME.molFile();
+		document.getElementById("jme_output").value = data;
+
+	}
+	function getSmiles() {
+                var drawing = document.JME.smiles();
+                document.form.smi.value = drawing;
+	}
+	function appendSmiles() {
+                var drawing = document.JME.smiles();
+                 var re = /\./g;
+                drawing = drawing.replace(re, " + ");
+                drawing = drawing.replace(">>"," --> ");
+                document.form.smi.value += drawing;
+	}
+	function clearSmiles() {
+                document.form.smi.value = ""
+	}
+	function emailSmiles() {
+                var email=('arrows@emsl.pnnl.gov');
+                var subject = (document.form.smi.value);
+                var subjectEncoded = encodeURIComponent(subject);
+                var body = ('I am the body of the feedback that you are sending.');
+                var link = 'mailto:'+email+'?subject='+subjectEncoded;
+                window.location.href = link;
+                //document.write( '<a href="mailto:' + email +
+                //                '?subject=' +subject+
+                //                '">' + 'Click here to send email to arrows' + '<' + '/a>');
+	}
+
+	function getJMEstring() {
+		var data = document.JME.jmeFile();
+		document.getElementById("jme_output").value = data;
+	}
+</script>
+</head>
+
+
+<body>
+
+
+	<!-- RECOMMENDED if your web app will not function without JavaScript enabled -->
+	<noscript>
+		<div
+			style="width: 22em; position: absolute; left: 50%; margin-left: -11em; color: red; background-color: white; border: 1px solid red; padding: 4px; font-family: sans-serif">
+			Your web browser must have JavaScript enabled in order for this
+			application to display correctly.</div>
+	</noscript>
+        
+        <table><tr>
+        <td>
+           <a href="https://dl.dropboxusercontent.com/s/ttekdmkebqdfjma/arrows4.png"> <img src="https://dl.dropboxusercontent.com/s/ttekdmkebqdfjma/arrows4.png" alt="Copyright Arrows Logo" width="400" height="200"> </a>
+           <font color="298DB4"><p> {{ calculations }} Arrows calculations carried out <br>
+                                    {{ moleculecalculations }} Molecular calculations in database </p></font>
+        </td>
+        <td><center> <font color="74A52B" size="+2"> <p><b>EMSL Arrows: A Revolutionary Approach To Materials and Chemical Simulations</b></p></font></center>
+        <font color="E8613B"><p align="justify">A scientific service that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email.</p></font><p><a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Click here for more information about EMSL Arrows.</a></p></td>
+        </tr></table>
+    <br><br>
+    <h2>Enter an <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>, <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#ESMILES_Reactions_-_How_to_Calculate_Reaction_Energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
+    <form action="." name="form"  method="POST">
+       <table>
+          <tr>
+             <td> <input type="text" name="smi" SIZE=120></td>
+             <td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td>
+          </tr>
+          <tr>
+             <td> <INPUT TYPE="button" VALUE="Append Reaction SMILES from Reaction Editor" onClick="appendSmiles()"> &nbsp;
+                  <INPUT TYPE="button" VALUE="no html5" 
+                         onClick="document.form.smi.value+=' nohtml5'" >
+                  <INPUT TYPE="button" VALUE="Clear" onClick="clearSmiles()"> </td>
+             <td> <INPUT TYPE="button" VALUE="Email Submit" onClick="emailSmiles()"> </td>
+          </tr>
+       </table>
+    </form>
+    <br>
+    <FORM METHOD="POST" ONSUBMIT="return false;">
+       <INPUT TYPE="button" VALUE="~" 
+              onClick="document.form.smi.value+=' ~ '" 
+              style="background-color:#f8f8ff; color:#298DB4;"> <br>
+       <INPUT TYPE="button" VALUE="theory{dft}" 
+              onClick="document.form.smi.value+=' theory{dft}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{pspw}" 
+              onClick="document.form.smi.value+=' theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{pspw4}" 
+              onClick="document.form.smi.value+=' theory{pspw4}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{mp2}" 
+              onClick="document.form.smi.value+=' theory{mp2}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{ccsd(t)}" 
+              onClick="document.form.smi.value+=' theory{ccsd(t)}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="theory{pm3}" 
+              onClick="document.form.smi.value+=' theory{pm3}'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> <br>
+       <INPUT TYPE="button" VALUE="xc{lda}" 
+              onClick="document.form.smi.value+=' xc{lda}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{pbe}" 
+              onClick="document.form.smi.value+=' xc{pbe}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{pbe0}" 
+              onClick="document.form.smi.value+=' xc{pbe0}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{b3lyp}" 
+              onClick="document.form.smi.value+=' xc{b3lyp}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xc{m06-2x}" 
+              onClick="document.form.smi.value+=' xc{m06-2x}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="solvation_type{COSMO-SMD}" 
+              onClick="document.form.smi.value+=' solvation_type{COSMO-SMD}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="solvation_type{None}" 
+              onClick="document.form.smi.value+=' solvation_type{None}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+    </FORM>
+    <br>
+    <p><a href="https://arrows.emsl.pnnl.gov/api">Switch to Molecular Editor</a></p>
+    <table align="center"> <tr><td align="center" id="appletContainer"></td></tr> </table>
+    <center><font color="443322" size="2"><p> JSME Editor Citation: <a href="http://jcheminf.springeropen.com/articles/10.1186/1758-2946-5-24"> B. Bienfait and P. Ertl, JSME: a free molecule editor in JavaScript, J. Cheminformatics 5:24 (2013)</a> </p></font></center>
+    <br><br>
+
+    <font color="00008B">
+    <h3>  The following are examples of input that can be used with EMSL Arrows. Clicking on a button places the command into the above entry box. </h3>
+    <form method="POST" ONSUBMIT="return false;">
+       <p><b> Molecular calculations: </b> &nbsp;
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="Pubchem=2519" onClick="document.form.smi.value='Pubchem=2519'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="ChemSpider=2424" onClick="document.form.smi.value='ChemSpider=2424'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="cas=58-08-2" onClick="document.form.smi.value='cas=58-08-2'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="kegg=D00528" onClick="document.form.smi.value='kegg=D00528'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3" 
+              onClick="document.form.smi.value='InChI=1S/C8H10N4O2/c1-10-4-9-6-5(10)7(13)12(3)8(14)11(6)2/h4H,1-3H3'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="Caffeine" onClick="document.form.smi.value='Caffeine'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CHEMBL113" onClick="document.form.smi.value='CHEMBL113'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C theory{pspw}" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C xc{pbe}" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C xc{pbe}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C xc{m06-2x}" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C xc{m06-2x}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="CN1C=NC2=C1C(=O)N(C(=O)N2C)C theory{mp2}" onClick="document.form.smi.value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C theory{mp2}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b>  Reaction calculations: </b> &nbsp;
+       <INPUT TYPE="button" VALUE="CC + hydrogen gas --> 2 methane" onClick="document.form.smi.value='CC + hydrogen gas --> 2 methane'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="C=C + ClCl --> ClCCCl" onClick="document.form.smi.value='C=C + ClCl --> ClCCCl'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="TNT + hydroxide --> TNT-2-OH + nitrite" onClick="document.form.smi.value='TNT + hydroxide --> TNT-2-OH + nitrite'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="TNT + hydroxide --> TNT-2-OH + nitrite ~ xc{m06-2x}" 
+              onClick="document.form.smi.value='TNT + hydroxide --> TNT-2-OH + nitrite ~ xc{m06-2x}'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="TNT + hydroxide --> TNT-2-OH + nitrite ~ theory{pspw}" 
+              onClick="document.form.smi.value='TNT + hydroxide --> TNT-2-OH + nitrite ~ theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b> NMR calculations: </b> &nbsp;
+       <INPUT TYPE="button" VALUE="nmr for O=N(=O)c1cc(N(=O)=O)c(c(c1)N(=O)=O)C basis{6-31G*}" 
+              onClick="document.form.smi.value='nmr for O=N(=O)c1cc(N(=O)=O)c(c(c1)N(=O)=O)C basis{6-31G*}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="nmr for O=N(=O)c1cc(N(=O)=O)c(c(c1)N(=O)=O)C basis{6-31G*} solvation_type{None}" 
+              onClick="document.form.smi.value='nmr for O=N(=O)c1cc(N(=O)=O)c(c(c1)N(=O)=O)C basis{6-31G*} solvation_type{None}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="nmr for aspirin" 
+              onClick="document.form.smi.value='nmr for aspirin'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b> Predict reactions: </b> &nbsp;
+       <INPUT TYPE="button" VALUE="predict for TNT + hydroxide" 
+              onClick="document.form.smi.value='predict for TNT + hydroxide'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="predict for tetryl + hydroxide" 
+              onClick="document.form.smi.value='predict for tetryl + hydroxide'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+       <p><b> Generate NWChem input, Fetch NWChem output, Fetch XYZ and Fetch JSON: </b> &nbsp;
+       <INPUT TYPE="button" VALUE="input deck for aspirin" 
+              onClick="document.form.smi.value='input deck for aspirin'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="input deck for aspirin theory{pspw}" 
+              onClick="document.form.smi.value='input deck for aspirin theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="input deck for aspirin theory{mp2}" 
+              onClick="document.form.smi.value='input deck for aspirin theory{mp2}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="input deck for PubChem=2519 xc{pbe}" 
+              onClick="document.form.smi.value='input deck for PubChem=2519 xc{pbe}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="output deck for aspirin" 
+              onClick="document.form.smi.value='output deck for aspirin'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="nwoutput for aspirin theory{pspw}" 
+              onClick="document.form.smi.value='nwoutput for aspirin theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="xyz for aspirin theory{pspw}" 
+              onClick="document.form.smi.value='xyz for aspirin theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="json for aspirin theory{pspw}" 
+              onClick="document.form.smi.value='json for aspirin theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       </p>
+        <p>
+       <p><b> Other Arrows commands: </b> &nbsp;
+       <INPUT TYPE="button" VALUE="list all esmiles" 
+              onClick="document.form.smi.value='list all esmiles'" 
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="queue" 
+              onClick="document.form.smi.value='queue'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="download fetch_nwchem_input" 
+              onClick="document.form.smi.value='download fetch_nwchem_input'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="download upload_nwchem_outfiles" 
+              onClick="document.form.smi.value='download upload_nwchem_outfiles'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="download arrows_esmiles2xyz" 
+              onClick="document.form.smi.value='download arrows_esmiles2xyz'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+       <INPUT TYPE="button" VALUE="submitesmiles for ethene theory{pspw}" 
+              onClick="document.form.smi.value='submitesmiles for ethene theory{pspw}'" 
+              style="background-color:#f8f8ff; color:#298DB4;"> 
+        </p>
+    </form>
+    </font>
+    <table> <tr>
+    <td> <font color="443322" size="2"> <p align="justify"> This software service and its documentation were developed at the Environmental Molecular Sciences Laboratory (EMSL) at Pacific Northwest National Laboratory, a multiprogram national laboratory, operated for the U.S. Department of Energy by Battelle under Contract Number DE-AC05-76RL01830. Support for this work was provided by the Department of Energy Office of Biological and Environmental Research, and Department of Defense environmental science and technology program (SERDP). THE SOFTWARE SERVICE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE SERVICE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE SERVICE. </p></font> </td>
+    <td> <a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a> </td>
+    </tr></table>
+
+     Keywords: quantum chemistry calculations - quantum chemistry computations - quantum chemistry - molecular modeling calculations - molecular modeling computations - molecular modeling - chemical modeling - chemical reactions calculations - chemical reactions computations - chemical reactions - NWChem calculations - computational chemistry - NWChem
+
+<br><br>
+<div align="right"><font color="298DB4"> EMSL Arrows API visited {{ visits }} times </font></div>
+
+</body>
+</html>
