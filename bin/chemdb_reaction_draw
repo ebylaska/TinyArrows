@@ -1,0 +1,326 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,random
+from math import *
+#import image
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
+
+############## machine parameters #########################
+obabel         = "/usr/bin/obabel "
+esmiles2xyz    = "/srv/arrows/bin/esmiles2xyz "
+wrkdir         = "/srv/arrows/Projects/Work"
+ddrand = random.randint(0,999999)
+tmpxyz         = "jkjk-%d.xyz" % ddrand
+shepng         = "/srv/arrows/bin/she.png"
+############## machine parameters #########################
+
+
+
+
+############################# main program ###################################
+usage = \
+"""
+Remote chemdb_reaction_draw     program - version 1.0
+
+  Usage: chemdb_reaction_draw esmiles_reaction pngfilename
+
+  -h prints this message
+
+"""
+
+#Database defaults
+
+print "chemdb_reaction_draw - version 1.0"
+tt      = time.localtime()
+
+opts, args = getopt.getopt(sys.argv[1:], "h")
+for o, a in opts:
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<2): 
+   print usage
+   exit()
+
+k_id = 0
+kekule = ""
+kekule = "</pre>\n"
+kekule += '<script type=\"text/javascript\" src=\"{{url_for(\'static\', filename=\'kekule/kekule.min.js\')}}\"></script>\n\n'
+
+
+myfilename = args[1]
+reaction   = args[0]
+sslist = reaction.split("-->")
+left  = sslist[0].strip()
+left = left.replace("\t"," ")
+left = left.replace("\n"," ")
+left = left.replace('\xc2', ' ')
+left = left.replace('\xa0', ' ')
+esmiles_reactants  = left.split(' + ')
+number_reactants = len(esmiles_reactants)
+
+right = sslist[1].strip()
+right= right.replace("\t"," ")
+right= right.replace("\n"," ")
+right= right.replace('\xc2', ' ')
+right= right.replace('\xa0', ' ')
+esmiles_products  = right.split(' + ')
+number_products = len(esmiles_products)
+
+
+print "esmiles_reactants       = ", esmiles_reactants
+print "esmiles_products        = ", esmiles_products
+
+reactants = []
+for esmiles in esmiles_reactants:
+   try:
+      x = float(esmiles.split(None,1)[0])
+      esmiles2 = esmiles.split(None,1)[1]
+   except:
+      esmiles2 = esmiles
+      x = 1.0
+   reactants.append((x,esmiles2))
+
+products = []
+for esmiles in esmiles_products:
+   try:
+      x = float(esmiles.split(None,1)[0])
+      esmiles2 = esmiles.split(None,1)[1]
+   except:
+      esmiles2 = esmiles
+      x = 1.0
+   products.append((x,esmiles2))
+
+
+
+print "reactants = ", reactants
+print "products  = ", products
+
+image_data = []
+mhall      = []
+count = 0
+erxn  = 0.0
+hrxn  = 0.0
+centerarrow = False
+for rr in (reactants,products):
+   if (count==0):
+      xstart = 35;  ystart = 0
+   else:
+      xstart = 445; ystart = 0
+   x = xstart; y = ystart; mh = 160
+
+   for r in rr:
+      esmiles = r[1]
+      num     = r[0]
+      label  = ''
+      centerplus = False
+      if (x==xstart) and (y==ystart):
+         if isinstance(num,(int,long)):
+            if (num!=1):
+               label = "%4d"   % int(num)
+            else:
+               if (count==1): centerarrow = True
+         else:
+            if (abs(num-1.0)>1.0e-3):
+               label = "%4.1f" % (num)
+            else:
+               if (count==1): centerarrow = True
+      else:
+         if (num<0.0): 
+            label = "-"
+         else:
+            label = "+"
+         if isinstance(num,(int,long)):
+            if (abs(num)!=1): 
+               label += "%3d"   % int(abs(num))
+            else:
+               centerplus = True
+         else:
+            if (abs(num-1.0)>1.0e-3):
+               label += "%3.1f" % (abs(num))
+            else:
+               centerplus = True
+
+
+      ### fetch data ###
+      if ("SHE" not in esmiles):
+         cmd9 = esmiles2xyz + "\"" + esmiles + "\" " + wrkdir + "/" + tmpxyz
+         try:
+            result9 = subprocess.check_output(cmd9,shell=True)
+         except:
+            print "chemdb_reaction_draw: Failed in esmiles2xyz"
+            exit()
+
+         smiles = result9.split("smiles   =")[1].split('\n')[0].strip()
+         if ("^{" in esmiles):
+            charge = eval(esmiles.split("^{")[1].split('}')[0].strip())
+         else:
+            charge = eval(result9.split("charge_entered =")[1].split('\n')[0].strip())
+
+         if ("mult{" in esmiles):
+            mult   = eval(esmiles.split("mult{")[1].split('}')[0].strip())
+         else:
+            mult   = eval(result9.split("mult_entered   =")[1].split('\n')[0].strip())
+      else:
+         charge = -1
+         mult   = 2
+  
+
+      ### generate chargelabel
+      chargelabel = ''
+      if (charge!=0):
+         if (charge<0):
+            chargelabel = '{%d-}' % abs(charge)
+         else:
+            chargelabel = '{%d+}' % abs(charge)
+
+      ### generate image ###
+      ddrand = random.randint(0,999999)
+      filename = wrkdir + "/" + "draw-%d.png" % ddrand
+
+      if ("SHE" in esmiles):
+         cmd6 = "/usr/bin/cp %s %s" % (shepng,filename)
+      else:
+         #ddrand = random.randint(0,999999)
+         #filename = wrkdir + "/" + "draw-%d.png" % ddrand
+         cmd6 = obabel + "-:\"" +  smiles + "\" -O %s -xp160 " % (filename)
+         cmd6k = obabel + "--gen3d -:\"" +  smiles + "\" -omol"
+
+      print "cmd6=",cmd6
+      try:
+         result1 = subprocess.check_output(cmd6,shell=True)
+      except:
+         print "chemdb_reaction_draw Failed to create PNG"
+
+
+      print "cmd6k=",cmd6k
+      try:
+         result1k = subprocess.check_output(cmd6k,shell=True)
+         moleculename = "kekule%d" % k_id
+         kekule += "<script id=\"%s\" type=\"chemical/x-mdl-molfile\">\n" % moleculename
+         for ln in result1k.split("\n"):
+            if ("WARNING:" not in ln):
+               kekule += ln + "\n"
+         kekule += "</script>\n\n"
+         k_id += 1
+      except:
+         print "chemdb_reaction_draw Failed to create mol"
+
+
+
+      #print "HERB,result1=",result1
+      x0 = x;      y0 = y
+      x1 = x - 35; y1 = y + 160/2 -10
+      x2 = x +120; y2 = y
+      mh = y +165
+      if (x==xstart):
+         x = xstart+195
+      else:
+         x = xstart
+         y += 165
+
+      image_data.append(('image',x0,y0,filename,count))
+      if (label!=''):
+         if (centerplus):
+            image_data.append(('text', x1+12,y1,label,count))
+         else:
+            image_data.append(('text', x1,y1,label,count))
+      if (chargelabel!=''):
+         image_data.append(('text', x2,y2,chargelabel,count))
+
+   mhall.append(mh)
+   count += 1
+
+
+print "image_data=",image_data
+
+#images = map(Image.open, filenames)
+mhmax  = max(mhall)
+shifty = [(mhmax-mhall[0])/2,(mhmax-mhall[1])/2]
+
+#result = Image.new("RGBA", (800, mhmax), (250,250,250))
+result = Image.new("RGBA", (800, mhmax), (350,300,350))
+draw   = ImageDraw.Draw(result)
+font   = ImageFont.truetype(wrkdir+"/arial.ttf",20)
+
+### paste images ###
+for ii in image_data:
+   if ii[0]=="image":
+      im = map(Image.open, [ii[3]])[0]
+      result.paste(im, (ii[1],ii[2]+shifty[ii[4]]))
+#result.save("hello.jpg")
+
+### draw labels ###
+for ii in image_data:
+   if ii[0]=="text":
+      draw.text((ii[1],ii[2]+shifty[ii[4]]),ii[3],(0,0,0),font=font)
+
+### draw divider ###
+points = []
+points.append((392,0))
+points.append((392,mhmax))
+#draw.line(points,fill=(200,0,0),width=1)
+
+#### draw hrxn ###
+#txt0 = "Erxn(gas)=%.1f kj/mol" % (erxn*27.2116*23.06*4.186)
+#txt1 = "Hrxn(gas)=%.1f kj/mol" % (hrxn*27.2116*23.06*4.186)
+##draw.text((300,0),       txt0,(0,0,0),font=font)
+#draw.text((300,mhmax-25),txt1,(0,0,0),font=font)
+
+### draw arrow ###
+if (centerarrow):
+   points = []
+   points.append((390,mhmax/2))
+   points.append((435,mhmax/2))
+   draw.line(points,fill=(0,0,200),width=8)
+
+   points = []
+   points.append((445,mhmax/2))
+   points.append((435,mhmax/2+7))
+   points.append((435,mhmax/2-7))
+   points.append((445,mhmax/2))
+   draw.polygon(points,fill=(0,0,200),outline=(0,0,0))
+else:
+   points = []
+   points.append((370,mhmax/2))
+   points.append((405,mhmax/2))
+   draw.line(points,fill=(0,0,200),width=8)
+
+   points = []
+   points.append((415,mhmax/2))
+   points.append((405,mhmax/2+7))
+   points.append((405,mhmax/2-7))
+   points.append((415,mhmax/2))
+   draw.polygon(points,fill=(0,0,200),outline=(0,0,0))
+
+
+result.save(myfilename)
+
+
+for i in range(k_id):
+   kekule += '<span style="display:block; width:250px;height:250px" data-widget="Kekule.ChemWidget.Viewer2D" '
+   kekule += ' data-chem-obj="url(#kekule%d)" data-predefined-setting="static" data-autofit="true" > </span> \n\n ' % i
+
+kekule += "<pre style=\"font-size:1.0em;color:black\">\n"
+print "KEKULE:: "+ kekule + " ::KEKULE"
+
+### remove temporary images ###
+for ii in image_data:
+   if ii[0]=="image":
+      try:
+         os.unlink(ii[3])
+      except:
+         print "chemdb_image Failed to remove " + ii[3]
+
+try:
+   os.unlink(wrkdir + "/" + tmpxyz)
+except:
+   print "chemdb_image Failed to remove " + wrkdir + "/" + tmpxyz
+
+
+
+
+

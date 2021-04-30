@@ -1,0 +1,261 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+import datetime,re
+from bson.objectid import ObjectId
+from math import *
+
+####################### mongoDB #############################
+#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+mongo_client                         = pymongo.MongoClient(uri)
+arrows_db                            = mongo_client.Arrows
+chemdb_reaction_collection           = arrows_db.chemdb_reaction_collection2
+chemdb_finished_reaction_collection  = arrows_db.chemdb_finished_reaction_collection2
+qnumber_collection                   = arrows_db.queue_number
+####################### mongoDB #############################
+
+############## machine parameters #########################
+chemdb_balance_reaction = "/srv/arrows/bin/chemdb_balance_reaction2 "
+chemdb_reaction_draw    = "/srv/arrows/bin/chemdb_reaction_draw "
+wrkdir           = "/srv/arrows/Work"
+curdir           = os.getcwd()
+############## machine parameters #########################
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+
+############################# main program ###################################
+usage = \
+"""
+chemdb_predict_reaction program - version 1.0
+
+  Usage: chemdb_predict_reaction -e energy reaction
+
+  -f predict reactions 
+  -l list reaction entries
+  -k list finished reaction entries
+  -s submit reactions to chemdb_balance_reaction
+  -a add reaction
+  -d delete queue_entry
+  -c delete queue2_entry
+
+  -e energy of reaction in kcal/mol
+  -r enthalpy of reaction in kcal/mol
+  -g free energy of reaction in kcal/mol
+  -q solvation energy of reaction in kcal/mol
+  -u aqueous free energy of reaction in kcal/mol
+
+  -i include images
+
+"""
+
+
+tt      = time.localtime()
+
+includeimages = False
+submitqueue2 = False
+listqueues = True
+listqueues2= False
+addreaction= False
+delqueue   = False
+delqueue2  = False
+runqueue   = False
+predictreaction = False
+energy = 0.0
+enthalpy = 0.0
+free_energy = 0.0
+solvation_energy = 0.0
+aq_free_energy = 0.0
+reaction = ''
+opts, args = getopt.getopt(sys.argv[1:], "a:d:c:e:r:g:q:u:f:lskhi")
+for o, a in opts:
+  if '-i' in o:
+     includeimages = True
+  if '-l' in o:
+     listqueues = True
+  if '-k' in o:
+     listqueues2 = True
+  if '-s' in o:
+     submitqueue2 = True
+     listqueues   = False
+  if '-a' in o:
+     reaction = a
+     listqueues = False
+     addreaction = True
+  if '-f' in o:
+     reaction = a
+     listqueues = False
+     predictreaction = True
+  if '-d' in o:
+     try:
+        delete_queue_number = evalnum(a)
+        listqueues = False
+        delqueue   = True
+     except:
+        listqueues = True
+        delqueue   = False
+  if '-c' in o:
+     try:
+        delete_queue_number2 = evalnum(a)
+        listqueues = False
+        delqueue2   = True
+     except:
+        listqueues2 = True
+        delqueue2   = False
+
+  if '-e' in o:
+     try:
+        energy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+  if '-r' in o:
+     try:
+        enthalpy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+  if '-g' in o:
+     try:
+        free_energy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+  if '-q' in o:
+     try:
+        solvation_energy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+  if '-u' in o:
+     try:
+        aq_free_energy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (listqueues):
+   check = {}
+   queue = chemdb_reaction_collection.find(check).sort("queue_number", -1)
+   print 
+   print "Reactions Added:"
+   print 
+   print "queue_entry    Erxn(gas)    Hrxn(gas)    Grxn(gas)   delta_Solv     Grxn(aq)  Reaction"
+   for entry in queue:
+      print "%11d %12.3f %12.3f %12.3f %12.3f %12.3f  \"%s\"" % (entry['queue_number'],entry['energy'],entry['enthalpy'],entry['free_energy'], entry['solvation_energy'],entry['aq_free_energy'],entry['reaction'])
+
+
+if (listqueues2):
+   check = {}
+   queue = chemdb_finished_reaction_collection.find(check)
+   print 
+   print "reactions that have been added:"
+   print 
+   #print "queue_entry       energy  reaction"
+   print "queue_entry    Erxn(gas)    Hrxn(gas)    Grxn(gas)   delta_Solv     Grxn(aq)  Reaction"
+   for entry in queue:
+      print "%11d %12.3f %12.3f %12.3f %12.3f %12.3f  \"%s\"" % (entry['queue_number'],entry['energy'],entry['enthalpy'],entry['free_energy'], entry['solvation_energy'],entry['aq_free_energy'],entry['reaction'])
+      #print "%11d %12.3f  \"%s\"" % (entry['queue_number'],entry['energy'],entry['reaction'])
+
+
+if (addreaction):
+   entry = {}
+   entry['reaction'] = reaction
+   entry['energy']           = energy
+   entry['enthalpy']         = enthalpy
+   entry['free_energy']      = free_energy
+   entry['solvation_energy'] = solvation_energy
+   entry['aq_free_energy']   = aq_free_energy
+   duplicatecount = chemdb_reaction_collection.find(entry).count()
+   print "duplicatecount=", duplicatecount
+   if (duplicatecount==0): 
+      ### set queue number  ##
+      entry['queue_number'] = qnumber_collection.find_one({'queue':'chemdb_reaction_queue'})['count']
+      qqq = qnumber_collection.update({'queue':'chemdb_reaction_queue'},{'$inc':{'count':1}},upsert=False,multi=False)
+
+      qq = chemdb_reaction_collection.insert(entry)
+      print "Added " + entry['reaction'] + " to chemdb_reaction_queue. queue_entry=",entry['queue_number']
+   else:
+      print "Did not add " + entry['reaction'] + " to chemdb_reaction_queue, because it already exists."
+
+if (delqueue):
+   delentry = {'queue_number' : delete_queue_number}
+   print "delentry=",delentry
+   queue = chemdb_reaction_collection.remove(delentry)
+
+if (delqueue2):
+   delentry2 = {'queue_number' : delete2_queue_number}
+   print "delentry2=",delentry2
+   queue = chemdb_finished_reaction_collection.remove(delentry2)
+
+if (submitqueue2):
+   qt = {}
+   reaction_q = chemdb_reaction_collection.find(qt)
+   for entry in reaction_q:
+      print "Adding " + entry['reaction'] + " to sql reaction database. queue_entry=",entry['queue_number']
+      cmd9 = chemdb_balance_reaction 
+      cmd9 += " -e %f " % entry['energy']
+      cmd9 += " -a \"" + entry['reaction'] + "\""
+      print "cmd9=",cmd9
+      result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+      print "result9=",result9
+
+if (predictreaction):
+   if ("-->" in reaction):
+      reaction = reaction.split('-->')[0]
+   reaction = reaction.strip()
+   print
+   print "+--------------------------------------------------+" 
+   print "|               Reaction Prediction                |"
+   print "+--------------------------------------------------+"
+   print
+   print "reactants = " + reaction 
+   print
+   cmd7 = chemdb_balance_reaction 
+   cmd7 += " -f \"" +reaction + "\""
+   #print "cmd7=",cmd7
+   result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+   preactionlist = []
+   for line in result7.split('\n'):
+      if "Reaction:" in line: 
+         preactionlist.append(line)
+   preactionlist = list(set(preactionlist))
+   imagelist = []
+   for preaction in preactionlist:
+      print preaction
+
+      if includeimages:
+         ddrand = random.randint(0,999999)
+         filename = wrkdir + "/" + "rdraw-%d.png" % ddrand
+         pngname     = "rimage-%d" % (ddrand)
+         imagelist += [(filename,pngname)]
+         cmd5 = chemdb_reaction_draw +"\"" + preaction.split("Predicted_Reaction:")[1].split("Predicted_Reaction_Predicted")[0] + "\" "+filename
+         result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT)
+         print "</pre>"
+         print '<br><center><img src="cid:%s" align="middle"></center><br>' % pngname
+         print "<pre style=\"font-size:0.6em;color:black\">"
+         print
+
+   #### report imagefiles ####
+   if includeimages:
+      eoln = '\n'
+      msg = "imagelist: "
+      for image in imagelist:
+         msg += "%s %s " % (image[0],image[1])
+      msg += ":imagelist"
+      print eoln+msg+eoln
+
+
+
+      
+

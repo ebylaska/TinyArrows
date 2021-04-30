@@ -1,0 +1,233 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib,urllib2,getopt,subprocess,pexpect,random,operator
+from math import *
+
+wrkdir             = "/Users/bylaska/Projects/Work"
+chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+#with open('/srv/arrows/bin/.chemdb','r') as f:
+#   hup0            = f.readline().strip()
+#   archivemachine  = f.readline().strip()
+#   archivepassword = f.readline().strip()
+
+#with open('/Users/bylaska/bin/.chemdb','r') as f:
+#   hup            = f.readline().strip()
+#   archivemachine  = f.readline().strip()
+#   archivepassword = f.readline().strip()
+table = "calculations"
+dbfile = "TNT_Project"
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+aaa = ''
+for b in bbb: aaa += chr(ord(b) + 2)
+exec aaa
+
+hup = hup0
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+
+#### geturlresult function ####
+#def geturlresult(url):
+#    #user_agent = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'
+#    user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
+#    values = {'name': 'Eric Bylaska', 'location': 'Richland, WA'}
+#    headers = {'User-Agent': user_agent}
+#    data = urllib.urlencode(values)
+#    request = urllib2.Request(url, data, headers)
+#    try:
+#        #connection = urllib2.urlopen(url)
+#        print "HERA:",request,url
+#        connection = urllib2.urlopen(request)
+#        print "HERB"
+#    except urllib2.HTTPError, e:
+#        return ""
+#    else:
+#        return connection.read().rstrip()
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+                                    )
+        opener = urllib2.build_opener(proxy)
+        urllib2.install_opener(opener)
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          print "either received key or connection timeout"
+          pass
+      print p.before # print out the result
+
+
+
+def getkegg(id):
+
+   checklist = []
+   checklist.append(id)
+
+   wherestr =  " where Id=? "
+   #sqlcheck = "select * from " + table + wherestr.replace('?','%s')
+   sqlcheck = "select id,smiles,charge,mult,cid,kegg,cas from " + table + wherestr.replace('?','%s')
+
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      cur.execute(sqlcheck,checklist)
+      rows = cur.fetchall()
+   dbcon.close()
+
+   return rows[0]
+
+
+def newkegg(id,kegg):
+   uplist = []
+   uplist.append(kegg)
+   uplist.append(id)
+   sqlup = "update " + table + " set kegg=%s where id=%s;"
+
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      cur.execute(sqlup,uplist)
+   dbcon.close()
+
+def newcas(id,cas):
+   uplist = []
+   uplist.append(cas)
+   uplist.append(id)
+   sqlup = "update " + table + " set cas=%s where id=%s;"
+
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      cur.execute(sqlup,uplist)
+   dbcon.close()
+
+def newcid(id,cid):
+   uplist = []
+   uplist.append(cid)
+   uplist.append(id)
+   sqlup = "update " + table + " set cid=%s where id=%s;"
+    
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      cur.execute(sqlup,uplist)
+   dbcon.close()
+
+
+#### pubchem_smiles2kegg function ####
+def pubchem_smiles2keggcas(smiles):
+    #synonyms = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    name  = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles
+    #print "name=",name
+    synonyms = geturlresult(name)
+    #print "synonyms=",synonyms
+    ss = synonyms.split()
+    ckegg = ''
+    dkegg = ''
+    for s in ss:
+       if ((s[0]=='C') and (len(s)==6) and s[1:].isdigit()): ckegg = s
+       if ((s[0]=='D') and (len(s)==6) and s[1:].isdigit()): dkegg = s
+    kegg = ckegg + " " + dkegg
+   
+    cas = ''
+    for s in ss:
+       if ((len(s.split('-'))==3) and (cas=='')):
+          t = s.split('-')
+          if (t[0].isdigit() and t[1].isdigit() and t[2].isdigit()):
+             cas = s
+       if 'CAS-' in s: cas = s.strip('CAS-')
+
+    return (kegg.strip(),cas)
+
+#### pubchem_smiles2cid function ####
+def pubchem_smiles2cid(smiles):
+    result = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/cids/TXT" % smiles)
+    return result
+
+
+#newcid(6752,"5950")
+for i in range(5900,40000):
+   try:
+      print "ID=",i
+      aa = getkegg(i)
+      if aa is not None:
+         print "AA=",aa
+         smiles = aa[1]
+         charge = aa[2]
+         mult   = aa[3]
+         cid    = aa[4]
+         kegg   = aa[5]
+         cas    = aa[6]
+         print "smiles=",smiles
+         if (charge==0) and (mult==1):
+            print "old cid  =",cid
+            if (cid is None) or (cid==''):
+               cid = pubchem_smiles2cid(smiles)
+               print "new cid=",cid
+               if (cid!=''): newcid(i,cid)
+
+            print "old kegg =",kegg
+            print "old cas  =",cas
+            if (kegg is None) or (kegg==''):
+               (kegg,cas) = pubchem_smiles2keggcas(smiles)
+               print "new kegg=",kegg
+               if (kegg!=''): newkegg(i,kegg)
+               if (cas is None) or (cas==''):
+                  print "new cas =",cas
+                  if (cas!=''): newcas(i,cas)
+         
+   except:
+      print "id=",i," not found"
+   print
+   print
+
+
+
+

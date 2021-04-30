@@ -1,0 +1,200 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect
+from math import *
+#import image
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
+
+############## machine parameters #########################
+wrkdir     = "/srv/arrows/Projects/Work"
+chemdbfile = "/srv/arrows/bin/.chemdb-en"
+with open('/srv/arrows/bin/.chemdb','r') as f:
+   hup0            = f.readline().strip()
+   archivemachine  = f.readline().strip()
+   archivepassword = f.readline().strip()
+############## machine parameters #########################
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          print "either received key or connection timeout"
+          pass
+      print p.before # print out the result
+
+
+
+############################# main program ###################################
+usage = \
+"""
+Remote chemdb_gcube program
+
+  Usage: chemdb_gcube -h hup_string -d database -t table rowId 
+
+  -h hup_string="machine user password" or enter sqlite3 for sqlite3 db
+  -d database = "name of database"
+  -t table = "name of table"
+  -b generate large image
+  -h prints this message
+
+"""
+
+#Database defaults
+hup         = hup0
+dbfile      = "TNT_Project"
+table       = "calculations"
+image_table = "images"
+
+print "chemdb_gcube mysql version"
+tt      = time.localtime()
+
+largeimage = False
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:bh")
+for o, a in opts:
+  if '-h' in o:
+     hup = a
+  if '-d' in o:
+     dbfile = a
+  if '-t' in o:
+     table = a
+  if '-b' in o:
+     largeimage = True
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<1): 
+   print usage
+   exit()
+
+arrows_id = args[0]
+Id        = eval(arrows_id)
+a = Id%10
+b = (Id/10)%10
+c = (Id/100)%10
+d = (Id/1000)%10
+e = (Id/10000)%10
+
+gcubedir = archivemachine+"/chemdb_homolumo/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
+homofilename = gcubedir + arrows_id.strip()+ "-homo-restricted.cube"
+lumofilename = gcubedir + arrows_id.strip()+ "-lumo-restricted.cube"
+tmp_homofilename = wrkdir + "/" + arrows_id.strip()+ "-homo-restricted.cube"
+tmp_lumofilename = wrkdir + "/" + arrows_id.strip()+ "-lumo-restricted.cube"
+
+homofilename1 = gcubedir + arrows_id.strip()+ "-homo-alpha.cube"
+lumofilename1 = gcubedir + arrows_id.strip()+ "-lumo-alpha.cube"
+tmp_homofilename1 = wrkdir + "/" + arrows_id.strip()+ "-homo-alpha.cube"
+tmp_lumofilename1 = wrkdir + "/" + arrows_id.strip()+ "-lumo-alpha.cube"
+homofilename2 = gcubedir + arrows_id.strip()+ "-homo-beta.cube"
+lumofilename2 = gcubedir + arrows_id.strip()+ "-lumo-beta.cube"
+tmp_homofilename2 = wrkdir + "/" + arrows_id.strip()+ "-homo-beta.cube"
+tmp_lumofilename2 = wrkdir + "/" + arrows_id.strip()+ "-lumo-beta.cube"
+
+
+if (hup=='sqlite3'):
+   issqlite3 = True
+   print "sqlite3 db file =",dbfile
+else:
+   issqlite3 = False
+   print "mysql db         =",dbfile
+print "table name       =",table
+print "arrows_id        =",arrows_id
+
+if (issqlite3):
+   sqlcheck  = "select xyz_blob,theory,xc,basis,charge,mult from " + table + " where Id=?;"
+else:
+   sqlcheck  = "select xyz_blob,theory,xc,basis,charge,mult from " + table + " where Id=%s;"
+checklist = [Id]
+
+if (issqlite3):
+   dbcon = sqlite3.connect(dbfile)
+else:
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+### fetch xyzdata ###
+with dbcon:
+   cur = dbcon.cursor()
+   cur.execute(sqlcheck,checklist)
+   row = cur.fetchone()
+   xyzstring = row[0]
+   theory    = row[1]
+   xc        = row[2]
+   basis     = row[3]
+   charge    = row[4]
+   mult      = row[5]
+
+   print xyzstring
+   print "theory=", theory
+   print "xc    =", xc
+   print "basis =", basis
+   print "charge=", charge
+   print "mult  =", mult
+
+
+tflist = []
+if (mult==1):
+   tflist.append((homofilename,tmp_homofilename))
+   tflist.append((lumofilename,tmp_lumofilename))
+else:
+   tflist.append((homofilename1,tmp_homofilename1))
+   tflist.append((homofilename2,tmp_homofilename2))
+   tflist.append((lumofilename1,tmp_lumofilename1))
+   tflist.append((lumofilename2,tmp_lumofilename2))
+
+print "tflist =",tflist
+
+foundcubes = True
+for ff in tflist:
+   cmd0   = "scp " + ff[0] + " " + ff[1]
+   result = pexpect_command(cmd0,archivepassword)
+   foundcubes = foundcubes and os.path.isfile(ff[1])
+
+
+
+### create create cubefiles if not found
+if (not foundcubes):
+   print "submitting gaussian cubefile generation job"
+   xyzfile   = "chemdb.xyz"
+
+   #nion  = eval(xyzstring.split("\n")[0])
+   #xfile = open(xyzfile,'w')
+   #xfile.write(xyzstring)
+   #xfile.close()
+
+
+#### remove temporary file ####
+for ff in tflist:
+   try:
+      os.unlink(ff[1])
+   except:
+      print "chemdb_gcube Failed to remove " + ff[1]
+
+
+
+
+
+
+
+
+

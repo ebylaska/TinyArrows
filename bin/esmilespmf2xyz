@@ -1,0 +1,2662 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,random,operator
+import subprocess
+
+#################### machine specifics ######################
+#nwchem    = "/usr/local/bin/mpirun -np 2 /Users/bylaska/bin/nwchem "
+nwchem    = "/srv/arrows/bin/nwchem "
+esmiles2xyz = "/srv/arrows/bin/esmiles2xyz "
+babel     = "/usr/local/bin/babel"
+obabel    = "/usr/local/bin/obabel "
+obrotamer = "/usr/local/bin/obrotamer"
+chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+
+curdir         = os.getcwd()
+wrkdir         = "/srv/arrows/Projects/Work"
+ddrand = random.randint(0,999999)
+tmpsmi1  = "tmpsmi1-%d.smi" % ddrand
+tmpsmi2  = "tmpsmi2-%d.smi" % ddrand
+tmpsolute = "tmpsolute-%d.xyz" % ddrand
+tmpnw     = "tmpnw-%d.nw" % ddrand
+tmpnwout  = "tmpnw-%d.nwout" % ddrand
+dbname    = "nwchm-%d" % ddrand
+#################### machine specifics ######################
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+
+#################### solute functions ######################
+vdw = { 
+ 'H': 1.20,
+ 'N': 1.55,
+ 'NA': 2.27,
+ 'Na': 2.27,
+ 'CU': 1.40,
+ 'Cu': 1.40,
+ 'CL': 1.75,
+ 'C': 1.70,
+ 'O': 1.52,
+ 'I': 1.98,
+ 'P': 1.80,
+ 'B': 1.85,
+ 'BR': 1.85,
+ 'Br': 1.85,
+ 'S': 1.80,
+ 'SE': 1.90,
+ 'F': 1.47,
+ 'FE': 1.80,
+ 'Fe': 1.80,
+ 'K':  2.75,
+ 'MN': 1.73,
+ 'Mn': 1.73,
+ 'MG': 1.73,
+ 'Mg': 1.73,
+ 'ZN': 1.39,
+ 'Zn': 1.39,
+ 'HG': 1.8,
+ 'Hg': 1.8,
+ 'XE': 1.8,
+ 'Xe': 1.8,
+ 'AU': 1.8,
+ 'Au': 1.8,
+ 'LI': 1.8,
+ 'Li': 1.8,
+ 'Ow': 1.52,
+ 'U': 1.8,
+ 'Ca': 1.73,
+ 'Cl': 1.75,
+ '.': 1.8
+}
+
+LJparam = { 
+ 'H':  [0.7,0.044],
+ 'N':  [3.26,0.069],
+ 'F': [3.26,0.08],
+ 'Cl': [3.52,0.16],
+ 'C':  [3.41, 0.100],
+ 'O':  [3.16555789,0.15539425],
+ 'Fe':  [2.15,0.124],
+ 'U':  [3.16555789,0.15539425],
+ 'Ca': [3.028,0.238],
+ '.':  [3.5,0.1]
+}
+
+aaa = ''
+for b in bbb: aaa += chr(ord(b) + 2)
+exec aaa
+
+
+def removespace_basis(basis):
+   if ('ry' not in basis.lower()) and ('hartree' not in basis.lower()):
+      basis = basis.replace(" ", "")
+   return basis
+
+
+
+def generate_atoms_d12(i1,i2,d12,atoms):
+#
+   nwfile  = wrkdir + '/' + tmpnw
+   nwfile2 = wrkdir + '/' + tmpnwout
+   nfile = open(nwfile,'w')
+   nfile.write("start solvate_pmf193\n")
+   nfile.write("permanent_dir %s\n" % wrkdir)
+   nfile.write("scratch_dir   %s\n\n" % wrkdir)
+   nfile.write("geometry print xyz\n")
+   for a in atoms:
+      nfile.write("%s  %.6f %.6f %.6f\n" % (a[0],a[1],a[2],a[3]))
+   nfile.write("end\n\n")
+   nfile.write("geometry adjust\n")
+   nfile.write("  zcoord\n")
+   nfile.write("    bond %d %d %f d12\n" % (i1,i2,d12*0.529177))
+   nfile.write("  end\n")
+   nfile.write("end\n")
+   nfile.close()
+
+   cmd = nwchem + " " + nwfile + " > " + nwfile2
+   os.system(cmd)
+
+
+   count = -1
+   ofound = False
+   nfile = open(nwfile2,'r')
+   for line in nfile:
+      if (count>2):
+         if (len(line)<=5):
+            ofound = False
+            count = -1
+         else:
+            xyzdat.append(line)
+      if (count>=0): count += 1
+      if (not ofound):
+        if (line.find("XYZ format geometry") != -1):
+           xyzdat = []
+           ofound = True
+           count = 0
+   nfile.close()
+   print "xyzdat="
+   print len(xyzdat)
+   print
+   for xx in xyzdat:
+      print xx.strip()
+
+   atoms2 = []
+   for line in xyzdat:
+     split = line.split()
+     xyz = []
+     xyz.append(split[0])
+     xyz.append(eval(split[1]))
+     xyz.append(eval(split[2]))
+     xyz.append(eval(split[3]))
+     atoms2.append(xyz)
+
+   return atoms2
+
+
+
+def generate_atoms_d12_d34(i1,i2,d12,i3,i4,d34,atoms):
+#
+   nwfile  = wrkdir + '/' + tmpnw
+   nwfile2 = wrkdir + '/' + tmpnwout
+   nfile = open(nwfile,'w')
+   nfile.write("start solvate_pmf193\n")
+   nfile.write("permanent_dir %s\n" % wrkdir)
+   nfile.write("scratch_dir   %s\n\n" % wrkdir)
+   nfile.write("geometry print xyz\n")
+   for a in atoms:
+      nfile.write("%s  %.6f %.6f %.6f\n" % (a[0],a[1],a[2],a[3]))
+   nfile.write("end\n\n")
+   nfile.write("geometry adjust\n")
+   nfile.write("  zcoord\n")
+   nfile.write("    bond %d %d %f d12\n" % (i1,i2,d12*0.529177))
+   nfile.write("    bond %d %d %f d34\n" % (i3,i4,d34*0.529177))
+   nfile.write("  end\n")
+   nfile.write("end\n")
+   nfile.close()
+
+   cmd = nwchem + " " + nwfile + " > " + nwfile2
+   os.system(cmd)
+
+
+   count = -1
+   ofound = False
+   nfile = open(nwfile2,'r')
+   for line in nfile:
+      if (count>2):
+         if (len(line)<=5):
+            ofound = False
+            count = -1
+         else:
+            xyzdat.append(line)
+      if (count>=0): count += 1
+      if (not ofound):
+        if (line.find("XYZ format geometry") != -1):
+           xyzdat = []
+           ofound = True
+           count = 0
+   nfile.close()
+   print "xyzdat=",
+   print len(xyzdat)
+   print
+   for xx in xyzdat:
+      print xx.strip()
+
+   atoms2 = []
+   for line in xyzdat:
+     split = line.split()
+     xyz = []
+     xyz.append(split[0])
+     xyz.append(eval(split[1]))
+     xyz.append(eval(split[2]))
+     xyz.append(eval(split[3]))
+     atoms2.append(xyz)
+
+   return atoms2
+
+
+
+
+
+
+
+
+def generate_sphere_points(n):
+    """
+    Returns list of 3d coordinates of points on a sphere using the
+    Golden Section Spiral algorithm.
+    """
+    points = []
+    inc = math.pi * (3 - math.sqrt(5))
+    offset = 2 / float(n)
+    for k in range(int(n)):
+        y = k * offset - 1 + (offset / 2)
+        r = math.sqrt(1 - y*y)
+        phi = k * inc
+        points.append([math.cos(phi)*r, y, math.sin(phi)*r])
+    return points
+
+#def generate_volume_sphere_points(n):
+#    """
+#    """
+#    points = []
+#    for k in range(int(n)):
+#        x = 2.0*random.random() - 1.0
+#        y = 2.0*random.random() - 1.0
+#        z = 2.0*random.random() - 1.0
+#        points.append([x,y,z])
+#    return points
+
+def generate_volume_sphere_points(n):
+    """
+    """
+    points = []
+    k = 0
+    while (k<int(n)):
+        x = 2.0*random.random() - 1.0
+        y = 2.0*random.random() - 1.0
+        z = 2.0*random.random() - 1.0
+        r2 = x*x + y*y + z*z
+        if (r2 < 1.0000000001):
+           points.append([x,y,z])
+           #print "H",10.0*x,10.0*y,10.0*z
+           k += 1
+    return points
+
+
+def find_neighbor_indices_periodic(atoms, probe, k,L):
+    """
+    Returns list of indices of atoms within probe distance to atom k.
+    """
+    neighbor_indices = []
+    atom_k = atoms[k]
+    radius = vdw[atom_k[0]] + probe + probe
+    indices = range(k)
+    indices.extend(range(k+1, len(atoms)))
+    for i in indices:
+        atom_i = atoms[i]
+        x = atom_i[1] - atom_k[1]
+        y = atom_i[2] - atom_k[2]
+        z = atom_i[3] - atom_k[3]
+        dist = 99999999.0
+        for n3 in range(-1,2):
+           for n2 in range(-1,2):
+              for n1 in range(-1,2):
+                 dx = x + L*n1
+                 dy = y + L*n2
+                 dz = y + L*n3
+                 d = math.sqrt(dx*dx + dy*dy + dz*dz)
+                 if (d < dist): dist = d
+        if (dist <  (radius+vdw[atom_i[0]])):
+            neighbor_indices.append(i)
+    return neighbor_indices
+
+
+
+
+def find_neighbor_indices(atoms, probe, k):
+    """
+    Returns list of indices of atoms within probe distance to atom k. 
+    """
+    neighbor_indices = []
+    atom_k = atoms[k]
+    radius = vdw[atom_k[0]] + probe + probe
+    indices = range(k)
+    indices.extend(range(k+1, len(atoms)))
+    for i in indices:
+        atom_i = atoms[i]
+        dx = atom_i[1] - atom_k[1]
+        dy = atom_i[2] - atom_k[2]
+        dz = atom_i[3] - atom_k[3]
+        dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+        if (dist <  (radius+vdw[atom_i[0]])):
+            neighbor_indices.append(i)
+    return neighbor_indices
+
+def find_kneighbor_indices(atoms, probe, k):
+    """
+    Returns list of indices of atoms less than k within probe distance to atom k.
+    """
+    neighbor_indices = []
+    atom_k = atoms[k]
+    radius = vdw[atom_k[0]] + probe + probe
+    indices = range(k)
+    #indices.extend(range(k+1, len(atoms)))
+    for i in indices:
+        atom_i = atoms[i]
+        dx = atom_i[1] - atom_k[1]
+        dy = atom_i[2] - atom_k[2]
+        dz = atom_i[3] - atom_k[3]
+        dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+        if (dist <  (radius+vdw[atom_i[0]])):
+            neighbor_indices.append(i)
+    return neighbor_indices
+
+
+
+
+def calculate_asa(atoms, probe, n_sphere_point=960):
+    """
+    Returns list of accessible surface areas of the atoms, using the probe
+    and atom radius to define the surface.
+    """
+    sphere_points = generate_sphere_points(n_sphere_point)
+
+    const = 4.0 * math.pi / len(sphere_points)
+    areas = []
+    for i in range(len(atoms)):
+
+        atom_i = atoms[i]
+        neighbor_indices = find_neighbor_indices(atoms, probe, i)
+        n_neighbor = len(neighbor_indices)
+        j_closest_neighbor = 0
+        radius = probe + vdw[atoms[i][0]]
+
+        n_accessible_point = 0
+        for point in sphere_points:
+            is_accessible = True
+
+            x = point[0]*radius + atom_i[1]
+            y = point[1]*radius + atom_i[2]
+            z = point[2]*radius + atom_i[3]
+
+            cycled_indices = range(j_closest_neighbor, n_neighbor)
+            cycled_indices.extend(range(j_closest_neighbor))
+
+            for j in cycled_indices:
+                atom_j = atoms[neighbor_indices[j]]
+                r = vdw[atom_j[0]] + probe
+                dx = atom_j[1] - x
+                dy = atom_j[2] - y
+                dz = atom_j[3] - z
+                diff_sq = dx*dx + dy*dy + dz*dz
+                if diff_sq < r*r:
+                    j_closest_neighbor = j
+                    is_accessible = False
+                    break
+            if is_accessible:
+                n_accessible_point += 1
+
+        area = const*n_accessible_point*radius*radius 
+        areas.append(area)
+    return areas
+
+
+
+def calculate_sav(atoms, probe, n_sphere_point=960):
+    """
+    Returns list of solvent accessible volume of the atoms, using the probe
+    and atom radius to define the surface.
+    """
+    sphere_points = generate_volume_sphere_points(n_sphere_point)
+
+    const = 4.0 * math.pi / (3.0*len(sphere_points))
+    volumes = []
+    for i in range(len(atoms)):
+
+        atom_i = atoms[i]
+        neighbor_indices = find_kneighbor_indices(atoms, probe, i)
+        n_neighbor = len(neighbor_indices)
+        j_closest_neighbor = 0
+        radius = probe + vdw[atoms[i][0]]
+
+        n_accessible_point = 0
+        for point in sphere_points:
+            is_accessible = True
+
+            x = point[0]*radius + atom_i[1]
+            y = point[1]*radius + atom_i[2]
+            z = point[2]*radius + atom_i[3]
+
+            cycled_indices = range(j_closest_neighbor, n_neighbor)
+            cycled_indices.extend(range(j_closest_neighbor))
+
+            for j in cycled_indices:
+                atom_j = atoms[neighbor_indices[j]]
+                r = vdw[atom_j[0]] + probe
+                dx = atom_j[1] - x
+                dy = atom_j[2] - y
+                dz = atom_j[3] - z
+                diff_sq = dx*dx + dy*dy + dz*dz
+                if diff_sq < r*r:
+                    j_closest_neighbor = j
+                    is_accessible = False
+                    break
+            if is_accessible:
+                n_accessible_point += 1
+
+        volume = const*n_accessible_point*radius*radius*radius
+        volumes.append(volume)
+    return volumes
+
+
+def generate_solventbox(nwater,solute,L,probe):
+    """
+    Returns solventbox
+    """
+    atoms = []
+    for i in range(len(solute)):
+       solute_i = solute[i];
+       xyz = []
+       xyz.append(solute_i[0])
+       xyz.append(solute_i[1])
+       xyz.append(solute_i[2])
+       xyz.append(solute_i[3])
+       atoms.append(xyz)
+
+    ii = len(solute)
+    for i in range(nwater):
+       #print "adding water molecule = %d" % i
+       xyz = []
+       xyz.append('Ow')
+       xyz.append(0.0)
+       xyz.append(0.0)
+       xyz.append(0.0)
+       atoms.append(xyz)
+       done = False
+       while (not done):
+          x = L*random.random() - 0.5*L
+          y = L*random.random() - 0.5*L
+          z = L*random.random() - 0.5*L
+          atoms[ii+i][1] = x
+          atoms[ii+i][2] = y
+          atoms[ii+i][3] = z
+          neighbor_indices = find_neighbor_indices_periodic(atoms, probe, ii+i, L)
+          n_neighbor = len(neighbor_indices)
+
+          nooverlap = True
+          for j in neighbor_indices:
+             atom_j = atoms[j]
+             r = vdw[atom_j[0]] + probe
+             diff_sq = 200*L*L
+             for n3 in range(-1,2):
+                for n2 in range(-1,2):
+                   for n1 in range(-1,2):
+                      dx = atom_j[1] - x + n1*L
+                      dy = atom_j[2] - y + n2*L
+                      dz = atom_j[3] - z + n3*L
+                      rt = dx*dx + dy*dy + dz*dz
+                      if (rt<diff_sq):
+                         diff_sq = rt
+             if diff_sq < r*r:
+                nooverlap = False
+                break
+          if (nooverlap):
+             done = True
+    return atoms
+
+
+######################################################
+#                                                    #
+#                 generate_solute                    #
+#                                                    #
+######################################################
+
+def generate_solute(solutejob):
+
+  ### generate solute xyz ###
+  smiles  = solutejob['smiles']
+  esmiles = solutejob['esmiles']
+  #smiles2xyz(smiles,tmpsolute)
+  smiles2xyz(esmiles,wrkdir+'/'+tmpsolute)
+  solutejob['mformula'] = xyz_molecular_formula(wrkdir+'/'+tmpsolute)
+  solutejob['cid']      = pubchem_smiles2cid(smiles)
+  solutejob['cas']      = pubchem_smiles2cas(smiles)
+  solutejob['kegg']     = pubchem_smiles2kegg(smiles)
+  solutejob['synonyms'] = pubchem_smiles2synonyms(smiles)
+  (solutejob['solute_bonding_string'], solutejob['solute_covalent_string']) = xyz_bonding_strings(wrkdir+'/'+tmpsolute)
+
+  iupac    = pubchem_smiles2iupac(smiles)
+  if (iupac==''): iupac = smiles
+  if (mult==2): iupac += " doublet radical"
+  if (mult==3): iupac += " triplet radical"
+  if (mult==4): iupac += " quqrtet radical"
+  if (mult==5): iupac += " quintet radical"
+  if (mult==6): iupac += " sextet radical"
+  if (mult==7): iupac += " septet radical"
+  if (mult==8): iupac += " octet radical"
+  if (mult==9): iupac += " nonet radical"
+  if (mult==10): iupac += " decet radical"
+  if (mult>10):  iupac += " large radical"
+  if (charge==-4): iupac += " tetraanion"
+  if (charge==-3): iupac += " trianion"
+  if (charge==-2): iupac += " dianion"
+  if (charge==-1): iupac += " anion"
+  if (charge==+1): iupac += " cation"
+  if (charge==+2): iupac += " dication"
+  if (charge==+3): iupac += " trication"
+  if (charge==+4): iupac += " tetracation"
+  solutejob['iupac'] = iupac
+
+  with open(wrkdir+'/'+tmpsolute,'r') as ff:
+     solute_size = eval(ff.readline())
+
+  print "solute_size=",solute_size
+  solutejob['solute_size'] = solute_size
+
+  ### read in solute molecule ###
+  kindatoms = []
+  atoms1 = []
+  xyzfile = open(wrkdir+'/'+tmpsolute,"r")
+  natoms =  eval(xyzfile.readline())
+  xyzfile.readline()
+  for i in range(natoms):
+     line = xyzfile.readline().split()
+     xyz = []
+     xyz.append(line[0])
+     xyz.append(eval(line[1]))
+     xyz.append(eval(line[2]))
+     xyz.append(eval(line[3]))
+     atoms1.append(xyz)
+     found = False
+     for ka in kindatoms:
+        if (ka==line[0]):
+           found = True
+     if (not found):
+        kindatoms.append(line[0])
+  xyzfile.close()
+
+  ### adjust solute molecule to constraint ###
+  if 'bonddiff' in solutejob['constraint_string']:
+     ijkindexes = xyz_bonddiff_string_indexes(wrkdir+'/'+tmpsolute,solutejob['constraint_string'])
+     solutejob['constraint_index1'] = ijkindexes[0][0]
+     solutejob['constraint_index2'] = ijkindexes[0][1]
+     solutejob['constraint_index3'] = ijkindexes[0][2]
+     solutejob['constraint_index4'] = -1
+     solutejob['constraint_type'] = "bonddiff"
+     print "bonddiff ijkindexes=",ijkindexes
+     i1  = solutejob['constraint_index1']
+     i2  = solutejob['constraint_index2']
+     i3  = solutejob['constraint_index3']
+     d12 = solutejob['constraint_value1']/0.529177
+     d23 = solutejob['constraint_value2']/0.529177
+     atoms = generate_atoms_d12_d34(i1,i2,d12,i2,i3,d23,atoms1)
+
+  elif 'bond' in solutejob['constraint_string']:
+     ijindexes = xyz_bond_string_indexes(wrkdir+'/'+tmpsolute,solutejob['constraint_string'])
+     solutejob['constraint_index1'] = ijindexes[0][0]
+     solutejob['constraint_index2'] = ijindexes[0][1]
+     solutejob['constraint_index3'] = -1
+     solutejob['constraint_index4'] = -1
+     solutejob['constraint_type'] = "bond"
+     print "bond ijindexes=",ijindexes
+     i1  = solutejob['constraint_index1']
+     i2  = solutejob['constraint_index2']
+     d12 = solutejob['constraint_value']/0.529177
+     atoms = generate_atoms_d12(i1,i2,d12,atoms1)
+
+  else:
+     solutejob['constraint_string'] = ''
+     solutejob['constraint_index1'] = -1
+     solutejob['constraint_index2'] = -1
+     solutejob['constraint_index3'] = -1
+     solutejob['constraint_index4'] = -1
+     solutejob['constraint_type'] = ''
+     atoms = atoms1
+
+
+  solutejob['optimized'] = "qmmm initialize"
+  n_sphere = 9600
+  molarity = solutejob['molarity']
+  nwater = int(round(55.556/molarity))
+  vwater = (1660.55208/molarity)
+  asas = calculate_asa(atoms, 1.4, n_sphere)
+  savs = calculate_sav(atoms, 0.0, n_sphere)
+  vsolute = sum(savs)
+  L = (vwater+vsolute)**0.33333333333
+  solutejob['solvent_size'] = 3*nwater
+  solutejob['nsolvent']     = nwater
+
+  print "ASA = %.1f angstrom squared." % sum(asas)
+  print "SAV = %.1f angstrom cubed." % sum(savs)
+  print "size of solute molecule    = %d" % len(atoms)
+  print "number of solute molecules = %d" % 1
+  print "number of water molecules  = %d" % nwater
+  print "volume of water molecules  = %.1f angstrom cubed." % vwater
+  print "volume of unit cell       = %.1f angstrom cubed." % (vwater+vsolute)
+  print "side length of water-only cubic cell = %.3f angstrom " % (vwater)**0.33333333333
+  print "side length of cubic cell            = %.3f angstrom " % (vwater+vsolute)**0.33333333333
+
+  if (solutejob['L']>0.0):
+     L = solutejob['L']
+     print
+     print "Unit Cell Input Option:"
+     print "inputed side length of cubic cell    = %.3f angstrom " % L
+     print "inputed volume of unit cell          = %.1f angstrom cubed." % (L*L*L)
+  else:
+     solutejob['L'] = L
+
+  solventbox = generate_solventbox(nwater,atoms,L,1.0)
+  angle = (109.45/180.0)*math.pi
+
+  print "size of solvent box = %d" % len(solventbox)
+  #print "solventbox:",solventbox
+  newatoms = []
+  for s in solventbox:
+     if (s[0]=='Ow'):
+        xyz = []
+        xyz.append('O')
+        xyz.append(s[1])
+        xyz.append(s[2])
+        xyz.append(s[3])
+        newatoms.append(xyz)
+        xyz = []
+        xyz.append('H')
+        xyz.append(s[1]+1.0)
+        xyz.append(s[2])
+        xyz.append(s[3])
+        newatoms.append(xyz)
+        xyz = []
+        xyz.append('H')
+        xyz.append(s[1]+math.cos(angle))
+        xyz.append(s[2]+math.sin(angle))
+        xyz.append(s[3])
+        newatoms.append(xyz)
+     else:
+        newatoms.append(s)
+
+  print "Generating xyzfile=",solutejob['xyzfile']
+  xfile = open(solutejob['xyzfile'],'w')
+  xfile.write("%d\n\n" % len(newatoms))
+  for a in newatoms:
+     xfile.write("%s  %.6f %.6f %.6f\n" % (a[0],a[1],a[2],a[3]))
+  xfile.close()
+
+  print "removing old wavefunction data"
+  cmd0  = "rm " + wrkdir + "/solvate_pmf193.*  " + wrkdir + "/startl.*  " + wrkdir + "/XYZ99-bak " + wrkdir + "/MOTION99-bak " + wrkdir + "/EMOTION99-bak"
+  print cmd0
+  os.system(cmd0)
+
+
+  print "Generating nwfile=",solutejob['nwfile']
+  nfile = open(solutejob['nwfile'],'w')
+  if 'bonddiff' in solutejob['constraint_string']:
+     nfile.write("title \"%s + %d water qmmm simulation: d12= %d %d %f d34= %d %d %f\" \n\n" % (solutejob['smiles'],nwater,i1,i2,d12*0.529177,i2,i3,d23*0.529177))
+  elif 'bond' in solutejob['constraint_string']:
+     nfile.write("title \"%s + %d water qmmm simulation: d12= %d %d %f\" \n\n" % (solutejob['smiles'],nwater,i1,i2,d12*0.529177))
+  else:
+     nfile.write("title \"%s + %d water qmmm simulation\" \n\n" % (solutejob['smiles'],nwater))
+  nfile.write("echo\n\n")
+  nfile.write("memory 1500 mb\n\n")
+  nfile.write("start solvate_pmf193\n\n")
+  nfile.write("permanent_dir %s\n" % wrkdir)
+  nfile.write("scratch_dir   %s\n\n" % wrkdir)
+  nfile.write("charge %d \n\n" % solutejob['charge'])
+  nfile.write("geometry noautosym noautoz\n")
+  for a in newatoms:
+     nfile.write("%s  %.6f %.6f %.6f\n" % (a[0],a[1],a[2],a[3]))
+  nfile.write("end\n\n")
+  nfile.write("nwpw\n")
+  nfile.write("   simulation_cell\n")
+  nfile.write("      SC %.6f\n" % (L/0.529177))
+  nfile.write("   end\n")
+  nfile.write("   qmmm\n")
+  nfile.write("      mm_tags %d:%d\n" % (len(atoms)+1,len(newatoms)))
+  for ka in kindatoms:
+     nfile.write("      lj_ion_parameters %s %.6f %.6f\n" % (ka,LJparam[ka][0],LJparam[ka][1]))
+  nfile.write("      lj_ion_parameters %s %.6f %.6f\n\n" % ('O^',3.16555789,0.15539425))
+  nfile.write("      fragment spc\n")
+  nfile.write("         size 3\n")
+  nfile.write("         index_start %d:%d:3\n\n" % (len(atoms)+1,len(newatoms)-2))
+  nfile.write("         #spc/e water\n")
+  nfile.write("         shake units angstroms 1 2 3 cyclic 1.0 1.632993125 1.0\n\n")
+  nfile.write("         #Toukan-Rahman Potential\n")
+  nfile.write("         #bond_morse  1 2    0.1623940 1.3578682  1.889726878\n")
+  nfile.write("         #bond_morse  1 3    0.1623940 1.3578682  1.889726878\n")
+  nfile.write("         #bond_spring 2 3    0.0733187 3.0864590\n")
+  nfile.write("         #cross_bond_spring 1 2 1.889726878 2 3 3.0864590 -0.0943540\n")
+  nfile.write("         #cross_bond_spring 1 3 1.889726878 2 3 3.0864590 -0.0943540\n")
+  nfile.write("         #cross_bond_spring 1 2 1.889726878 1 3 1.889726878 0.0498426\n")
+  nfile.write("      end\n")
+  nfile.write("   end\n")
+  nfile.write("   xc pbe96\n")
+  nfile.write("   cutoff 1.0\n")
+  nfile.write("   #lmbfgs\n")
+  nfile.write("   mult %d\n" % solutejob['mult'])
+  nfile.write("end\n\n")
+  nfile.write("set geometry:actlist %d:%d\n" % (len(atoms)+1,len(newatoms)))
+  nfile.write("task pspw gradient\n\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-9; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-8; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-7; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-6; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-5; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-4; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-3; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-2; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-1; loop 10 10; end; end; task pspw steepest_descent\n")
+  nfile.write("nwpw; steepest_descent; geometry_optimize; time_step 1.0;    loop 10 10; end; end; task pspw steepest_descent\n\n")
+
+  nfile.write("##### Relax the water #####\n")
+  nfile.write("nwpw\n");
+  nfile.write("   car-parrinello\n")
+  nfile.write("      nose-hoover 1200.0 400.0 1200 400.0 start\n")
+  nfile.write("      time_step 5.0\n")
+  nfile.write("      fake_mass 750.0\n")
+  nfile.write("      loop 10 200\n")
+  nfile.write("      xyz_filename        startl.xyz\n")
+  nfile.write("      ion_motion_filename startl.ion_motion\n")
+  nfile.write("      emotion_filename    startl.emotion\n")
+  nfile.write("   end\n")
+  nfile.write("end\n");
+  nfile.write("task pspw car-parrinello\n\n")
+  nfile.close()
+
+  cmd = nwchem + " " + solutejob['nwfile'] + " | tee " + solutejob['nwoutfile']
+  result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+
+  with open(wrkdir + '/startl.xyz','r') as ff:
+     count = 0
+     for line in ff:
+        count += 1
+        if (count==1): 
+           natom = eval(line)
+           xyz_blob = line
+        elif (count==2):
+           xyz_blob += '\n'
+        else:
+           xyz_blob += line
+           if (count>=(natom+2)): count = 0
+  solutejob['xyz_blob'] = xyz_blob
+  
+  try:
+      os.unlink(wrkdir + '/startl.xyz')
+  except:
+      print "Failed to remove " + wrkdir + "/startl.xyz"
+
+  try:
+      os.unlink(wrkdir + '/startl.ion_motion')
+  except:
+      print "Failed to remove " + wrkdir + "/startl.ion_motion"
+
+  try:
+      os.unlink(wrkdir + '/' + "startl.emotion")
+  except:
+      print "Failed to remove " + wrkdir + "/startl.emotion"
+
+  return solutejob
+
+
+
+  
+
+#################### solute functions ######################
+
+
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+
+periodic_table_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 3,
+    'Be' : 4,
+    'B'  : 5,
+    'C'  : 6,
+    'N'  : 7,
+    'O'  : 8,
+    'F'  : 9,
+    'Ne' : 10,
+    'Na' : 11,
+    'Mg' : 12,
+    'Al' : 13,
+    'Si' : 14,
+    'P'  : 15,
+    'S'  : 16,
+    'Cl' : 17,
+    'Ar' : 18,
+    'K'  : 19,
+    'Ca' : 20,
+    'Sc' : 21,
+    'Ti' : 22,
+    'V'  : 23,
+    'Cr' : 24,
+    'Mn' : 25,
+    'Fe' : 26,
+    'Co' : 27,
+    'Ni' : 28,
+    'Cu' : 29,
+    'Zn' : 30,
+    'Ga' : 31,
+    'Ge' : 32,
+    'As' : 33,
+    'Se' : 34,
+    'Br' : 35,
+    'Kr' : 36,
+    'Rb' : 37,
+    'Sr' : 38,
+    'Y'  : 39,
+    'Zr' : 40,
+    'Nb' : 41,
+    'Mo' : 42,
+    'Tc' : 43,
+    'Ru' : 44,
+    'Rh' : 45,
+    'Pd' : 46,
+    'Ag' : 47,
+    'Cd' : 48,
+    'In' : 49,
+    'Sn' : 50,
+    'Sb' : 51,
+    'Te' : 52,
+    'I'  : 53,
+    'Xe' : 54,
+    'Cs' : 55,
+    'Ba' : 56,
+    'La' : 57,
+    'Ce' : 58,
+    'Pr' : 59,
+    'Nd' : 60,
+    'Pm' : 61,
+    'Sm' : 62,
+    'Eu' : 63,
+    'Gd' : 64,
+    'Tb' : 65,
+    'Dy' : 66,
+    'Ho' : 67,
+    'Er' : 68,
+    'Tm' : 69,
+    'Yb' : 70,
+    'Lu' : 71,
+    'Hf' : 72,
+    'Ta' : 73,
+    'W'  : 74,
+    'Re' : 75,
+    'Os' : 76,
+    'Ir' : 77,
+    'Pt' : 78,
+    'Au' : 79,
+    'Hg' : 80,
+    'Tl' : 81,
+    'Pb' : 82,
+    'Bi' : 83,
+    'Po' : 84,
+    'At' : 85,
+    'Rn' : 86,
+    'Fr' : 87,
+    'Ra' : 88,
+    'Ac' : 89,
+    'Th' : 90,
+    'Pa' : 91,
+    'U'  : 92,
+    'Np' : 93,
+    'Pu' : 94,
+    'Am' : 95,
+    'Cm' : 96,
+    'Bk' : 97,
+    'Cf' : 98,
+    'Es' : 99,
+    'Fm' : 100,
+    'Md' : 101,
+    'No' : 102,
+    'Lr' : 103,
+    'Rf' : 104,
+    'Ha' : 105,
+    'Sg' : 106,
+    'Bh' : 107,
+    'Hs' : 108,
+    'Mt' : 109
+}
+
+
+
+
+covalentstr = '''
+H 32 0 0 0
+He 46 0 0 0
+Li 133 124 0 0
+Be 102 90 85 0
+B 85 78 73 0
+C 75 67 60 68
+N 71 60 54 0
+O 63 57 53 0
+F 64 59 53 0
+Ne 67 96 0 0
+Na 155 160 0 0
+Mg 139 132 127 0
+Al 126 113 111 0
+Si 116 107 102 0
+P 111 102 94 0
+S 103 94 95 0
+Cl 99 95 93 0
+Ar 96 107 96 0
+K 196 193 0 0
+Ca 171 147 133 0
+Sc 148 116 114 0
+Ti 136 117 108 0
+V 134 112 106 0
+Cr 122 111 103 0
+Mn 119 105 103 0
+Fe 116 109 102 0
+Co 111 103 96 0
+Ni 110 101 101 0
+Cu 112 115 120 0
+Zn 118 120 0 0
+Ga 124 116 121 0
+Ge 121 111 114 0
+As 121 114 106 0
+Se 116 107 107 0
+Br 114 109 110 0
+Kr 117 121 108 0
+Rb 210 202 0 0
+Sr 185 157 139 0
+Y 163 130 124 0
+Zr 154 127 121 0
+Nb 147 125 116 0
+Mo 138 121 113 0
+Tc 128 120 110 0
+Ru 125 114 103 0
+Rh 125 110 106 0
+Pd 120 117 112 0
+Ag 128 139 137 0
+Cd 136 144 0 0
+In 142 136 146 0
+Sn 140 130 132 0
+Sb 140 133 127 0
+Te 136 128 121 0
+I 133 129 125 0
+Xe 131 135 122 0
+Cs 232 196 0 0
+Ba 196 161 149 0
+La 180 139 139	 0
+Ce 163 137 131 0
+Pr 176 138 128 0
+Nd 174 137 0 0
+Pm 173 135 0 0
+Sm 172 134 0 0
+Eu 168 134 0 0
+Gd 169 135 132 0
+Tb 168 135 0 0
+Dy 167 133 0 0
+Ho 166 133 0 0
+Er 165 133 0 0
+Tm 164 131 0 0
+Yb 170 129 0 0
+Lu 162 131 131	 0
+Hf 152 128 122	 0
+Ta 146 126 119	 0
+W 137 120 115	 0
+Re 131 119 110	 0
+Os 129 116 109	 0
+Ir 122 115 107	 0
+Pt 123 112 110	 0
+Au 124 121 123 0
+Hg 133 142 0 0
+Tl 144 142 150 0
+Pb 144 135 137 0
+Bi 151 141 135 0
+Po 145 135 129 0
+At 147 138 138 0
+Rn 142 145 133 0
+Fr 223 218 0 0
+Ra 201 173 159 0
+Ac 186 153 140 0
+Th 175 143 136	 0
+Pa 169 138 129	 0
+U 170 134 118 0
+Np 171 136 116 0
+Pu 172 135 0  0
+Am 166 135 0 0
+Cm 166 136 0 0
+Bk 168 139 0 0
+Cf 168 140 0 0
+Es 165 140 0 0
+Fm 167 0 0 0
+Md 173 139 0 0
+No 176 0 0  0
+Lr 161 141 0 0
+Rf 157 140 131 0
+Db 149 136 126 0
+Sg 143 128 121 0
+Bh 141 128 119 0
+Hs 134 125 118 0
+Mt 129 125 113 0
+Ds 128 116 112 0
+Rg 121 116 118	 0
+Cn 122 137 130 0
+Uut 136 0 0 0
+Fl 143 0 0 0
+Uup 162  0 0 0
+Lv 175 0 0 0
+Uus 165 0 0 0
+Uuo 157  0 0 0
+'''
+rcovalent = {}
+for ln in covalentstr.strip().split('\n'):
+   ss = ln.split()
+   rcovalent[ss[0]] = (0.01*eval(ss[1]),0.01*eval(ss[2]),0.01*eval(ss[3]),0.01*eval(ss[4]))
+
+
+###########################################
+#                                         #
+#              bond_order                 #
+#                                         #
+###########################################
+def bond_order(rc1,rc2,r12):
+   dd = 0.0001
+   cov = (abs(r12-(rc1[0]+rc2[0]))/(rc1[0]+rc2[0]+dd),
+          abs(r12-(rc1[1]+rc2[1]))/(rc1[1]+rc2[1]+dd),
+          abs(r12-(rc1[2]+rc2[2]))/(rc1[2]+rc2[2]+dd),
+          abs(r12-(rc1[3]+rc2[3]))/(rc1[3]+rc2[3]+dd))
+   imin = 0
+   dmin = cov[0]
+   if (cov[1]<dmin):
+      dmin = cov[1]
+      imin = 1
+   if (cov[2]<dmin):
+      dmin = cov[2]
+      imin = 2
+   if (cov[3]<dmin):
+      dmin = cov[3]
+      imin = 3
+   b = 0
+   if (cov[imin]<0.10): 
+      b = 1+imin
+      if (imin==3): 
+         b = 1.5
+   return b
+
+###########################################
+#                                         #
+#          xyz_bonding_strings            #
+#                                         #
+###########################################
+
+def xyz_bonding_strings(xyzfilename):
+
+   #### read xyz file ####
+   fdict = {}
+   verts  = []
+   symbol = []
+   rxyz   = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+      line = line.split()
+      symbol.append(line[0].strip())
+      tple = ('atom',(0.0, line[0].strip(), '', 0, 0, -1))
+      verts.append(tple)
+      rxyz.append(eval(line[1]))
+      rxyz.append(eval(line[2]))
+      rxyz.append(eval(line[3]))
+   xyzfile.close()
+
+   #### generate mformula ####
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate adjacency matrix ####
+   adjmat = []
+   rij    = []
+   for i in range(n):
+      rij.append([0.0]*n)
+      adjmat.append([0]*n)
+   for i in range(n):
+      for j in range(n):
+         symi = symbol[i]
+         symj = symbol[j]
+         rci   = rcovalent[symbol[i]]
+         rcj   = rcovalent[symbol[j]]
+         dx = rxyz[3*i]   - rxyz[3*j]
+         dy = rxyz[3*i+1] - rxyz[3*j+1]
+         dz = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         rij[i][j] = r
+         if i!=j:
+            adjmat[i][j] = bond_order(rci,rcj,r)
+
+   #### generate bonding ####
+   covbondcount = {}
+   bondcount = {}
+   for i in range(n):
+      for j in range(i+1,n):
+         if (adjmat[i][j] > 0):
+            symi = symbol[i]
+            symj = symbol[j]
+            if (symi<symj):
+               key = symi.strip() + symj.strip()
+            else:
+               key = symj.strip() + symi.strip()
+
+            if (bondcount.has_key(key)):
+               bondcount[key] += 1
+            else:
+               bondcount[key] = 1
+            covkey = key + "(%.1f)" % (adjmat[i][j])
+            if (covbondcount.has_key(covkey)):
+               covbondcount[covkey] += 1
+            else:
+               covbondcount[covkey] = 1
+   bonding = ''
+   for x  in sorted(bondcount.items(), key=operator.itemgetter(0)):
+      bonding += x[0] + "%d" % x[1]
+   covbonding = ''
+   for x  in sorted(covbondcount.items(), key=operator.itemgetter(0)):
+      covbonding += x[0] + "=%d," % x[1]
+   covbonding = covbonding.strip(',')
+
+   #### generate bonding2 ####
+   bond2count = {}
+   for i in range(n):
+      for j in range(n):
+         for k in range(j+1,n):
+            if (adjmat[i][j] > 0) and (adjmat[i][k] > 0):
+               symi = symbol[i]
+               symj = symbol[j]
+               symk = symbol[k]
+               if (symj<symk):
+                  key = symj.strip() + symi.strip() + symk.strip()
+               else:
+                  key = symk.strip() + symi.strip() + symj.strip()
+               if (bond2count.has_key(key)):
+                  bond2count[key] += 1
+               else:
+                  bond2count[key] = 1
+   bonding2 = ''
+   for x  in sorted(bond2count.items(), key=operator.itemgetter(0)):
+      bonding2 += x[0] + "%d" % x[1]
+
+   #### generate neighbors ####
+   neighborcount = {}
+   for i in range(n):
+      neighbors = []
+      for j in range(n):
+         if (adjmat[i][j] > 0):
+            neighbors.append(symbol[j].strip())
+      neighbors.sort()
+      key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
+      if (neighborcount.has_key(key)):
+         neighborcount[key] += 1
+      else:
+         neighborcount[key] = 1
+   neighbors = ''
+   for x  in sorted(neighborcount.items(), key=operator.itemgetter(0)):
+      neighbors += x[0] + "=%d," % x[1]
+   neighbors = neighbors.strip(',')
+
+   return  (mformula + ":" + bonding + ":" + bonding2 + ":" + neighbors,  covbonding)
+
+
+
+
+
+
+
+
+###########################################
+#                                         #
+#          xyz_bond_string0               #
+#                                         #
+###########################################
+
+def xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2):
+
+   #### generate bonding ####
+   i = indx1
+   j = indx2
+   symi = symbol[i]
+   symj = symbol[j]
+   bonding = symi + "-" + symj
+
+
+   #### generate bonding2 ####
+   bond2count = {}
+   for ij in [(indx1,indx2),(indx2,indx1)]:
+      i = ij[0]
+      j = ij[1]
+      for k in range(n):
+         if (adjmat[i][k] > 0) and (k!=i) and (k!=j):
+            symi = symbol[i]
+            symj = symbol[j]
+            symk = symbol[k]
+            if (symj<symk):
+               key = symj.strip() + symi.strip() + symk.strip()
+            else:
+               key = symk.strip() + symi.strip() + symj.strip()
+            if (bond2count.has_key(key)):
+               bond2count[key] += 1
+            else:
+               bond2count[key] = 1
+   bonding2 = ''
+   for x  in sorted(bond2count.items(), key=operator.itemgetter(0)):
+      bonding2 += x[0] + "%d" % x[1]
+
+
+   #### generate bonding3 ####
+   bond3count = {}
+   i = indx1
+   j = indx2
+   for k in range(n):
+      for l in range(n):
+         if (adjmat[i][k] > 0) and (adjmat[j][l]>0) and (k!=i) and (k!=j) and (l!=i) and (l!=j) and (l!=k):
+            symi = symbol[i]
+            symj = symbol[j]
+            symk = symbol[k]
+            syml = symbol[l]
+            key = symk.strip() + symi.strip() + symj.strip() + syml.strip()
+            if (bond3count.has_key(key)):
+               bond3count[key] += 1
+            else:
+               bond3count[key] = 1
+   bonding3 = ''
+   for x  in sorted(bond3count.items(), key=operator.itemgetter(0)):
+      bonding3 += x[0] + "%d" % x[1]
+
+   #### generate bonding3r -  i-j-k-l ####
+   bond3rcount = {}
+   for ij in [(indx1,indx2),(indx2,indx1)]:
+      i = ij[0]
+      j = ij[1]
+      for k in range(n):
+         for l in range(n):
+            if (adjmat[j][k] > 0) and (adjmat[k][l]>0) and (k!=i) and (k!=j) and (l!=i) and (l!=j) and (l!=k):
+               symi = symbol[i]
+               symj = symbol[j]
+               symk = symbol[k]
+               syml = symbol[l]
+               key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
+               if (bond3rcount.has_key(key)):
+                  bond3rcount[key] += 1
+               else:
+                  bond3rcount[key] = 1
+   bonding3r = ''
+   for x  in sorted(bond3rcount.items(), key=operator.itemgetter(0)):
+      bonding3r += x[0] + "%d" % x[1]
+
+   #### generate bonding4r -  i-j-k-l-m ####
+   bond4rcount = {}
+   for ij in [(indx1,indx2),(indx2,indx1)]:
+      i = ij[0]
+      j = ij[1]
+      for k in range(n):
+         for l in range(n):
+            for m in range(n):
+               if (adjmat[j][k] > 0) and (adjmat[k][l] > 0) and (adjmat[l][m] > 0)  and (k!=i) and (k!=j) and (l!=i) and (l!=j) and (l!=k) and (m!=i) and (m!=j) and (m!=k) and (m!=l):
+                  symi = symbol[i]
+                  symj = symbol[j]
+                  symk = symbol[k]
+                  syml = symbol[l]
+                  symm = symbol[m]
+                  key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
+                  if (bond4rcount.has_key(key)):
+                     bond4rcount[key] += 1
+                  else:
+                     bond4rcount[key] = 1
+   bonding4r = ''
+   for x  in sorted(bond4rcount.items(), key=operator.itemgetter(0)):
+      bonding4r += x[0] + "%d" % x[1]
+
+
+   #### generate bonding5r -  i-j-k-l-m-a ####
+   bond5rcount = {}
+   for ij in [(indx1,indx2),(indx2,indx1)]:
+      i = ij[0]
+      j = ij[1]
+      for k in range(n):
+         for l in range(n):
+            for m in range(n):
+               for a in range(n):
+                  if (adjmat[j][k] > 0) and (adjmat[k][l] > 0) and (adjmat[l][m] > 0) and (adjmat[m][a]>0)  and (k!=i) and (k!=j) and (l!=i) and (l!=j) and (l!=k) and (m!=i) and (m!=j) and (m!=k) and (m!=l) and (a!=i) and (a!=j) and (a!=k) and (a!=l) and (a!=m):
+                     symi = symbol[i]
+                     symj = symbol[j]
+                     symk = symbol[k]
+                     syml = symbol[l]
+                     symm = symbol[m]
+                     syma = symbol[a]
+                     key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
+                     if (bond5rcount.has_key(key)):
+                        bond5rcount[key] += 1
+                     else:
+                        bond5rcount[key] = 1
+   bonding5r = ''
+   for x  in sorted(bond5rcount.items(), key=operator.itemgetter(0)):
+      bonding5r += x[0] + "%d" % x[1]
+
+
+   #### generate neighbors ####
+   neighborcount = {}
+   for i in [indx1,indx2]:
+      neighbors = []
+      for j in range(n):
+         if (adjmat[i][j] > 0):
+            neighbors.append(symbol[j].strip())
+      neighbors.sort()
+      key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
+      if (neighborcount.has_key(key)):
+         neighborcount[key] += 1
+      else:
+         neighborcount[key] = 1
+   neighbors = ''
+   for x  in sorted(neighborcount.items(), key=operator.itemgetter(0)):
+      neighbors += x[0] + "=%d," % x[1]
+   neighbors = neighbors.strip(',')
+
+   #return  mformula + ":bond:" + bonding + ":" + bonding2 + ":" + bonding3 + ":" + bonding3r + ":" + bonding4r + ":" + bonding5r + ":" + neighbors
+
+   return  mformula + ":bond:" + bonding + ":" + bonding2 + ":" + bonding3 + ":" + bonding3r + ":" + bonding4r + ":" + bonding5r 
+
+
+
+
+
+###########################################
+#                                         #
+#          xyz_bonddiff_string0           #
+#                                         #
+###########################################
+
+def xyz_bonddiff_string0(mformula,symbol,n,adjmat,indx1,indx2,indx3):
+
+
+   #### generate bonding2 ####
+   bond2count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   bonding2 = symi.strip() + "-"  + symj.strip() + "-" + symk.strip()
+
+
+   #### generate bonding3 i-j-k--l  ####
+   bond3count = {}
+   for ijk in [(indx1,indx2,indx3),(indx3,indx2,indx1)]:
+      i = ijk[0]
+      j = ijk[1]
+      k = ijk[2]
+      for l in range(n):
+         if (adjmat[k][l]>0) and (l!=i) and (l!=j) and (l!=k):
+            symi = symbol[i]
+            symj = symbol[j]
+            symk = symbol[k]
+            syml = symbol[l]
+            key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
+            if (bond3count.has_key(key)):
+               bond3count[key] += 1
+            else:
+               bond3count[key] = 1
+   bonding3 = ''
+   for x  in sorted(bond3count.items(), key=operator.itemgetter(0)):
+      bonding3 += x[0] + "%d" % x[1]
+
+   #### generate bonding4 -  l--i-j-k--m ####
+   bond4count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   for l in range(n):
+      for m in range(n):
+         if (adjmat[l][i] > 0) and (adjmat[k][m]>0) and (l!=i) and (l!=j) and (l!=k) and (m!=i) and (m!=j) and (m!=k):
+            symi = symbol[i]
+            symj = symbol[j]
+            symk = symbol[k]
+            syml = symbol[l]
+            symm = symbol[m]
+            key = syml.strip() + symi.strip() + symj.strip() + symk.strip() + symm.strip()
+            if (bond4count.has_key(key)):
+               bond4count[key] += 1
+            else:
+               bond4count[key] = 1
+   bonding4 = ''
+   for x  in sorted(bond4count.items(), key=operator.itemgetter(0)):
+      bonding4 += x[0] + "%d" % x[1]
+
+   #### generate bonding4r -  i-j-k--l--m ####
+   bond4rcount = {}
+   for ijk in [(indx1,indx2,indx3),(indx3,indx2,indx1)]:
+      i = ijk[0]
+      j = ijk[1]
+      k = ijk[2]
+      for l in range(n):
+         for m in range(n):
+            if (adjmat[k][l] > 0) and (adjmat[l][m] > 0)  and (l!=i) and (l!=j) and (l!=k) and (m!=i) and (m!=j) and (m!=k) and (m!=l):
+               symi = symbol[i]
+               symj = symbol[j]
+               symk = symbol[k]
+               syml = symbol[l]
+               symm = symbol[m]
+               key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
+               if (bond4rcount.has_key(key)):
+                  bond4rcount[key] += 1
+               else:
+                  bond4rcount[key] = 1
+   bonding4r = ''
+   for x  in sorted(bond4rcount.items(), key=operator.itemgetter(0)):
+      bonding4r += x[0] + "%d" % x[1]
+
+
+   #### generate bonding5r -  i-j-k--l--m--a ####
+   bond5rcount = {}
+   for ijk in [(indx1,indx2,indx3),(indx3,indx2,indx1)]:
+      i = ijk[0]
+      j = ijk[1]
+      k = ijk[2]
+      for l in range(n):
+         for m in range(n):
+            for a in range(n):
+               if (adjmat[k][l] > 0) and (adjmat[l][m] > 0) and (adjmat[m][a]>0)  and (l!=i) and (l!=j) and (l!=k) and (m!=i) and (m!=j) and (m!=k) and (m!=l) and (a!=i) and (a!=j) and (a!=k) and (a!=l) and (a!=m):
+                  symi = symbol[i]
+                  symj = symbol[j]
+                  symk = symbol[k]
+                  syml = symbol[l]
+                  symm = symbol[m]
+                  syma = symbol[a]
+                  key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
+                  if (bond5rcount.has_key(key)):
+                     bond5rcount[key] += 1
+                  else:
+                     bond5rcount[key] = 1
+   bonding5r = ''
+   for x  in sorted(bond5rcount.items(), key=operator.itemgetter(0)):
+      bonding5r += x[0] + "%d" % x[1]
+
+
+   #### generate neighbors ####
+   neighborcount = {}
+   for i in [indx1,indx2,indx3]:
+      neighbors = []
+      for j in range(n):
+         if (adjmat[i][j] > 0):
+            neighbors.append(symbol[j].strip())
+      neighbors.sort()
+      key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
+      if (neighborcount.has_key(key)):
+         neighborcount[key] += 1
+      else:
+         neighborcount[key] = 1
+   neighbors = ''
+   for x  in sorted(neighborcount.items(), key=operator.itemgetter(0)):
+      neighbors += x[0] + "=%d," % x[1]
+   neighbors = neighbors.strip(',')
+
+   #return  mformula + ":bonddiff:" +  bonding2 + ":" + bonding3 + ":" + bonding4 + ":" + bonding4r + ":" + bonding5r + ":" + neighbors
+   return  mformula + ":bonddiff:" +  bonding2 + ":" + bonding3 + ":" + bonding4 + ":" + bonding4r + ":" + bonding5r 
+
+
+
+
+
+
+
+###########################################
+#                                         #
+#          xyz_bond_string                #
+#                                         #
+###########################################
+
+def xyz_bond_string(xyzfilename,indx1,indx2):
+
+   #### read xyz file ####
+   fdict = {}
+   verts  = []
+   symbol = []
+   rxyz   = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+      line = line.split()
+      symbol.append(line[0].strip())
+      tple = ('atom',(0.0, line[0].strip(), '', 0, 0, -1))
+      verts.append(tple)
+      rxyz.append(eval(line[1]))
+      rxyz.append(eval(line[2]))
+      rxyz.append(eval(line[3]))
+   xyzfile.close()
+
+   #### generate mformula ####
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate adjacency matrix ####
+   adjmat = []
+   rij    = []
+   for i in range(n):
+      rij.append([0.0]*n)
+      adjmat.append([0]*n)
+   for i in range(n):
+      for j in range(n):
+         symi = symbol[i]
+         symj = symbol[j]
+         rci   = rcovalent[symbol[i]]
+         rcj   = rcovalent[symbol[j]]
+         dx = rxyz[3*i]   - rxyz[3*j]
+         dy = rxyz[3*i+1] - rxyz[3*j+1]
+         dz = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         rij[i][j] = r
+         if i!=j:
+            adjmat[i][j] = bond_order(rci,rcj,r)
+
+   bond1   = xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2)
+
+   return  bond1
+
+
+###########################################
+#                                         #
+#          xyz_bonddiff_string            #
+#                                         #
+###########################################
+
+def xyz_bonddiff_string(xyzfilename,indx1,indx2,indx3):
+
+   #### read xyz file ####
+   fdict = {}
+   verts  = []
+   symbol = []
+   rxyz   = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+      line = line.split()
+      symbol.append(line[0].strip())
+      tple = ('atom',(0.0, line[0].strip(), '', 0, 0, -1))
+      verts.append(tple)
+      rxyz.append(eval(line[1]))
+      rxyz.append(eval(line[2]))
+      rxyz.append(eval(line[3]))
+   xyzfile.close()
+
+   #### generate mformula ####
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate adjacency matrix ####
+   adjmat = []
+   rij    = []
+   for i in range(n):
+      rij.append([0.0]*n)
+      adjmat.append([0]*n)
+   for i in range(n):
+      for j in range(n):
+         symi = symbol[i]
+         symj = symbol[j]
+         rci   = rcovalent[symbol[i]]
+         rcj   = rcovalent[symbol[j]]
+         dx = rxyz[3*i]   - rxyz[3*j]
+         dy = rxyz[3*i+1] - rxyz[3*j+1]
+         dz = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         rij[i][j] = r
+         if i!=j:
+            adjmat[i][j] = bond_order(rci,rcj,r)
+
+   bonddiff = xyz_bonddiff_string0(mformula,symbol,n,adjmat,indx1,indx2,indx3)
+   bond1    = xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2)
+   bond2    = xyz_bond_string0(mformula,symbol,n,adjmat,indx2,indx3)
+
+   return  bonddiff + ":" + bond1 + ":" + bond2
+
+###########################################
+#                                         #
+#          xyz_bond_string_indexes        #
+#                                         #
+###########################################
+
+
+def xyz_bond_string_indexes(xyzfilename,bondstring):
+
+   #### get bond symbols ###
+   symbi = bondstring.split(":")[2].split("-")[0]
+   symbj = bondstring.split(":")[2].split("-")[1]
+
+   #### read xyz file ####
+   fdict = {}
+   verts  = []
+   symbol = []
+   rxyz   = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+      line = line.split()
+      symbol.append(line[0].strip())
+      tple = ('atom',(0.0, line[0].strip(), '', 0, 0, -1))
+      verts.append(tple)
+      rxyz.append(eval(line[1]))
+      rxyz.append(eval(line[2]))
+      rxyz.append(eval(line[3]))
+   xyzfile.close()
+
+   #### generate mformula ####
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate adjacency matrix ####
+   adjmat = []
+   rij    = []
+   for i in range(n):
+      rij.append([0.0]*n)
+      adjmat.append([0]*n)
+   for i in range(n):
+      for j in range(n):
+         symi = symbol[i]
+         symj = symbol[j]
+         rci   = rcovalent[symbol[i]]
+         rcj   = rcovalent[symbol[j]]
+         dx = rxyz[3*i]   - rxyz[3*j]
+         dy = rxyz[3*i+1] - rxyz[3*j+1]
+         dz = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         rij[i][j] = r
+         if i!=j:
+            adjmat[i][j] = bond_order(rci,rcj,r)
+
+   ijlist = []
+   for i in range(n):
+      if (symbol[i]==symbi):
+         for j in range(n):
+            if (symbol[j]==symbj) and (i!=j):
+               bondstring1 = xyz_bond_string0(mformula,symbol,n,adjmat,i,j)
+               if (bondstring1==bondstring):
+                  ijlist.append((i+1,j+1))
+
+   return ijlist
+
+
+
+###########################################
+#                                         #
+#        xyz_bonddiff_string_indexes      #
+#                                         #
+###########################################
+
+
+def xyz_bonddiff_string_indexes(xyzfilename,bondstring):
+
+   #### get bond symbols ###
+   symbi = bondstring.split(":")[2].split("-")[0]
+   symbj = bondstring.split(":")[2].split("-")[1]
+   symbk = bondstring.split(":")[2].split("-")[2]
+
+   #### read xyz file ####
+   fdict = {}
+   verts  = []
+   symbol = []
+   rxyz   = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+      line = line.split()
+      symbol.append(line[0].strip())
+      tple = ('atom',(0.0, line[0].strip(), '', 0, 0, -1))
+      verts.append(tple)
+      rxyz.append(eval(line[1]))
+      rxyz.append(eval(line[2]))
+      rxyz.append(eval(line[3]))
+   xyzfile.close()
+
+
+   #### generate mformula ####
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate adjacency matrix ####
+   adjmat = []
+   rij    = []
+   for i in range(n):
+      rij.append([0.0]*n)
+      adjmat.append([0]*n)
+   for i in range(n):
+      for j in range(n):
+         symi = symbol[i]
+         symj = symbol[j]
+         rci   = rcovalent[symbol[i]]
+         rcj   = rcovalent[symbol[j]]
+         dx = rxyz[3*i]   - rxyz[3*j]
+         dy = rxyz[3*i+1] - rxyz[3*j+1]
+         dz = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         rij[i][j] = r
+         if i!=j:
+            adjmat[i][j] = bond_order(rci,rcj,r)
+
+   ijklist = []
+   for i in range(n):
+      if (symbol[i]==symbi):
+         for j in range(n):
+            if (symbol[j]==symbj) and (j!=i):
+               for k in range(n):
+                  if (symbol[k]==symbk) and (k!=i) and (k!=i):
+                     bonddiff = xyz_bonddiff_string0(mformula,symbol,n,adjmat,i,j,k)
+                     bond1    = xyz_bond_string0(mformula,symbol,n,adjmat,i,j)
+                     bond2    = xyz_bond_string0(mformula,symbol,n,adjmat,j,k)
+                     bondstring1 = bonddiff + ":" + bond1 + ":" + bond2
+                     if (bondstring1==bondstring):
+                        ijklist.append((i+1,j+1,k+1))
+
+   return ijklist
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+
+#######################################
+#                                     #
+#          smiles2ascii               #
+#                                     #
+#######################################
+
+#  This function converts a smiles string and converts
+# it to a chemical drawing in ascii art.
+
+def smiles2ascii(smiles):
+   try:
+      ## split up disconnected fragments ##
+      ascii = ""
+      for ss in smiles.split('.'):
+         cmd = obabel + ' --gen3d -:\"' + ss.strip() + '\" -oascii'
+         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+         ascii  += result.replace("1 molecule converted","").rstrip() + "\n"
+   except:
+      ascii = ""
+
+   ascii2 = ""
+   for a in ascii.split('\n'):
+      if 'WARNING' not in a:
+         ascii2 += a + '\n'
+
+   return ascii2
+
+
+
+#### pubchem_smiles2canonicalsmiles function ####
+def pubchem_smiles2canonicalsmiles(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/CanonicalSMILES/TXT" % smiles)
+    return result
+
+
+#### pubchem_smiles2iupac function ####
+def pubchem_smiles2iupac(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/IUPACName/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2cid function ####
+def pubchem_smiles2cid(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/cids/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2synonyms function ####
+def pubchem_smiles2synonyms(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2cas function ####
+def pubchem_smiles2cas(smiles):
+    synonyms = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    ss = synonyms.split()
+    cas = ''
+    for s in ss:
+       if ((len(s.split('-'))==3) and (cas=='')):
+          t = s.split('-')
+          if (t[0].isdigit() and t[1].isdigit() and t[2].isdigit()):
+             cas = s
+       if 'CAS-' in s: cas = s.strip('CAS-')
+    return cas
+
+#### pubchem_smiles2kegg function ####
+def pubchem_smiles2kegg(smiles):
+    synonyms = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    ss = synonyms.split()
+    ckegg = ''
+    dkegg = ''
+    for s in ss:
+       if ((s[0]=='C') and (len(s)==6) and s[1:].isdigit()): ckegg = s
+       if ((s[0]=='D') and (len(s)==6) and s[1:].isdigit()): dkegg = s
+    kegg = ckegg + " " + dkegg
+
+    return kegg.strip()
+
+
+
+
+
+def cannonicalsmiles(smiles):
+   eoln = "\n"
+   try:
+      smilefile  = wrkdir + "/" + tmpsmi1
+      smilefile2 = wrkdir + "/" + tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+
+      #cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      #os.system(cmd6)
+      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      smiles2 = "nosmiles"
+      sdat = []
+      ofile = open(smilefile2,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles2 = sdat[0].split()[0]
+   except:
+      smiles2 = smiles
+
+   ### special cases ###
+   if ((smiles=='[HH]') or
+       (smiles=='[H2]') or
+       (smiles=='HH')   or
+       (smiles=='[H].[H]')): smiles2 = '[HH]'
+
+   return smiles2
+
+#### smiles2InChIKey function ####
+def smiles2InChIKey(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      #cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile + " >& " + wrkdir + "/junk.err"
+      #os.system(cmd6)
+      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+#### smiles2InChI function ####
+def smiles2InChI(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      #cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile + " >& " + wrkdir + "/junk.err"
+      #os.system(cmd6)
+      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+def xyz_molecular_formula(xyzfilename):
+   #
+   fdict = {}
+   xyzfile = open(xyzfilename,'r')
+   n = evalnum(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+   xyzfile.close()
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+
+
+
+
+#### cactus_smiles2xyz function ####
+def cactus_smiles2xyz(smiles):
+    tsmiles = smiles.replace("#","")
+    tsmiles = tsmiles.replace("$","")
+    result = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/file?format=xyz&get3d=True" % tsmiles)
+    return result
+
+
+#### smiles2xyz function ####
+def smiles2xyz(smiles,xyzfile):
+   cmd6 = esmiles2xyz + ' "' + smiles.strip() + '" ' +xyzfile
+   os.system(cmd6)
+
+   #### if nan's are produced then use cactus smiles2xyz rest interface ####
+   with open(xyzfile,'r') as ff:
+      test = ff.read()
+   if 'nan' in test:
+      xyzdata = cactus_smiles2xyz(smiles)
+      with open(xyzfile,'w') as ff:
+         ff.write(xyzdata+eoln)
+
+
+#### smiles2charge function ####
+def smiles2charge(smiles):
+  charge = 0
+  ss = smiles.split('[')
+  if (len(ss)>1):
+     ss = ss[1:]
+  else:
+     ss = []
+  for s in ss:
+     inside = s.split(']')[0]
+     if   (inside.find("+10")!=-1): charge += 10
+     elif (inside.find("-10")!=-1): charge -= 10
+     elif (inside.find("+9")!=-1): charge += 9
+     elif (inside.find("-9")!=-1): charge -= 9
+     elif (inside.find("+8")!=-1): charge += 8
+     elif (inside.find("-8")!=-1): charge -= 8
+     elif (inside.find("+7")!=-1): charge += 7
+     elif (inside.find("-7")!=-1): charge -= 7
+     elif (inside.find("+6")!=-1): charge += 6
+     elif (inside.find("-6")!=-1): charge -= 6
+     elif (inside.find("+5")!=-1): charge += 5
+     elif (inside.find("-5")!=-1): charge -= 5
+     elif (inside.find("+4")!=-1): charge += 4
+     elif (inside.find("-4")!=-1): charge -= 4
+     elif (inside.find("+3")!=-1): charge += 3
+     elif (inside.find("-3")!=-1): charge -= 3
+     elif (inside.find("+2")!=-1): charge += 2
+     elif (inside.find("-2")!=-1): charge -= 2
+     elif (inside.find("+1")!=-1): charge += 1
+     elif (inside.find("-1")!=-1): charge -= 1
+     elif (inside.find("+")!=-1):  charge += inside.count('+')
+     elif (inside.find("-")!=-1):  charge -= inside.count('-')
+
+  return charge
+
+
+def smiles2xyztmp(smiles,xyzfile):
+   eoln = "\n"
+   smilefile = wrkdir + "/" + tmpsmi1 
+   ofile = open(smilefile,'w')
+   ofile.write(smiles); ofile.write(eoln)
+   ofile.close()
+   #cmd6 = babel + " -h -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
+   #os.system(cmd6)
+   cmd6 = babel + " -h -ismi " + smilefile + " -oxyz " + xyzfile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+
+
+def smiles2mult(smiles,q):
+  print "smiles=",smiles
+  print "q=",q
+  mult = 1
+  smiles2xyztmp(smiles,wrkdir + "/tmp.xyz")
+  pcharge = q
+  count = 0
+  xyzfile = open(wrkdir + "/tmp.xyz",'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+def xyz2mult(xyzfile,q):
+  mult = 1
+  pcharge = q
+  count = 0
+  xfile = open(xyzfile,'r')
+  for line in xfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+
+
+
+####################################
+#                                  #
+#         nametosmiles_set         #
+#                                  #
+####################################
+
+def nametosmiles_set(hup,dbfile,table,name,smiles):
+   if (hup=='sqlite3'):
+      issqlite3 = True
+   else:
+      issqlite3 = False
+   sqlinsert = "insert into " + table + " (name,smiles) values (?,?);"
+
+   insertlist = []
+   insertlist.append(name)
+   insertlist.append(smiles)
+
+   if (not issqlite3):
+      sqlinsert = sqlinsert.replace('?','%s')
+
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss  = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      if smiles != "":
+         print "inserting "+ name + " " + smiles + " into " + table
+         cur.execute(sqlinsert,insertlist)
+
+   dbcon.close()
+
+
+
+
+
+####################################
+#                                  #
+#         nametosmiles             #
+#                                  #
+####################################
+
+def nametosmiles(hup,dbfile,table,name):
+
+   if (hup=='sqlite3'):
+      issqlite3 = True
+   else:
+      issqlite3 = False
+   sqlinsert = "insert into " + table + " (name,smiles) values (?,?);"
+   sqlcheck  = "select * from " + table + " where name=?;"
+   if (not issqlite3):
+      sqlcheck = sqlcheck.replace('?','%s')
+      sqlinsert = sqlinsert.replace('?','%s')
+
+   checklist = []
+   checklist.append(name)
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss  = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      cur.execute(sqlcheck,checklist)
+      rows = cur.fetchall()
+      if (len(rows)==0):
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/%s/property/CanonicalSMILES/TXT" % name)
+         if smiles != "":
+            ss = smiles.strip().split()
+            smiles = ss[0]
+            insertlist = []
+            insertlist.append(name)
+            insertlist.append(smiles)
+            print "inserting "+ name + " " + smiles + " into " + table
+            cur.execute(sqlinsert,insertlist)
+      else:
+         smiles = rows[0][2]
+   dbcon.close()
+
+   return smiles
+
+
+
+####################################
+#                                  #
+#           esmiles_hasname        #
+#                                  #
+####################################
+def esmiles_hasname(esmiles):
+   smiles = esmiles.strip().split()[0]
+   cmd = obabel + ' -:\"' + smiles + '\" -ocan'
+   result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+   #print "result=",result
+   if "0 molecules converted" in result: 
+      hasname = True
+   else:
+      hasname = False
+   return hasname
+
+####################################
+#                                  #
+#    esmileswithname_to_esmiles    #
+#                                  #
+####################################
+def esmileswithname_to_esmiles(hup,dbfile,table,esmiles0):
+   if esmiles_hasname(esmiles0):
+      sss = esmiles0.split()
+      ss = []
+      bopen = False
+      for s in sss:
+         if "{" in s:    bopen = True
+         if (not bopen): ss.append(s)
+         if "}" in s:    bopen = False
+         #if "{" not in s: 
+         #   ss.append(s)
+      name = ''
+      for ll in range(len(ss)-1):
+         name += ss[ll] + "%20"
+      name += ss[len(ss)-1]
+
+      print "Name="+name
+      esmiles1 = nametosmiles(hup,dbfile,table,name)
+
+      if esmiles1=='': esmiles1='C'
+      bopen = False
+      for s in sss:
+         if "{" in s:    bopen = True
+         if (bopen): esmiles1 += " " + s
+         if "}" in s:    bopen = False
+         #if "{" in s: 
+         #   esmiles1 += " " + s
+   else:
+      esmiles1 = esmiles0
+
+   return esmiles1
+     
+
+####################################
+#                                  #
+#           esmiles_split          #
+#                                  #
+####################################
+def esmiles_split(esmiles):
+   smiles = esmiles.strip().split()[0]
+   mult = 1; theory = "dft"; basis = "6-311++G(2d,2p)"; xc = "b3lyp"; solvation_type = "COSMO"
+   charge = smiles2charge(smiles)
+   if '^{' in esmiles:      charge = evalnum(esmiles.split('^{')[1].split('}')[0].strip())
+   if 'mult{' in esmiles:   mult   = evalnum(esmiles.split('mult{')[1].split('}')[0].strip())
+   if 'theory{' in esmiles: theory = esmiles.split('theory{')[1].split('}')[0]
+   if 'xc{' in esmiles:     xc     = esmiles.split('xc{')[1].split('}')[0]
+   if 'solvation_type' in esmiles: solvation_type = esmiles.split('solvation_type{')[1].split('}')[0]
+   if 'basis{' in esmiles:  basis  = removespace_basis(esmiles.split('basis{')[1].split('}')[0])
+   if 'ry' in  basis.lower():      basis = '%.1f Ry' % (evalnum(basis.strip().split()[0]))
+   if 'hartree' in  basis.lower(): basis = '%.1f Ry' % (2*evalnum(basis.strip().split()[0]))
+
+   return (smiles,charge,mult,theory,basis,xc,solvation_type)
+
+  
+####################################
+#                                  #
+#           best_row               #
+#                                  #
+####################################
+def best_row(esmiles,rows):
+   tup0 = esmiles_split(esmiles)
+   row = rows[0]
+   if (len(rows)>1):
+      maxcount = -10
+      newrows = []
+      for trow  in rows:
+         tcount = 0
+         tup1 = esmiles_split(trow[8])
+         if (trow[19]=='AIMD Simulation'): tcount += 2
+         for i in range(len(tup0)):
+            if tup0[i]==tup1[i]: tcount += 1
+         if (tcount>=maxcount):
+            maxcount = tcount
+            newrows.append(trow)
+      ### get most recent date ###
+      datemax  = newrows[0][31]
+      row = newrows[0]
+      for trow in newrows:
+         if (trow[31]>datemax):
+            datemax = trow[31]
+            row = trow
+            
+   return row
+
+
+
+############################# main program ###################################
+usage = \
+"""
+esmiles to pmf program
+
+  Usage: esmiles2pmf -h hup_string -d database -t table esmiles  xyzfile
+  esmiles must contain unitcell{} L{} contraint_string{} solvation_type{} molarity{}
+
+  -n name - set name
+  -h hup_string="machine user password" or enter sqlite3 for sqlite3 db
+  -d database = "name of database"
+  -t table = "name of table"
+  -c use cactus
+  -j view with jmol
+  -h prints this message
+
+"""
+
+#Database defaults
+hup    = hup0
+dbfile = "TNT_Project"
+table  = "solute_structures"
+table2 = "nametosmiles"
+
+print "esmiles2pmf mysql version"
+tt      = time.localtime()
+
+abbreviation = "no abbreviation"
+setname = False
+viewfreq = False
+viewjmol = False
+usecactus = False
+opts, args = getopt.getopt(sys.argv[1:], "n:h:d:t:hcj")
+for o, a in opts:
+  if '-j' in o:
+     viewjmol = True
+  if '-c' in o:
+     usecactus = True
+  if '-h' in o:
+     hup = a
+  if '-d' in o:
+     dbfile = a
+  if '-n' in o:
+     name = a
+     setname = True
+  if '-t' in o:
+     table = a
+  if '-f' in o:
+     viewfreq = True
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<2): 
+   print usage
+   exit()
+
+esmiles = esmileswithname_to_esmiles(hup,dbfile,table2,args[0])
+xyzfile  = args[1]
+
+if (hup=='sqlite3'):
+   issqlite3 = True
+   print "sqlite3 db file =",dbfile
+else:
+   issqlite3 = False
+   print "mysql db        =",dbfile
+print "table name      =",table
+print "esmiles         =",esmiles
+print "xyzfile         =",xyzfile
+
+constraint_string = ''
+constraint_value  = ''
+smiles   = esmiles.strip().split()[0]
+csmiles  = cannonicalsmiles(smiles)
+inchi    = smiles2InChI(smiles)
+inchikey = smiles2InChIKey(smiles)
+charge = smiles2charge(smiles)
+molarity = 1.0
+unitcell = 'SC'
+L        = -1.0
+solvent_type = 'spcwater'
+if '^{' in esmiles:      charge = evalnum(esmiles.split('^{')[1].split('}')[0].strip())
+mult   = smiles2mult(smiles,charge)
+if 'mult{' in esmiles:     mult     = evalnum(esmiles.split('mult{')[1].split('}')[0].strip())
+if 'unitcell{' in esmiles: unitcell = esmiles.split('unitcell{')[1].split('}')[0].strip()
+if 'L{' in esmiles:        L        = evalnum(esmiles.split('L{')[1].split('}')[0].strip())
+if 'solvent_type{' in esmiles: solvent_type = esmiles.split('solvent_type{')[1].split('}')[0].strip()
+
+if 'constraint_string{' in esmiles: constraint_string = esmiles.split('constraint_string{')[1].split('}')[0].strip()
+if 'molarity{' in esmiles:          molarity          = evalnum(esmiles.split('molarity{')[1].split('}')[0].strip())
+
+if 'constraint_value{' in esmiles:  constraint_value  = esmiles.split('constraint_value{')[1].split('}')[0].strip()
+
+solutejob0 = {}
+
+if 'bonddiff' in constraint_string:
+   if (constraint_value == ''):
+      constraint_value1 = 2.0
+      constraint_value2 = 2.0
+   else:
+      print "constraint_value=",constraint_value
+      constraint_value1 = eval(constraint_value.split(',')[0])
+      constraint_value2 = eval(constraint_value.split(',')[1])
+   solutejob0['constraint_value1'] = constraint_value1
+   solutejob0['constraint_value2'] = constraint_value2
+   a = constraint_value1/0.529177
+   b = constraint_value2/0.529177
+   constraint_value = a*a - b*b
+
+elif 'bond' in constraint_string:
+   if (constraint_value == ''):
+      constraint_value = 2.0
+   else:
+      constraint_value = eval(constraint_value)
+
+else:
+   constraint_string = '' 
+   constraint_value = 0.0
+
+print
+print "Input:"
+print "smiles="   + smiles
+print "csmiles="  + csmiles
+print "inchi="    + inchi
+print "inchikey=" + inchikey
+print "charge,mult=",charge,mult
+print "unitcell=",unitcell
+print "L=",L
+print "solvent_type=",solvent_type
+print "molarity=",molarity
+print "constraint_string="+constraint_string
+print "constraint_value=",constraint_value
+print
+print
+solutejob0['abbreviation']      = abbreviation
+solutejob0['esmiles']           = esmiles
+solutejob0['smiles']            = smiles
+solutejob0['csmiles']           = csmiles
+solutejob0['inchi']             = inchi
+solutejob0['inchikey']          = inchikey
+solutejob0['charge']            = charge
+solutejob0['mult']              = mult
+solutejob0['unitcell']          = unitcell
+solutejob0['L']                 = L
+solutejob0['solvent_type']      = solvent_type
+solutejob0['molarity']          = molarity
+solutejob0['constraint_string'] = constraint_string
+solutejob0['constraint_value']  = constraint_value
+solutejob0['xyzfile']           = xyzfile
+solutejob0['date_time']         = time.strftime('%Y-%m-%d %H:%M:%S')
+solutejob0['nwfile']            = wrkdir + '/' + tmpnw
+solutejob0['nwoutfile']         = wrkdir + '/' + tmpnwout
+
+if setname:
+   nametosmiles_set(hup,dbfile,table2,name,smiles)
+
+
+sqlcheck = "select * from " + table 
+sqlcheck += " where (esmiles=? or csmiles=? or InChI=? or InChIKey=? or smiles=?) "
+sqlcheck += "and charge=? and mult=? and unitcell=? "
+if (L>0.0): sqlcheck += "and L>=? and L<=? "
+sqlcheck += "and solvent_type=? and molarity>=? and molarity<=?  and constraint_string=? and constraint_value=?;"
+if (not issqlite3): sqlcheck = sqlcheck.replace('?','%s')
+
+eps = 1.0e-2
+checklist = []
+checklist.append(esmiles)
+checklist.append(csmiles)
+checklist.append(inchi)
+checklist.append(inchikey)
+checklist.append(smiles)
+checklist.append(charge)
+checklist.append(mult)
+checklist.append(unitcell)
+if (L>0): 
+   checklist.append(L-eps)
+   checklist.append(L+eps)
+checklist.append(solvent_type)
+checklist.append(molarity-eps)
+checklist.append(molarity+eps)
+checklist.append(constraint_string)
+checklist.append(constraint_value)
+
+
+if (issqlite3):
+   dbcon = sqlite3.connect(dbfile)
+else:
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+with dbcon:
+   cur = dbcon.cursor()
+   cur.execute(sqlcheck,checklist)
+   rows = cur.fetchall()
+   if (len(rows)>0):
+      row = best_row(esmiles,rows)
+      xyzstring = row[14]
+      with  open(xyzfile,'w') as ff:
+         ff.write(xyzstring)
+      solutejob = {}
+      print
+      print "Fetched the following entry:"
+      print "Id                    =",row[0]
+      print "abbreviation          =",row[1];  solutejob['abbreviation'] = row[1]
+      print "iupac                 =",row[2];  solutejob['iupac']        = row[2]
+      print "mformula              =",row[3];  solutejob['mformula']     = row[3]
+      print "InChI                 =",row[4];  solutejob['inchi']        = row[4]
+      print "InChIKey              =",row[5];  solutejob['inchikey']     = row[5]
+      print "smiles                =",row[6];  solutejob['smiles']       = row[6]
+      print "csmiles               =",row[7];  solutejob['csmiles']      = row[7]
+      print "esmiles               =",row[8];  solutejob['esmiles']      = row[8]
+      print "synonyms              =",row[9];  solutejob['synonyms']     = row[9]
+      print "cid                   =",row[10]; solutejob['cid']          = row[10]
+      print "cas                   =",row[11]; solutejob['cas']          = row[11]
+      print "charge                =",row[12]; solutejob['charge']       = row[12]
+      print "mult                  =",row[13]; solutejob['mult']         = row[13]
+      print "xyz_blob              =",row[14]; solutejob['xyz_blob']     = row[14]
+      print "unitcell              =",row[15]; solutejob['unitcell']     = row[15]
+      print "L                     =",row[16]; solutejob['L']            = row[16]
+      print "solute_bonding_string =",row[17]; solutejob['solute_bonding_string']  = row[17]
+      print "solute_covalent_string=",row[18]; solutejob['solute_covalent_string'] = row[18]
+      print "optimized             =",row[19]; solutejob['optimized']         = row[19]
+      print "solute_size           =",row[20]; solutejob['solute_size']       = row[20]
+      print "solvent_size          =",row[21]; solutejob['solvent_size']      = row[21]
+      print "solvent_type          =",row[22]; solutejob['solvent_type']      = row[22]
+      print "molarity              =",row[23]; solutejob['molarity']          = row[23]
+      print "constraint_string     =",row[24]; solutejob['constraint_string'] = row[24]
+      print "constraint_type       =",row[25]; solutejob['constraint_type']   = row[25]
+      print "constraint_index1     =",row[26]; solutejob['constraint_index1'] = row[26]
+      print "constraint_index2     =",row[27]; solutejob['constraint_index2'] = row[27]
+      print "constraint_index3     =",row[28]; solutejob['constraint_index3'] = row[28]
+      print "constraint_index4     =",row[29]; solutejob['constraint_index4'] = row[29]
+      print "constraint_value      =",row[30]; solutejob['constraint_value']  = row[30]
+      print "date_time             =",row[31]; solutejob['date_time']         = row[31]
+      print "ROW31=",row[31]
+
+   else:
+      newsmiles = True
+      print "Entry not found"
+      solutejob = generate_solute(solutejob0)
+      sqlinsert = "insert into " + table
+      sqlinsert += " (abbreviation,iupac,mformula,InChI,InChIKey,"
+      sqlinsert += "smiles,csmiles,esmiles,synonyms,cid,"
+      sqlinsert += "cas,charge,mult,xyz_blob,unitcell,"
+      sqlinsert += "L,solute_bonding_string,solute_covalent_string,optimized,solute_size,"
+      sqlinsert += "solvent_size,solvent_type,molarity,constraint_string,constraint_type,"
+      sqlinsert += "constraint_index1,constraint_index2,constraint_index3,constraint_index4,constraint_value,"
+      sqlinsert += "date_time) values("
+      sqlinsert += "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+      if (not issqlite3): sqlinsert = sqlinsert.replace('?','%s')
+
+      insertlist = []
+
+      insertlist.append(solutejob['abbreviation'])
+      insertlist.append(solutejob['iupac'])
+      insertlist.append(solutejob['mformula'])
+      insertlist.append(solutejob['inchi'])
+      insertlist.append(solutejob['inchikey'])
+
+      insertlist.append(solutejob['smiles'])
+      insertlist.append(solutejob['csmiles'])
+      insertlist.append(solutejob['esmiles'])
+      insertlist.append(solutejob['synonyms'])
+      insertlist.append(solutejob['cid'])
+
+      insertlist.append(solutejob['cas'])
+      insertlist.append(solutejob['charge'])
+      insertlist.append(solutejob['mult'])
+      insertlist.append(solutejob['xyz_blob'])
+      insertlist.append(solutejob['unitcell'])
+
+      insertlist.append(solutejob['L'])
+      insertlist.append(solutejob['solute_bonding_string'])
+      insertlist.append(solutejob['solute_covalent_string'])
+      insertlist.append(solutejob['optimized'])
+      insertlist.append(solutejob['solute_size'])
+
+      insertlist.append(solutejob['solvent_size'])
+      insertlist.append(solutejob['solvent_type'])
+      insertlist.append(solutejob['molarity'])
+      insertlist.append(solutejob['constraint_string'])
+      insertlist.append(solutejob['constraint_type'])
+
+      insertlist.append(solutejob['constraint_index1'])
+      insertlist.append(solutejob['constraint_index2'])
+      insertlist.append(solutejob['constraint_index3'])
+      insertlist.append(solutejob['constraint_index4'])
+      insertlist.append(solutejob['constraint_value'])
+
+      insertlist.append(solutejob['date_time'])
+
+      cur.execute(sqlinsert,insertlist)
+
+      with  open(xyzfile,'w') as ff:
+         ff.write(solutejob['xyz_blob'])
+
+
+dbcon.close()
+
+
+print "Print out solutejob dictionary"
+print "solutejob: ",solutejob," :solutejob"
+
+
+if viewjmol:
+   cmd6 = "/Users/bylaska/bin/jmol " + xyzfile
+   os.system(cmd6)
+
+### remove temporary wrkdir files ###
+try:
+   os.unlink(wrkdir + "/"+tmpsmi1)
+except:
+   print "esmilespmf2xyz Failed to remove " + wrkdir + "/"+ tmpsmi1
+
+try:
+   os.unlink(wrkdir + "/"+tmpsmi2)
+except:
+   print "esmilespmf2xyz Failed to remove " + wrkdir + "/"+ tmpsmi2
+
+try:
+   os.unlink(wrkdir + "/"+tmpsolute)
+except:
+   print "esmilespmf2xyz Failed to remove " + wrkdir + "/"+ tmpsolute
+
+try:
+   os.unlink(wrkdir + "/"+tmpnw)
+except:
+   print "esmilespmf2xyz Failed to remove " + wrkdir + "/"+ tmpnw
+
+try:
+   os.unlink(wrkdir + "/"+tmpnwout)
+except:
+   print "esmilespmf2xyz Failed to remove " + wrkdir + "/"+ tmpnwout
+
+
+print "removing old wavefunction data"
+cmd0  = "rm " + wrkdir + "/solvate_pmf193.*  " + wrkdir + "/startl.*  " + wrkdir + "/XYZ99-bak " + wrkdir + "/MOTION99-bak " + wrkdir + "/EMOTION99-bak"
+print cmd0
+os.system(cmd0)
+
+

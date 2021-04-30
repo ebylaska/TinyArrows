@@ -1,0 +1,26 @@
+#!/usr/bin/python
+
+import sys,os,time,shutil
+
+
+
+
+
+TNTQDIR = "/srv/arrows/Projects/TNTQ"
+jobdirs = os.listdir(TNTQDIR)
+
+for jdir in jobdirs:
+   files = os.listdir(TNTQDIR + "/" + jdir)
+   print "jdir=",jdir,"  files=",files
+   for f in files:
+      if ".done" in f:
+         with open(TNTQDIR+"/"+jdir+"/"+f,'r') as ff: 
+            aa = ff.read()
+         if "iamcompleted" in aa:
+            rmdir = TNTQDIR + "/" + jdir
+            print "rmdir=",rmdir
+            shutil.rmtree(rmdir)
+      
+
+
+

@@ -1,0 +1,1069 @@
+#!/usr/bin/python
+
+import math,random
+
+
+covalentstr = '''
+H 32 0 0 0
+He 46 0 0 0
+Li 133 124 0 0
+Be 102 90 85 0
+B 85 78 73 80
+C 75 67 60 68
+N 71 60 54 62
+O 63 57 53 59
+F 64 59 53 0
+Ne 67 96 0 0
+Na 155 160 0 0
+Mg 139 132 127 0
+Al 126 113 111 0
+Si 116 107 102 0
+P 111 102 94 105
+S 103 94 95 96
+Cl 99 95 93 0
+Ar 96 107 96 0
+K 196 193 0 0
+Ca 171 147 133 0
+Sc 148 116 114 0
+Ti 136 117 108 0
+V 134 112 106 0
+Cr 122 111 103 0
+Mn 119 105 103 0
+Fe 116 109 102 0
+Co 111 103 96 0
+Ni 110 101 101 0
+Cu 112 115 120 0
+Zn 118 120 0 0
+Ga 124 116 121 0
+Ge 121 111 114 0
+As 121 114 106 0
+Se 116 107 107 0
+Br 114 109 110 0
+Kr 117 121 108 0
+Rb 210 202 0 0
+Sr 185 157 139 0
+Y 163 130 124 0
+Zr 154 127 121 0
+Nb 147 125 116 0
+Mo 138 121 113 0
+Tc 128 120 110 0
+Ru 125 114 103 0
+Rh 125 110 106 0
+Pd 120 117 112 0
+Ag 128 139 137 0
+Cd 136 144 0 0
+In 142 136 146 0
+Sn 140 130 132 0
+Sb 140 133 127 0
+Te 136 128 121 0
+I 133 129 125 0
+Xe 131 135 122 0
+Cs 232 196 0 0
+Ba 196 161 149 0
+La 180 139 139	 0
+Ce 163 137 131 0
+Pr 176 138 128 0
+Nd 174 137 0 0
+Pm 173 135 0 0
+Sm 172 134 0 0
+Eu 168 134 0 0
+Gd 169 135 132 0
+Tb 168 135 0 0
+Dy 167 133 0 0
+Ho 166 133 0 0
+Er 165 133 0 0
+Tm 164 131 0 0
+Yb 170 129 0 0
+Lu 162 131 131	 0
+Hf 152 128 122	 0
+Ta 146 126 119	 0
+W 137 120 115	 0
+Re 131 119 110	 0
+Os 129 116 109	 0
+Ir 122 115 107	 0
+Pt 123 112 110	 0
+Au 124 121 123 0
+Hg 133 142 0 0
+Tl 144 142 150 0
+Pb 144 135 137 0
+Bi 151 141 135 0
+Po 145 135 129 0
+At 147 138 138 0
+Rn 142 145 133 0
+Fr 223 218 0 0
+Ra 201 173 159 0
+Ac 186 153 140 0
+Th 175 143 136	 0
+Pa 169 138 129	 0
+U 170 134 118 0
+Np 171 136 116 0
+Pu 172 135 0  0
+Am 166 135 0 0
+Cm 166 136 0 0
+Bk 168 139 0 0
+Cf 168 140 0 0
+Es 165 140 0 0
+Fm 167 0 0 0
+Md 173 139 0 0
+No 176 0 0  0
+Lr 161 141 0 0
+Rf 157 140 131 0
+Db 149 136 126 0
+Sg 143 128 121 0
+Bh 141 128 119 0
+Hs 134 125 118 0
+Mt 129 125 113 0
+Ds 128 116 112 0
+Rg 121 116 118	 0
+Cn 122 137 130 0
+Uut 136 0 0 0
+Fl 143 0 0 0
+Uup 162  0 0 0
+Lv 175 0 0 0
+Uus 165 0 0 0
+Uuo 157  0 0 0
+'''
+rcovalent = {}
+for ln in covalentstr.strip().split('\n'):
+   ss = ln.split()
+   rcovalent[ss[0]] = (0.01*eval(ss[1]),0.01*eval(ss[2]),0.01*eval(ss[3]),0.01*eval(ss[4]))
+
+
+
+
+
+##############################################
+#                                            #
+#             smiles_next_token              #
+#                                            #
+##############################################
+
+#This routine gets the next smiles token.  
+# It returns (token,newsmiles) where newsmiles has the next token entry removed.
+#
+
+def smiles_next_token(smiles):
+
+   if (smiles[0]=='c' or
+       smiles[0]=='n' or
+       smiles[0]=='o' or
+       smiles[0]=='s' or
+       smiles[0]=='p' or
+       smiles[0]=='B' or
+       smiles[0]=='C' or
+       smiles[0]=='N' or
+       smiles[0]=='O' or
+       smiles[0]=='F' or
+       smiles[0]=='P' or
+       smiles[0]=='S' or
+       smiles[0]=='I'):
+      if (len(smiles)>1):
+         if (smiles[0]=='C' and smiles[1]=='l'):
+            token = ('element','Cl')
+            newsmiles = smiles[2:]
+         elif (smiles[0]=='B' and smiles[1]=='r'): 
+            token = ('element','Br')
+            newsmiles = smiles[2:]
+         else:
+            token = ('element',smiles[0])
+            newsmiles = smiles[1:]
+      else:
+         token = ('element',smiles[0])
+         newsmiles = smiles[1:]
+
+
+   elif smiles[0]=='[':
+     ii = smiles.find(']')
+     atom = smiles[1:ii]
+     ## mass? ##
+     k = 0
+     mm = []
+     for m in atom:
+        if (m.isdigit() or m=='.'):
+           mm.append(m)
+           k += 1
+        else:
+           break
+     if (mm == []):
+        mass = 0.0
+     else:
+        mass = eval(''.join(mm))
+     atom = atom[k:]
+
+     ## symbols ##
+     if atom[0]=='H':
+        if (len(atom)==1):
+           atom = atom[1:]
+           symbol = 'H'
+        elif   atom[1]=='e':
+           atom = atom[2:]
+           symbol = 'He'
+        elif atom[1]=='a':
+           atom = atom[2:]
+           symbol = 'Ha'
+        elif atom[1]=='f':
+           atom = atom[2:]
+           symbol = 'Hf'
+        elif atom[1]=='s':
+           atom = atom[2:]
+           symbol = 'Hs'
+        elif atom[1]=='g':
+           atom = atom[2:]
+           symbol = 'Hg'
+        else:
+           atom = atom[1:]
+           symbol = 'H'
+     else:
+        k = 0
+        ss = []
+        for s in atom:
+           if (s.isdigit() or s=='@' or s=='-' or s=='+' or s=='H' or s==':'):
+              break
+           else:
+              ss.append(s)
+              k += 1
+        symbol = ''.join(ss)
+        atom = atom[k:]
+
+     ## chiral?  
+     cc = []
+     if atom != '':
+      if atom[0]=='@':
+        atom = atom[1:]
+        cc.append('@')
+
+        if atom[0]=='@':
+           atom = atom[1:]
+           cc.append('@')
+
+        elif atom[0]=='T':
+           if atom[1]=='H':
+              if   atom[2]=='1':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('H')
+                 cc.append('1')
+              elif atom[2]=='2':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('H')
+                 cc.append('2')
+           elif atom[1]=='B':
+              if   atom[2]=='1':
+                 if   atom[3]=='0':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('0')
+                 elif atom[3]=='1':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('1')
+                 elif atom[3]=='2':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('2')
+                 elif atom[3]=='3':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('3')
+                 elif atom[3]=='4':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('4')
+                 elif atom[3]=='5':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('5')
+                 elif atom[3]=='6':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('6')
+                 elif atom[3]=='7':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('7')
+                 elif atom[3]=='8':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('8')
+                 elif atom[3]=='9':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+                    cc.append('9')
+                 else:
+                    atom = atom[3:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('1')
+              elif atom[2]=='2':
+                 if atom[3]=='0':
+                    atom = atom[4:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('2')
+                    cc.append('0')
+                 else:
+                    atom = atom[3:]
+                    cc.append('T')
+                    cc.append('B')
+                    cc.append('2')
+              elif atom[2]=='3':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('B')
+                 cc.append('3')
+              elif atom[2]=='4':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('B')
+                 cc.append('4')
+              elif atom[2]=='5':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('B')
+                 cc.append('5')
+              elif atom[2]=='6':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('B')
+                 cc.append('6')
+              elif atom[2]=='7':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('B')
+                 cc.append('7')
+              elif atom[2]=='8':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('B')
+                 cc.append('8')
+              elif atom[2]=='9':
+                 atom = atom[3:]
+                 cc.append('T')
+                 cc.append('B')
+                 cc.append('9')
+
+        elif atom[0]=='A':
+           if atom[1]=='L':
+              if   atom[2]=='1':
+                 atom = atom[3:]
+                 cc.append('A')
+                 cc.append('L')
+                 cc.append('1')
+              elif atom[2]=='2':
+                 atom = atom[3:]
+                 cc.append('A')
+                 cc.append('L')
+                 cc.append('2')
+
+        elif atom[0]=='S':
+           if atom[1]=='P':
+              if   atom[2]=='1':
+                 atom = atom[3:]
+                 cc.append('S')
+                 cc.append('P')
+                 cc.append('1')
+              elif atom[2]=='2':
+                 atom = atom[3:]
+                 cc.append('S')
+                 cc.append('P')
+                 cc.append('2')
+              elif atom[2]=='3':
+                 atom = atom[3:]
+                 cc.append('S')
+                 cc.append('P')
+                 cc.append('3')
+
+        elif atom[0]=='O':
+           if atom[1]=='H':
+              if   atom[2]=='1':
+                 if   atom[3]=='0':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('1')
+                 elif atom[3]=='1':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('0')
+                 elif atom[3]=='2':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('2')
+                 elif atom[3]=='3':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('3')
+                 elif atom[3]=='4':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('4')
+                 elif atom[3]=='5':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('5')
+                 elif atom[3]=='6':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('6')
+                 elif atom[3]=='7':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('7')
+                 elif atom[3]=='8':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('8')
+                 elif atom[3]=='9':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+                    cc.append('9')
+                 else:
+                    atom = atom[3:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('1')
+              elif atom[2]=='2':
+                 if atom[3]=='0':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('0')
+                 elif atom[3]=='1':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('1')
+                 elif atom[3]=='2':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('2')
+                 elif atom[3]=='3':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('3')
+                 elif atom[3]=='4':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('4')
+                 elif atom[3]=='5':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('5')
+                 elif atom[3]=='6':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('6')
+                 elif atom[3]=='7':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('7')
+                 elif atom[3]=='8':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('8')
+                 elif atom[3]=='9':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+                    cc.append('9')
+                 else:
+                    atom = atom[3:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('2')
+              elif atom[2]=='3':
+                 if atom[3]=='0':
+                    atom = atom[4:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('3')
+                    cc.append('0')
+                 else:
+                    atom = atom[3:]
+                    cc.append('O')
+                    cc.append('H')
+                    cc.append('3')
+              elif atom[2]=='4':
+                 atom = atom[3:]
+                 cc.append('O')
+                 cc.append('H')
+                 cc.append('4')
+              elif atom[2]=='5':
+                 atom = atom[3:]
+                 cc.append('O')
+                 cc.append('H')
+                 cc.append('5')
+              elif atom[2]=='6':
+                 atom = atom[3:]
+                 cc.append('O')
+                 cc.append('H')
+                 cc.append('6')
+              elif atom[2]=='7':
+                 atom = atom[3:]
+                 cc.append('O')
+                 cc.append('H')
+                 cc.append('7')
+              elif atom[2]=='8':
+                 atom = atom[3:]
+                 cc.append('O')
+                 cc.append('H')
+                 cc.append('8')
+              elif atom[2]=='9':
+                 atom = atom[3:]
+                 cc.append('O')
+                 cc.append('H')
+                 cc.append('9')
+     if (cc == []):
+        chiral = ''
+     else:
+        chiral = ''.join(cc)
+     
+
+     ## hcount? hcount ::= 'H' | 'H' DIGIT
+     hcount = 0
+     if atom != '':
+      if atom[0]=='H':
+        if (len(atom)==1):
+           atom = atom[1:]
+           hcount = 1
+        elif atom[1]=='1':
+           atom = atom[2:]
+           hcount = 1
+        elif atom[1]=='2':
+           atom = atom[2:]
+           hcount = 2
+        elif atom[1]=='3':
+           atom = atom[2:]
+           hcount = 3
+        elif atom[1]=='4':
+           atom = atom[2:]
+           hcount = 4
+        elif atom[1]=='5':
+           atom = atom[2:]
+           hcount = 5
+        elif atom[1]=='6':
+           atom = atom[2:]
+           hcount = 6
+        elif atom[1]=='7':
+           atom = atom[2:]
+           hcount = 7
+        elif atom[1]=='8':
+           atom = atom[2:]
+           hcount = 8
+        elif atom[1]=='9':
+           atom = atom[2:]
+           hcount = 9
+        else:
+           atom = atom[1:]
+           hcount = 1
+
+
+     ## charge? charge ::= '-' | '-' DIGIT? DIGIT | '+' | '+' DIGIT? DIGIT | '--' deprecated | '++' deprecated ##
+     charge = 0
+     nn = []
+     qq = []
+     if atom != '':
+      if   atom[0]=='+':
+        qq.append('+')
+        for q in atom[1:]:
+           if q=='+':
+              qq.append(q)
+           elif q.isdigit():
+              nn.append(q)
+           else:
+              break
+        if (nn == []):
+           charge = len(qq)
+        else:
+           charge = eval(''.join(nn))
+         
+      elif atom[0]=='-':
+        qq.append('-')
+        for q in atom[1:]:
+           if q=='-':
+              qq.append(q)
+           elif q.isdigit():
+              nn.append(q)
+           else:
+              break
+        if (nn == []):
+           charge = -len(qq)
+        else:
+           charge = -eval(''.join(nn))
+
+     ## class? class ::= ':' NUMBER ##
+     cc = []
+     k = atom.rfind(':')
+     if (k>-1):
+        atom = atom[k+1:]
+        for c in atom:
+           if c.isdigit():
+              cc.append(c)
+           else: 
+              break
+     if cc==[]:
+        cclass = -1
+     else:
+        cclass = eval(''.join(cc))
+
+     token = ('atom', (mass,symbol,chiral,hcount,charge,cclass))
+     newsmiles = smiles[ii+1:]
+
+   #bond
+   elif (smiles[0]=='-'  or
+         smiles[0]=='='  or
+         smiles[0]=='#'  or
+         smiles[0]=='/'  or
+         smiles[0]=='\\' or 
+         smiles[0]==':'  or 
+         smiles[0]=='~'):
+      token = ('bond',smiles[0])
+      newsmiles = smiles[1:]
+
+   elif smiles[0]=='(':
+      token = ('open branch','(')
+      newsmiles = smiles[1:]
+   elif smiles[0]==')':
+      token = ('close branch',')')
+      newsmiles = smiles[1:]
+
+   elif smiles[0].isdigit():
+      token = ('ring closure', eval(smiles[0]))
+      newsmiles = smiles[1:]
+   elif smiles[0]=='%':
+      xx = []
+      cc = 1
+      for x in smiles[1:]:
+         if (x.isdigit()):
+            xx.append(x)
+            cc += 1
+         else:
+            break
+      ii = int(''.join(xx))
+      token = ('ring closure', ii)
+      newsmiles = smiles[cc:]
+
+   elif smiles[0]=='.':
+      token = ('dot disconnect', '.')
+      newsmiles = smiles[1:]
+   else:
+      token = ('failed',smiles)
+      newsmiles = smiles
+
+   return (token,newsmiles)
+
+
+##################################################
+#                                                #
+#              smilestokens2VertEdge             #
+#                                                #
+##################################################
+
+ringcount = [0]*100
+ringid    = [-1]*100
+
+def smilestokens2VertEdge(k,tokens,verts,edges):
+   global ringcount,ringid
+
+   ### initialize ringcount and ringid variables ###
+   if (k==0): 
+      ringcount = [0]*100
+      ringid    = [-1]*100
+
+   if (k>=len(tokens)):
+      return [[],verts,edges]
+
+   elif (tokens[k][0]=='element' or tokens[k][0]=='atom'):
+      mid = len(verts)
+      verts.append(tokens[k])
+      cids = smilestokens2VertEdge(k+1,tokens,verts,edges)
+
+      for cid in cids[0]:
+         edges.append((mid,cid[0],cid[1]))
+      nb = 1
+      if tokens[k][0]=='element':
+         if   tokens[k][1]=='c': nb=1.5
+         elif tokens[k][1]=='n': nb=1.5
+         elif tokens[k][1]=='o': nb=1.5
+         elif tokens[k][1]=='p': nb=1.5
+         elif tokens[k][1]=='s': nb=1.5
+      return [ [[mid,nb]], verts, edges]
+      
+   elif (tokens[k][0]=='bond'):
+      if   tokens[k][1]=='-': b=1
+      elif tokens[k][1]=='=': b=2
+      elif tokens[k][1]=='#': b=3
+      elif tokens[k][1]=='$': b=4
+      elif tokens[k][1]==':': b=1.5
+      else: b = 1
+      cids = smilestokens2VertEdge(k+1,tokens,verts,edges)
+      cids[0][0][1] = b
+      return cids
+
+   elif (tokens[k][0]=='open branch'):
+      pcount = 0
+      kk = k+1
+      maxk = len(tokens)
+      while ((tokens[kk][0]!='close branch' or (pcount>0)) and (kk<maxk)):
+         if tokens[kk][0]=='open branch':  pcount += 1
+         if tokens[kk][0]=='close branch': pcount -= 1
+         kk += 1
+      cids1 = smilestokens2VertEdge(k+1,tokens,verts,edges)
+      newverts = cids1[1]
+      newedges = cids1[2]
+      cids2 = smilestokens2VertEdge(kk+1,tokens,newverts,newedges)
+      tt = cids1[0] + cids2[0]
+      cids2[0] = tt
+      return cids2
+
+   elif (tokens[k][0]=='close branch'):
+      return [[],verts,edges]
+
+   elif (tokens[k][0]=='dot disconnect'):
+      cids1 = smilestokens2VertEdge(k+1,tokens,verts,edges)
+      return [[],verts,edges]
+
+   elif (tokens[k][0]=='ring closure'):
+      lid = len(verts)-1
+      if (ringcount[tokens[k][1]]==0):
+         ringcount[tokens[k][1]] += 1
+         first = True
+      else:
+         ringcount[tokens[k][1]] -= 1
+         first = False
+
+      cids = smilestokens2VertEdge(k+1,tokens,verts,edges)
+
+      #if (first and (ringid[tokens[k][1]]!=-1)):
+      if (ringid[tokens[k][1]]!=-1):
+         rid = ringid[tokens[k][1]]
+         nb = 1
+         if verts[rid][0]=='element':
+            if   verts[rid][1]=='c': nb = 1.5
+            elif verts[rid][1]=='n': nb = 1.5
+            elif verts[rid][1]=='o': nb = 1.5
+            elif verts[rid][1]=='p': nb = 1.5
+            elif verts[rid][1]=='s': nb = 1.5
+            elif verts[rid][1]=='b': nb = 1.5
+         cids[0] = [[rid,nb]] + cids[0]
+         ringid[tokens[k][1]] = -1
+      else:
+         ringid[tokens[k][1]] = lid
+
+      return cids
+
+   else:
+      print "should not be here, k=",k," token=",tokens[k]
+      return [[],verts,edges]
+     
+
+##############################################
+#                                            #
+#                matmult2                    #
+#                                            #
+##############################################
+def matmult2(mat):
+   n = len(mat)
+   mat2 = []
+   for i in range(n): mat2.append([0]*n)
+   for j in range(n):
+      for i in range(n):
+         tt = 0.0
+         for k in range(n):
+            tt += mat[i][k]*mat[k][j]
+         mat2[i][j] = tt
+
+   return mat2
+
+
+##############################################
+#                                            #
+#             smiles2graph                   #
+#                                            #
+##############################################
+def smiles2graph(smiles):
+
+   #### tokenize smiles string ####
+   newsmiles = smiles
+   tokens = []
+   while (newsmiles != ''):
+      (token,newsmiles) = smiles_next_token(newsmiles)
+      if (token[0]=='failed'): return token
+      tokens.append(token)
+
+   #### generate base graph with implicit hydrogens ####
+   verts = []
+   edges = []
+   (cids,verts,edges) = smilestokens2VertEdge(0,tokens,verts,edges)
+
+
+   #### generate graph with explicit hydrogens ####
+   vertsh = []
+   edgesh = []
+   for vert in verts: vertsh.append(vert)
+   for edge in edges: edgesh.append(edge)
+
+   #### Add explicit hydrogens to the graph ####
+   nvertsh = len(vertsh)
+   for i in range(nvertsh):
+      vert = vertsh[i]
+      nb = 0
+      for e in edgesh:
+         if (e[0]==i or e[1]==i): nb += e[2]
+      if vert[0]=='element':
+         if   vert[1]=='B' : q = 3
+         elif vert[1]=='C' : q = 4
+         elif vert[1]=='N' : q = 3
+         elif vert[1]=='O' : q = 2
+         elif vert[1]=='F' : q = 1
+         elif vert[1]=='P' : q = 3
+         elif vert[1]=='S' : q = 2
+         elif vert[1]=='Cl': q = 1
+         elif vert[1]=='Br': q = 1
+         elif vert[1]=='I' : q = 1
+         elif vert[1]=='b' : q = 3
+         elif vert[1]=='c' : q = 4
+         elif vert[1]=='n' : q = 3
+         elif vert[1]=='o' : q = 3
+         elif vert[1]=='s' : q = 3
+         elif vert[1]=='p' : q = 3
+         nh = q-nb
+      else:
+         nb = 0
+         nh = vert[1][3]
+         q  = vert[1][4]
+
+      nh = int(nh)
+
+      ### add H atoms ###
+      for h in range(nh):
+         j = len(vertsh)
+         vertsh.append(('atom', (0.0, 'H', '', 0, 0, -1)))
+         edgesh.append((i,j,1))
+
+   ### make adjacency matrix ###
+   nverts = len(vertsh)
+   adjmat = []
+   for i in range(nverts):
+      adjmat.append([0]*nverts)
+
+   for e in edgesh:
+      i = e[0]
+      j = e[1]
+      b = e[2]
+      adjmat[i][j] = b
+      adjmat[j][i] = b
+
+   return (vertsh,edgesh,adjmat)
+
+
+def forceenergy_distance(K,q,distance,rxyz):
+   nion3 = len(rxyz)
+   nion  = nion3/3
+   fxyz  = [0.0]*nion3
+   e = 0.0
+   for j in range(nion):
+      for i in range(j+1,nion):
+         x = rxyz[3*i] - rxyz[3*j]
+         y = rxyz[3*i+1] - rxyz[3*j+1]
+         z = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(x*x + y*y + z*z)
+         d = distance[i][j]
+         fx = 0.0
+         fy = 0.0
+         fz = 0.0
+         if (r>1.0e-6):
+            e += q*q/r
+            fx = q*q*x/(r*r*r)
+            fy = q*q*y/(r*r*r)
+            fz = q*q*z/(r*r*r)
+            if (d > 1.0e-6):
+               e += 0.5*K*(r-d)**2
+               fx -= K*(r-d)*x/r
+               fy -= K*(r-d)*y/r
+               fz -= K*(r-d)*z/r
+         else:
+            if (d > 1.0e-6):
+               e += 0.5*K*(r-d)**2
+               fx = K*(r-d)
+               fy = K*(r-d)
+               fz = K*(r-d)
+
+         fxyz[3*i]   += fx
+         fxyz[3*i+1] += fy
+         fxyz[3*i+2] += fz
+         fxyz[3*j]   -= fx
+         fxyz[3*j+1] -= fy
+         fxyz[3*j+2] -= fz
+   return (fxyz,e)
+
+
+def main():
+   import sys
+   import getopt
+
+   usage = \
+   """
+   This program converts a smiles string to an xyz file
+
+   Usage: mysmiles2xyz -p -h smiles
+
+
+   """
+   oprint = False
+   opts, args = getopt.getopt(sys.argv[1:], "hp")
+   for o, a in opts:
+      if o in ("-p","--print"):
+         oprint = True
+      if o in ("-h","--help"):
+         print usage
+         exit()
+
+   if len(args) < 1:
+     print usage
+     return
+
+   smiles = args[0]
+   if oprint: print "smiles = " + smiles
+
+   issmiles = False
+   try:
+      graph = smiles2graph(smiles)
+      if oprint: print graph
+      if graph[0]=="failed": 
+         print "NOT Smiles"
+      else:
+         if oprint: print "Is Smiles"
+         issmiles = True
+   except:
+      print "NOT Smiles"
+
+   if not issmiles: exit()
+
+   if oprint: print graph[0]
+   distance = []
+   symbols  = []
+   nion = len(graph[0])
+   for i in range(nion):
+      distance.append([0.0]*nion)
+      ai = graph[0][i]
+      if ai[0]=='element': 
+         aai = ai[1]
+      else:
+         aai = ai[1][1]
+      if aai=='b': aai = 'B'
+      if aai=='c': aai = 'C'
+      if aai=='n': aai = 'N'
+      if aai=='o': aai = 'O'
+      if aai=='p': aai = 'P'
+      if aai=='s': aai = 'S'
+      symbols.append(aai)
+
+   for j in range(nion):
+      aaj = symbols[j]
+      rcj = rcovalent[aaj]
+      for i in range(nion):
+         aai = symbols[i]
+         rci = rcovalent[aai]
+         bo = graph[2][i][j]
+         if   (abs(bo-1)<1.0e-6):
+            dd = (rci[0]+rcj[0])
+         elif (abs(bo-2)<1.0e-6):
+            dd = (rci[1]+rcj[1])
+         elif (abs(bo-3)<1.0e-6):
+            dd = (rci[2]+rcj[2])
+         elif (abs(bo-1.5)<1.0e-6):
+            dd = (rci[3]+rcj[3])
+         else:
+            dd = 0.0
+         #print i,aai,rci,j,aaj,rcj,bo,dd
+         distance[i][j] = dd
+   
+   if oprint: print "distance=",distance
+   rxyz = [0.0]*3*nion
+   for i in range(3*nion): rxyz[i] = random.random()
+
+   alpha = 1.0
+   it = 0
+   e0 = 0.0
+   converged = False
+   while ((not converged) and (it<50000)):
+      (fxyz,e) = forceenergy_distance(0.5,0.10,distance,rxyz)
+      ff = 0.0
+      for i in range(3*nion):
+         ff += fxyz[i]*fxyz[i]
+         rxyz[i] += alpha*fxyz[i]
+      ff = math.sqrt(ff)
+      de = e-e0
+      e0 = e
+      if oprint: print it," e=",e,de,ff
+      converged = (abs(de)<1.0e-6) and (ff<1.0e-4)
+      if (de>0): alpha *= 0.5
+      it += 1
+
+   print nion
+   print
+   for i in range(nion):
+      print  symbols[i], rxyz[3*i],rxyz[3*i+1],rxyz[3*i+2]
+
+
+if __name__=='__main__':
+    main()
+

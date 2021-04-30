@@ -1,0 +1,2822 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+import datetime,re
+from bson.objectid import ObjectId
+from math import *
+
+####################### mongoDB #############################
+#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+mongo_client                     = pymongo.MongoClient(uri)
+arrows_db                        = mongo_client.Arrows
+machinedata_collection           = arrows_db.nwchem_machinedata
+chemdb_queue_collection          = arrows_db.chemdb_queue_collection
+chemdb_finished_queue_collection = arrows_db.chemdb_finished_queue_collection
+qnumber_collection               = arrows_db.queue_number
+####################### mongoDB #############################
+
+############## machine parameters #########################
+UPLOAD_FOLDER    = '/srv/arrows/Public/uploads/'
+babel            = "/usr//bin/babel"
+obabel           = "/usr/bin/obabel "
+esmiles2xyz      = "/srv/arrows/bin/esmiles2xyz "
+tnt_submit       = "/srv/arrows/bin/tnt_submit5 -f "
+chemdb_add_nwout = "/srv/arrows/bin/chemdb_add_nwout7 "
+chemdb_cube2jvxl = "/srv/arrows/bin/chemdb_cube2jvxl "
+
+chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+#with open('/srv/arrows/bin/.chemdb','r') as f:
+#   hup0            = f.readline().strip()
+#   archivemachine  = f.readline().strip()
+#   archivepassword = f.readline().strip()
+
+wrkdir           = "/srv/arrows/Work"
+tmpxyz1          = "chemdb_queue.xyz" 
+tmpinchi1        = "chemdb_queue.inchi" 
+curdir           = os.getcwd()
+############## machine parameters #########################
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+def isevalnum(s):
+   try:
+      x = evalnum(s)
+      return True
+   except:
+      return False
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+                                    )
+        opener = urllib2.build_opener(proxy)
+        urllib2.install_opener(opener)
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+
+def stripWARNINGS(str):
+   str1 = ''
+   for s in str.split('\n'):
+      if 'WARNING' not in s:
+         str1 += s + '\n'
+   return str1
+
+
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          #print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          #print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          #print "either received key or connection timeout"
+          pass
+      #print p.before # print out the result
+      return p.before
+
+
+aaa = ''
+for b in bbb: aaa += chr(ord(b) + 2)
+exec aaa
+
+
+
+
+periodic_table_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 3,
+    'Be' : 4,
+    'B'  : 5,
+    'C'  : 6,
+    'N'  : 7,
+    'O'  : 8,
+    'F'  : 9,
+    'Ne' : 10,
+    'Na' : 11,
+    'Mg' : 12,
+    'Al' : 13,
+    'Si' : 14,
+    'P'  : 15,
+    'S'  : 16,
+    'Cl' : 17,
+    'Ar' : 18,
+    'K'  : 19,
+    'Ca' : 20,
+    'Sc' : 21,
+    'Ti' : 22,
+    'V'  : 23,
+    'Cr' : 24,
+    'Mn' : 25,
+    'Fe' : 26,
+    'Co' : 27,
+    'Ni' : 28,
+    'Cu' : 29,
+    'Zn' : 30,
+    'Ga' : 31,
+    'Ge' : 32,
+    'As' : 33,
+    'Se' : 34,
+    'Br' : 35,
+    'Kr' : 36,
+    'Rb' : 37,
+    'Sr' : 38,
+    'Y'  : 39,
+    'Zr' : 40,
+    'Nb' : 41,
+    'Mo' : 42,
+    'Tc' : 43,
+    'Ru' : 44,
+    'Rh' : 45,
+    'Pd' : 46,
+    'Ag' : 47,
+    'Cd' : 48,
+    'In' : 49,
+    'Sn' : 50,
+    'Sb' : 51,
+    'Te' : 52,
+    'I'  : 53,
+    'Xe' : 54,
+    'Cs' : 55,
+    'Ba' : 56,
+    'La' : 57,
+    'Ce' : 58,
+    'Pr' : 59,
+    'Nd' : 60,
+    'Pm' : 61,
+    'Sm' : 62,
+    'Eu' : 63,
+    'Gd' : 64,
+    'Tb' : 65,
+    'Dy' : 66,
+    'Ho' : 67,
+    'Er' : 68,
+    'Tm' : 69,
+    'Yb' : 70,
+    'Lu' : 71,
+    'Hf' : 72,
+    'Ta' : 73,
+    'W'  : 74,
+    'Re' : 75,
+    'Os' : 76,
+    'Ir' : 77,
+    'Pt' : 78,
+    'Au' : 79,
+    'Hg' : 80,
+    'Tl' : 81,
+    'Pb' : 82,
+    'Bi' : 83,
+    'Po' : 84,
+    'At' : 85,
+    'Rn' : 86,
+    'Fr' : 87,
+    'Ra' : 88,
+    'Ac' : 89,
+    'Th' : 90,
+    'Pa' : 91,
+    'U'  : 92,
+    'Np' : 93,
+    'Pu' : 94,
+    'Am' : 95,
+    'Cm' : 96,
+    'Bk' : 97,
+    'Cf' : 98,
+    'Es' : 99,
+    'Fm' : 100,
+    'Md' : 101,
+    'No' : 102,
+    'Lr' : 103,
+    'Rf' : 104,
+    'Ha' : 105,
+    'Sg' : 106,
+    'Bh' : 107,
+    'Hs' : 108,
+    'Mt' : 109
+}
+
+
+periodic_table_valence_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 1,
+    'Be' : 2,
+    'B'  : 3,
+    'C'  : 4,
+    'N'  : 5,
+    'O'  : 6,
+    'F'  : 7,
+    'Ne' : 8,
+    'Na' : 1,
+    'Mg' : 2,
+    'Al' : 3,
+    'Si' : 4,
+    'P'  : 5,
+    'S'  : 6,
+    'Cl' : 7,
+    'Ar' : 8,
+    'K'  : 1,
+    'Ca' : 2,
+    'Sc' : 3,
+    'Ti' : 4,
+    'V'  : 5,
+    'Cr' : 6,
+    'Mn' : 7,
+    'Fe' : 8,
+    'Co' : 9,
+    'Ni' : 10,
+    'Cu' : 11,
+    'Zn' : 12,
+    'Ga' : 3,
+    'Ge' : 4,
+    'As' : 5,
+    'Se' : 6,
+    'Br' : 7,
+    'Kr' : 8,
+    'Rb' : 1,
+    'Sr' : 2,
+    'Y'  : 3,
+    'Zr' : 4,
+    'Nb' : 5,
+    'Mo' : 6,
+    'Tc' : 7,
+    'Ru' : 8,
+    'Rh' : 9,
+    'Pd' : 10,
+    'Ag' : 11,
+    'Cd' : 12,
+    'In' : 3,
+    'Sn' : 4,
+    'Sb' : 5,
+    'Te' : 6,
+    'I'  : 7,
+    'Xe' : 8,
+    'Cs' : 1,
+    'Ba' : 2,
+    'La' : 3,
+    'Ce' : 4,
+    'Pr' : 5,
+    'Nd' : 6,
+    'Pm' : 7,
+    'Sm' : 8,
+    'Eu' : 9,
+    'Gd' : 10,
+    'Tb' : 11,
+    'Dy' : 12,
+    'Ho' : 13,
+    'Er' : 14,
+    'Tm' : 15,
+    'Yb' : 16,
+    'Lu' : 17,
+    'Hf' : 4,
+    'Ta' : 5,
+    'W'  : 6,
+    'Re' : 7,
+    'Os' : 8,
+    'Ir' : 9,
+    'Pt' : 10,
+    'Au' : 11,
+    'Hg' : 12,
+    'Tl' : 3,
+    'Pb' : 4,
+    'Bi' : 5,
+    'Po' : 6,
+    'At' : 7,
+    'Rn' : 8,
+    'Fr' : 1,
+    'Ra' : 2,
+    'Ac' : 3,
+    'Th' : 4,
+    'Pa' : 5,
+    'U'  : 6,
+    'Np' : 7,
+    'Pu' : 8,
+    'Am' : 9,
+    'Cm' : 10,
+    'Bk' : 11,
+    'Cf' : 12,
+    'Es' : 13,
+    'Fm' : 14,
+    'Md' : 15,
+    'No' : 16,
+    'Lr' : 17,
+    'Rf' : 4,
+    'Ha' : 5,
+    'Sg' : 6,
+    'Bh' : 7,
+    'Hs' : 8,
+    'Mt' : 9
+}
+
+
+
+
+
+
+def inchionlyHZ(inchi):
+   try:
+      onlyHZ = True
+      for a in re.findall('[A-Z][^A-Z]*', inchi.split("/")[1]):
+         aa = re.sub("[^a-zA-Z]","", a)
+         if (periodic_table_charge[aa]<21): onlyHZ = False
+   except:
+      onlyHZ = False
+
+   return onlyHZ
+
+def inchihasHZ(inchi):
+   try:
+      hasHZ = False
+      #for aa in re.findall('[^\d^. ]+',inchi.split("/")[1]):
+      for a in re.findall('[A-Z][^A-Z]*', inchi.split("/")[1]):
+         aa = re.sub("[^a-zA-Z]","", a)
+         if (periodic_table_charge[aa]>=21): hasHZ = True
+   except:
+      hasHZ = False
+
+   return hasHZ
+
+def xyz_molecular_formula(xyzfilename):
+   #
+   fdict = {}
+   xyzfile = open(xyzfilename,'r')
+   n = evalnum(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+   xyzfile.close()
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+def xyz2mult(xyzfilename,q):
+  mult = 1
+  pcharge = q
+  count = 0
+  xyzfile = open(xyzfilename,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+#### xyz2smiles function ####
+def xyz2smiles(xyzfile):
+   try:
+      smiles = ''
+      smilefile = wrkdir + "/"+tmpinchi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(smilefile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles = sdat[0].split()[0]
+   except:
+      smiles = ''
+   return smiles
+
+
+#### xyz2InChI function ####
+def xyz2InChI(xyzfile):
+   inchi = ''
+   try:
+      inchifile = wrkdir + "/"+ tmpinchi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+#### xyz2InChIKey function ####
+def xyz2InChIKey(xyzfile):
+   inchi = ''
+   try:
+      inchifile = wrkdir + "/"+tmpinchi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+#############################################
+#                                           #
+#             addspaces_reaction            #
+#                                           #
+#############################################
+def addspaces_reaction(reaction):
+   tags = ['^','mult','theory','xc','solvation_type','basis','calculation_type','rgroup','rbond','rsym_num','vtag','property','priority','geometry_generation','reaction_genhash','reaction_hash','reaction_kappa','reaction_gamma']
+   reaction2 = reaction[:]
+   if (reaction2.find(">")!=-1):
+      reaction2 = reaction2.replace(">","")
+   if (reaction2.find("-->")==-1):
+      reaction2 = reaction2.replace("--","-->")
+   for tag1 in tags: reaction2 = reaction2.replace(tag1," " + tag1)
+   return reaction2
+
+
+#############################################
+#                                           #
+#            parsetosmiles                  #
+#                                           #
+#############################################
+def parsetosmiles(str):
+   global xyzdata
+   ss = str.split()
+   str2 = ''
+   for s in ss:
+      if 'kegg=' in s.lower():
+         kegg = s.split('=')[1]
+         mol = geturlresult("http://rest.kegg.jp/get/%s/mol" % kegg)
+         smiles = mol2smiles(mol)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('cid=' in s.lower()) or ('pubchem=' in s.lower()) :
+         cid = s.split('=')[1]
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/property/CanonicalSMILES/TXT" % cid)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('csid=' in s.lower()) or ('chemspider=' in s.lower()):
+         csid = s.split('=')[1]
+         rdfdata = geturlresult("http://rdf.chemspider.com/%s" % csid)
+         if rdfdata=='':
+            smiles='C'
+         else:
+            rdfdata2 = rdfdata.split('<chemdomain:SMILES')[1].split('</chemdomain:SMILES>')[0]
+            smiles   = rdfdata2.split('<chemdomain:hasValue>')[1].split('</chemdomain:hasValue>')[0].strip()
+         str2 += ' '
+         str2 += smiles
+      elif 'cas=' in s.lower():
+         cas = s.split('=')[1]
+         smiles = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/smiles" % cas)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'inchi=' in s.lower():
+         smiles = InChI2smiles("InChI=" + s.split('=')[1])
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      else:
+         str2 += ' '
+         str2 += s
+   str2 = str2.strip()
+
+   return str2
+
+
+def mformula2valencecharge(mformula):
+  mult    = 1
+  vcharge = 0
+  count   = 0
+  largeatom = False
+
+  symbolcountlist = re.findall('[a-zA-Z]+|\\d+', mformula) 
+  count = len(symbolcountlist)
+  for i in range(count/2):
+     symb = symbolcountlist[2*i]
+     n    = evalnum(symbolcountlist[2*i+1])
+     if symb in periodic_table_valence_charge:
+        vcharge += n*periodic_table_valence_charge[symb]
+     if symb in periodic_table_charge:
+        if (periodic_table_charge[symb]>35): largeatom = True
+
+  #if ((largeatom) and (vcharge<51)): vcharge = 55
+
+  return vcharge
+
+
+
+
+#############################################
+#                                           #
+#        theorymformula2machinetype         #
+#                                           #
+#############################################
+
+def theorysmiles2machinetype(theory,mformula):
+   vachinetype = "toobig"
+   hasmopac    = False
+   vcharge = mformula2valencecharge(mformula)
+   print "mformula,vcharge=",mformula,vcharge
+   if ('am1' in theory) or ('pm3' in theory) or ('mndo' in theory) or ('mindo3' in theory):
+      vachinetype = 'mopac'
+   elif ('ccsd(t)' in theory):
+      if vcharge<50:
+         vachinetype = 'large'
+   elif ('mp2' in theory):
+      if vcharge<80:
+         vachinetype = 'large'
+   elif ('pspw4' in theory):
+      if vcharge<50:
+         vachinetype = 'small'
+      elif vcharge<150:
+         vachinetype = 'medium'
+      elif vcharge<300:
+         vachinetype = 'large'
+   else:
+      if vcharge<30:
+         vachinetype = 'tiny'
+      elif vcharge<50:
+         vachinetype = 'small'
+      elif vcharge<100:
+         vachinetype = 'medium'
+      elif vcharge<200:
+         vachinetype = 'large'
+
+
+   return vachinetype
+
+
+
+###########################################
+#                                         #
+#             ion_motion2cif              #
+#                                         #
+###########################################
+def ion_motion2cif(iondat):
+   lines = iondat.split("\n")
+   ss = lines[0].split()
+   time  = evalnum(ss[0])
+   nion  = evalnum(ss[1])
+   omega = evalnum(ss[2])
+   a1 = ss[3:6]
+   a2 = ss[6:9]
+   a3 = ss[9:12]
+   for i in range(3):
+      a1[i] = evalnum(a1[i])
+      a2[i] = evalnum(a2[i])
+      a3[i] = evalnum(a3[i])
+
+   b1 = [0]*3
+   b1[0] = a2[1]*a3[2] - a2[2]*a3[1]
+   b1[1] = a2[2]*a3[0] - a2[0]*a3[2]
+   b1[2] = a2[0]*a3[1] - a2[1]*a3[0]
+
+   b2 = [0]*3
+   b2[0] = a3[1]*a1[2] - a3[2]*a1[1]
+   b2[1] = a3[2]*a1[0] - a3[0]*a1[2]
+   b2[2] = a3[0]*a1[1] - a3[1]*a1[0]
+
+   b3 = [0]*3
+   b3[0] = a1[1]*a2[2] - a1[2]*a2[1]
+   b3[1] = a1[2]*a2[0] - a1[0]*a2[2]
+   b3[2] = a1[0]*a2[1] - a1[1]*a2[0]
+
+   volume = a1[0]*b1[0] + a1[1]*b1[1] + a1[2]*b1[2]
+   for i in range(3):
+      b1[i] = b1[i]/volume
+      b2[i] = b2[i]/volume
+      b3[i] = b3[i]/volume
+
+   ### determine a,b,c,alpha,beta,gamma ###
+   aa = math.sqrt(a1[0]**2 + a1[1]**2 +a1[2]**2)
+   bb = math.sqrt(a2[0]**2 + a2[1]**2 +a2[2]**2)
+   cc = math.sqrt(a3[0]**2 + a3[1]**2 +a3[2]**2)
+
+   d2 = (a2[0]-a3[0])**2 + (a2[1]-a3[1])**2 + (a2[2]-a3[2])**2
+   alpha = (bb*bb + cc*cc - d2)/(2.00*bb*cc)
+   alpha = math.acos(alpha)*180.00/math.pi
+
+   d2 = (a3[0]-a1[0])**2 + (a3[1]-a1[1])**2 + (a3[2]-a1[2])**2
+   beta = (cc*cc + aa*aa - d2)/(2.00*cc*aa)
+   beta = math.acos(beta)*180.00/math.pi
+
+   d2 = (a1[0]-a2[0])**2 + (a1[1]-a2[1])**2 + (a1[2]-a2[2])**2
+   gamma = (aa*aa + bb*bb - d2)/(2.00*aa*bb)
+   gamma = math.acos(gamma)*180.00/math.pi
+
+   a = aa*0.529177
+   b = bb*0.529177
+   c = cc*0.529177
+
+   msg = '''data_arrows_pspw 
+
+_audit_creation_date   Wed Apr 19 18:30:16 2017
+_audit_creation_method    generated by EMSL Arrows
+
+
+_cell_length_a      %12.4f
+_cell_length_b      %12.4f
+_cell_length_c      %12.4f
+_cell_angle_alpha   %12.4f
+_cell_angle_beta    %12.4f
+_cell_angle_gamma   %12.4f
+
+_symmetry_space_group_name_H-M     P1  
+
+loop_
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z''' % (a,b,c,alpha,beta,gamma)
+
+   msg += "\n"
+   for ll in lines[1:]:
+      ss = ll.split()
+      symb = ss[1]
+      x = evalnum(ss[3])
+      y = evalnum(ss[4])
+      z = evalnum(ss[5])
+      f1 = x*b1[0] + y*b1[1] + z*b1[2]
+      f2 = x*b2[0] + y*b2[1] + z*b2[2]
+      f3 = x*b3[0] + y*b3[1] + z*b3[2]
+      msg += "%s %12.6f %12.6f %12.6f\n" % (symb,f1+0.5,f2+0.5,f3+0.5)
+      #msg += "%s %12.6f %12.6f %12.6f\n" % (symb,f1+0.0,f2+0.0,f3+0.0)
+
+   return msg
+
+
+
+
+
+###########################################
+#                                         #
+#             xyz2cif                     #
+#                                         #
+###########################################
+def xyz2cif(xyzdat,cell):
+   try:
+      a1 = cell.split("a1=<")[1].split(">")[0].strip().split()
+      a2 = cell.split("a2=<")[1].split(">")[0].strip().split()
+      a3 = cell.split("a3=<")[1].split(">")[0].strip().split()
+      for i in range(3):
+         a1[i] = evalnum(a1[i])*0.529177
+         a2[i] = evalnum(a2[i])*0.529177
+         a3[i] = evalnum(a3[i])*0.529177
+
+      ### determine a,b,c,alpha,beta,gamma ###
+      aa = math.sqrt(a1[0]**2 + a1[1]**2 +a1[2]**2)
+      bb = math.sqrt(a2[0]**2 + a2[1]**2 +a2[2]**2)
+      cc = math.sqrt(a3[0]**2 + a3[1]**2 +a3[2]**2)
+
+      d2 = (a2[0]-a3[0])**2 + (a2[1]-a3[1])**2 + (a2[2]-a3[2])**2
+      alpha = (bb*bb + cc*cc - d2)/(2.00*bb*cc)
+      alpha = math.acos(alpha)*180.00/math.pi
+
+      d2 = (a3[0]-a1[0])**2 + (a3[1]-a1[1])**2 + (a3[2]-a1[2])**2
+      beta = (cc*cc + aa*aa - d2)/(2.00*cc*aa)
+      beta = math.acos(beta)*180.00/math.pi
+
+      d2 = (a1[0]-a2[0])**2 + (a1[1]-a2[1])**2 + (a1[2]-a2[2])**2
+      gamma = (aa*aa + bb*bb - d2)/(2.00*aa*bb)
+      gamma = math.acos(gamma)*180.00/math.pi
+
+      a = aa
+      b = bb
+      c = cc
+      #a = eval(cell.split("a=")[1].split("b=")[0].strip())*0.529177
+      #b = eval(cell.split("b=")[1].split("c=")[0].strip())*0.529177
+      #c = eval(cell.split("c=")[1].split("\n")[0].strip())*0.529177
+      #alpha = eval(cell.split("alpha=")[1].split("beta=")[0].strip())
+      #beta  = eval(cell.split("beta=")[1].split("gamma=")[0].strip())
+      #gamma = eval(cell.split("gamma=")[1].split("\n")[0].strip())
+   except:
+      a1 = [50.0,  0.0,  0.0]
+      a2 = [ 0.0, 50.0,  0.0]
+      a3 = [ 0.0,  0.0, 50.0]
+      a = b = c = 50.0
+      alpha = beta = gamma = 90.0
+
+   b1 = [0]*3
+   b1[0] = a2[1]*a3[2] - a2[2]*a3[1]
+   b1[1] = a2[2]*a3[0] - a2[0]*a3[2]
+   b1[2] = a2[0]*a3[1] - a2[1]*a3[0]
+
+   b2 = [0]*3
+   b2[0] = a3[1]*a1[2] - a3[2]*a1[1]
+   b2[1] = a3[2]*a1[0] - a3[0]*a1[2]
+   b2[2] = a3[0]*a1[1] - a3[1]*a1[0]
+
+   b3 = [0]*3
+   b3[0] = a1[1]*a2[2] - a1[2]*a2[1]
+   b3[1] = a1[2]*a2[0] - a1[0]*a2[2]
+   b3[2] = a1[0]*a2[1] - a1[1]*a2[0]
+
+
+   volume = a1[0]*b1[0] + a1[1]*b1[1] + a1[2]*b1[2]
+   for i in range(3):
+      b1[i] = b1[i]/volume
+      b2[i] = b2[i]/volume
+      b3[i] = b3[i]/volume
+
+   msg = '''data_arrows_pspw 
+
+_audit_creation_date   Wed Apr 19 18:30:16 2017
+_audit_creation_method    generated by EMSL Arrows
+
+
+_cell_length_a      %12.4f
+_cell_length_b      %12.4f
+_cell_length_c      %12.4f
+_cell_angle_alpha   %12.4f
+_cell_angle_beta    %12.4f
+_cell_angle_gamma   %12.4f
+
+_symmetry_space_group_name_H-M     P1  
+
+loop_
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z''' % (a,b,c,alpha,beta,gamma)
+
+   msg += "\n"
+   for ll in xyzdat.strip().split("\n")[2:]:
+      ss = ll.split()
+      symb = ss[0]
+      x = eval(ss[1])
+      y = eval(ss[2])
+      z = eval(ss[3])
+      f1 = x*b1[0] + y*b1[1] + z*b1[2]
+      f2 = x*b2[0] + y*b2[1] + z*b2[2]
+      f3 = x*b3[0] + y*b3[1] + z*b3[2]
+      msg += "%s %12.6f %12.6f %12.6f\n" % (symb,f1+0.5,f2+0.5,f3+0.5)
+
+   return msg
+
+
+
+
+###########################################
+#                                         #
+#             nwinput2jsmol               #
+#                                         #
+###########################################
+
+def nwinput2jsmol(backgroundcolor,nwinput):
+   staticdir = "/srv/arrows/Public/static/"
+   msg4 = ''
+   if ("geometry " not in nwinput) and ("geometry\n" not in nwinput):
+      return msg4
+
+   ### fetch xyzdat ###
+   if ("geometry\n" in nwinput):
+      xxx = nwinput.split("geometry\n")[-1].split("end")[0].strip()
+      yyy = xxx.split("\n")
+      zzz = '\n'.join(yyy[0:])
+   else:
+      xxx = nwinput.split("geometry ")[-1].split("end")[0].strip()
+      yyy = xxx.split("\n")
+      zzz = '\n'.join(yyy[1:])
+   nion   = len(zzz.split("\n"))
+   xyzdat = "%d\n\n" % nion
+   xyzdat += zzz + "\n"
+   xx = random.randint(0,999999)
+
+   cell = ''
+   #if "fcc 38.0" in nwinput.lower():
+      #cell = ''' supercell:
+      #cell_name:  cell_default                                      
+      #lattice:    a1=<  19.000  19.000   0.000 >
+      #            a2=<  19.000   0.000  19.000 >
+      #            a3=<   0.000  19.000  19.000 >
+      #reciprocal: b1=<   0.165   0.165  -0.165 >
+      #            b2=<   0.165  -0.165   0.165 >
+      #            b3=<  -0.165   0.165   0.165 >
+      #lattice:    a=      26.870 b=     26.870 c=      26.870
+      #            alpha=  60.000 beta=  60.000 gamma=  60.000
+      #            omega=     13718.0 '''
+
+   if ("simulation_cell" in nwinput.lower()):
+      simulation_cell = nwinput.lower().split("simulation_cell")[1].split("end")[0]
+
+      if ("fcc" in simulation_cell):
+         ll = simulation_cell.split("fcc")[1].split()[0]
+         l = evalnum(ll)/2.0
+         l2 = evalnum(ll)/math.sqrt(2.0)
+         cell = ''' supercell:
+         cell_name:  cell_default                                      
+         lattice:    a1=<  %.3f    %.3f     0.000 >
+                     a2=<  %.3f     0.000  %.3f   >
+                     a3=<   0.000  %.3f    %.3f   >
+         reciprocal: b1=<   0.165   0.165  -0.165 >
+                     b2=<   0.165  -0.165   0.165 >
+                     b3=<  -0.165   0.165   0.165 >
+         lattice:    a=      %.3f   b=     %.3f   c=      %.3f  
+                     alpha=  60.000 beta=  60.000 gamma=  60.000
+                     omega=     13718.0 ''' % (l,l,l,l,l,l,l2,l2,l2)
+      elif ("sc" in simulation_cell):
+         ll = simulation_cell.split("sc")[1].split()[0]
+         l = evalnum(ll)
+         cell = ''' supercell:
+         cell_name:  cell_default                                      
+         lattice:    a1=<  %.3f    0.000    0.000 >
+                     a2=<  0.000   %.3f     0.000 >
+                     a3=<  0.000   0.000    %.3f   >
+         reciprocal: b1=<   0.165   0.000   0.000 >
+                     b2=<   0.000  -0.165   0.000 >
+                     b3=<   0.000   0.000   0.165 >
+         lattice:    a=      %.3f   b=     %.3f   c=      %.3f  
+                     alpha=  90.000 beta=  90.000 gamma=  90.000
+                     omega=     13718.0 ''' % (l,l,l,l,l,l)
+      elif "lattice_vectors" in simulation_cell:
+         a1 = simulation_cell.split("lattice_vectors")[1].strip().split('\n')[0]
+         a2 = simulation_cell.split("lattice_vectors")[1].strip().split('\n')[1]
+         a3 = simulation_cell.split("lattice_vectors")[1].strip().split('\n')[2]
+         cell = ''' supercell:
+         cell_name:  cell_default
+         lattice:    a1=< %s >
+                     a2=< %s >
+                     a3=< %s > ''' % (a1,a2,a3)
+
+
+
+   if cell!='':
+      xyzfilename = "molecule-jsmol-%d.cif" % xx
+      xyzlist = xyzdat.strip().split("\n")
+      nion = eval(xyzlist[0].strip())
+      cifdat = ''
+      while (len(xyzlist)>=(nion+2)):
+         xyzdat0 = "\n".join(xyzlist[:nion+2])
+         xyzlist = xyzlist[nion+2:]
+         cifdat += xyz2cif(xyzdat0,cell)
+      #cifdat = xyz2cif(xyzdat,cell)
+      with open(staticdir + xyzfilename,'w') as ff:
+         ff.write(cifdat)
+   else:
+      xyzfilename = "molecule-jsmol-%d.xyz" % xx
+      with open(staticdir + xyzfilename,'w') as ff:
+         ff.write(xyzdat)
+
+   nion = eval(xyzdat.split("\n")[0].strip())
+
+   #queuenumber = nwinput.split("START NWCHEM INPUT DECK -")[1].split("#")[0].strip()
+   #msg4 += "Geometry for " + queuenumber + "\n"
+   msg4 += "</pre>\n"
+   msg4 += '<script type=\"text/javascript\" src=\"{{url_for(\'static\', filename=\'jsmol/JSmol.min.js\')}}\"></script>\n'
+   msg4 += '''
+   <script type="text/javascript"> 
+      $(document).ready(
+      function() {
+            Info = {
+            width: 800,
+            height: 800,
+            debug: false,
+            j2sPath: "{{url_for('static', filename='jsmol/j2s')}}",
+            //j2sPath: "jsmol/j2s",
+            //color: "0x3BBC52",
+            color: "%s",
+            disableJ2SLoadMonitor: true,
+            disableInitialConsole: true,
+            addSelectionOptions: false,
+            //serverURL: "http://10.0.1.99/jsmol.php",
+            //serverURL: "http://chemapps.stolaf.edu/jmol/jsmol/php/jsmol.php",
+            serverURL: \"{{url_for(\'static\', filename=\'jsmol/jsmol.php\')}}\",
+            use: "HTML5",
+            readyFunction: null,
+            script: "load  {{url_for('static', filename='%s')}} "
+         }
+         $("#jsmolmydiv").html(Jmol.getAppletHtml("jmolApplet0",Info))
+   ''' % (backgroundcolor,xyzfilename)
+   msg4 += '''
+         $("#jsmolbtns").html(Jmol.jmolButton(jmolApplet0, "spin on","spin ON")+Jmol.jmolButton(jmolApplet0, "spin off","spin OFF")+Jmol.jmolButton(jmolApplet0, "select all; label %a","labels On")+Jmol.jmolButton(jmolApplet0, "select all;label off","labels Off") + Jmol.jmolButton(jmolApplet0, "unitcell 1; axes 1","unitcell/axes On") + Jmol.jmolButton(jmolApplet0, "unitcell 0; axes 0","unitcell/axes Off")) 
+      }
+      );
+   </script>
+   '''
+
+   msg4 += '<span id=jsmolmydiv></span>\n'
+   msg4 += '<span id=jsmolbtns></span>\n'
+   msg4 += '<br><font color="443322" size="2"><p><a href="http://wiki.jmol.org/index.php/JSmol">JSmol: an open-source HTML5 viewer for chemical structures in 3D</a></p></font><br>'
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+###########################################
+#                                         #
+#              nwout2cifxyz               #
+#                                         #
+###########################################
+
+def nwout2cifxyz(nwout,iscif):
+   if ("final position of ions:" in nwout):
+      data = nwout.split("final position of ions:")[-1].split("G.C.")[0].strip()
+      xyzdat0 = "%d\n\n" % len(data.split("\n"))
+      for ll in data.split("\n"):
+         ss = ll.split()
+         symbol =ss[1].strip("^")
+         x = evalnum(ss[3])*0.529177
+         y = evalnum(ss[4])*0.529177
+         z = evalnum(ss[5])*0.529177
+         xyzdat0 += "%s  %f %f %f\n" % (symbol,x,y,z)
+      cell = nwout.split("supercell:")[1].split("technical parameters:")[0].strip()
+      if (iscif):
+         cifxyzdat = xyz2cif(xyzdat0,cell)
+      else:
+         cifxyzdat = xyzdat0
+     
+   else:
+      data = nwout.split("Output coordinates in angstroms (scale by  1.889725989 to convert to a.u.)")[1].split("Atomic Mass ")[0].strip()
+      nion = len(data.split("\n")[2:])
+      xyzdat0 = "%d\n\n" % nion
+      for ll in data.split("\n")[2:]:
+         ss = ll.split()
+         symbol = ss[1]
+         x = evalnum(ss[3])
+         y = evalnum(ss[4])
+         z = evalnum(ss[5])
+         xyzdat0 += "%s  %f %f %f\n" % (symbol,x,y,z)
+      if ("supercell:" in nwout) and (iscif):
+         cell = nwout.split("supercell:")[1].split("technical parameters:")[0].strip()
+         cifxyzdat = xyz2cif(xyzdat0,cell)
+      else:
+         cifxyzdat = xyzdat0
+
+   return cifxyzdat
+
+
+
+###########################################
+#                                         #
+#              nwout2jsmol                #
+#                                         #
+###########################################
+#color = "0x3BBC52"
+def nwout2jsmol(backgroundcolor,nwout):
+   staticdir = "/srv/arrows/Public/static/"
+   xx = random.randint(0,999999)
+   if ("initial position of ions:" in nwout):
+      data = nwout.split("initial position of ions:")[1].split("G.C.")[0].strip()
+      xyzdat0 = "%d\n\n" % len(data.split("\n"))
+      for ll in data.split("\n"):
+         ss = ll.split()
+         symbol =ss[1].strip("^")
+         x = evalnum(ss[3])*0.529177
+         y = evalnum(ss[4])*0.529177
+         z = evalnum(ss[5])*0.529177
+         xyzdat0 += "%s  %f %f %f\n" % (symbol,x,y,z)
+      cell = nwout.split("supercell:")[1].split("technical parameters:")[0].strip()
+      nwoutfilename = "molecule-jsmol-%d.cif" % xx
+      cifdat = xyz2cif(xyzdat0,cell)
+      with open(staticdir+nwoutfilename,'w') as ff: 
+         ff.write(cifdat)
+   else:
+      if ("NWChem Geometry Optimization" in nwout):
+         ss = nwout.split("@")
+         sz = len(ss)
+         if (sz>3):
+            nwout = "@".join( [ss[0]] + ss[sz-3:-1] + [ss[-1]])
+
+      nwoutfilename = "molecule-jsmol-%d.out" % xx
+      with open(staticdir+nwoutfilename,'w') as ff: 
+         ff.write(nwout)
+
+
+   msg4 = "</pre>\n"
+   msg4 += '<script type=\"text/javascript\" src=\"{{url_for(\'static\', filename=\'jsmol/JSmol.min.js\')}}\"></script>\n'
+   msg4 += '''
+   <script type="text/javascript"> 
+      $(document).ready(
+      function() {
+            Info = {
+            width: 800,
+            height: 800,
+            debug: false,
+            j2sPath: "{{url_for('static', filename='jsmol/j2s')}}",
+            //j2sPath: "jsmol/j2s",
+            //color: "0x3BBC52",
+            color: "%s",
+            disableJ2SLoadMonitor: true,
+            disableInitialConsole: true,
+            addSelectionOptions: false,
+            //serverURL: "http://10.0.1.99/jsmol.php",
+            //serverURL: "http://chemapps.stolaf.edu/jmol/jsmol/php/jsmol.php",
+            serverURL: \"{{url_for(\'static\', filename=\'jsmol/jsmol.php\')}}\",
+            use: "HTML5",
+            readyFunction: null,
+            script: "load  {{url_for('static', filename='%s')}} "
+         }
+         $("#jsmolmydiv").html(Jmol.getAppletHtml("jmolApplet0",Info))
+   ''' % (backgroundcolor,nwoutfilename)
+
+   msg4 += '''
+         $("#jsmolbtns").html(Jmol.jmolButton(jmolApplet0, "spin on","spin ON")+Jmol.jmolButton(jmolApplet0, "spin off","spin OFF")+Jmol.jmolButton(jmolApplet0, "select all;label %a","labels On")+Jmol.jmolButton(jmolApplet0, "select all;label off","labels Off")   ) 
+      }
+      );
+   </script>
+   ''' 
+
+   msg4 += '<span id=jsmolmydiv></span>\n'
+   msg4 += '<span id=jsmolbtns></span>\n'
+   msg4 += '<br><font color="443322" size="2"><p><a href="http://wiki.jmol.org/index.php/JSmol">JSmol: an open-source HTML5 viewer for chemical structures in 3D</a></p></font><br>'
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+def reset_frames_max(nion,frame_start,frame_end,frames_max):
+   if (nion<=100) or (frame_start!=1) or (frame_end!=frames_max):
+      return (frame_start,frame_end,frames_max)
+   else:
+      frames_max = max(int(-2.734375*nion + 1273.4375),50)
+      frame_end  = frames_max
+      return (frame_start,frame_end,frames_max)
+
+###########################################
+#                                         #
+#             xyzdat2jsmol                #
+#                                         #
+###########################################
+#color = "0x3BBC52"
+def xyzdat2jsmol(backgroundcolor,xyzdat,jobscript,cell=None):
+   staticdir = "/srv/arrows/Public/static/"
+   xx = random.randint(0,999999)
+
+   frames_max = 200
+   frame_start = 1
+   frame_end   = frames_max
+   if "frames=" in jobscript:
+      frames = jobscript.split("frames=")[1]
+      if ":" in frames:
+         frame_start = evalnum(frames.split(':')[0])
+         frame_end   = evalnum(frames.split(':')[1])
+         frames_max = frame_end-frame_start+1
+
+   if cell=="cube":
+      xyzfilename = "molecule-jsmol-%d.cube" % xx
+      nion = abs(evalnum(xyzdat.split("\n")[2].strip().split()[0]))
+      nframes = 1
+      with open(staticdir + xyzfilename,'w') as ff:
+         ff.write(xyzdat)
+
+   elif cell is not None:
+      xyzfilename = "molecule-jsmol-%d.cif" % xx
+      cifdat = ''
+      if cell=="ion_motion":
+         xyzlist = xyzdat.strip().split("\n")
+         nion = evalnum(xyzlist[0].strip().split()[1])
+         (frame_start,frame_end,frames_max) = reset_frames_max(nion,frame_start,frame_end,frames_max)
+         nframes = (len(xyzdat.split("\n")))/(nion+1)
+         xyzlist = xyzlist[(frame_start-1)*(nion+1):frame_end*(nion+1)]
+         while (len(xyzlist)>=(nion+1)):
+            xyzdat0 = "\n".join(xyzlist[:nion+1])
+            xyzlist = xyzlist[nion+1:]
+            cifdat += ion_motion2cif(xyzdat0)
+      elif cell=="cif":
+         cifdat = xyzdat
+         nframes = (len(xyzdat.split("data_")))-1
+      else:
+         xyzlist = xyzdat.strip().split("\n")
+         nion = evalnum(xyzlist[0].strip())
+         (frame_start,frame_end,frames_max) = reset_frames_max(nion,frame_start,frame_end,frames_max)
+         nframes = (len(xyzdat.split("\n")))/(nion+2)
+         xyzlist = xyzlist[(frame_start-1)*(nion+1):frame_end*(nion+1)]
+         while (len(xyzlist)>=(nion+2)):
+            xyzdat0 = "\n".join(xyzlist[:nion+2])
+            xyzlist = xyzlist[nion+2:]
+            cifdat += xyz2cif(xyzdat0,cell)
+
+      with open(staticdir + xyzfilename,'w') as ff:
+         ff.write(cifdat)
+
+   else:
+      xyzlist = xyzdat.strip().split("\n")
+      nion = evalnum(xyzlist[0].strip())
+      (frame_start,frame_end,frames_max) = reset_frames_max(nion,frame_start,frame_end,frames_max)
+      nframes = (len(xyzlist))/(nion+2)
+      xyzfilename = "molecule-jsmol-%d.xyz" % xx
+      xyzlist = xyzlist[(frame_start-1)*(nion+2):frame_end*(nion+2)]
+      with open(staticdir + xyzfilename,'w') as ff:
+         while (len(xyzlist)>=(nion+2)):
+            xyzdat0 = "\n".join(xyzlist[:nion+2]) + "\n"
+            xyzlist = xyzlist[nion+2:]
+            ff.write(xyzdat0)
+
+   msg4 = "</pre>\n"
+   if (nframes>frames_max):
+      msg4 += "<p>Viewing frames=%d:%d</p> " % (frame_start,frame_end)
+   msg4 += '<script type=\"text/javascript\" src=\"{{url_for(\'static\', filename=\'jsmol/JSmol.min.js\')}}\"></script>\n'
+   msg4 += '''
+   <script type="text/javascript"> 
+      $(document).ready(
+      function() {
+            Info = {
+            width: 800,
+            height: 800,
+            debug: false,
+            j2sPath: "{{url_for('static', filename='jsmol/j2s')}}",
+            //j2sPath: "jsmol/j2s",
+            //color: "0x3BBC52",
+            color: "%s",
+            disableJ2SLoadMonitor: true,
+            disableInitialConsole: true,
+            addSelectionOptions: false,
+            //serverURL: "http://10.0.1.99/jsmol.php",
+            //serverURL: "http://chemapps.stolaf.edu/jmol/jsmol/php/jsmol.php",
+            serverURL: \"{{url_for(\'static\', filename=\'jsmol/jsmol.php\')}}\",
+            use: "HTML5",
+            readyFunction: null,
+            script: "load  {{url_for('static', filename='%s')}} ; x = getproperty('modelinfo.models.num'); for (var i=1; i<=x.length; i++) {x[i] += %d}; frame *; frame title @x; animation MODE LOOP 0 0; animation FPS 20; animation on"
+         }
+         $("#jsmolmydiv").html(Jmol.getAppletHtml("jmolApplet0",Info))
+   ''' % (backgroundcolor,xyzfilename,frame_start-1)
+   if (nframes>1):
+      msg4 += '''
+         $("#jsmolbtns").html(Jmol.jmolButton(jmolApplet0, "animation MODE LOOP 0 0; animation FPS 20; animation on","fast animation")+Jmol.jmolButton(jmolApplet0, "animation MODE LOOP 0 0; animation FPS 2; animation on","slow animation") +Jmol.jmolButton(jmolApplet0, "animation off","animation stop")+ Jmol.jmolButton(jmolApplet0, "frame next","next frame") + Jmol.jmolButton(jmolApplet0, "frame previous","previous frame") +Jmol.jmolButton(jmolApplet0, "spin on","spin ON")+Jmol.jmolButton(jmolApplet0, "spin off","spin OFF")+Jmol.jmolButton(jmolApplet0, "select all;label %a","labels On")+Jmol.jmolButton(jmolApplet0, "select all;label off","labels Off") + Jmol.jmolButton(jmolApplet0, "unitcell 1; axes 1","unitcell/axes On") + Jmol.jmolButton(jmolApplet0, "unitcell 0; axes 0","unitcell/axes Off")) 
+      }
+      );
+   </script>
+      '''
+   else:
+      msg4 += '''
+         $("#jsmolbtns").html(Jmol.jmolButton(jmolApplet0, "spin on","spin ON")+Jmol.jmolButton(jmolApplet0, "spin off","spin OFF")+Jmol.jmolButton(jmolApplet0, "select all;label %a","labels On")+Jmol.jmolButton(jmolApplet0, "select all;label off","labels Off") + Jmol.jmolButton(jmolApplet0, "unitcell 1; axes 1","unitcell/axes On") + Jmol.jmolButton(jmolApplet0, "unitcell 0; axes 0","unitcell/axes Off")) 
+      }
+      );
+   </script>
+      ''' 
+
+#         $("#jsmolbtns").html(Jmol.jmolButton(jmolApplet0, "spin on","spin ON")+Jmol.jmolButton(jmolApplet0, "spin off","spin OFF")+Jmol.jmolButton(jmolApplet0, "%s","labels On")+Jmol.jmolButton(jmolApplet0, "select all;label off","labels Off") + Jmol.jmolButton(jmolApplet0, "unitcell 1; axes 1","unitcell/axes On") + Jmol.jmolButton(jmolApplet0, "unitcell 0; axes 0","unitcell/axes Off")) 
+#      }
+#      );
+#   </script>
+#   ''' % (backgroundcolor,xyzfilename,alabel)
+   msg4 += '''
+   <script>
+
+
+        // basic JMOL routines - all other routines call these functions
+        function jms(scpt) { 
+           jm_cmdlist_add();
+           Jmol.script(jmolApplet0, scpt); 
+        }
+        function jms0(scpt) { 
+           Jmol.script(jmolApplet0, scpt); 
+        }
+        function jmstr(scpt) { 
+           return Jmol.getPropertyAsString(jmolApplet0,scpt); 
+        }
+        function jmvar(x) {
+           return Jmol.evaluateVar(jmolApplet0, x);
+        }
+        function superunitcell() {
+          var xxx = prompt("Please enter load xyz:", "{1 1 1}");
+          var scpt = 'load \"\" ' + xxx + '; ';
+          jms0(scpt);
+        }
+
+   </script> 
+        '''
+
+   msg4 += '<span id=jsmolmydiv></span>\n'
+   msg4 += '<span id=jsmolbtns></span>\n'
+   msg4 += '<br>'
+   msg4 += '<input type="button" value="Console" onClick="jms0(\'console;\')"/> '
+   msg4 += '<input type="button" value="Space Fill" onClick="jms0(\'select *;spacefill 75%;\')"/> '
+   msg4 += '<input type="button" value="Ball and Stick" onClick="jms0(\'select *; wireframe 0.15; spacefill 23%;\')"/> '
+   msg4 += '<input type="button" value="Stick" onClick="jms0(\'select *; wireframe 0.03; spacefill 1%;\')"/> '
+   msg4 += '<input type="button" value="cell" onClick="superunitcell()"/> <br>'
+   msg4 += '<br><font color="443322" size="2"><p><a href="http://wiki.jmol.org/index.php/JSmol">JSmol: an open-source HTML5 viewer for chemical structures in 3D</a></p></font><br>'
+
+   if (nframes>frames_max):
+      print "jobscript=",jobscript
+      externfile = jobscript.split("view=")[1].split()[0]
+      link0 = "https://arrows.emsl.pnnl.gov/api/eric_view/view=" + externfile
+      fs = 1; fe=frames_max
+      nf = (nframes-1)/frames_max
+      msg4 += "View Frames = "
+      for f in range(nf+1):
+         comma = ''
+         if f<nf: comma=","
+         tag0 = "%d:%d" % (fs,fe)
+         tag = " frames=%d:%d" % (fs,fe)
+         link = link0 + tag
+         fs += frames_max; fe += frames_max
+         msg4 += '<a href="%s">%s</a> ' % (link,tag0+comma)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+
+###########################################
+#                                         #
+#             gcube2jsmol                 #
+#                                         #
+###########################################
+#color = "0x3BBC52"
+def gcube2jsmol(backgroundcolor,xyzdat):
+   staticdir = "/srv/arrows/Public/static/"
+   xx = random.randint(0,999999)
+
+   xyzfilename0  = "molecule-jsmol-%d.cube" % xx
+   xyzfilename   = "molecule-small-%d.cube" % xx
+   jvxlfilename  = "molecule-jsmol-%d.jvxl" % xx
+   nion = abs(evalnum(xyzdat.split("\n")[2].strip().split()[0]))
+   nframes = 1
+   with open(staticdir + xyzfilename0,'w') as ff:
+      ff.write(xyzdat)
+
+   cmd9 = chemdb_cube2jvxl + staticdir + xyzfilename0 + " " + staticdir + xyzfilename + " " + staticdir + jvxlfilename
+   result = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+
+   msg4 = "</pre>\n"
+   msg4 += '<script type=\"text/javascript\" src=\"{{url_for(\'static\', filename=\'jsmol/JSmol.min.js\')}}\"></script>\n'
+   msg4 += '''
+   <script type="text/javascript"> 
+      $(document).ready(
+      function() {
+            Info = {
+            width: 800,
+            height: 800,
+            debug: false,
+            j2sPath: "{{url_for('static', filename='jsmol/j2s')}}",
+            //j2sPath: "jsmol/j2s",
+            //color: "0x3BBC52",
+            color: "%s",
+            disableJ2SLoadMonitor: true,
+            disableInitialConsole: true,
+            addSelectionOptions: false,
+            //serverURL: "http://10.0.1.99/jsmol.php",
+            //serverURL: "http://chemapps.stolaf.edu/jmol/jsmol/php/jsmol.php",
+            serverURL: \"{{url_for(\'static\', filename=\'jsmol/jsmol.php\')}}\",
+            use: "HTML5",
+            readyFunction: null,
+            script: "load  {{url_for('static', filename='%s')}} ; isosurface '{{url_for("static", filename="%s")}}' "
+         }
+         $("#jsmolmydiv").html(Jmol.getAppletHtml("jmolApplet0",Info))
+   ''' % (backgroundcolor,xyzfilename,jvxlfilename)
+  
+   msg4 += '''
+      $("#jsmolbtns").html(Jmol.jmolButton(jmolApplet0, "spin on","spin ON")+Jmol.jmolButton(jmolApplet0, "spin off","spin OFF")+Jmol.jmolButton(jmolApplet0, "select all;label %a","labels On")+Jmol.jmolButton(jmolApplet0, "select all;label off","labels Off") + Jmol.jmolButton(jmolApplet0, "unitcell 1; axes 1","unitcell/axes On") + Jmol.jmolButton(jmolApplet0, "unitcell 0; axes 0","unitcell/axes Off") ) 
+   }
+   );
+   </script>
+   '''  
+
+   msg4 += '<span id=jsmolmydiv></span>\n'
+   msg4 += '<span id=jsmolbtns></span>\n'
+   msg4 += '<br><font color="443322" size="2"><p><a href="http://wiki.jmol.org/index.php/JSmol">JSmol: an open-source HTML5 viewer for chemical structures in 3D</a></p></font><br>'
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+def plotdatajs(edat):
+
+   xdat = "['x',"
+   ydat1 = "['Energy',"
+   ydat2 = "['Potential',"
+   ydat3 = "['Average Potential',"
+   ydat4 = "['Average Enthalpy',"
+   ydat5 = "['Variance Potential',"
+   ydat6 = "['Variance Enthalpy',"
+   ydat7 = "['psi Kinetic Energy',"
+   ydat8 = "['ion Kinetic Energy',"
+   ydat9 = "['Temperature',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      if (len(ss)==20):
+         xdat += ss[0] + ", "
+         ydat1 += ss[1] + ", "
+         ydat2 += ss[2] + ", "
+         ydat3 += ss[12] + ", "
+         ydat4 += ss[14] + ", "
+         ydat5 += ss[13] + ", "
+         ydat6 += ss[15] + ", "
+         ydat7 += ss[3] + ", "
+         ydat8 += ss[4] + ", "
+         ydat9 += ss[18] + ", "
+      else:
+         xdat += ss[0] + ", "
+         ydat1 += ss[1] + ", "
+         ydat2 += ss[2] + ", "
+         ydat3 += ss[10] + ", "
+         ydat4 += ss[12] + ", "
+         ydat5 += ss[11] + ", "
+         ydat6 += ss[13] + ", "
+         ydat7 += ss[3] + ", "
+         ydat8 += ss[4] + ", "
+         ydat9 += ss[16] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+   ydat2 = ydat2.rstrip(',') + "]"
+   ydat3 = ydat3.rstrip(',') + "]"
+   ydat4 = ydat4.rstrip(',') + "]"
+   ydat5 = ydat5.rstrip(',') + "]"
+   ydat6 = ydat6.rstrip(',') + "]"
+   ydat7 = ydat7.rstrip(',') + "]"
+   ydat8 = ydat8.rstrip(',') + "]"
+   ydat9 = ydat9.rstrip(',') + "]"
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> Energies from AIMD Simulation </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'x',
+         columns: [
+           %s,
+           %s, %s,
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'Time (au)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Energies (au)',
+               tick: {format: d3.format(".6f")}
+           }
+       }
+    });
+    </script>
+
+    <br> <center><b> Potential Energies from AIMD Simulation </b></center>
+    <div id="chart1"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart1',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'x',
+         columns: [
+           %s,
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'Time (au)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Energies (au)',
+               tick: {format: d3.format(".6f")}
+           }
+       }
+    });
+    </script>
+
+
+    <br><br> <center><b> Kinetic Energies from AIMD Simulation </b></center>
+    <div id="chart2"></div>
+
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart2',
+       data: {
+         type: 'spline',
+         x: 'x',
+         columns: [
+           %s,
+           %s,
+           %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'Time (au)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Kinetic Energies (au)'
+           }
+       }
+    });
+    </script>
+
+    <br><br> <center><b> Running Temperature from AIMD Simulation </b></center>
+    <div id="chart3"></div>
+
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart3',
+       data: {
+         type: 'spline',
+         x: 'x',
+         columns: [
+           %s,
+           %s
+         ]
+       },
+       grid: {
+          x: { show: false },
+          y: { show: true }
+       },
+       axis: {
+           x: {
+               label: 'Time (au)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Temperature (K)'
+           }
+       }
+    });
+    </script>
+    
+
+    <br><br> <center><b> Variances from AIMD Simulation </b></center>
+    <div id="chart4"></div>
+
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart4',
+       data: {
+         type: 'spline',
+         x: 'x',
+         columns: [
+           %s,
+           %s,
+           %s
+         ]
+       },
+       grid: {
+          x: { show: false },
+          y: { show: true }
+       },
+       axis: {
+           x: {
+               label: 'Time (au)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+
+           },
+           y: {
+               label: 'Variances (au)'
+           }
+       }
+    });
+    </script>
+
+    ''' % (xdat,ydat1,ydat2,ydat3,ydat4,xdat,ydat1,ydat2,xdat,ydat7,ydat8,xdat,ydat9,xdat,ydat5,ydat6)
+
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+def vdos_plotdatajs(xunits,edat):
+
+   xdat = "['w',"
+   ydat1 = "['g(w)',"
+   ydat2 = "['N(w)',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      xdat += ss[0] + ", "
+      ydat1 += ss[1] + ", "
+      ydat2 += ss[2] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+   ydat2 = ydat2.rstrip(',') + "]"
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> g(w) - Vibrational Density of States </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'w',
+         columns: [
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'w (%s)',
+               tick: {count: 10, format: d3.format(".6f"), culling: false}
+           },
+           y: {
+               label: 'g(w) (states/%s))',
+               tick: {format: d3.format(".6f")}
+           }
+       }
+    });
+    </script>
+
+    <br> <center><b> N(w) - Number of Vibrational States </b></center>
+    <div id="chart1"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart1',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'w',
+         columns: [
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'w (%s)',
+               tick: {count: 10, format: d3.format(".6f"), culling: false}
+           },
+           y: {
+               label: 'N(w) (states)',
+               tick: {format: d3.format(".6f")}
+           }
+       }
+    });
+    </script>
+    ''' % (xdat,ydat1,xunits,xunits,xdat,ydat2,xunits)
+
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+
+
+
+def gr_plotdatajs(edat,shift,label):
+
+   xdat = "['r',"
+   ydat1 = "['g(r)',"
+   ydat2 = "['n(r)',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      xdat += ss[0] + ", "
+      ydat1 += ss[shift+1] + ", "
+      ydat2 += ss[shift+2] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+   ydat2 = ydat2.rstrip(',') + "]"
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> %s Radial Distributions from AIMD Simulation </b></center>
+
+
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'r',
+         columns: [
+           %s, %s
+         ]
+       },
+       grid: {
+          x: { show: true },
+          y: { show: true }
+       },
+       axis: {
+           x: {
+               label: 'r (Angstroms)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'radial distributions'
+           }
+       }
+    });
+    </script>
+
+    <br> <center><b> %s Integrated Radial Distributions from AIMD Simulation </b></center>
+    <div id="chart2"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart2',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'r',
+         columns: [
+           %s, %s
+         ]
+       },
+       grid: {
+          x: { show: true },
+          y: { show: true }
+       },
+       axis: {
+           x: {
+               label: 'r (Angstroms)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'number count'
+           }
+       }
+    });
+    </script>
+
+    ''' % (label,xdat,ydat1,label,xdat,ydat2)
+
+
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+def hist_plotdatajs(edat):
+
+   xdat = "['r',"
+   ydat1 = "['hist(r)',"
+   ydat2 = "['filtered hist(r)',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      xdat += ss[0] + ", "
+      ydat1 += ss[1] + ", "
+      ydat2 += ss[2] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+   ydat2 = ydat2.rstrip(',') + "]"
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> Atom-Atom Histograms from AIMD Simulation </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'r',
+         columns: [
+           %s,
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'r (Angstroms)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'histograms'
+           }
+       }
+    });
+    </script>
+    <center><b> Hello Eric </b></center>
+    ''' % (xdat,ydat1,ydat2)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+def tamd2_plotdatajs(edat,label):
+
+   xdat = "['t',"
+   ydat1 = "['theta',"
+   ydat2 = "['ztamd',"
+   xx = 0.0
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      if ("#" not in ss[0]):
+         xdat += "%f, " % xx
+         xx += 1.0
+         ydat1 += ss[0] + ", "
+         ydat2 += ss[1] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+   ydat2 = ydat2.rstrip(',') + "]"
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> theta and ztamd versus time from AIMD Simulation </b></center>
+    <div id="chart9"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart9',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 't',
+         columns: [
+           %s, %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'tamd iteration',
+               tick: {count: 10, format: d3.format(".1f"), culling: false}
+           },
+           y: {
+               label: 'theta and ztamd'
+           }
+       }
+    });
+    </script>
+    ''' % (xdat,ydat1,ydat2)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+
+def tamd_plotdatajs(edat,label,i,j,xlabel,ylabel,chart):
+
+   xdat = "['x',"
+   ydat1 = "['y',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      if ("#" not in ss[0]):
+         xdat += ss[i] + ", "
+         ydat1 += ss[j] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> %s from AIMD Simulation </b></center>
+    <div id="%s"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#%s',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'x',
+         columns: [
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: '%s',
+               tick: {count: 10, format: d3.format(".6f"), culling: false}
+           },
+           y: {
+               label: '%s'
+           }
+       }
+    });
+    </script>
+    ''' % (label,chart,chart,xdat,ydat1,xlabel,ylabel)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+def data_plotdatajs(edat,label):
+
+   xdat = "['x',"
+   ydat1 = "['y',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      if ("#" not in ss[0]):
+         xdat += ss[0] + ", "
+         ydat1 += ss[1] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> %s from AIMD Simulation </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'x',
+         columns: [
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'collective variable',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'History Potential (a.u.)'
+           }
+       }
+    });
+    </script>
+    ''' % (label,xdat,ydat1)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+def xydata_plotdatajs(edat,label):
+
+   title = label
+   xylabels = ''
+   if ('#Title' in edat):
+      title = edat.split("#Title")[1].split('\n')[0]
+   else:
+      title = label
+   if ('#Labels' in edat): xylabels = edat.split("#Labels")[1].split('\n')[0]
+
+   elist = edat.strip().split("\n")
+   while ("#" in elist[0]): 
+      elist = elist[1:]
+
+   ny = len(elist[0].split())-1
+   hasheader = not isevalnum(elist[0].split()[0])
+  
+   if (hasheader):
+      xlabel = elist[0].split()[0]
+      ylabel = elist[0].split()[1]
+      xdat = "['%s'," % (elist[0].split()[0])
+      ydat = []
+      for i in range(ny):
+         ydat.append("['%s'," % (elist[0].split()[i+1]))
+      elist = elist[1:]
+   else:
+      xlabel = 'x'
+      ylabel = 'y data'
+      xdat = "['x',"
+      ydat = []
+      for i in range(ny):
+         ydat.append("['y%d'," % i)
+      if (xylabels!=''):
+         xylist = xylabels.split()
+         xlabel = xylist[0]
+         ylabel = xylist[1]
+         xdat = "['%s'," % (xylist[0])
+         for i in range(1,len(xylist)):
+            ydat[i-1] = "['%s'," % (xylist[i])
+
+   for ee in elist:
+      ss = ee.split()
+      if ("#" not in ss[0]):
+         xdat += ss[0] + ", "
+         for i in range(ny):
+            ydat[i] += ss[i+1] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   for i in range(ny):
+      ydat[i] = ydat[i].rstrip(',') + "]"
+
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> %s </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: '%s',
+         columns: [
+           %s  ''' % (title,xlabel,xdat)
+   for i in range(ny): msg4 += ", %s" % (ydat[i])
+   msg4 += '''
+         ]
+       },
+       axis: {
+           x: {
+               label: '%s',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: '%s'
+           }
+       }
+    });
+    </script>
+    ''' % (xlabel,ylabel)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+
+def spectrum_plotdatajs(edat,label):
+
+   xdat = "['w',"
+   ydat1 = "['spectrum',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      if (evalnum(ss[0]) <= 5000.0):
+         xdat += ss[0] + ", "
+         ydat1 += ss[1] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+
+    <br> <center><b> %s from AIMD Simulation </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'w',
+         columns: [
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'w (cm-1)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Spectrum'
+           }
+       }
+    });
+    </script>
+    ''' % (label,xdat,ydat1)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+
+def w2spectrum_plotdatajs(edat,label):
+
+   xdat = "['w',"
+   ydat1 = "['spectrum',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      w = evalnum(ss[0])
+      if (w <= 5000.0) and (w>1000.0):
+         xdat += ss[0] + ", "
+         #ydat1 += ss[1] + ", "
+         y = "%e" % (evalnum(ss[1])*w*w)
+         ydat1 += y + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> %s from AIMD Simulation </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 'w',
+         columns: [
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'w (cm-1)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Spectrum'
+           }
+       }
+    });
+    </script>
+    ''' % (label,xdat,ydat1)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+def correlation_plotdatajs(edat,label):
+
+   xdat = "['t',"
+   ydat1 = "['autocorrelation',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      xdat += ss[0] + ", "
+      ydat1 += ss[1] + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> %s from AIMD Simulation </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 't',
+         columns: [
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 't-t0 (a.u.)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Auto Correlation Function'
+           }
+       }
+    });
+    </script>
+    ''' % (label,xdat,ydat1)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+def x2correlation_plotdatajs(edat,label):
+
+   xdat = "['t',"
+   ydat1 = "['autocorrelation',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      x = evalnum(ss[0])
+      if (x>1000.0):
+         y = "%e" % (evalnum(ss[0])**2 * evalnum(ss[1]))
+         xdat += ss[0] + ", "
+         #ydat1 += ss[1] + ", "
+         ydat1 += y + ", "
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> %s from AIMD Simulation </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 't',
+         columns: [
+           %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 't-t0 (a.u.)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Auto Correlation Function'
+           }
+       }
+    });
+    </script>
+    ''' % (label,xdat,ydat1)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+
+
+def dipoles_plotdatajs(edat):
+
+   xdat = "['t',"
+   ydat1 = "['px',"
+   ydat2 = "['py',"
+   ydat3 = "['pz',"
+   ydat4 = "['|p|',"
+   for ee in edat.strip().split("\n"):
+      ss = ee.split()
+      pall = math.sqrt(evalnum(ss[1])**2 + evalnum(ss[2])**2 + evalnum(ss[3])**2)
+      xdat += ss[0] + ", "
+      ydat1 += ss[1] + ", "
+      ydat2 += ss[2] + ", "
+      ydat3 += ss[3] + ", "
+      ydat4 += "%f, " % pall
+   xdat  = xdat.rstrip(',') + "]"
+   ydat1 = ydat1.rstrip(',') + "]"
+   ydat2 = ydat2.rstrip(',') + "]"
+   ydat3 = ydat3.rstrip(',') + "]"
+   ydat4 = ydat4.rstrip(',') + "]"
+
+   msg4 = "</pre>\n"
+   msg4 += '''
+    <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
+    <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
+    <!--script type="text/javascript" src="{{url_for('static', filename='c3js/c3.min.js')}}"></script-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
+    <br> <center><b> Dipoles from AIMD Simulation </b></center>
+    <div id="chart"></div>
+    <script type="text/javascript">
+    var chart = c3.generate({
+       bindto: '#chart',
+       size: { height: 480},
+       data: {
+         type: 'spline',
+         x: 't',
+         columns: [
+           %s, %s, %s, %s, %s
+         ]
+       },
+       axis: {
+           x: {
+               label: 'time (a.u.)',
+               tick: {count: 10, format: d3.format(".2f"), culling: false}
+           },
+           y: {
+               label: 'Dipoles (a.u.)'
+           }
+       }
+    });
+    </script>
+    ''' % (xdat,ydat1,ydat2,ydat3,ydat4)
+
+   msg4 += "<pre style=\"font-size:1.0em;color:black\">\n"
+
+   return msg4
+
+
+def lastframeprune(data):
+
+   lastframe = ""
+
+   if ("data_nwchem_pspw" in data):
+      nwcifs = data.split("data_nwchem_pspw")
+      nwlen  = len(nwcifs)
+      lastframe = "data_nwchem_pspw\n\n" + nwcifs[-1]
+
+   elif ("### restart here ###" in data):
+      nwinputs  = data.split("### restart here ###")
+      lastframe = nwinputs[-1]
+
+   else:
+      dataln = data.split("\n")
+      nargs  = len(dataln[0].strip().split())
+      nln    = len(dataln)
+      if ((nargs==1) or (nargs==12)):
+         if (nargs==1):
+            nion = evalnum(dataln[0].strip())
+            nstride = nion+2
+         if (nargs==12):
+            nion = evalnum(dataln[0].strip().split()[1])
+            nstride = 0
+            i = 1
+            while ((i<nln) and (nstride==0)):
+               nargsl = len(dataln[i].strip().split())
+               if (nargsl==12):   
+                  nstride = i
+               i += 1
+         nxyz = nln/nstride
+         ns = nln - nstride-1
+         ne = nln 
+         lastframe = "\n".join(dataln[ns:])
+
+   return lastframe
+
+
+
+
+
+
+
+############################# main program ###################################
+usage = \
+"""
+chemdb_queue program
+
+  Usage: chemdb_eric "job script"
+
+  -h help
+
+"""
+
+
+print
+print "#chemdb_eric - version 1.0"
+print
+tt      = time.localtime()
+
+
+opts, args = getopt.getopt(sys.argv[1:], "hd")
+for o, a in opts:
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)>0):
+   jobscript = " ".join(args)
+else:
+   jobscript = ''
+
+
+###fetch machine information ###
+if "machinename=" in jobscript:
+   machinename = jobscript.split("machinename=")[1].split()[0]
+else:
+   machinename = "we31869"
+check = {}
+check['machinename'] = machinename
+queue = machinedata_collection.find(check)
+entry = queue[0]
+passwd  = entry['passwd']
+machine = entry['machine']
+machine_projectdir = entry['projectdir']
+
+
+if "list=" in jobscript:
+   machinedir = jobscript.split("list=")[1].strip()
+   if machinedir!='': machinedir = machinedir.split()[0]
+   if ":" in machinedir:
+      machinename = machinedir.split(":")[0]
+   else:
+      machinename = "we31869"
+   check = {}
+   check['machinename'] = machinename
+   queue = machinedata_collection.find(check)
+   entry = queue[0]
+   passwd  = entry['passwd']
+   machine = entry['machine']
+   if 'projectdir' in entry:
+      machine_projectdir = entry['projectdir']
+   else:
+      machine_projectdir = entry['snwcdir']
+
+   projectdir = machinedir.split(":")[-1]
+   if projectdir=='': projectdir = machine_projectdir
+   projectdir = projectdir.replace('//','/')
+
+   cmd0 = "ssh " + machine + " ls " + projectdir 
+   print "command:",cmd0
+   result = pexpect_command(cmd0,passwd)
+   print
+   print "filenames:"
+   pp = projectdir.split('/')
+   if (len(pp)>1):
+      if (pp[1]!=''):
+         projectdir0 = '/'.join(pp[0:-1])
+         if projectdir0=='': projectdir0='/'
+         projectdir0 = projectdir0.replace('//','/')
+         link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'list=' + machinename + ':' + projectdir0 
+         ref = "<a href=\"" + link + "\">%s</a>" % ".."
+         print ref
+   for filename in result.strip().split():
+      if '/' in filename:
+         link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'list=' + machinename + ':' + projectdir + '/' + filename.rstrip('/')  
+         ref = "<a href=\"" + link + "\">%s</a>" % filename
+         print ref
+      elif ('xyz' in filename) or ('ion_motion' in filename) or ('cif' in filename) or (".out" in filename):
+         link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'view=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'raw=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         link3 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'download=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         link4 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'raw_last=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         link5 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'xyz_raw_last=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         ref = "<a href=\"" + link + "\">%s</a> " % filename
+         ref2= "<a href=\"" + link2 + "\">%s</a>" % "(raw)"
+         ref3= "<a href=\"" + link3 + "\">%s</a>" % "(download)"
+         ref4= "<a href=\"" + link4 + "\">%s</a>" % "(raw_last)"
+         ref5= "<a href=\"" + link5 + "\">%s</a>" % "(xyz_raw_last)"
+         print ref+ref2+ref4+ref5+ref3
+      else:
+         link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'view=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'raw=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         link3 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'download=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         ref = "<a href=\"" + link + "\">%s</a> " % filename
+         ref2= "<a href=\"" + link2 + "\">%s</a>" % "(raw)"
+         ref3= "<a href=\"" + link3 + "\">%s</a>" % "(download)"
+         print ref+ref2+ref3
+
+if ("viewproject=" in jobscript):
+   project = jobscript.split("viewproject=")[1].split()[0]
+   if ':' in externfile0:
+      machinename = externfile0.split(':')[0]
+      externfile  = ':'.join(externfile0.split(':')[1:])
+   else:
+      machinename = "we31869"
+      externfile  = externfile0
+
+if ("view=" in jobscript) or ("genhtml=" in jobscript):
+   if ("genhtml" in jobscript):
+      externfile0 = jobscript.split("genhtml=")[1].split()[0]
+      datafile = externfile0.split("/")[-1]
+      wrkdir0 = UPLOAD_FOLDER.rstrip("/")
+   else:
+      externfile0 = jobscript.split("view=")[1].split()[0]
+      if ':' in externfile0:
+         machinename = externfile0.split(':')[0]
+         externfile  = ':'.join(externfile0.split(':')[1:])
+      else:
+         machinename = "we31869"
+         externfile  = externfile0
+      check = {}
+      check['machinename'] = machinename
+      queue = machinedata_collection.find(check)
+      entry = queue[0]
+      passwd  = entry['passwd']
+      machine = entry['machine']
+
+      datafile = externfile.split("/")[-1]
+      wrkdir0 = wrkdir
+      print "DATAFILE="+datafile
+      link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'download=' + machinename + ':' + externfile 
+      ref2= "<a href=\"" + link2 + "\">%s</a>" % ("download " + datafile)
+      print 
+      print ref2
+      print 
+
+      cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir0
+      print "copying: " + cmd0
+      result = pexpect_command(cmd0,passwd)
+      print result
+
+   if ".nw" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as nwfile:
+         nwinput = nwfile.read()
+      msg4 = nwinput2jsmol("0x3BBC52",nwinput)
+      print msg4
+      print nwinput
+
+   elif ".out" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as nwfile:
+         nwoutput = nwfile.read()
+      msg4 = nwout2jsmol("0x3BBC52",nwoutput)
+      print msg4
+      print nwoutput
+
+   elif ".xyz" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as xyzfile:
+         xyzdat = xyzfile.read()
+      
+      msg4 = xyzdat2jsmol("0x3BBC52",xyzdat,jobscript)
+      print msg4
+
+   elif ".ion_motion" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as xyzfile:
+         xyzdat = xyzfile.read()
+      
+      #msg4 = xyzdat2jsmol("0x3BBC52",xyzdat,jobscript,"ion_motion")
+      msg4 = xyzdat2jsmol("0x1AADD8",xyzdat,jobscript,"ion_motion")
+      print msg4
+
+   elif ".cif" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as xyzfile:
+         xyzdat = xyzfile.read()
+      
+      #msg4 = xyzdat2jsmol("0x3BBC52",xyzdat,jobscript,"cif")
+      msg4 = xyzdat2jsmol("#FFFFFF",xyzdat,jobscript,"cif")
+      print msg4
+
+   elif ".cube" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as xyzfile:
+         xyzdat = xyzfile.read()
+      
+      msg4 = gcube2jsmol("0x3BBC52",xyzdat)
+      print msg4
+
+   elif ".emotion" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = plotdatajs(edat)
+      print msg4
+
+   elif ".gr" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = gr_plotdatajs(edat,0,"Unfiltered",)
+      print msg4
+
+   elif ".cm.vdos" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = vdos_plotdatajs("cm-1",edat)
+      print msg4
+
+   elif ".THz.vdos" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = vdos_plotdatajs("THz",edat)
+      print msg4
+
+   elif ".vdos" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = vdos_plotdatajs("au",edat)
+      print msg4
+
+   elif ".hist" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = hist_plotdatajs(edat)
+      print msg4
+
+   elif (".dat" in datafile) and ("meta" in datafile):
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = data_plotdatajs(edat,"MetaDynamics")
+      print msg4
+
+   elif (".dat" in datafile):
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = xydata_plotdatajs(edat,"XY plot")
+      print msg4
+
+   elif (".neb_final_epath" in datafile):
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = xydata_plotdatajs("#Labels gamma E(au)\n" + edat,"NEB Pathway")
+      print msg4
+
+   elif (".neb_epath" in datafile):
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      #edat = edat.split("#")[-1]
+      #msg4 = xydata_plotdatajs("#Labels gamma E(au)\n#" + edat,"NEB Pathway")
+      cc = [b.split("#-------------------------------------------------------\n")[1].strip() for b in edat.split("# NEB Path iteration = ")[1:]]
+      xx = [x.split()[0] for x in cc[0].split("\n")]
+      yall = []
+      for c in cc:
+         yy = [y.split()[1] for y in c.split("\n")]
+         yall.append(yy)
+      edat  = "#Title NEB Pathways\n"
+      edat += "#Labels gamma "
+      for j in range(len(yall)):
+         edat += "Epath%d(au) " % j
+      edat += "\n"
+      for i in range(len(xx)):
+         edat += xx[i] + " "
+         for y in yall:
+            edat += y[i] + " "
+         edat += "\n"
+      msg4 = xydata_plotdatajs(edat,"NEB Pathways")
+      print msg4
+
+   elif ".dipole_powerspectrum" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = spectrum_plotdatajs(edat,"Dipole Power Spectrum")
+      print msg4
+
+   elif "POWER_SPECTRUM" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = spectrum_plotdatajs(edat,"Power Spectrum")
+      print msg4
+
+   elif "VELOCITY_SPECTRUM" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = spectrum_plotdatajs(edat,"Velocity Spectrum")
+      print msg4
+
+   elif "VEL_CORRELATION" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = correlation_plotdatajs(edat,"Velocity Correlation")
+      print msg4
+
+   elif "PAIR_DISTRIBUTION" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = xydata_plotdatajs(edat,"Pair Distribution Function")
+
+   elif "meta_gaussians" in datafile:
+      edat = '#Labels updatestep Gamma\n'
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         ii = 0
+         for ln in efile:
+            if ("#" not in ln):
+               edat += "%d  %s\n" % (ii,ln.split()[0])
+               ii += 1
+      msg4 = xydata_plotdatajs(edat,"metagaussians")
+      print msg4
+
+   elif ".dipole_correlation" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = correlation_plotdatajs(edat,"Dipole Correlation")
+      print msg4
+
+   elif ".dipole_motion" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 = dipoles_plotdatajs(edat)
+      print msg4
+   elif ".tamd_data" in datafile:
+      with open(wrkdir0+"/"+datafile,'r') as efile:
+         edat = efile.read()
+      msg4 =  tamd2_plotdatajs(edat,"TAMD - theta and ztamd versus time")
+      msg4 +=  tamd_plotdatajs(edat,"TAMD - ztamd versus theta",0,1,"collective variable","ztamd","chart1")
+      msg4 += tamd_plotdatajs(edat,"TAMD - E versus theta",0,3,"collective variable","energy","chart2")
+      msg4 += tamd_plotdatajs(edat,"TAMD - E versus ztamd",1,3,"ztamd","energy","chart3")
+      msg4 += tamd_plotdatajs(edat,"TAMD - Espring versus ztamd",1,7,"ztamd","Espring","chart4")
+      print msg4
+      print edat
+
+
+   else:
+      with open(wrkdir0+"/"+datafile,'r') as ofile:
+         msg4 = ofile.read()
+      print msg4
+
+if "download=" in jobscript:
+   externfile0 = jobscript.split("download=")[1].split()[0]
+   if ':' in externfile0:
+      machinename = externfile0.split(':')[0]
+      externfile  = ':'.join(externfile0.split(':')[1:])
+   else:
+      machinename = "we31869"
+      externfile  = externfile0
+   check = {}
+   check['machinename'] = machinename
+   queue = machinedata_collection.find(check)
+   entry = queue[0]
+   passwd  = entry['passwd']
+   machine = entry['machine']
+
+   datafile = externfile.split("/")[-1]
+   print "DATAFILE="+datafile
+   cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
+   print "copying: " + cmd0
+   result = pexpect_command(cmd0,passwd)
+   print result
+   print "DOWNLOAD FILE:"
+   
+   with open(wrkdir+"/"+datafile,'r') as ofile:
+      msg4 = ofile.read()
+   print msg4
+   print ":DOWNLOAD FILE"
+
+
+if "raw=" in jobscript:
+   externfile0 = jobscript.split("raw=")[1].split()[0]
+   if ':' in externfile0:
+      machinename = externfile0.split(':')[0]
+      externfile  = ':'.join(externfile0.split(':')[1:])
+   else:
+      machinename = "we31869"
+      externfile  = externfile0
+   check = {}
+   check['machinename'] = machinename
+   queue = machinedata_collection.find(check)
+   entry = queue[0]
+   passwd  = entry['passwd']
+   machine = entry['machine']
+
+   datafile = externfile.split("/")[-1]
+   print "DATAFILE="+datafile
+   cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
+   print "copying: " + cmd0
+   result = pexpect_command(cmd0,passwd)
+   print result
+   print "RAW_DATA:"
+
+   with open(wrkdir+"/"+datafile,'r') as ofile:
+      msg4 = ofile.read()
+   print msg4
+   print ":RAW_DATA"
+
+if "raw_last=" in jobscript:
+   externfile0 = jobscript.split("raw_last=")[1].split()[0]
+   if ':' in externfile0:
+      machinename = externfile0.split(':')[0]
+      externfile  = ':'.join(externfile0.split(':')[1:])
+   else:
+      machinename = "we31869"
+      externfile  = externfile0
+   check = {}
+   check['machinename'] = machinename
+   queue = machinedata_collection.find(check)
+   entry = queue[0]
+   passwd  = entry['passwd']
+   machine = entry['machine']
+
+   datafile = externfile.split("/")[-1]
+   print "DATAFILE="+datafile
+   cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
+   print "copying: " + cmd0
+   result = pexpect_command(cmd0,passwd)
+   print result
+   print "RAW_DATA:"
+
+   with open(wrkdir+"/"+datafile,'r') as ofile:
+      msg4 = ofile.read()
+   if ".out" in datafile:
+      if "xyz_raw_last" in jobscript:
+         print nwout2cifxyz(msg4,False)
+      else:
+         print nwout2cifxyz(msg4,True)
+   else:
+      print lastframeprune(msg4)
+   print ":RAW_DATA"
+
+
+
+if "raw_deposit=" in jobscript:
+   externfile0 = jobscript.split("raw_deposit=")[1].split()[0]
+   if ':' in externfile0:
+      machinename = externfile0.split(':')[0]
+      externfile  = ':'.join(externfile0.split(':')[1:])
+   else:
+      machinename = "we31869"
+      externfile  = externfile0
+   check = {}
+   check['machinename'] = machinename
+   queue = machinedata_collection.find(check)
+   entry = queue[0]
+   passwd  = entry['passwd']
+   machine = entry['machine']
+
+   datafile = externfile.split("/")[-1]
+   cmd0 = "scp " + UPLOAD_FOLDER+datafile + " " + machine + ":" + externfile 
+   #print "copying: " + cmd0
+   result0 = pexpect_command(cmd0,passwd)
+   #print result0
+   os.unlink(UPLOAD_FOLDER+datafile)
+
+
+if "submit_nwchem3=" in jobscript:
+   externfile0 = jobscript.split("submit_nwchem3=")[1].split()[0]
+   if ':' in externfile0:
+      machinename = externfile0.split(':')[0]
+      externfile  = externfile0.split(':')[1]
+   else:
+      machinename = "we31869"
+      externfile  = externfile0
+   check = {}
+   check['machinename'] = machinename
+   queue = machinedata_collection.find(check)
+   entry = queue[0]
+   passwd  = entry['passwd']
+   machine = entry['machine']
+
+   filename  = externfile.rstrip("/").split("/")[-1]
+   externdir = "/".join(externfile.rstrip("/").split("/")[0:-1])
+
+   submit_nwchem3 = "cd " + externdir + "; /home/bylaska/bin/submit_nwchem3 " + filename
+
+   cmd0 = "ssh " + machine + " \"" + submit_nwchem3 + "\""
+   result0 = pexpect_command(cmd0,passwd)
+
+   print result0

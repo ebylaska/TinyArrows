@@ -1,0 +1,14 @@
+#!/bin/csh
+
+
+
+setenv DISPLAY :10
+
+#Xorg -noreset +extension GLX +extension RANDR +extension RENDER -logfile ./10.log -config ./xorg.conf :10
+#Xorg -noreset +extension GLX +extension RANDR +extension RENDER  -config /srv/arrows/xorg.conf :10
+
+
+#java -Xmx512m -jar /srv/arrows/Codes/jmol-14.4.1_2016.01.15/Jmol.jar  $1
+#java -Xmx512m -jar /srv/arrows/Codes/jmol-14.11.2/Jmol.jar  $1
+/usr/bin/xvfb-run java -Xmx512m -jar /srv/arrows/Codes/jmol-14.11.2/Jmol.jar  $1
+

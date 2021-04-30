@@ -1,0 +1,726 @@
+#!/usr/bin/python
+
+import pymongo
+import sys,os,time,pickle,pexpect,getopt,subprocess,datetime,glob
+from math import *
+
+##### check to see if we17860.emsl.pnl.gov can be pinged ######
+#cmd = "/bin/ping -c3 we17860.emsl.pnl.gov"
+cmd = "/bin/ping -c3 we31869.emsl.pnl.gov"
+#cmd = "/bin/ping -c3 arrows.emsl.pnl.gov"
+try:
+   aaoutput = subprocess.check_output(cmd,shell=True)
+   if 'ms' not in aaoutput:
+      print "we17860.emsl.pnl.gov not avaiable.  Exiting"
+      exit()
+except:
+   print cmd + " failed.  Exiting."
+   exit()
+##### check to see if we17860.emsl.pnl.gov can be pinged ######
+
+
+
+####################### mongoDB ###############################
+with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+mongo_client         = pymongo.MongoClient(uri)
+arrows_db            = mongo_client.Arrows
+nwchem_collection    = arrows_db.nwchem_queue
+dqueue_collection    = arrows_db.nwchem_dqueue
+addchemdb_collection = arrows_db.nwchem_addchemdb
+qnumber_collection   = arrows_db.queue_number
+machine_collection   = arrows_db.nwchem_machinedata
+####################### mongoDB #############################
+
+############## machine parameters #########################
+submit_machine = 'arrows.emsl.pnl.gov'
+lsnwcdir   = "/srv/arrows/Codes/InSilico/nwqueue"
+#queuename  = "nwchem.q"
+#oqueuename = "/oldqueues/dqueue00002.q"
+chemdb_add_nwout = "/srv/arrows/bin/chemdb_add_nwout7 "
+curdir   = os.getcwd()
+lockfilename = "/srv/arrows/Projects/Work/queue.lock"
+############## machine parameters #########################
+
+goodmachinelist = []
+badmachinelist  = []
+
+#### functions ####
+def ping_machine(machine):
+   global goodmachinelist
+   global badmachinelist
+   if machine in goodmachinelist:
+      found = True
+   elif machine in badmachinelist:
+      found = False
+   else:
+      cmd = "/bin/ping -c3 " + machine
+      found = True
+      try:
+         aaoutput = subprocess.check_output(cmd,shell=True)
+         if 'ms' not in aaoutput:
+            print machine + " not avaiable.  Exiting"
+            found = False
+            badmachinelist.append(machine)
+         else:
+            goodmachinelist.append(machine)
+      except:
+         print machine + " not avaiable.  Exiting"
+         found = False
+         badmachinelist.append(machine)
+
+   return found
+
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      machine = pcmd.split('@')[1].split(':')[0]
+      machine = machine.split()[0]
+      if ('nersc.gov' in machine): 
+         found = True
+      else:
+         found = ping_machine(machine)
+      #found = True
+      if (found):
+         # my ssh command line
+         p=pexpect.spawn(pcmd)
+         p.timeout = 100
+         i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+         if i==0:
+             print "I say yes"
+             p.sendline('yes')
+             p.timeout = 1000
+             i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+         if i==1:
+             print "sending password",
+             p.sendline(mypassword)
+             p.timeout = 1000
+             p.expect(pexpect.EOF)
+         elif i>=2:
+             print "either received key or connection timeout"
+             pass
+         print p.before # print out the result
+
+
+def queuewait_check(queuewait):
+   #
+   notfound = True
+
+   ## check against qnumber_max ##
+   qnumber_max  = qnumber_collection.find_one({'queue':'nwchem'})['count']
+   for qw in queuewait:
+      if (qw>=qnumber_max): notfound = False
+
+   for job in nwchem_collection.find():
+      qnumber = job['queue_number']
+      for qw in queuewait:
+         if (qnumber==qw): notfound = False
+
+
+   return notfound
+
+
+
+
+############################# main program ###################################
+
+usage = \
+"""
+Checks the NWChem queue
+
+  Usage: queue_nwchem -t -a -m machine -h
+
+  -t transfer data in transfer_files list even if not finished
+  -a check all queue jobs, not just current directory
+  -b check all queue jobs in the current directory and below
+  -m only checks queue on machine
+  -s only checks the queue status - does not transfer data
+  -h prints this message
+  -q does a showq on machine
+  -o list finished jobs
+  -f checks for failed jobs
+  -y days - check jobs fromdate
+  -d delete queue_number
+
+"""
+
+
+print "nwchem queue checker - " + submit_machine + "\n"
+tt      = time.localtime()
+ddtt  = "%d-%d-%d-%d:%d" % (tt[0],tt[1],tt[2],tt[3],tt[4])
+
+machinename = ''
+allmachines    = True
+transfer_files = False
+alldirectories = False
+belowdirectories = False
+onlycheck      = False
+oldcheck       = False
+doshowq        = False
+dofromdate     = False
+failcheck      = False
+deletequeue    = False
+queue_number   = -11111
+opts, args = getopt.getopt(sys.argv[1:], "toy:sabm:f:q:d:hc:")
+for o, a in opts:
+  if '-t' in o:
+    transfer_files = True
+  if '-o' in o:
+    oldcheck = True
+  if '-s' in o:
+    onlycheck = True
+  if '-a' in o:
+    alldirectories = True
+  if '-b' in o:
+    belowdirectories = True
+  if '-f' in o:
+    failcheck = True
+  if '-m' in o:
+     machinename = a
+     allmachines = False
+  if '-q' in o:
+     machinename = a
+     doshowq     = True
+  if '-c' in o:
+     fromdate = a
+     dofromdate = True
+  if '-y' in o:
+     days = eval(a)
+     yesterday = datetime.date.today()-datetime.timedelta(days)
+     yesterday = yesterday.timetuple()
+     fromdate =  "%d-%s-%s-%s:%s" % (yesterday[0],str(yesterday[1]).zfill(2),str(yesterday[2]).zfill(2),str(yesterday[3]).zfill(2),str(yesterday[4]).zfill(2))
+     dofromdate = True
+  if '-d' in o:
+     deletequeue = True
+     queue_number = eval(a)
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+
+jqueued   = 0
+jfinished = 0
+jrunning  = 0
+nqueued    = []
+nqueued2   = []
+nqueued3   = []
+
+nrunning   = []
+nrunning2  = []
+nrunning3  = []
+
+nfinished  = []
+nfinished2 = []
+nfinished3 = []
+
+nsqueued   = []
+nsqueued2  = []
+nsqueued3  = []
+nsqueued4  = []
+
+addchemdb_cmds = []
+
+dqueue = []
+nqueue = []
+
+if (deletequeue):
+   print " - removing queue_number = %d\n" % queue_number
+   qt = {}
+   qt['queue_number']  = queue_number 
+   try:
+      tt = nwchem_collection.remove(qt)
+      print " - successfully deleted, result=", tt
+   except:
+      print " - not successful"
+   exit()
+
+##### get finished jobs ####
+if (oldcheck):
+   print "Checking finished jobs:"
+   fjobs = 0
+   for job in dqueue_collection.find():
+      if (((job['curdir']==curdir) or alldirectories or ((job['curdir'].find(curdir)!=-1) and belowdirectories)) and ((job['machinename']==machinename) or allmachines)):
+         machine = job['machine']
+         dir = machine + ":" + job['permdir']
+         name = job['name2']
+         name2 = job['nwchem_output']
+         dname2 = job['nwchem_done']
+         tts = pickle.loads(job['submit_time'])
+         dds = "%d-%s-%s-%s:%s" % (tts[0],str(tts[1]).zfill(2),str(tts[2]).zfill(2),str(tts[3]).zfill(2),str(tts[4]).zfill(2))
+         ok = True
+         if (job.has_key('finish_time')):
+            ttf = pickle.loads(job['finish_time'])
+            ddf = "%d-%s-%s-%s:%s" % (ttf[0],str(ttf[1]).zfill(2),str(ttf[2]).zfill(2),str(ttf[3]).zfill(2),str(ttf[4]).zfill(2))
+            if (dofromdate): ok = (ddf>fromdate)
+         else:
+            ddf = "unknown"
+            if (dofromdate): ok = (dds>fromdate)
+         if (ok):
+            fjobs += 1
+            print "    - %6d submitted= %15s finished= %15s  %25s \n             machine  = %25s\n             dir      = %s \n             curdir   = %s\n" % (job['queue_number'],dds,ddf,job['name2'],job['machine'],dir,job['curdir'])
+        #print "    - ", job['queue_number']," submitted=",dds," finished=",ddf, "  ",job['name2'], "  ",job['machine']," dir=",dir," curdir=",job['curdir']
+   print "Number of finished jobs since %s = %d" % (fromdate,fjobs)
+   exit()
+
+
+##### get job on queue ####
+spokane_q = nwchem_collection.find()
+
+if (doshowq):
+   i = 0
+   found = False
+   while ((not found) and (i<spokane_q.count())):
+      job = spokane_q[i]
+      if (job['machinename']==machinename): found = True
+      i += 1
+
+   if (found):
+      qt = {}
+      qt['machinename'] = job['machinename']
+      qq = machine_collection.find_one(qt)
+      mypasswd = qq['passwd']
+      showq    = qq['showq']
+      print "\nshowq " + job['machine'] + ":\n"
+      rcmd0 = "ssh " + job['machine'] + " " + showq
+      try:
+         pexpect_command(rcmd0,mypasswd)
+      except:
+         print "Failed showq"
+   else:
+      print "\nshowq failed: No jobs are currently on the queue for " + machinename 
+   exit()
+
+
+if (onlycheck):
+   qt = {}
+   machinedata = machine_collection.find(qt)
+   machinejobs = {}
+   machinemsg  = {}
+   for mach in machinedata:
+      mname = mach['machinename']
+      machinejobs[mname] = []
+      machinemsg[mname]  = "jobs submitted on " + mname + ":\n"
+
+   print "queue status:\n" 
+   jj = 0
+   for job in spokane_q:
+      mname = job['machinename']
+      jj += 1
+      #job = spokane_q[i]
+      if (((job['curdir']==curdir) or alldirectories or ((job['curdir'].find(curdir)!=-1) and belowdirectories)) and ((job['machinename']==machinename) or allmachines)):
+         machine = job['machine']
+         dir = machine + ":" + job['permdir']
+         name = job['name2']
+         name2 = job['nwchem_output']
+         dname2 = job['nwchem_done']
+
+         #print "job=",name," dir=",dir
+         eoln = "\n"
+         msg  = "    - %7d" % job['queue_number']
+         msg += "  "+job['name2']+eoln
+         msg += "               machine       ="+job['machinename']+"  "+job['machine'] + eoln
+         msg += "               submit_machine="+job['submit_machine'] + eoln
+         msg += "               dir   ="+dir + eoln
+         msg += "               curdir="+job['curdir'] + eoln
+         msg += "               status="+job['status'] + eoln
+         machinemsg[mname] += msg
+         #print msg
+      machinejobs[mname].append(job)
+
+   for key,val in machinemsg.iteritems():
+      if (len(val)>45): 
+         print val
+   
+   smsg = ""
+   for key,val in machinejobs.iteritems():
+      smsg +=  key + "(%d) " % (len(val))
+   stmp = smsg.split()
+   stmp.sort()
+   smsg = " ".join(stmp)
+   tmsg = "number of jobs submitted: " + smsg
+   print tmsg
+   print "number of jobs queued  =",jj
+   
+   exit()
+
+
+
+### lockfile ###
+if os.path.isfile(lockfilename):
+   print "currently locked by " + lockfilename
+   exit()
+
+with open(lockfilename,'w') as lfile: lfile.write("iamlocked\n")
+
+#for job in spokane_q:
+#   job = spokane_q[i]
+
+### get queue_numbers ###
+queue_number_list = []
+for job in spokane_q:
+   if (((job['curdir']==curdir) or alldirectories or ((job['curdir'].find(curdir)!=-1) and belowdirectories)) and ((job['machinename']==machinename) or allmachines) and (job['submit_machine']==submit_machine)):
+
+      queue_number_list.append(job['queue_number'])
+   else:
+      nqueue.append(job['queue_number'])
+
+print "queue_nwchem3: There are %d entries being parsed." % len(queue_number_list)
+
+### cycle over the queue ###
+for qnum in queue_number_list:
+   qqt = {}
+   qqt['queue_number'] = qnum
+   job = nwchem_collection.find_one(qqt)
+
+   jobsubmitted = (job['status'] == 'submitted')
+    
+   qt = {}
+   qt['machinename'] = job['machinename']
+   qq = machine_collection.find_one(qt)
+   mypasswd = qq['passwd']
+
+   if (jobsubmitted):
+      machine = job['machine']
+      dir = machine + ":" + job['permdir']
+      name = job['name2']
+      name2 = job['nwchem_output']
+      dname2 = job['nwchem_done']
+
+
+      queuesave = False
+      if (job.has_key('queuesave')==True):
+         queuesave = job['queuesave']=='y'
+
+      dname = lsnwcdir + "/done/"    + name + ".done"
+      oname = lsnwcdir + "/outputs/" + name + ".out"
+      oname2 = job['curdir'] + "/" + name2 
+      dname2 = job['curdir'] + "/" + job['nwchem_done']
+      edname = dir +"/" + name + ".done"
+      eoname = dir +"/" + name + ".out"
+      dcmd = "scp " + edname + " " + dname2
+      dcmd2 = "cp " + dname2  + " " + dname
+      ocmd = "scp " + eoname + " " + oname
+      ocmd2 = "scp " + eoname + " " + oname2
+      rcmd1 = "ssh " + machine + " rm -f " + job['permdir'] + "/*"
+      rcmd2 = "ssh " + machine + " rmdir " + job['permdir'] 
+         
+      chemdb_cmd = chemdb_add_nwout + oname2
+      chemdb_cmd_job = {}
+      chemdb_cmd_job['chemdb_cmd']   = chemdb_cmd
+      chemdb_cmd_job['queue_number'] = job['queue_number']
+      chemdb_cmd_job['submit_machine'] = submit_machine
+
+
+      print "job=",name," dir=",dir
+
+      # read done file
+      print "copying ...",dcmd
+      try:
+         pexpect_command(dcmd,mypasswd)
+      except:
+         print "failed copying ...",dcmd
+      if (queuesave) :
+         os.system(dcmd2)
+      try:
+         dfile = open(dname2,'r'); ccc = dfile.readline(); dfile.close()
+      except:
+         ccc = "iamdone"
+
+      # read output file if iamdone or iamnotdone
+      if ((ccc.strip()=="iamdone") or (ccc.strip()=="iamnotdone")):
+         print "copying ...",ocmd2
+         try:
+            pexpect_command(ocmd2,mypasswd)
+         except:
+            print "queue_nwchem3: failed to run "+ ocmd2
+
+         try:
+            jobstopped = False
+            dfile = open(oname2,'r')
+            for line in dfile:
+               if "Terminate signal was sent, status=: 15" in line: jobstopped = True
+            dfile.close()
+         except:
+            jobstopped = False
+         if jobstopped: ccc = "iamdone"
+
+
+      ### remove iamcompleted jobs from queue ###
+      if (ccc.strip()=="iamcompleted"):
+         print "queue_nwchem3: this is a iamcompleted job."
+         job['finish_time']       = pickle.dumps(tt)
+         job['finish_time_ascii'] = ddtt
+         dqueue.append(job['queue_number'])
+         try:
+            dqueue_collection.insert(job)
+         except:
+            print "queue_nwchem3: Did not dqueue!"
+         jfinished+=1; nfinished.append(job['name2']); nfinished2.append(job['queue_number']);nfinished3.append(job['machine'])
+
+
+
+      # copy files if done
+      if (ccc.strip()=="iamdone"):
+         #print "copying ...",ocmd2
+         #pexpect_command(ocmd2,mypasswd)
+         if (queuesave): 
+            print "copying ...",ocmd
+            try:
+               pexpect_command(ocmd,mypasswd)
+            except:
+               print "failed copying ...",ocmd
+         if (job.has_key('transfer_files')):
+            print "transfering files...",job['transfer_files']
+            for ff in job['transfer_files']:
+               tcmd = "scp \"" + machine + ":" + job['permdir'] + "/" + ff + "\" " 
+               #tcmd += job['curdir'] + "/" + ff
+               tcmd += job['curdir'] + "/"
+               print "copying ...",tcmd
+               try:
+                  pexpect_command(tcmd,mypasswd)
+               except:
+                  print "failed copying ...",tcmd
+
+            ### check for cube files ###
+            cubefiles = ''
+            for ggg in glob.glob(job['curdir'] + "/*.cube"):
+               cubefiles += ggg
+               cubefiles +=  ' '
+            if (cubefiles!=''):
+               chemdb_cmd = chemdb_add_nwout + ' -z \"' + cubefiles.strip() + '\" ' + oname2
+               chemdb_cmd_job['chemdb_cmd']   = chemdb_cmd
+
+
+         if (job.has_key('addtochemdb')):
+            if (job['addtochemdb']=='y'):
+               #os.system(chemdb_cmd)
+               addchemdb_cmds.append(chemdb_cmd)
+               addchemdb_collection.insert(chemdb_cmd_job)
+               print "appended to addtochemdb = ",chemdb_cmd
+               #result = subprocess.check_output(chemdb_cmd,shell=True)
+            elif (job['addtochemdb']!='n'):
+               hupdbtb = ''
+               if ('hup:' and ':hup' in job['addtochemdb']):
+                  hup = job['addtochemdb'].split('hup:')[1].split(':hup')[0].strip() + '"'
+                  hupdbtb += '-h "' + hup + '"'
+               if ('db:' and ':db' in job['addtochemdb']):
+                  db = job['addtochemdb'].split('db:')[1].split(':db')[0].strip() + '"'
+                  hupdbtb += '-d ' + db
+               if ('tb:' and ':tb' in job['addtochemdb']):
+                  tb = job['addtochemdb'].split('tb:')[1].split(':tb')[0].strip() + '"'
+                  hupdbtb += '-t ' + tb
+               hupdbtb += ' '
+               chemdb_cmd2 = chemdb_add_nwout + hupdbtb + oname2
+               chemdb_cmd2_job = {}
+               chemdb_cmd2_job['chemdb_cmd'] = chemdb_cmd2
+               chemdb_cmd2_job['queue_number'] = job['queue_number']
+               addchemdb_cmds.append(chemdb_cmd2)
+               addchemdb_collection.insert(chemdb_cmd2_job)
+               print "appended to addtochemdb = ",chemdb_cmd2
+               #os.system(chemdb_cmd2)
+
+         if (job['deletepermdir']=='y'):
+            print "removing...",rcmd1
+            print "        ...",rcmd2
+            try:
+               pexpect_command(rcmd1,mypasswd)
+               pexpect_command(rcmd2,mypasswd)
+            except:
+               print "queue_nwchem3: directory is probably missing!"
+
+         try:
+            dfile = open(dname2,'w'); 
+            dfile.write("iamcompleted\njobfiles:\n")
+            for ajj in job['alljobfiles']: dfile.write(ajj+"\n")
+            dfile.close()
+         except:
+            print "queue_nwchem3: directory is probably missing!"
+
+         job['finish_time']       = pickle.dumps(tt)
+         job['finish_time_ascii'] = ddtt
+         dqueue.append(job['queue_number'])
+         try:
+            dqueue_collection.insert(job)
+         except:
+            print "queue_nwchem3: Did not dqueue!"
+         jfinished+=1; nfinished.append(job['name2']); nfinished2.append(job['queue_number']);nfinished3.append(job['machine'])
+
+      else:
+         nqueue.append(job['queue_number'])
+         if (ccc.strip()=="iamnotdone"):
+            jrunning+=1; nrunning.append(job['name2']); nrunning2.append(job['queue_number']);nrunning3.append(job['machine'])
+            #print "copying ...",ocmd2
+            #pexpect_command(ocmd2,mypasswd)
+            if (job.has_key('transfer_files') and transfer_files):
+               print "transfering files...",job['transfer_files']
+               for ff in job['transfer_files']:
+                  tcmd = "scp \"" + machine + ":" + job['permdir'] + "/" + ff + "\" " 
+                  #tcmd += job['curdir'] + "/" + ff
+                  tcmd += job['curdir'] + "/"
+                  print "copying ...",tcmd
+                  try:
+                     pexpect_command(tcmd,mypasswd)
+                  except:
+                     print "transfering files...Failed"
+                  
+
+         elif (ccc.strip()=="iamnotstarted"):
+            jqueued+=1; nqueued.append(job['name2']); nqueued2.append(job['queue_number']);nqueued3.append(job['machine'])
+   else:
+      nqueue.append(job['queue_number'])
+      nsqueued.append(job['name2'])
+      nsqueued2.append(job['queue_number'])
+      nsqueued3.append(job['machine'])
+      nsqueued4.append(job['queuewait'])
+   
+
+#remove dqueue list from nwchem_collection
+if (len(dqueue) > 0):
+   for i in range(len(dqueue)):
+      try:
+         nwchem_collection.remove({'queue_number':dqueue[i]})
+      except:
+         print "queue_nwchem3: Failed to remove queue_number=",dqueue[i], " from the nwchem_queue"
+
+   
+print "\n\n"
+print "queue statistics for " + submit_machine + ":"
+
+print "\nnumber of jobs finished=",jfinished
+for i in range(len(nfinished)): 
+   print "    - ", nfinished2[i],"  ",nfinished[i], "  ",nfinished3[i]
+
+print "\nnumber of jobs running =",jrunning
+for i in range(len(nrunning)): 
+   print "    - ",nrunning2[i],"  ",nrunning[i], "  ",nrunning3[i]
+
+print "\nnumber of jobs queued  =",jqueued
+for i in range(len(nqueued)):  
+   print "    - ", nqueued2[i],"  ",nqueued[i], "  ",nqueued3[i]
+
+print "\nnumber of jobs not submitted  =",len(nsqueued)
+for i in range(len(nsqueued)):  
+   print "    - ", nsqueued2[i],"  ",nsqueued[i], "  ",nsqueued3[i]," ",nsqueued4[i]
+
+print "\n\nnqueue length =",len(nqueue)
+print "dqueue length =",len(dqueue)
+#print "dqueue=",dqueue
+
+print "\n\nchecking for jobs to submit\n\n"
+
+
+### look for jobs that need to be submitted ###
+qt2 = {}
+qt2['status'] = 'not submitted'
+spokane_q = nwchem_collection.find(qt2)
+
+jobsubmitted = False
+resetqueue = []
+for job in spokane_q:
+   jobnotsubmitted = (job['status'] == 'not submitted')
+   if (jobnotsubmitted):
+
+      submitjob = True
+      if (job.has_key('queuewait')):
+         submitjob = queuewait_check(job['queuewait'])
+
+      if (submitjob):
+         wfile = open(job['inputfile'],'w')
+         wfile.write(job[job['name']+'^nw'])
+         wfile.close()
+
+         wfile = open(job['pbsinputfile'],'w')
+         wfile.write(job['nwchem^pbs'])
+         wfile.close()
+
+         for cmd in job['cmd_os']:
+            try:
+               os.system(cmd)
+            except:
+               print "queue_nwchem3: Failed os.system cmd=",cmd
+
+         for cmd in job['cmd_pexpect']:
+            try:
+               pexpect_command(cmd,mypasswd)
+            except:
+               print "queue_nwchem3: Failed pexpect_command cmd=",cmd
+
+         if (job['savetempfiles']==False):
+            os.system("rm " + job['pbsinputfile'] + " " + job['inputfile'])
+
+         job['status'] = 'submitted'
+         nwchem_collection.update({'queue_number':job['queue_number']},{'$set':{'status':'submitted'}},upsert=False,multi=False)
+         jobsubmitted  = True
+
+         print " "
+         print "waiting job submitted"
+         print "nwchem_input  = ", job['nwchem_input']
+         print "nwchem_output = ", job['nwchem_output']
+         print "nwchem_done   = ", job['nwchem_done']
+         print "permdir       = ", job['permdir']
+         print "deletepermdir = ", job['deletepermdir']
+         print "queuesave     = ", job['queuesave']
+         print "machine       = ", job['machine']
+         print "number cpus   = ", job['ncpus']
+         print "queue time    = ", job['cputime']
+         print "queue         = ", job['queue']
+         print "status        = ", job['status']
+         print "queue_number  = ", job['queue_number']
+         if (job.has_key('queuewait')):
+            print "queuewait     = ", job['queuewait']
+         print " "
+   #resetqueue.append(job)
+
+###### reset the queue if jobsubmitted #####
+#if (jobsubmitted):
+#   qfile = open(lsnwcdir + "/" + queuename,'w')
+#   pickle.dump(resetqueue,qfile)
+#   qfile.close()
+#   print "\n\nresetqueue length =",len(resetqueue)
+
+
+##### run addtochemdb commands ####
+print "\n\nchecking for jobs to add to chemdb\n\n"
+toolongcountmax = 50
+toolongcount = 0
+toolong = False
+qt = {}
+qt['submit_machine'] = submit_machine
+while ((addchemdb_collection.find(qt).count() > 0) and (not toolong)):
+   chemdb_cmd_job = addchemdb_collection.find_one(qt)
+   chemdb_cmd     = chemdb_cmd_job['chemdb_cmd']
+   queue_number   = chemdb_cmd_job['queue_number']
+   if ('submit_machine' in chemdb_cmd_job):
+      if (chemdb_cmd_job['submit_machine']==submit_machine):
+         try:
+            result = subprocess.check_output(chemdb_cmd,shell=True)
+         except:
+            result = "chemdb_cmd failed: " + chemdb_cmd
+         print "queue_nwchem3: chemdb_cmd result= ",result
+
+         try:
+            addchemdb_collection.remove({'queue_number':queue_number})
+         except:
+            print "queue_nwchem3: Failed to remove addchemdb entry, queue_number=",queue_number
+
+   toolong = (toolongcount > toolongcountmax)
+   toolongcount += 1
+
+
+#for chemdb_cmd in addchemdb_cmds:
+#   try:
+#      result = subprocess.check_output(chemdb_cmd,shell=True)
+#      print "queue_nwchem3: chemdb_cmd result= ",result
+#   except:
+#      print "queue_nwchem3: Failed to add job to chemdb_cmd"
+
+
+### remove lockfilename ###
+try:
+   os.unlink(lockfilename)
+except:
+   print "queue_nwchem3: failed to remove " + lockfilename
+
+

@@ -1,0 +1,640 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+import datetime,re
+from bson.objectid import ObjectId
+from math import *
+
+####################### mongoDB #############################
+#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+mongo_client                     = pymongo.MongoClient(uri)
+arrows_db                        = mongo_client.Arrows
+chemdb_queue_collection          = arrows_db.chemdb_queue_nwchem_collection
+qnumber_collection               = arrows_db.queue_number
+####################### mongoDB #############################
+
+############## machine parameters #########################
+wrkdir           = "/srv/arrows/Work"
+curdir           = os.getcwd()
+chemdbdir        = "/srv/arrows/Public/chemdb_hold"
+############## machine parameters #########################
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+def ireplace(old, new, text):
+    idx = 0
+    while idx < len(text):
+        index_l = text.lower().find(old.lower(), idx)
+        if index_l == -1:
+            return text
+        text = text[:index_l] + new + text[index_l + len(old):]
+        idx = index_l + len(old)
+    return text
+
+
+periodic_table_valence_charge = { 'H'  : 1, 'He' : 2, 'Li' : 1, 'Be' : 2, 'B'  : 3, 'C'  : 4, 'N'  : 5, 'O'  : 6, 'F'  : 7, 'Ne' : 8, 'Na' : 1, 'Mg' : 2, 'Al' : 3, 'Si' : 4, 'P'  : 5, 'S'  : 6, 'Cl' : 7, 'Ar' : 8, 'K'  : 1, 'Ca' : 2, 'Sc' : 3, 'Ti' : 4, 'V'  : 5, 'Cr' : 6, 'Mn' : 7, 'Fe' : 8, 'Co' : 9, 'Ni' : 10, 'Cu' : 11, 'Zn' : 12, 'Ga' : 3, 'Ge' : 4, 'As' : 5, 'Se' : 6, 'Br' : 7, 'Kr' : 8, 'Rb' : 1, 'Sr' : 2, 'Y'  : 3, 'Zr' : 4, 'Nb' : 5, 'Mo' : 6, 'Tc' : 7, 'Ru' : 8, 'Rh' : 9, 'Pd' : 10, 'Ag' : 11, 'Cd' : 12, 'In' : 3, 'Sn' : 4, 'Sb' : 5, 'Te' : 6, 'I'  : 7, 'Xe' : 8, 'Cs' : 1, 'Ba' : 2, 'La' : 3, 'Ce' : 4, 'Pr' : 5, 'Nd' : 6, 'Pm' : 7, 'Sm' : 8, 'Eu' : 9, 'Gd' : 10, 'Tb' : 11, 'Dy' : 12, 'Ho' : 13, 'Er' : 14, 'Tm' : 15, 'Yb' : 16, 'Lu' : 17, 'Hf' : 4, 'Ta' : 5, 'W'  : 6, 'Re' : 7, 'Os' : 8, 'Ir' : 9, 'Pt' : 10, 'Au' : 11, 'Hg' : 12, 'Tl' : 3, 'Pb' : 4, 'Bi' : 5, 'Po' : 6, 'At' : 7, 'Rn' : 8, 'Fr' : 1, 'Ra' : 2, 'Ac' : 3, 'Th' : 4, 'Pa' : 5, 'U'  : 6, 'Np' : 7, 'Pu' : 8, 'Am' : 9, 'Cm' : 10, 'Bk' : 11, 'Cf' : 12, 'Es' : 13, 'Fm' : 14, 'Md' : 15, 'No' : 16, 'Lr' : 17, 'Rf' : 4, 'Ha' : 5, 'Sg' : 6, 'Bh' : 7, 'Hs' : 8, 'Mt' : 9 }
+
+
+#############################################
+#                                           #
+#        nwinput2vcharge                    #
+#                                           #
+#############################################
+def nwinput2vcharge(nwinput):
+   vcharge = 0
+   rstring = ireplace("GEOMETRY", "geometry", nwinput)
+   rstring = ireplace("END", "end", rstring)
+   if ("geometry" in rstring) and ("end" in rstring):
+      geoms = rstring.split("geometry")
+      for geom in geoms[1:]:
+         geom2 = geom.split('end')[0]
+         vc = 0
+         for ll in geom2.split("\n"):
+            ss = ll.split()
+            if (len(ss)>0):
+               symbol = ss[0].title()
+               if symbol in periodic_table_valence_charge:
+                  vc += periodic_table_valence_charge[symbol]
+         if (vc>vcharge): vcharge = vc
+
+   return vcharge
+   
+#############################################
+#                                           #
+#        nwinput2machinetype                #
+#                                           #
+#############################################
+
+def nwinput2machinetype(nwinput):
+   vcharge = nwinput2vcharge(nwinput)
+   theory = "unknown"
+   if "pspw4"     in nwinput.lower(): theory = "pspw4"
+   elif "pspw"    in nwinput.lower(): theory = "pspw"
+   elif "dft"     in nwinput.lower(): theory = "dft"
+   elif "mp2"     in nwinput.lower(): theory = "mp2"
+   elif "ccsd(t)" in nwinput.lower(): theory = "ccsd(t)"
+
+   vachinetype = "toobig"
+   if ('ccsd(t)' in theory):
+      if vcharge<50:
+         vachinetype = 'large'
+   elif ('mp2' in theory):
+      if vcharge<80:
+         vachinetype = 'large'
+   elif ('pspw' in theory):
+      if vcharge<50:
+         vachinetype = 'small'
+      elif vcharge<150:
+         vachinetype = 'medium'
+      else:
+         vachinetype = 'large'
+   else:
+      if vcharge<30:
+         vachinetype = 'tiny'
+      elif vcharge<50:
+         vachinetype = 'small'
+      elif vcharge<100:
+         vachinetype = 'medium'
+      elif vcharge<200:
+         vachinetype = 'large'
+
+   if vcharge==0: vachinetype = 'unknown'
+
+   return vachinetype
+
+
+
+############################# main program ###################################
+usage = \
+"""
+chemdb_queue_nwchem program
+
+  Usage: chemdb_queue_nwchem -a nwchem_input -d queue_entry -f queue_entry -l
+
+  -l list entries
+  -s submit finished nwchem entries to chemdb_add_nwout
+  -a nwinput_file
+  -b label
+  -d delete queue_entry
+  -x force delete queue_entry
+  -y force fetch nwchem input deck
+  -f fetch nwchem input deck
+  -w 
+  -z
+  -r reset queue_entry
+
+"""
+
+
+print
+print "#chemdb_queue_nwchem - version 1.0"
+print
+tt      = time.localtime()
+
+submitqueue2 = False
+listqueues = True
+listqueues2= False
+addqueue   = False
+delqueue   = False
+delqueue2  = False
+runqueue   = False
+outqueue   = False
+resetqueue = False
+add_fetch = False
+forcedelqueue = False
+forcefetch    = False
+extra_datafiles = ''
+nwinputfile      = ''
+nwoutfile      = ''
+label           = ''
+vtag            = ''
+queue_name = ''
+opts, args = getopt.getopt(sys.argv[1:], "a:b:d:x:y:e:f:q:g:w:z:r:lskh")
+for o, a in opts:
+  if '-l' in o:
+     listqueues = True
+  if '-k' in o:
+     listqueues2 = True
+     queue_name = a
+  if '-a' in o:
+     nwinputfile = a
+     listqueues = False
+     addqueue   = True
+  if '-b' in o:
+     label = a
+  if '-r' in o:
+     try:
+        reset_queue_number = eval(a)
+        listqueues = False
+        resetqueue = True
+     except:
+        listqueues = True
+        resetqueue = False
+  if '-d' in o:
+     try:
+        delete_queue_number = a
+        listqueues = False
+        delqueue   = True
+     except:
+        listqueues = True
+        delqueue   = False
+  if '-x' in o:
+     try:
+        delete_queue_number = a
+        listqueues = False
+        delqueue   = True
+        forcedelqueue   = True
+     except:
+        listqueues = True
+        delqueue   = False
+  if '-e' in o:
+     try:
+        delete2_queue_number = eval(a)
+        listqueues = False
+        delqueue2   = True
+     except:
+        listqueues2 = True
+        delqueue2   = False
+  if '-f' in o:
+     try:
+        run_queue_number = a
+        listqueues = False
+        runqueue   = True
+        add_fetch  = True
+     except:
+        listqueues = True
+        runqueue   = False
+  if '-y' in o:
+     try:
+        run_queue_number = a
+        listqueues = False
+        runqueue   = True
+        add_fetch  = True
+        forcefetch = True
+     except:
+        listqueues = True
+        runqueue   = False
+  if '-q' in o:
+     try:
+        run_queue_number = a
+        listqueues = False
+        runqueue   = True
+        add_fetch  = False
+     except:
+        listqueues = True
+        runqueue   = False
+  if '-g' in o:
+     try:
+        out_queue_number = eval(a)
+        listqueues = False
+        outqueue   = True
+     except:
+        listqueues = True
+        outqueue   = False
+
+  if '-w' in o:
+     nwoutfile = a
+     listqueues = False
+
+  if '-z' in o:
+     extra_datafiles = a
+
+
+
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (listqueues):
+   check = {}
+   echeck = {}
+   #echeck['restart_input_deck'] = 0
+   echeck['queue_number'] = 1
+   echeck['fetched'] = 1
+   echeck['finished'] = 1
+   echeck['stopped'] = 1
+   echeck['eap_calculation'] = 1
+   echeck['machine_type'] = 1
+   echeck['queue_name'] = 1
+   echeck['label'] = 1
+   echeck['start_time'] = 1
+   echeck['submit_machine'] = 1
+   echeck['submit_dir'] = 1
+   queue = chemdb_queue_collection.find(check,echeck)
+   print "queue_entry  fetched finished  stopped eap_calculation  machine_type    queue_name  label::"
+   ss = []
+   for entry in queue:
+      if ("queue_name" in entry):
+         sstr = "%11d %8d %8s %8s %15s %13s %13s  %s " % (entry['queue_number'],entry['fetched'],entry['finished'],entry['stopped'],entry['eap_calculation'],entry['machine_type'],entry['queue_name'],entry['label'])
+      else:
+         sstr = "%11d %8d %8s %8s %15s %13s %13s  %s " % (entry['queue_number'],entry['fetched'],entry['finished'],entry['stopped'],entry['eap_calculation'],entry['machine_type'],"not defined",entry['label'])
+
+      if ("start_time" in entry):
+         sstr += " %f" % (entry['start_time'])
+      else:
+         sstr += " %f" % (0.0)
+      #print sstr
+      ss.append(sstr)
+      #print "%11d    " % (entry['queue_number'])
+      #print "entry=",entry
+   ss.sort()
+   for entry in ss:
+      print entry
+
+if (listqueues2):
+   print "hello"
+
+if (addqueue):
+   entry = {}
+
+   if ("/" not in nwinputfile): nwinputfile = curdir +"/" + nwinputfile
+   nwfileexist = os.path.exists(nwinputfile)
+   if (nwfileexist):
+
+
+      ### fetch nwchem output for parsing ###
+      with open(nwinputfile,'r') as ff: 
+         nwchem_input = ff.read()
+      if ("python" in nwchem_input.lower()): nwchem_input = "Don't be a Jerk!"
+
+      ### look for password ###
+      if ("ARROWS_PASSWORD:" in nwchem_input) and (":ARROWS_PASSWORD" in nwchem_input) and (".nw" in nwinputfile):
+         arrows_password = nwchem_input.split('ARROWS_PASSWORD:')[1].split(':ARROWS_PASSWORD')[0].strip()
+      elif ("EAP_PASSWORD:" in nwchem_input) and (":EAP_PASSWORD" in nwchem_input) and (".eap" in nwinputfile):
+         arrows_password = nwchem_input.split('EAP_PASSWORD:')[1].split(':EAP_PASSWORD')[0].strip()
+      else:
+         arrows_password = "unknown"
+
+      if ("echo" not in nwchem_input) and (".nw" in nwinputfile): nwchem_input = "echo\n" + nwchem_input
+
+      if (label==''):
+         if ("label:" in nwchem_input) and (":label" in nwchem_input) and (".nw" in nwinputfile):
+            label = nwchem_input.split('label:')[1].split(':label')[0].strip()
+         elif ("label:" in nwchem_input) and (":label" in nwchem_input) and (".inp" in nwinputfile):
+            label = nwchem_input.split('label:')[1].split(':label')[0].strip()
+         else:
+            label =  nwinputfile[nwinputfile.rfind('/')+1:]
+
+      if ("submit_machine:" in nwchem_input) and (":submit_machine" in nwchem_input) and (".nw" in nwinputfile):
+         submit_machine = nwchem_input.split('submit_machine:')[1].split(':submit_machine')[0].strip()
+         label += " submit_machine:"+submit_machine+":submit_machine"
+
+      if ("submit_dir:" in nwchem_input) and (":submit_dir" in nwchem_input) and (".nw" in nwinputfile):
+         submit_dir = nwchem_input.split('submit_dir:')[1].split(':submit_dir')[0].strip()
+         label += " submit_dir:"+submit_dir+":submit_dir"
+
+      if (("QWAIT::" in nwchem_input) and ("::QWAIT" in nwchem_input)):
+         qwait_label = nwchem_input.split("QWAIT::")[1].split("::QWAIT")[0].strip()
+         label = label.split("QWAIT::")[0]
+         label += " QWAIT:: "+qwait_label+" ::QWAIT"
+
+
+      if ("machine_type:" in nwchem_input) and (":machine_type" in nwchem_input) and (".nw" in nwinputfile):
+         machine_type = nwchem_input.split('machine_type:')[1].split(':machine_type')[0].strip()
+      elif ("#machine " in nwchem_input) and (".nw" in nwinputfile):
+         machine_type = nwchem_input.split('#machine ')[1].split('\n')[0].strip()
+      elif (".nw" in nwinputfile):
+         machine_type =  nwinput2machinetype(nwchem_input)
+      elif ("machine_type:" in nwchem_input) and (":machine_type" in nwchem_input) and (".inp" in nwinputfile):
+         machine_type = "feff9"
+      elif (".inp" in nwinputfile):
+         machine_type = "feff9"
+      else:
+         machine_type = "unknown"
+
+      if ("queue_name:" in nwchem_input) and (":queue_name" in nwchem_input) and (".nw" in nwinputfile):
+         queue_name = nwchem_input.split('queue_name:')[1].split(':queue_name')[0].strip()
+      elif ("#queue " in nwchem_input) and (".nw" in nwinputfile):
+         queue_name = nwchem_input.split('#queue ')[1].split('\n')[0].strip()
+      elif ("queue_name:" in nwchem_input) and (":queue_name" in nwchem_input) and (".inp" in nwinputfile):
+         queue_name = nwchem_input.split('queue_name:')[1].split(':queue_name')[0].strip()
+      elif (".inp" in nwinputfile):
+         queue_name = "exafs"
+      else:
+         queue_name = "regular"
+
+
+      ### set queue number  ##
+      queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue_nwchem'})['count']
+      qqq = qnumber_collection.update({'queue':'chemdb_queue_nwchem'},{'$inc':{'count':1}},upsert=False,multi=False)
+      entry['queue_number']    = queue_number00
+      entry['arrows_password'] = arrows_password
+      entry['label']  = label
+      entry['nwchem_input_deck'] = nwchem_input
+      entry['restart_input_deck']  = "no"
+      entry['restart_count'] = 0
+      entry['machine_type'] = machine_type
+      entry['queue_name']   = queue_name
+      entry['fetched'] = 0
+      entry['finished'] = 'no'
+      entry['stopped']  = 'no'
+      entry['start_time']  = time.time()
+      if ".eap" in nwinputfile:
+         entry['eap_calculation'] = 'yes'
+         if ("EAP_MACHINE_TYPE:" in nwchem_input) and (":EAP_MACHINE_TYPE" in nwchem_input):
+            machine_type = nwchem_input.split('EAP_MACHINE_TYPE:')[1].split(':EAP_MACHINE_TYPE')[0].strip()
+            entry['machine_type']    = machine_type
+         else:
+            entry['machine_type']    = 'eap_machine'
+
+         if ("EAP_LABEL:" in nwchem_input) and (":EAP_LABEL" in nwchem_input):
+            label = nwchem_input.split('EAP_LABEL:')[1].split(':EAP_LABEL')[0]
+            entry['label'] = label
+
+      else:
+         entry['eap_calculation'] = 'no'
+
+      qq = chemdb_queue_collection.insert(entry)
+      print "Added " + nwinputfile + " to chemdb_queue. queue_entry=",entry['queue_number']
+      print "QUEUE_ENTRY:%d:QUEUE_ENTRY" % int(entry['queue_number'])
+   else:
+      print "nwchem input file " + nwinputfile + " does not exist."
+
+if (delqueue):
+   if ("_" in delete_queue_number):
+      ss = delete_queue_number.split("_")
+      delete_queue_number = eval(ss[0])
+      arrows_password     = ss[1]
+   else:
+      delete_queue_number = eval(delete_queue_number)
+      arrows_password     = "unknown"
+
+   if (forcedelqueue):
+      delentry = {'queue_number' : delete_queue_number}
+   else:
+      delentry = {'queue_number' : delete_queue_number,'arrows_password':arrows_password}
+   print "delentry=",delentry
+   entry = chemdb_queue_collection.find_one(delentry)
+   queue = chemdb_queue_collection.remove(delentry)
+
+   ### remove datafiles ###
+   try:
+      allfiles = entry['nwchem_output'] + " " + entry['extra_datafiles']
+      for filename in allfiles.strip().split():
+         try:
+            if os.path.isfile(filename):
+               os.unlink(filename)
+         except Exception as e:
+            print(e)
+   except:
+      print "no datafiles to delete."
+
+if (resetqueue):
+   resetentry = {'queue_number' : reset_queue_number}
+   resetentry['finished'] = 'no'
+   print "resetentry=",resetentry
+   qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'fetched':0}},upsert=False,multi=False)
+
+
+if (runqueue):
+   if ("_" in run_queue_number):
+      ss = run_queue_number.split("_")
+      run_queue_number = eval(ss[0])
+      arrows_password  = ss[1]
+   else:
+      run_queue_number = eval(run_queue_number)
+      arrows_password  = "unknown"
+
+   if (forcefetch):
+      runentry = {'queue_number' : run_queue_number}
+   else:
+      runentry = {'queue_number' : run_queue_number, 'arrows_password':arrows_password}
+   entry    = chemdb_queue_collection.find_one(runentry)
+   if entry is not None:
+      if (entry['finished']=='no'):
+         if (add_fetch):
+            qqq   = chemdb_queue_collection.update(runentry,{'$inc':{'fetched':1}},upsert=False,multi=False)
+
+         ctag = "#"
+         cname = "NWCHEM"
+         if (entry['machine_type'] == "feff9"): 
+            ctag = "*"
+            cname = "FEFF9"
+
+         data1 =  ctag + "########################  START "+cname+" INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
+         data1 += ctag + "\n"
+         data1 += ctag + " queue_nwchem_JobId: %s" % entry['_id']
+         data1 += "\n"
+         data1 += ctag + " queue_nwchem_restart_count: %d" % entry['restart_count']
+         data1 += "\n"
+         data1 += ctag + "\n"
+         if entry['restart_input_deck']=='no':
+            data1 +=  entry['nwchem_input_deck'] + "\n"
+         else:
+            data1 +=  entry['restart_input_deck'] + "\n"
+         data1 += ctag + "########################  END   "+cname+" INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
+         print data1
+      else:
+         print 
+         try:
+            print "# CHEMDB OUTPUT AVAILABLE!"
+            print "# nwoutfile       = ",entry['nwchem_output'] 
+            print "# extra_datafiles = ",entry['extra_datafiles']
+         except:
+            print "#no output files available"
+   else:
+      print "# CHEMDB ENTRY NOT AVAILABLE! queue_number=", run_queue_number
+
+if (outqueue):
+   outentry = {'queue_number' : out_queue_number}
+   outentry    = chemdb_queue_collection.find_one(outentry)
+   print 
+   try:
+      print "nwoutfile       = ",outentry['nwchem_output'] 
+      print "extra_datafiles = ",outentry['extra_datafiles']
+   except:
+      print "no output files available"
+   print 
+
+
+
+########################################
+#### adding output files to entries ####
+########################################
+if (nwoutfile!=''):
+   allfiles0 = nwoutfile  + " " + extra_datafiles
+
+   if ("/" not in nwoutfile): nwoutfile = curdir +"/" + nwoutfile
+   nwfileexist = os.path.exists(nwoutfile)
+   if (nwfileexist):
+      ### fetch nwchem output for parsing ###
+      with open(nwoutfile,'r') as ff:
+         nwchemoutput = ff.read()
+
+      extra_datafiles2 = ''
+      for bb in extra_datafiles.strip().split():
+         dfile = bb
+         if ("/" not in dfile): dfile = curdir +"/" + dfile
+         extra_datafiles2 += dfile + " "
+      extra_datafiles = extra_datafiles2.strip()
+
+      count = 0
+      if ("# queue_nwchem_JobId:" in nwchemoutput) or ("* queue_nwchem_JobId:" in nwchemoutput):
+         try:
+            id = ObjectId(nwchemoutput.split('queue_nwchem_JobId:')[1].split('\n')[0].strip())
+            rcount = nwchemoutput.split('queue_nwchem_restart_count:')[1].split('\n')[0].strip()
+            restart_file = ("EAP_PICKLE::" in nwchemoutput) and ("::EAP_PICKLE" in nwchemoutput)
+            jobrunning = "JOB IS NOT FINISHED" in nwchemoutput
+            upentry = {}
+            upentry['_id']  = id
+            upentry['restart_count'] = int(rcount)
+            print "RCOUNT=",rcount
+            count = chemdb_queue_collection.find(upentry).count()
+            print "COUNT=",count
+            if (count>0):
+               ee = chemdb_queue_collection.find_one(upentry)
+               if (ee['finished']=='no') or (ee['finished']=="running"):
+                  newentry = {}
+
+                  ###### restart file ######
+                  if restart_file:
+                     rinput = ''
+                     for ll in nwchemoutput.split('\n'):
+                        badline = ('#fetch_arrows_input -' in ll)
+                        badline = badline or ('START NWCHEM INPUT DECK -' in ll)
+                        badline = badline or ('END   NWCHEM INPUT DECK -' in ll)
+                        badline = badline or ('queue_nwchem_JobId:' in ll)
+                        badline = badline or ('queue_nwchem_restart_count:' in ll)
+                        if not badline:
+                          rinput += ll + "\n"
+                     newentry['restart_input_deck'] = rinput
+                     newentry['restart_count']      = upentry['restart_count'] + 1
+                     newentry['stopped'] = 'yes'
+
+                     if (("QWAIT::" in nwchemoutput) and ("::QWAIT" in nwchemoutput)):
+                        qwait_label = nwchemoutput.split("QWAIT::")[1].split("::QWAIT")[0].strip()
+                        ltmp = ee['label']
+                        ltmp = ltmp.split("QWAIT::")[0]
+                        ltmp += " QWAIT:: "+qwait_label+" ::QWAIT"
+                        newentry['label'] =  ltmp
+
+                     # remove datafiles #
+                     try:
+                        allfiles = nwoutfile + " " + extra_datafiles
+                        for filename in allfiles.strip().split():
+                           try:
+                              if os.path.isfile(filename):
+                                 os.unlink(filename)
+                           except Exception as e:
+                              print(e)
+                     except:
+                        print "no datafiles to delete."
+
+                  elif jobrunning:
+                     newentry['nwchem_output']    = nwoutfile
+                     newentry['extra_datafiles']  = extra_datafiles
+                     newentry['finished'] = 'running'
+                     newentry['stopped']  = 'no'
+                     newentry['restart_input_deck'] = 'no'
+                     ltmp = ee['label']
+                     ltmp = ltmp.split("QWAIT::")[0]
+                     newentry['label'] = ltmp
+
+                     # remove datafiles #
+                     try:
+                        allfiles = ''
+                        if 'nwchem_output' in ee:
+                           allfiles += ee['nwchem_output']
+                        if 'extra_datafiles' in ee:
+                           allfiles += " " + ee['extra_datafiles']
+                        for filename in allfiles.strip().split():
+                           try:
+                              if os.path.isfile(filename):
+                                 os.unlink(filename)
+                           except Exception as e:
+                              print(e)
+                     except:
+                        print "no datafiles to delete."
+
+                  ###### output finished  ######
+                  else:
+                     newentry['nwchem_output']    = nwoutfile
+                     newentry['extra_datafiles']  = extra_datafiles
+                     newentry['finished'] = 'yes'
+                     newentry['stopped']  = 'no'
+                     newentry['restart_input_deck'] = 'no'
+                     ltmp = ee['label']
+                     ltmp = ltmp.split("QWAIT::")[0]
+                     newentry['label'] = ltmp
+                     #   qwait_label = ltmp.split("QWAIT::")[1].split("::QWAIT")[0].strip()
+
+                     # remove datafiles #
+                     try:
+                        allfiles = ''
+                        if 'nwchem_output' in ee:
+                           allfiles += ee['nwchem_output']
+                        if 'extra_datafiles' in ee:
+                           allfiles += " " + ee['extra_datafiles']
+                        for filename in allfiles.strip().split():
+                           try:
+                              if os.path.isfile(filename):
+                                 os.unlink(filename)
+                           except Exception as e:
+                              print(e)
+                     except:
+                        print "no datafiles to delete."
+
+
+                  qqq = chemdb_queue_collection.update(upentry,{'$set':newentry},upsert=False,multi=False)
+               else:
+                  count = 0
+         except:
+            print "- update to entry failed"
+            count = 0
+      
+
+      if (count==0):
+         for filename in allfiles0.strip().split():
+            print "#  - filename = "+filename+" was not added"
+            try:
+               if os.path.isfile(filename):
+                  os.unlink(filename)
+            except Exception as e:
+               print(e)
+

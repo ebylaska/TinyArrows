@@ -1,0 +1,81 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator
+from math import *
+
+############## machine parameters #########################
+chemdbfile = "/srv/arrows/bin/.chemdb-en"
+############## machine parameters #########################
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          #print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          #print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          #print "either received key or connection timeout"
+          pass
+      #print p.before # print out the result
+
+aaa = ''
+for b in bbb: aaa += chr(ord(b) + 2)
+exec aaa
+
+################################################
+#                                              #
+#             text2speech                      #
+#                                              #
+################################################
+# calls the mac osx system call say with foo string.
+def text2speech(foo):
+   header =  "Message from arrows.. "
+   #try:
+   #   #os.system('say ' + "\'" + foo + "\'")
+   #   cmd3 = 'ssh bylaska@we24397.emsl.pnl.gov say ' + "\'" + header + foo + "\'"
+   #   pexpect_command(cmd3,archivepassword)
+   #except:
+   #   print('say ' + "\'" + header + foo + "\'")
+   print('say ' + "\'" + header + foo + "\'")
+
+
+usage = \
+"""
+chemdb say program
+
+  Usage: chemdb_say -h  message_string
+
+  -h prints this message
+
+"""
+
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:n:q:efh")
+for o, a in opts:
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<1):
+   print usage
+   exit()
+
+text2speech(args[0])
+
+
+
+

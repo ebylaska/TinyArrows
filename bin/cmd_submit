@@ -1,0 +1,38 @@
+#!/usr/bin/python
+
+import pymongo
+import sys,os,time,pickle,urllib2,getopt,subprocess,random,operator,datetime
+import re
+
+####################### mongoDB #############################
+uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+mongo_client         = pymongo.MongoClient(uri)
+arrows_db            = mongo_client.Arrows
+cmdsubmit_collection = arrows_db.cmdsubmit_queue
+
+
+##################################### main program ##########################################
+usage = \
+"""
+submit a command
+
+  Usage: submit_cmd cmd_string
+
+
+"""
+
+submitstring = ''
+for ss in sys.argv:
+   submitstring += ss + ' '
+
+job = {}
+job['cmd'] = submitstring
+
+print "submitstring:" + submitstring
+
+#### put job on queue ####
+#   qq = mysubmit_collection.insert(job)
+#   print "mysubmit_collection.insert=", qq
+
+
+

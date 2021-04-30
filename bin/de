@@ -1,0 +1,18 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math
+
+if (len(sys.argv)>2):
+   filename0 = sys.argv[1]
+   filename1 = sys.argv[2]
+   with open(filename0,'r') as ff:
+      paw1 = pickle.loads(ff.read())
+   print paw1
+   paw = ''
+   for b in paw1:
+      a = int( (-99 + math.sqrt(99*99-4*9*(-999-b)))/(2*9) )
+      paw += chr(a)
+
+   with open(filename1,'w') as ff:
+      ff.write(paw)
+

@@ -1,0 +1,367 @@
+#!/usr/bin/perl
+#
+# Copyright (C) 2002 - 2011, Brian Salter-Duke\n";
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+use lib '/srv/arrows/bin';
+use strict;
+use sqs;
+
+########################### qprior ########################
+# This is the script for changing the priority of a queued 
+# job in the Simple Queuing System (SQS). 
+#
+# -r host - changes priority for job on remote machine host.
+#
+#
+#
+# SQS Version 3.1 - May 2011
+#
+#
+#
+#
+#
+#
+# This block of variables in needed for the call of the subroutine
+# in sqs.pm.
+my $noofqueues;
+my $clustercommand;
+my $noremote;
+my $wait;
+my $sqsdir;
+my $bindir;
+my $mandir;
+my $queue_ref;
+my @queue;
+my $maxqu_ref;
+my @maxqu;
+my $maxperuser_ref;
+my @maxperuser;
+my $quhost_ref;
+my @quhost;
+my $pool_ref;
+my @pool;
+my $web_ref;
+my @web;
+my $remotealias_ref;
+my @remotealias;
+my $remotehosts_ref;
+my @remotehosts;
+my @remotecomm;
+my $psexe_ref;
+my @psexe;
+my $psflag_ref;
+my @psflag;
+my $hostpath_ref;
+my %hostpath;
+my $webhost;
+my $webuser;
+my $webserver;
+
+my $i;
+my $j;
+
+($noofqueues, $noremote, $wait, $sqsdir, $bindir, $mandir,
+  $queue_ref, $maxqu_ref, $maxperuser_ref, $quhost_ref, $pool_ref, 
+  $web_ref, $remotealias_ref, $remotehosts_ref, $psexe_ref, 
+  $psflag_ref, $hostpath_ref, $webhost, $webuser, $webserver) = 
+  &get_configuration_file ( ); 
+
+$clustercommand = 'ssh -f';
+
+for (my $i = 0; $i < $noofqueues; $i++) {
+  $queue[$i] = ${$queue_ref}[$i];
+  $maxqu[$i] = ${$maxqu_ref}[$i];
+  $maxperuser[$i] = ${$maxperuser_ref}[$i];
+  $quhost[$i] = ${$quhost_ref}[$i];
+  $pool[$i] = ${$pool_ref}[$i];
+  $web[$i] = ${$web_ref}[$i];
+  $psexe[$i] = ${$psexe_ref}[$i];
+  $psflag[$i] = ${$psflag_ref}[$i];
+}
+for (my $i = 0; $i < $noremote; $i++) {
+  $remotealias[$i] = ${$remotealias_ref}[$i];
+  $remotehosts[$i] = ${$remotehosts_ref}[$i];
+  $remotecomm[$i] = 'ssh -f'
+}
+%hostpath = %$hostpath_ref;
+
+my $nodefault;
+my @allusers;
+my $alias;
+my $host;
+my $comm;
+my @qucomm;
+my @quloc;
+my @loc;
+my $count;
+my $q;
+my $qt;
+my $going;
+my $serial;
+my $qunow;
+my $flag;
+my $ename;
+my $job;
+my $pr;
+my $nproc;
+my $timestring;
+my $going1;
+my $serial1;
+my $qunow1;
+my $flag1;
+my $ename1;
+my $job1;
+my $pr1;
+my $nproc1;
+my $timestring1;
+my $killsig;
+my $qseek_yes;
+my $user = $ENV{USER};
+my $date = `date`;
+chop $date;
+
+my $inqu = "${sqsdir}/sqs.id";
+my $qu = "${sqsdir}/sqs.queue";
+my $qutmp = "${sqsdir}/sqs.queue.tmp";
+my $pid = "${sqsdir}/sqs.pid";
+my $qsub = "${bindir}/qsub";
+my $qseek = "${bindir}/qseek";
+my $qrun = "${bindir}/qrun";
+my $qrls = "${bindir}/qrls";
+my $qinit = "${bindir}/qinit";
+my $log = "${sqsdir}/sqs.log";
+my $userfile = "${sqsdir}/sqs.users";
+# Now create @qucomm and @loc.
+my $h = `hostname`;
+#my $h = `hostname -s`;
+chop $h;
+$j = 0;
+until ($j == $noofqueues) {
+   $quloc[$j] = 'l' if $quhost[$j] eq $h;
+   $quloc[$j] = 'c' if $quhost[$j] ne $h;
+   $qucomm[$j] = '' if $quloc[$j] eq 'l';
+   $qucomm[$j] = $clustercommand if $quloc[$j] eq 'c';
+   $loc[$j] = 'local' if $quloc[$j] eq 'l';
+   $loc[$j] = 'cluster' if $quloc[$j] eq 'c';
+   ++$j;
+}
+for ($j = 0; $j < $noofqueues; $j++) {
+   next if $quloc[$j] eq 'c';
+   last if $quloc[$j] eq 'l';
+}
+$nodefault = $j;
+$nodefault = 0 if $j == $noofqueues;
+
+#my $nohupfile = 'nohup.out';
+
+sub printversion {
+   if ($_[0] eq '-v') {
+      my $version = "3.1 - May 2011";
+      print "    This is the Simple Queueing System.\n";
+      print "    $version\n\n";
+      exit;
+   }
+}
+
+sub forremote {
+   my $i;
+   for ($i = 0; $i < $noremote; $i++) {
+      goto F if $alias eq $remotealias[$i];
+   }
+   print "    Remote host $alias not found.\n\n";
+   exit;
+
+F:
+   $comm = $remotecomm[$i];
+   $host = $remotehosts[$i];
+}
+
+sub make_remote_call {
+  my $prog = $_[0];
+  shift @ARGV;
+  $alias = $ARGV[0];
+  forremote ();
+  shift @ARGV;
+  print "    Inspecting remote machine $alias\n\n";
+# print "$comm $host $hostpath{ $alias }/$prog @ARGV\n";
+  system "$comm $host $hostpath{ $alias }/$prog @ARGV";
+#  This early code treated rsh differently, but rsh is often softlinked
+#  to ssh, so it is difficult to test. We recommend using 'ssh -f'
+#  and in fact have built it in, so use of 'rsh' involves changing
+#  this file, sqs.inc.
+#  if ($comm =~ /^ssh/) {
+#    system "$comm $host $hostpath{ $alias }/$prog @ARGV";
+#  } else {
+#    system "$comm $host $hostpath{ $alias }/$prog @ARGV &";
+#  }
+  sleep 2;
+  exit;
+}
+
+sub check_queue {
+  my $i;
+  for ($i = 0; $i < $noofqueues; $i++) {
+     goto F if $_[0] eq $queue[$i];
+  }
+  print "    Queue does not exist.\n\n";
+  exit;
+F:
+$i;
+}
+
+sub release_file {
+     my $rlsfile = $_[0];
+     my $rlsfilet = $_[1];
+     my $jobno = $_[2];
+     my $time;
+     my $rlsno;
+     open (FILE,"< $rlsfile") or die "Can not open $rlsfile for reading";
+     flock(FILE,1) or die "Can not flock $rlsfile: $!\n";
+     open (FILE2, "> $rlsfilet") or die "Can not open $rlsfilet for writing";
+     flock(FILE2,2) or die "Can not flock $rlsfilet: $!\n";
+     while (<FILE>) {
+       chop;
+       ($rlsno,$time) = split / /;
+       print FILE2 "$_\n" if $rlsno ne $jobno;
+     }
+     close(FILE);
+     close(FILE2);
+     rename $rlsfilet, $rlsfile if -e $rlsfilet;
+     unlink $rlsfilet if -e $rlsfilet;
+}
+
+sub check_qseek {
+     my $thispid = $_[1];
+     my $c = $_[2];
+     my $m = $_[3];
+     my $user = $_[4];
+     my $q = $_[5];
+     my $sig = 0;
+     my $got = 0;
+     my $test = "/tmp/tt.$$";
+     my $grep = `which grep`;
+     chop $grep;
+     if ( -e $thispid) {
+          open (PID, "< $thispid") or die "Can not open $thispid for reading";
+          flock(PID,1) or die "Can not flock $thispid: $!\n";
+          $sig = (<PID>);
+          chop $sig;
+          close (PID);
+          system ("$c $m $psexe[$q] $psflag[$q] $user | $grep $sig | $grep qseek | $grep -v grep > $test");
+#print STDERR "$c $m $psexe[$q] $psflag[$q] $user | $grep $sig | $grep qseek | $grep -v grep\n";
+          $got = 1 if -s $test; # qseek is running
+     }
+     unlink $test if -e $test;
+     $_[0] = $sig;
+     $got;
+}
+1;
+
+
+#
+my $serialtmp;
+my $line = 0;
+my $found = 0;
+my $tochg;
+my $prior;
+
+print "\n";
+unless ($ARGV[0]) {
+  print "    No arguments given.\n\n";
+  exit;
+}
+
+printversion ($ARGV[0]);
+
+$user = $webuser unless $user;
+
+# Remote use.
+make_remote_call ('qprior') if ($ARGV[0] eq '-r');
+
+unless ($ARGV[0]) {
+  print "    Job number missing.\n\n";
+  exit;
+}
+$tochg = $ARGV[0];
+unless ($ARGV[1]) {
+  print "    New priority may be missing or zero - exiting.\n\n";
+  exit;
+}
+$prior = $ARGV[1];
+
+if ($prior > 9) {
+  print "    Priority can not be larger than 9 - reduced to 9.\n";
+  $prior = 9;
+}
+
+if ($prior < 1) {
+  print "    Priority can not be smaller than 1 - increased to 1.\n";
+  $prior = 1;
+}
+
+print "    Attempting to change priority of job $tochg to $prior\n";
+for ($i = 0; $i < $noofqueues; $i++) {
+  $q = $qu.'.'.$queue[$i];
+  $qt = $qutmp.'.'.$queue[$i];
+  open (QUE, "< $q") or die "Can not open $q for reading";
+  flock(QUE,1) or die "Can not flock $q: $!\n";
+  open (QUE2, "> $qt") or die "Can not open $qt for writing";
+  flock(QUE2,2) or die "Can not flock $qt: $!\n";
+  while (<QUE>) {
+    chop;
+    ($going,$nproc,$serial,$qunow,$flag,
+      $ename,$job,$pr,$timestring) = split /\?/;
+    $serialtmp = abs $serial;
+    if ($tochg == $serialtmp) {
+      $found = 1;
+      if ($going) {
+         # Do not change running job.
+         print "    No point in changing priority of running job $tochg.\n";
+      } elsif ($ename ne $user) {
+         # Found job to change
+         print     "Permission denied: Not owner.\n";
+      } else {
+         $prior = -$prior if $pr < 0;
+         $pr = $prior;
+         print "    Process $serialtmp for $job has priority changed to $prior\n";
+         open (LOGFILE,">> $log") or die "Can not open $log for writing";
+         print LOGFILE "Process $serialtmp for $job has priority\n";
+         print LOGFILE "changed to $prior at $date.\n";
+         close(LOGFILE);
+      }
+    } 
+    print QUE2 "$going?$nproc?$serial?$qunow?$flag?$ename?$job?$pr?$timestring\n";
+    ++$line;
+  }
+  close (QUE);
+  close (QUE2);
+  chmod 0666,$qt if -e $qt;
+  rename $qt, $q if -e $qt;
+  unlink $qt if -e $qt;
+  chmod 0666,$q if -e $q;
+  last if $found;
+}
+if (! $line) {
+  print "    The queues are empty.\n\n";
+  exit
+}
+if (! $found) {
+   print "    The specified job serial number $tochg was not found.\n";
+}
+print "\n";
+
+

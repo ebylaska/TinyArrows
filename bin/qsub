@@ -1,0 +1,499 @@
+#!/usr/bin/perl
+#
+# Copyright (C) 2002 - 2011, Brian Salter-Duke\n";
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+use lib '/srv/arrows/bin';
+use strict;
+use sqs;
+
+###################### qsub ##############################
+# This is the script for submitting a job to the queue in
+# the Simple Queuing System (SQS). It takes several arguments,
+# with the full path to the job file, being the last. Other 
+# arguments are:-
+#
+# -q qu_name - default used if absent.
+#
+# SQS Version 3.1 - May 2011
+# -h         - put job on hold.
+# -p n       - set job priority to n - default is 3 + nproc n value.
+# -nproc n   - utilise n queue spots, probably for n processor jobs.
+# -d         - delete job file at end.
+#
+
+# This block of variables in needed for the call of the subroutine
+# in sqs.pm.
+my $noofqueues;
+my $clustercommand;
+my $noremote;
+my $wait;
+my $sqsdir;
+my $bindir;
+my $mandir;
+my $queue_ref;
+my @queue;
+my $maxqu_ref;
+my @maxqu;
+my $maxperuser_ref;
+my @maxperuser;
+my $quhost_ref;
+my @quhost;
+my $pool_ref;
+my @pool;
+my $web_ref;
+my @web;
+my $remotealias_ref;
+my @remotealias;
+my $remotehosts_ref;
+my @remotehosts;
+my @remotecomm;
+my $psexe_ref;
+my @psexe;
+my $psflag_ref;
+my @psflag;
+my $hostpath_ref;
+my %hostpath;
+my $webhost;
+my $webuser;
+my $webserver;
+
+my $i;
+my $j;
+
+($noofqueues, $noremote, $wait, $sqsdir, $bindir, $mandir,
+  $queue_ref, $maxqu_ref, $maxperuser_ref, $quhost_ref, $pool_ref, 
+  $web_ref, $remotealias_ref, $remotehosts_ref, $psexe_ref, 
+  $psflag_ref, $hostpath_ref, $webhost, $webuser, $webserver) = 
+  &get_configuration_file ( ); 
+
+$clustercommand = 'ssh -f';
+
+for (my $i = 0; $i < $noofqueues; $i++) {
+  $queue[$i] = ${$queue_ref}[$i];
+  $maxqu[$i] = ${$maxqu_ref}[$i];
+  $maxperuser[$i] = ${$maxperuser_ref}[$i];
+  $quhost[$i] = ${$quhost_ref}[$i];
+  $pool[$i] = ${$pool_ref}[$i];
+  $web[$i] = ${$web_ref}[$i];
+  $psexe[$i] = ${$psexe_ref}[$i];
+  $psflag[$i] = ${$psflag_ref}[$i];
+}
+for (my $i = 0; $i < $noremote; $i++) {
+  $remotealias[$i] = ${$remotealias_ref}[$i];
+  $remotehosts[$i] = ${$remotehosts_ref}[$i];
+  $remotecomm[$i] = 'ssh -f'
+}
+%hostpath = %$hostpath_ref;
+
+my $nodefault;
+my @allusers;
+my $alias;
+my $host;
+my $comm;
+my @qucomm;
+my @quloc;
+my @loc;
+my $count;
+my $q;
+my $qt;
+my $going;
+my $serial;
+my $qunow;
+my $flag;
+my $ename;
+my $job;
+my $pr;
+my $nproc;
+my $timestring;
+my $going1;
+my $serial1;
+my $qunow1;
+my $flag1;
+my $ename1;
+my $job1;
+my $pr1;
+my $nproc1;
+my $timestring1;
+my $killsig;
+my $qseek_yes;
+my $user = $ENV{USER};
+my $date = `date`;
+chop $date;
+
+my $inqu = "${sqsdir}/sqs.id";
+my $qu = "${sqsdir}/sqs.queue";
+my $qutmp = "${sqsdir}/sqs.queue.tmp";
+my $pid = "${sqsdir}/sqs.pid";
+my $qsub = "${bindir}/qsub";
+my $qseek = "${bindir}/qseek";
+my $qrun = "${bindir}/qrun";
+my $qrls = "${bindir}/qrls";
+my $qinit = "${bindir}/qinit";
+my $log = "${sqsdir}/sqs.log";
+my $userfile = "${sqsdir}/sqs.users";
+# Now create @qucomm and @loc.
+my $h = `hostname`;
+#my $h = `hostname -s`;
+chop $h;
+$j = 0;
+until ($j == $noofqueues) {
+   $quloc[$j] = 'l' if $quhost[$j] eq $h;
+   $quloc[$j] = 'c' if $quhost[$j] ne $h;
+   $qucomm[$j] = '' if $quloc[$j] eq 'l';
+   $qucomm[$j] = $clustercommand if $quloc[$j] eq 'c';
+   $loc[$j] = 'local' if $quloc[$j] eq 'l';
+   $loc[$j] = 'cluster' if $quloc[$j] eq 'c';
+   ++$j;
+}
+for ($j = 0; $j < $noofqueues; $j++) {
+   next if $quloc[$j] eq 'c';
+   last if $quloc[$j] eq 'l';
+}
+$nodefault = $j;
+$nodefault = 0 if $j == $noofqueues;
+
+#my $nohupfile = 'nohup.out';
+
+sub printversion {
+   if ($_[0] eq '-v') {
+      my $version = "3.1 - May 2011";
+      print "    This is the Simple Queueing System.\n";
+      print "    $version\n\n";
+      exit;
+   }
+}
+
+sub forremote {
+   my $i;
+   for ($i = 0; $i < $noremote; $i++) {
+      goto F if $alias eq $remotealias[$i];
+   }
+   print "    Remote host $alias not found.\n\n";
+   exit;
+
+F:
+   $comm = $remotecomm[$i];
+   $host = $remotehosts[$i];
+}
+
+sub make_remote_call {
+  my $prog = $_[0];
+  shift @ARGV;
+  $alias = $ARGV[0];
+  forremote ();
+  shift @ARGV;
+  print "    Inspecting remote machine $alias\n\n";
+# print "$comm $host $hostpath{ $alias }/$prog @ARGV\n";
+  system "$comm $host $hostpath{ $alias }/$prog @ARGV";
+#  This early code treated rsh differently, but rsh is often softlinked
+#  to ssh, so it is difficult to test. We recommend using 'ssh -f'
+#  and in fact have built it in, so use of 'rsh' involves changing
+#  this file, sqs.inc.
+#  if ($comm =~ /^ssh/) {
+#    system "$comm $host $hostpath{ $alias }/$prog @ARGV";
+#  } else {
+#    system "$comm $host $hostpath{ $alias }/$prog @ARGV &";
+#  }
+  sleep 2;
+  exit;
+}
+
+sub check_queue {
+  my $i;
+  for ($i = 0; $i < $noofqueues; $i++) {
+     goto F if $_[0] eq $queue[$i];
+  }
+  print "    Queue does not exist.\n\n";
+  exit;
+F:
+$i;
+}
+
+sub release_file {
+     my $rlsfile = $_[0];
+     my $rlsfilet = $_[1];
+     my $jobno = $_[2];
+     my $time;
+     my $rlsno;
+     open (FILE,"< $rlsfile") or die "Can not open $rlsfile for reading";
+     flock(FILE,1) or die "Can not flock $rlsfile: $!\n";
+     open (FILE2, "> $rlsfilet") or die "Can not open $rlsfilet for writing";
+     flock(FILE2,2) or die "Can not flock $rlsfilet: $!\n";
+     while (<FILE>) {
+       chop;
+       ($rlsno,$time) = split / /;
+       print FILE2 "$_\n" if $rlsno ne $jobno;
+     }
+     close(FILE);
+     close(FILE2);
+     rename $rlsfilet, $rlsfile if -e $rlsfilet;
+     unlink $rlsfilet if -e $rlsfilet;
+}
+
+sub check_qseek {
+     my $thispid = $_[1];
+     my $c = $_[2];
+     my $m = $_[3];
+     my $user = $_[4];
+     my $q = $_[5];
+     my $sig = 0;
+     my $got = 0;
+     my $test = "/tmp/tt.$$";
+     my $grep = `which grep`;
+     chop $grep;
+     if ( -e $thispid) {
+          open (PID, "< $thispid") or die "Can not open $thispid for reading";
+          flock(PID,1) or die "Can not flock $thispid: $!\n";
+          $sig = (<PID>);
+          chop $sig;
+          close (PID);
+          system ("$c $m $psexe[$q] $psflag[$q] $user | $grep $sig | $grep qseek | $grep -v grep > $test");
+#print STDERR "$c $m $psexe[$q] $psflag[$q] $user | $grep $sig | $grep qseek | $grep -v grep\n";
+          $got = 1 if -s $test; # qseek is running
+     }
+     unlink $test if -e $test;
+     $_[0] = $sig;
+     $got;
+}
+1;
+
+my $qutest;
+my $arg;
+my $mypid;
+my $remote;
+my $max1;
+my $max2;
+my $maxus;
+my $maxno;
+my $nojobs;
+my $tohold = 0;
+my $noqu = -1;
+my $weight = 20000;
+
+print STDERR "\n";
+unless ($ARGV[0]) {
+  print STDERR "    No arguments given.\n\n";
+  exit;
+}
+
+$qunow = $queue[$nodefault];
+$flag = 'n';
+$pr = 3;
+$nproc = 1;
+
+printversion ($ARGV[0]);
+
+# Job to run
+while (@ARGV) {
+  $arg = $ARGV[0];
+  if ($arg =~  /^-/) {
+     $flag = 'd' if $arg eq '-d';
+     $tohold = 1 if $arg eq '-h';
+     (shift, $qunow = $ARGV[0]) if $arg eq '-q';
+     (shift, $pr = $ARGV[0]) if $arg eq '-p';
+     (shift, $nproc = $ARGV[0]) if $arg eq '-nproc';
+     # Just skips other '-' arguments, such as '-x' 
+     # used by some versions of qexample as dummy.
+  } else {
+     $job = $arg;
+  }
+  shift;
+}
+$nproc = 1 if $nproc < 1;
+
+# Note all error messages to STDERR because STDOUT is usually 
+# directed to /dev/null as only web use needs output to STDOUT.  
+unless ($job) {
+  print STDERR "    Job missing\n\n";
+  exit;
+}
+
+$pr = $pr + $nproc;
+if ($pr > 9) {
+  print STDERR "    Priority can not be larger than 9 - reduced to 9.\n";
+  $pr = 9;
+}
+if ($pr < 1) {
+  print STDERR "    Priority can not be smaller than 1 - increased to 1.\n";
+  $pr = 1;
+}
+
+$noqu = check_queue ($qunow);
+if ($noqu < 0) {
+  print STDERR "    Queue $qunow does not exist.\n\n";
+  exit;
+}
+
+$max1 = $maxqu[$noqu];
+$max2 = $maxperuser[$noqu];
+$maxno = $noqu;
+$maxus = $noqu;
+# If general queue, find largest maxqu and maxperusers of pool queues.
+if (! $max1) {
+  for ($i = 0; $i < $noofqueues; $i++) {
+    next if ! $pool[$i];
+    if ($maxqu[$i] > $max1) {
+      $max1 = $maxqu[$i];
+      $maxno = $i;
+    }
+    if ($maxperuser[$i] > $max2) {
+      $max2 = $maxperuser[$i];
+      $maxus = $i;
+    }
+  }
+}
+
+# Check whether $nproc > $maxqu
+if ($nproc > $max1) {
+  print STDERR "    Number of processors, $nproc, can not be";
+  print STDERR " greater than maxqu, $maxqu[$maxno].\n";
+  exit;
+}
+
+# Check whether $nproc > $maxperuser
+if ($nproc > $max2) {
+  print STDERR "    Number of processors, $nproc, can not be";
+  print STDERR " greater than maxperuser, $maxperuser[$maxus].\n";
+  exit;
+}
+
+# Check whether job is already in queues. Submitting a job 
+# twice causes serious conflict.
+for ($i = 0; $i < $noofqueues; $i++) {
+   next if ! $maxqu[$i];
+   $qutest = $queue[$i];
+   $q = $qu.'.'.$qutest; 
+   open (QUE, "< $q") or die "Can not open $q for reading";
+   flock (QUE,1) or die "Can not flock $q: $!\n";
+   while (<QUE>) {
+      chop;
+      ($going1,$nproc1,$serial1,$qunow1,$flag1,
+        $ename1,$job1,$pr1,$timestring1) = split /\?/;
+      if ($job eq $job1) {
+        print STDERR "    Job $job already exists in queue $qutest. Do not do this.\n";
+        exit;
+      }
+   }
+   close (QUE);
+}
+
+# Check whether general queue and select queue to use from pool.
+if (! $maxqu[$noqu]) {
+  for ($i = 0; $i < $noofqueues; $i++) {
+    next if $nproc > $maxqu[$i];
+    next if $nproc > $maxperuser[$i];
+    if ($pool[$i]) {
+      $qutest = $queue[$i];
+      $q = $qu.'.'.$qutest; 
+      $nojobs = 0;
+      open (QUE, "< $q") or die "Can not open $q for reading";
+      flock (QUE,1) or die "Can not flock $q: $!\n";
+      while (<QUE>) {
+         chop;
+         ($going1,$nproc1,$serial1,$qunow1,$flag1,
+          $ename1,$job1,$pr1,$timestring1) = split /\?/;
+#
+#        Counts only jobs not running even if held
+         $nojobs = $nojobs + $nproc1 if ((! $going1) && ($serial1 > 0));
+#
+#        Plus counts not running held jobs only half - seems reasonable
+#        compromise.
+         $nojobs = $nojobs + $nproc1/2 if ((! $going1) && ($serial1 < 0));
+      }
+      close (QUE);
+      $j = $nojobs/$maxqu[$i];
+#     print STDERR "    $i $q $pool[$i] $nojobs $maxqu[$i] $j\n";
+    } else {
+      $j = 10000;
+    }
+    if ($j < $weight) {
+      $weight = $j;
+      $noqu = $i;
+    }
+  }
+  $qunow = $queue[$noqu];
+  if ($weight < 9000 ) {
+    print STDERR "    Job will be submitted to pool";
+    print STDERR " queue: $qunow with weight $weight\n"; 
+  } else {
+    print STDERR "    There are no pool queues.\n\n"; 
+    exit
+  }
+}
+
+# Get user name
+$ename = $user;
+# For web use
+$ename = $webuser unless $ename;
+$user = $ename;
+
+# Time/Date details
+$timestring = localtime();
+$timestring =~ s/^(\w+\s)(\w+\s\w+)\s(\d\d:\d\d)(:\d\d)/$2 $3/;
+$timestring = "$timestring\n";
+
+# Increment sqs.id
+open (NUM, "< $inqu") or die "Can not open $inqu for reading";
+flock(NUM,1) or die "Can not flock $inqu: $!\n";
+while (<NUM>) {
+  chop;
+  $serial = $_;
+}
+close(NUM);
+++$serial;
+open (NUM, "> $inqu") or die "Can not open $inqu for writing";
+flock(NUM,2) or die "Can not flock $inqu: $!\n";
+print NUM "$serial\n";
+close (NUM);
+chmod 0666,$inqu;
+
+# Is qseek running.
+$host = $quhost[$noqu];
+$mypid = $pid.'.'.$user.'.'.$host;
+$remote = ($qucomm[$noqu] eq '') ? '' : $quhost[$noqu];
+$qseek_yes = &check_qseek($killsig,$mypid,$qucomm[$noqu],$remote,$ename,$noqu); 
+
+# Add to queue  
+$q = $qu.'.'.$qunow; 
+chmod 0775, $job;
+$going = 0;
+$serial = -$serial if $tohold;
+$pr = - $pr if $tohold && ! $qseek_yes;
+open (QUE, ">> $q") or die "Can not open $q for writing";
+flock (QUE,2) or die "Can not flock $q: $!\n";
+print QUE "$going?$nproc?$serial?$qunow?$flag?$ename?$job?$pr?$timestring";
+close (QUE);
+chmod 0666,$q;
+
+if ($ename ne $webuser) {
+  print STDERR "    Job $job submitted to queue $qunow with priority $pr";
+  print STDERR " and nproc value $nproc.\n";
+}
+
+# For web use. This the only output from STDOUT and assumes of course 
+# that the job is submited there to run directly, not on hold. Normally
+# STDOUT should be redirected to /dev/null.
+print "$serial\n";
+
+if ((! $tohold) && (! $qseek_yes)) {
+   # If required start qseek running
+   system "$qinit start $queue[$noqu]" || die 
+          "Can not start qseek daemon for queue $queue[$noqu].\n";
+}
+print STDERR "\n" if $ename ne $webuser;
+
+ 

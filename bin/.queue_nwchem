@@ -1,0 +1,5 @@
+mongodb://bylaska:bridge1port@arrows01.pnl.gov:27017/Arrows
+mongodb://arrows:reaction@we31869.emsl.pnl.gov:27017
+mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017
+mongodb://bylaska:bridge1port@we31869.emsl.pnl.gov:27017/Arrows
+mongodb://bylaska:bridge1port@we17860.emsl.pnl.gov:27017

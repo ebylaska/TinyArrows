@@ -1,0 +1,5208 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,re
+from math import *
+
+############## machine parameters #########################
+babel              = "/usr/bin/babel"
+obabel             = "/usr/bin/obabel "
+esmiles2xyz        = "/srv/arrows/bin/esmiles2xyz "
+chemdb_add_request = "/srv/arrows/bin/chemdb_add_request "
+chemdb_freq        = "/srv/arrows/bin/chemdb_freq -v "
+chemdb_add_Hf      = "/srv/arrows/bin/chemdb_add_Hf "
+chemdb_image0      = "/srv/arrows/bin/chemdb_image0 "
+chemdb_reaction_image = "/srv/arrows/bin/chemdb_reaction_image "
+wrkdir             = "/srv/arrows/Projects/Work"
+chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+#with open('/Users/bylaska/bin/.chemdb','r') as f:
+#   hup0            = f.readline().strip()
+#   archivemachine  = f.readline().strip()
+#   archivepassword = f.readline().strip()
+ddrand = random.randint(0,999999)
+tmpsmi1 = "tmpsmi1-%d.smi" % ddrand
+tmpsmi2 = "tmpsmi2-%d.smi" % ddrand
+tmpxyz1 = "tmpxyz1-%d.xyz" % ddrand
+tmperxn = "tmperxn-%d.dat" % ddrand
+tmperxn2= "tmperxn2-%d.dat" % ddrand
+tmperxn3= "tmperxn3-%d.dat" % ddrand
+tmpnwout= "tmpnwout-%d.out" % ddrand
+############## machine parameters #########################
+
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+
+
+
+
+periodic_table_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 3,
+    'Be' : 4,
+    'B'  : 5,
+    'C'  : 6,
+    'N'  : 7,
+    'O'  : 8,
+    'F'  : 9,
+    'Ne' : 10,
+    'Na' : 11,
+    'Mg' : 12,
+    'Al' : 13,
+    'Si' : 14,
+    'P'  : 15,
+    'S'  : 16,
+    'Cl' : 17,
+    'Ar' : 18,
+    'K'  : 19,
+    'Ca' : 20,
+    'Sc' : 21,
+    'Ti' : 22,
+    'V'  : 23,
+    'Cr' : 24,
+    'Mn' : 25,
+    'Fe' : 26,
+    'Co' : 27,
+    'Ni' : 28,
+    'Cu' : 29,
+    'Zn' : 30,
+    'Ga' : 31,
+    'Ge' : 32,
+    'As' : 33,
+    'Se' : 34,
+    'Br' : 35,
+    'Kr' : 36,
+    'Rb' : 37,
+    'Sr' : 38,
+    'Y'  : 39,
+    'Zr' : 40,
+    'Nb' : 41,
+    'Mo' : 42,
+    'Tc' : 43,
+    'Ru' : 44,
+    'Rh' : 45,
+    'Pd' : 46,
+    'Ag' : 47,
+    'Cd' : 48,
+    'In' : 49,
+    'Sn' : 50,
+    'Sb' : 51,
+    'Te' : 52,
+    'I'  : 53,
+    'Xe' : 54,
+    'Cs' : 55,
+    'Ba' : 56,
+    'La' : 57,
+    'Ce' : 58,
+    'Pr' : 59,
+    'Nd' : 60,
+    'Pm' : 61,
+    'Sm' : 62,
+    'Eu' : 63,
+    'Gd' : 64,
+    'Tb' : 65,
+    'Dy' : 66,
+    'Ho' : 67,
+    'Er' : 68,
+    'Tm' : 69,
+    'Yb' : 70,
+    'Lu' : 71,
+    'Hf' : 72,
+    'Ta' : 73,
+    'W'  : 74,
+    'Re' : 75,
+    'Os' : 76,
+    'Ir' : 77,
+    'Pt' : 78,
+    'Au' : 79,
+    'Hg' : 80,
+    'Tl' : 81,
+    'Pb' : 82,
+    'Bi' : 83,
+    'Po' : 84,
+    'At' : 85,
+    'Rn' : 86,
+    'Fr' : 87,
+    'Ra' : 88,
+    'Ac' : 89,
+    'Th' : 90,
+    'Pa' : 91,
+    'U'  : 92,
+    'Np' : 93,
+    'Pu' : 94,
+    'Am' : 95,
+    'Cm' : 96,
+    'Bk' : 97,
+    'Cf' : 98,
+    'Es' : 99,
+    'Fm' : 100,
+    'Md' : 101,
+    'No' : 102,
+    'Lr' : 103,
+    'Rf' : 104,
+    'Ha' : 105,
+    'Sg' : 106,
+    'Bh' : 107,
+    'Hs' : 108,
+    'Mt' : 109
+}
+
+
+
+covalentstr = '''
+H 32 0 0 0
+He 46 0 0 0
+Li 133 124 0 0
+Be 102 90 85 0
+B 85 78 73 0
+C 75 67 60 68
+N 71 60 54 0
+O 63 57 53 0
+F 64 59 53 0
+Ne 67 96 0 0
+Na 155 160 0 0
+Mg 139 132 127 0
+Al 126 113 111 0
+Si 116 107 102 0
+P 111 102 94 0
+S 103 94 95 0
+Cl 99 95 93 0
+Ar 96 107 96 0
+K 196 193 0 0
+Ca 171 147 133 0
+Sc 148 116 114 0
+Ti 136 117 108 0
+V 134 112 106 0
+Cr 122 111 103 0
+Mn 119 105 103 0
+Fe 116 109 102 0
+Co 111 103 96 0
+Ni 110 101 101 0
+Cu 112 115 120 0
+Zn 118 120 0 0
+Ga 124 116 121 0
+Ge 121 111 114 0
+As 121 114 106 0
+Se 116 107 107 0
+Br 114 109 110 0
+Kr 117 121 108 0
+Rb 210 202 0 0
+Sr 185 157 139 0
+Y 163 130 124 0
+Zr 154 127 121 0
+Nb 147 125 116 0
+Mo 138 121 113 0
+Tc 128 120 110 0
+Ru 125 114 103 0
+Rh 125 110 106 0
+Pd 120 117 112 0
+Ag 128 139 137 0
+Cd 136 144 0 0
+In 142 136 146 0
+Sn 140 130 132 0
+Sb 140 133 127 0
+Te 136 128 121 0
+I 133 129 125 0
+Xe 131 135 122 0
+Cs 232 196 0 0
+Ba 196 161 149 0
+La 180 139 139	 0
+Ce 163 137 131 0
+Pr 176 138 128 0
+Nd 174 137 0 0
+Pm 173 135 0 0
+Sm 172 134 0 0
+Eu 168 134 0 0
+Gd 169 135 132 0
+Tb 168 135 0 0
+Dy 167 133 0 0
+Ho 166 133 0 0
+Er 165 133 0 0
+Tm 164 131 0 0
+Yb 170 129 0 0
+Lu 162 131 131	 0
+Hf 152 128 122	 0
+Ta 146 126 119	 0
+W 137 120 115	 0
+Re 131 119 110	 0
+Os 129 116 109	 0
+Ir 122 115 107	 0
+Pt 123 112 110	 0
+Au 124 121 123 0
+Hg 133 142 0 0
+Tl 144 142 150 0
+Pb 144 135 137 0
+Bi 151 141 135 0
+Po 145 135 129 0
+At 147 138 138 0
+Rn 142 145 133 0
+Fr 223 218 0 0
+Ra 201 173 159 0
+Ac 186 153 140 0
+Th 175 143 136	 0
+Pa 169 138 129	 0
+U 170 134 118 0
+Np 171 136 116 0
+Pu 172 135 0  0
+Am 166 135 0 0
+Cm 166 136 0 0
+Bk 168 139 0 0
+Cf 168 140 0 0
+Es 165 140 0 0
+Fm 167 0 0 0
+Md 173 139 0 0
+No 176 0 0  0
+Lr 161 141 0 0
+Rf 157 140 131 0
+Db 149 136 126 0
+Sg 143 128 121 0
+Bh 141 128 119 0
+Hs 134 125 118 0
+Mt 129 125 113 0
+Ds 128 116 112 0
+Rg 121 116 118	 0
+Cn 122 137 130 0
+Uut 136 0 0 0
+Fl 143 0 0 0
+Uup 162  0 0 0
+Lv 175 0 0 0
+Uus 165 0 0 0
+Uuo 157  0 0 0
+'''
+rcovalent = {}
+for ln in covalentstr.strip().split('\n'):
+   ss = ln.split()
+   rcovalent[ss[0]] = (0.01*eval(ss[1]),0.01*eval(ss[2]),0.01*eval(ss[3]),0.01*eval(ss[4]))
+
+
+###########################################
+#                                         #
+#              bond_order                 #
+#                                         #
+###########################################
+def bond_order(rc1,rc2,r12):
+   dd = 0.0001
+   cov = (abs(r12-(rc1[0]+rc2[0]))/(rc1[0]+rc2[0]+dd),
+          abs(r12-(rc1[1]+rc2[1]))/(rc1[1]+rc2[1]+dd),
+          abs(r12-(rc1[2]+rc2[2]))/(rc1[2]+rc2[2]+dd),
+          abs(r12-(rc1[3]+rc2[3]))/(rc1[3]+rc2[3]+dd))
+   imin = 0
+   dmin = cov[0]
+   if (cov[1]<dmin):
+      dmin = cov[1]
+      imin = 1
+   if (cov[2]<dmin):
+      dmin = cov[2]
+      imin = 2
+   if (cov[3]<dmin):
+      dmin = cov[3]
+      imin = 3
+   b = 0
+   if (cov[imin]<0.10): 
+      b = 1+imin
+      if (imin==3): 
+         b = 1.5
+   return b
+
+###########################################
+#                                         #
+#          xyz_bonding_strings            #
+#                                         #
+###########################################
+
+def xyz_bonding_strings(xyzfilename):
+
+   #### read xyz file ####
+   fdict = {}
+   verts  = []
+   symbol = []
+   rxyz   = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+      line = line.split()
+      symbol.append(line[0].strip())
+      tple = ('atom',(0.0, line[0].strip(), '', 0, 0, -1))
+      verts.append(tple)
+      rxyz.append(eval(line[1]))
+      rxyz.append(eval(line[2]))
+      rxyz.append(eval(line[3]))
+   xyzfile.close()
+
+   #### generate mformula ####
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate adjacency matrix ####
+   adjmat = []
+   rij    = []
+   for i in range(n):
+      rij.append([0.0]*n)
+      adjmat.append([0]*n)
+   for i in range(n):
+      for j in range(n):
+         symi = symbol[i]
+         symj = symbol[j]
+         rci   = rcovalent[symbol[i]]
+         rcj   = rcovalent[symbol[j]]
+         dx = rxyz[3*i]   - rxyz[3*j]
+         dy = rxyz[3*i+1] - rxyz[3*j+1]
+         dz = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         rij[i][j] = r
+         if i!=j:
+            adjmat[i][j] = bond_order(rci,rcj,r)
+
+   #### generate bonding ####
+   covbondcount = {}
+   bondcount = {}
+   for i in range(n):
+      for j in range(i+1,n):
+         if (adjmat[i][j] > 0):
+            symi = symbol[i]
+            symj = symbol[j]
+            if (symi<symj):
+               key = symi.strip() + symj.strip()
+            else:
+               key = symj.strip() + symi.strip()
+
+            if (bondcount.has_key(key)):
+               bondcount[key] += 1
+            else:
+               bondcount[key] = 1
+            covkey = key + "(%.1f)" % (adjmat[i][j])
+            if (covbondcount.has_key(covkey)):
+               covbondcount[covkey] += 1
+            else:
+               covbondcount[covkey] = 1
+   bonding = ''
+   for x  in sorted(bondcount.items(), key=operator.itemgetter(0)):
+      bonding += x[0] + "%d" % x[1]
+   covbonding = ''
+   for x  in sorted(covbondcount.items(), key=operator.itemgetter(0)):
+      covbonding += x[0] + "=%d," % x[1]
+   covbonding = covbonding.strip(',')
+
+   #### generate bonding2 ####
+   bond2count = {}
+   for i in range(n):
+      for j in range(n):
+         for k in range(j+1,n):
+            if (adjmat[i][j] > 0) and (adjmat[i][k] > 0):
+               symi = symbol[i]
+               symj = symbol[j]
+               symk = symbol[k]
+               if (symj<symk):
+                  key = symj.strip() + symi.strip() + symk.strip()
+               else:
+                  key = symk.strip() + symi.strip() + symj.strip()
+               if (bond2count.has_key(key)):
+                  bond2count[key] += 1
+               else:
+                  bond2count[key] = 1
+   bonding2 = ''
+   for x  in sorted(bond2count.items(), key=operator.itemgetter(0)):
+      bonding2 += x[0] + "%d" % x[1]
+
+   #### generate neighbors ####
+   neighborcount = {}
+   for i in range(n):
+      neighbors = []
+      for j in range(n):
+         if (adjmat[i][j] > 0):
+            neighbors.append(symbol[j].strip())
+      neighbors.sort()
+      key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
+      if (neighborcount.has_key(key)):
+         neighborcount[key] += 1
+      else:
+         neighborcount[key] = 1
+   neighbors = ''
+   for x  in sorted(neighborcount.items(), key=operator.itemgetter(0)):
+      neighbors += x[0] + "=%d," % x[1]
+   neighbors = neighbors.strip(',')
+
+   return  (mformula + ":" + bonding + ":" + bonding2 + ":" + neighbors,  covbonding)
+
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+
+def ireplace(old, new, text):
+    idx = 0
+    while idx < len(text):
+        index_l = text.lower().find(old.lower(), idx)
+        if index_l == -1:
+            return text
+        text = text[:index_l] + new + text[index_l + len(old):]
+        idx = index_l + len(old)
+    return text
+
+
+def stripWARNINGS(str):
+   str1 = ''
+   for s in str.split('\n'):
+      if 'WARNING' not in s:
+         str1 += s + '\n'
+   return str1
+
+
+aaa = ''
+for b in bbb: aaa += chr(ord(b) + 2)
+exec aaa
+
+
+################################################
+#                                              #
+#             text2speech                      #
+#                                              #
+################################################
+# calls the mac osx system call say with foo string.
+def text2speech(foo):
+   os.system('say ' + "\'" + foo + "\'")
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+                                    )
+        opener = urllib2.build_opener(proxy)
+        urllib2.install_opener(opener)
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          print "either received key or connection timeout"
+          pass
+      print p.before # print out the result
+
+
+
+
+
+def forceenergy_distance(K,q,distance,rxyz):
+   nion3 = len(rxyz)
+   nion  = nion3/3
+   fxyz  = [0.0]*nion3
+   e = 0.0
+   for j in range(nion):
+      for i in range(j+1,nion):
+         x = rxyz[3*i] - rxyz[3*j]
+         y = rxyz[3*i+1] - rxyz[3*j+1]
+         z = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(x*x + y*y + z*z)
+         d = distance[i][j]
+         fx = 0.0
+         fy = 0.0
+         fz = 0.0
+         if (r>1.0e-6):
+            if (d > 1.0e-6):
+               e += 0.5*K*(r-d)**2
+               fx -= K*(r-d)*x/r
+               fy -= K*(r-d)*y/r
+               fz -= K*(r-d)*z/r
+            else:
+               e += q*q/r
+               fx += q*q*x/(r*r*r)
+               fy += q*q*y/(r*r*r)
+               fz += q*q*z/(r*r*r)
+         else:
+            if (d > 1.0e-6):
+               e += 0.5*K*(r-d)**2
+               fx += K*(r-d)
+               fy += K*(r-d)
+               fz += K*(r-d)
+
+         fxyz[3*i]   += fx
+         fxyz[3*i+1] += fy
+         fxyz[3*i+2] += fz
+         fxyz[3*j]   -= fx
+         fxyz[3*j+1] -= fy
+         fxyz[3*j+2] -= fz
+   return (fxyz,e)
+
+
+
+#### pubchem_smiles2canonicalsmiles function ####
+def pubchem_smiles2canonicalsmiles(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/CanonicalSMILES/TXT" % smiles)
+    return result
+
+
+#### pubchem_smiles2iupac function ####
+def pubchem_smiles2iupac(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/IUPACName/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2cid function ####
+def pubchem_smiles2cid(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/cids/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2synonyms function ####
+def pubchem_smiles2synonyms(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2cas function ####
+def pubchem_smiles2cas(smiles):
+    synonyms = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    ss = synonyms.split()
+    cas = ''
+    for s in ss:
+       if ((len(s.split('-'))==3) and (cas=='')):
+          t = s.split('-')
+          if (t[0].isdigit() and t[1].isdigit() and t[2].isdigit()):
+             cas = s
+       if 'CAS-' in s: cas = s.strip('CAS-')
+    return cas
+
+#### pubchem_smiles2kegg function ####
+def pubchem_smiles2kegg(smiles):
+    synonyms = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    ss = synonyms.split()
+    ckegg = ''
+    dkegg = ''
+    for s in ss:
+       if ((s[0]=='C') and (len(s)==6) and s[1:].isdigit()): ckegg = s
+       if ((s[0]=='D') and (len(s)==6) and s[1:].isdigit()): dkegg = s
+    kegg = ckegg + " " + dkegg
+
+    return kegg.strip()
+
+
+
+
+#### mol2smiles function ####
+def mol2smiles(mol):
+   eoln = "\n"
+   try:
+      molfile    = wrkdir + "/"+tmpsmi1
+      smilefile2 = wrkdir + "/"+tmpsmi2
+      ofile = open(molfile,'w')
+      ofile.write(mol); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -imol " + molfile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      os.system(cmd6)
+      smiles2 = "nosmiles"
+      sdat = []
+      ofile = open(smilefile2,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles2 = sdat[0].split()[0]
+   except:
+      smiles2 = "nosmiles"
+   ### special cases ###
+   if ((smiles2=='[HH]') or
+       (smiles2=='[H2]') or
+       (smiles2=='HH')   or
+       (smiles2=='[H].[H]')): smiles2 = '[HH]'
+   return smiles2
+
+
+####################################
+#                                  #
+#         nametosmiles             #
+#                                  #
+####################################
+def nametosmiles(name):
+ try:
+   #
+   hup    = hup0
+   dbfile = "TNT_Project"
+   table  = "nametosmiles"
+   if (hup=='sqlite3'):
+      issqlite3 = True
+   else:
+      issqlite3 = False
+   sqlinsert = "insert into " + table + " (name,smiles) values (?,?);"
+   sqlcheck  = "select * from " + table + " where name=?;"
+   if (not issqlite3):
+      sqlcheck = sqlcheck.replace('?','%s')
+      sqlinsert = sqlinsert.replace('?','%s')
+
+   checklist = []
+   checklist.append(name)
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss  = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      cur.execute(sqlcheck,checklist)
+      rows = cur.fetchall()
+      if (len(rows)==0):
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/%s/property/CanonicalSMILES/TXT" % name)
+         if smiles != "":
+            ss = smiles.strip().split()
+            smiles = ss[0]
+            insertlist = []
+            insertlist.append(name)
+            insertlist.append(smiles)
+            print "inserting "+ name + " " + smiles + " into " + table
+            cur.execute(sqlinsert,insertlist)
+      else:
+         smiles = rows[0][2]
+   dbcon.close()
+
+ except:
+   smiles = ""
+
+ return smiles
+
+
+####################################
+#                                  #
+#           esmiles_hasname        #
+#                                  #
+####################################
+def esmiles_hasname(esmiles):
+   if (("id=" in esmiles.lower())   or 
+       ("kegg=" in esmiles.lower()) or
+       ("cas=" in esmiles.lower())  or
+       ("cid=" in esmiles.lower())  or
+       ("csid=" in esmiles.lower())  or
+       ("name=" in esmiles.lower()) or
+       ("label=" in esmiles.lower())):
+      hasname = False
+   else:
+      try:
+         smiles = esmiles.strip().split()[0]
+         cmd = obabel + ' -:\"' + smiles + '\" -ocan'
+         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+         #print "result=",result
+         if "0 molecules converted" in result:
+            hasname = True
+         else:
+            hasname = False
+      except:
+         hasname = False
+
+   return hasname
+
+####################################
+#                                  #
+#    esmileswithname_to_esmiles    #
+#                                  #
+####################################
+
+def esmileswithname_to_esmiles(esmiles0):
+   try:
+      if esmiles_hasname(esmiles0):
+         sss = esmiles0.split()
+         ss = []
+         for s in sss:
+            if "{" not in s:
+               ss.append(s)
+         name = ''
+         for ll in range(len(ss)-1):
+            name += ss[ll] + "%20"
+         name += ss[len(ss)-1]
+
+         esmiles1 = nametosmiles(name)
+
+         if esmiles1=='': esmiles1='C'
+         for s in sss:
+            if "{" in s:
+               esmiles1 += " " + s
+      else:
+         esmiles1 = esmiles0
+
+   except:
+      esmiles1 = esmiles0
+
+   return esmiles1
+
+
+
+
+
+#### parsetosmiles function ####
+def parsetosmiles(str):
+   global xyzdata
+   ss = str.split()
+   str2 = ''
+   for s in ss:
+      if 'kegg=' in s:
+         kegg = s.split('=')[1]
+         mol = geturlresult("http://rest.kegg.jp/get/%s/mol" % kegg)
+         smiles = mol2smiles(mol)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'cid=' in s:
+         cid = s.split('=')[1]
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/property/CanonicalSMILES/TXT" % cid)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'csid=' in s:
+         csid = s.split('=')[1]
+         rdfdata = geturlresult("http://rdf.chemspider.com/%s" % csid)
+         if rdfdata=='': 
+            smiles='C'
+         else:
+            rdfdata2 = rdfdata.split('<chemdomain:SMILES')[1].split('</chemdomain:SMILES>')[0]
+            smiles   = rdfdata2.split('<chemdomain:hasValue>')[1].split('</chemdomain:hasValue>')[0]
+         str2 += ' '
+         str2 += smiles
+      elif 'cas=' in s:
+         cas = s.split('=')[1]
+         smiles = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/smiles" % cas)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'name=' in s:
+         name = s.split('=')[1]
+         #smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/%s/property/CanonicalSMILES/TXT" % name)
+         smiles = nametosmiles(name)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'label=' in s:
+         tag = s.split('=')[1]
+         for dd in xyzdata:
+            if tag==dd[0]: smiles = dd[1] + ' xyzdata{' + dd[2] + '} '
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      else:
+         str2 += ' '
+         str2 += s
+   str2 = str2.strip()
+
+   return str2
+
+
+def parse_xyzdata(rstring):
+   global xyzdata
+
+   eoln = "\n"
+   success = True
+   xyzdata = []
+   toolongcountmax = 20
+   toolongcount = 0
+   toolong      = False
+   rstring = ireplace("XYZINPUT", "xyzinput", rstring)
+   while ((len(rstring.split("xyzinput:"))>1) and (not toolong)):
+      msg2 = rstring.split("xyzinput:")
+      msg3 = msg2[1].split(":xyzinput")[0]
+      rstring  = rstring.replace("xyzinput:"+msg3+":xyzinput","")
+      xyzlabel = msg3.split("label:")[1].split(":label")[0].strip()
+      xyz0 = msg3.split("xyzdata:")[1].split(":xyzdata")[0].strip()
+      xyz = ""
+      for x in xyz0.split("\n"):
+         xyz += x.strip() + eoln
+      xyz = xyz.strip()
+      if (xyz.strip().split()[0].isalpha()): 
+         nion = len(xyz.strip().split("\n"))
+         with open(tmpxyz1,'w') as f:
+            f.write("%d\n\n" % nion)
+            f.write(xyz+eoln)
+      else:
+         with open(tmpxyz1,'w') as f: f.write(xyz+eoln)
+      smiles = xyz2smiles(tmpxyz1)
+      xyzdata.append([xyzlabel,smiles,xyz.replace('\n',' | ')])
+      toolong = (toolongcount > toolongcountmax)
+      toolongcount += 1
+   if (toolong): success = False
+
+   return (rstring,success)
+
+
+
+
+
+#### cannonicalsmiles function ####
+def cannonicalsmiles(smiles):
+   eoln = "\n"
+   try:
+      smilefile  = wrkdir + "/"+tmpsmi1
+      smilefile2 = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+
+      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      os.system(cmd6)
+      smiles2 = "nosmiles"
+      sdat = []
+      ofile = open(smilefile2,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles2 = sdat[0].split()[0]
+   except:
+      smiles2 = smiles
+
+   ### special cases ###
+   if ((smiles=='[HH]') or
+       (smiles=='[H2]') or
+       (smiles=='HH')   or
+       (smiles=='[H].[H]')): smiles2 = '[HH]'
+
+   return smiles2
+
+#### xyz2smiles function ####
+def xyz2smiles(xyzfile):
+   try:
+      smiles = ''
+      smilefile = wrkdir + "/"+tmpsmi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile + " >& junk.err"
+      os.system(cmd6)
+      sdat = []
+      ofile = open(smilefile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles = sdat[0].split()[0]
+   except:
+      smiles = ''
+   return smiles
+
+#### cactus_smiles2xyz function ####
+def cactus_smiles2xyz(smiles):
+    tsmiles = smiles.replace("#","")
+    tsmiles = tsmiles.replace("$","")
+    result = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/file?format=xyz&get3d=True" % tsmiles)
+    return result
+
+##### smiles2xyz function ####
+#def smiles2xyz(smiles,xyzfile):
+#   eoln = "\n"
+#   smilefile = wrkdir + "/"+tmpsmi1
+#   ofile = open(smilefile,'w')
+#   ofile.write(smiles); ofile.write(eoln)
+#   ofile.close()
+#   cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& junk.err"
+#   os.system(cmd6)
+#
+#   #### if nan's are produced then use cactus smiles2xyz rest interface ####
+#   with open(xyzfile,'r') as ff:
+#      test = ff.read()
+#   if 'nan' in test:
+#      xyzdata = cactus_smiles2xyz(smiles)
+#      with open(xyzfile,'w') as ff:
+#         ff.write(xyzdata+eoln)
+
+#### smiles2xyz function ####
+def smiles2xyz(smiles,xyzfile):
+   cmd6 = esmiles2xyz + ' "' + smiles.strip() + '" ' +xyzfile
+   os.system(cmd6)
+
+   #### if nan's are produced then use cactus smiles2xyz rest interface ####
+   with open(xyzfile,'r') as ff:
+      test = ff.read()
+   if 'nan' in test:
+      xyzdata = cactus_smiles2xyz(smiles)
+      with open(xyzfile,'w') as ff:
+         ff.write(xyzdata+eoln)
+
+
+
+#### xyz2InChI function ####
+def xyz2InChI(xyzfile):
+   inchi = ''
+   try:
+      inchifile = wrkdir + "/"+ tmpsmi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile + " >& junk.err"
+      os.system(cmd6)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+#### xyz2InChIKey function ####
+def xyz2InChIKey(xyzfile):
+   inchi = ''
+   try:
+      inchifile = wrkdir + "/"+tmpsmi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile + " >& junk.err"
+      os.system(cmd6)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+#### smiles2InChI function ####
+def smiles2InChI(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile + " >& " + wrkdir + "/junk.err"
+      os.system(cmd6)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+#### smiles2InChIKey function ####
+def smiles2InChIKey(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile + " >& " + wrkdir + "/junk.err"
+      os.system(cmd6)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+
+def smiles2charge(smiles):
+  charge = 0
+  ss = smiles.split('[')
+  if (len(ss)>1):
+     ss = ss[1:]
+  else:
+     ss = []
+  for s in ss:
+     inside = s.split(']')[0]
+     if   (inside.find("+4")!=-1): charge += 4
+     elif (inside.find("-4")!=-1): charge -= 4
+     elif (inside.find("+3")!=-1): charge += 3
+     elif (inside.find("-3")!=-1): charge -= 3
+     elif (inside.find("+2")!=-1): charge += 2
+     elif (inside.find("-2")!=-1): charge -= 2
+     elif (inside.find("+1")!=-1): charge += 1
+     elif (inside.find("-1")!=-1): charge -= 1
+     elif (inside.find("+")!=-1):  charge += inside.count('+')
+     elif (inside.find("-")!=-1):  charge -= inside.count('-')
+
+  return charge
+
+def smiles2mult(smiles,q):
+  #smiles2xyz(smiles,wrkdir + "/"+tmpxyz1)
+  cmd = obabel + ' -h -:\"' + smiles + '\" -oxyz'
+  result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+  mult = 1
+  pcharge = q
+  count = 0
+  #xyzfile = open(wrkdir + "/"+tmpxyz1,'r')
+  #for line in xyzfile:
+  for line in result.split("\n")[:-1]:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  #xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+def xyz2mult(xyzfilename,q):
+  mult = 1
+  pcharge = q
+  count = 0
+  xyzfile = open(xyzfilename,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+
+
+
+
+
+
+
+
+#### functions ####
+def xyz_molecular_formula(xyzfilename):
+   #
+   fdict = {}
+   xyzfile = open(xyzfilename,'r')
+   n = evalnum(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline().strip()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+   xyzfile.close()
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+
+###########################################
+#                                         #
+#            ascii_plotter                #
+#                                         #
+###########################################
+maxrow_ascii = 30
+maxcol_ascii = 75
+shift1_ascii = 2
+shift2_ascii = 11
+#maxcol_ascii = 86
+xmin_ascii = 0.0
+ymin_ascii = 0.0
+xmax_ascii = 1.0
+ymax_ascii = 1.0
+def ascii_xscale(x):
+   return int(round((x-xmin_ascii)*(maxcol_ascii-1)/(xmax_ascii-xmin_ascii)))
+
+def ascii_yscale(y):
+   return int(round((y-ymax_ascii)*(maxrow_ascii-1)/(ymin_ascii-ymax_ascii)))
+
+def ascii_plotter(x,y,symbols,title,xlabel,ylabel,xmin,xmax,ymin,ymax,plotzero):
+   global xmin_ascii
+   global ymin_ascii
+   global xmax_ascii
+   global ymax_ascii
+
+   xmin_ascii = xmin
+   ymin_ascii = ymin
+   xmax_ascii = xmax
+   ymax_ascii = ymax
+   shift_ascii = shift1_ascii+shift2_ascii
+   point = []
+   for k in range(maxrow_ascii):
+      row = [' ']*(maxcol_ascii+shift_ascii)
+      point.append(row)
+
+   ### set y-axis ###
+   for j in range(maxrow_ascii):
+      point[j][shift1_ascii+10] = ":"
+
+   if ((ascii_xscale(0.0)<(maxcol_ascii-1)) and (ascii_xscale(0.0)>0)):
+      for j in range(maxrow_ascii):
+         point[j][shift_ascii-1+ascii_xscale(0.00)] = "." 
+
+   ### set x-axis ###
+   for i in range(shift_ascii,maxcol_ascii+shift_ascii):
+      point[ascii_yscale(0.0)][i] = "."
+
+
+   ### set ylabels ###
+   nstru = "%10.3e" % ymax
+   nstrd = "%10.3e" % ymin
+   for i in range(10):
+      point[0][shift1_ascii+i] = nstru[i]
+      point[maxrow_ascii-1][shift1_ascii+i] = nstrd[i]
+   if ((ascii_yscale(0.0)<(maxrow_ascii-1)) and (ascii_yscale(0.0)>0)):
+      point[ascii_yscale(0.00)][shift1_ascii+0]  = " "
+      point[ascii_yscale(0.00)][shift1_ascii+1]  = "0"
+      point[ascii_yscale(0.00)][shift1_ascii+2]  = "."
+      point[ascii_yscale(0.00)][shift1_ascii+3]  = "0"
+      point[ascii_yscale(0.00)][shift1_ascii+4]  = "0"
+      point[ascii_yscale(0.00)][shift1_ascii+5]  = "0"
+      point[ascii_yscale(0.00)][shift1_ascii+6]  = "e"
+      point[ascii_yscale(0.00)][shift1_ascii+7]  = "+"
+      point[ascii_yscale(0.00)][shift1_ascii+8]  = "0"
+      point[ascii_yscale(0.00)][shift1_ascii+9] = "0"
+
+   ### set ylabel ###
+   jj = (maxrow_ascii-len(ylabel))/2
+   for j in range(len(ylabel)):
+       point[jj+j][0] = ylabel[j]
+
+   ### plot points ###
+   n = len(x)
+   if (plotzero):
+      for j in range(len(y)):
+         s = symbols[j]
+         for i in range(n):
+            u = ascii_xscale(x[i])
+            v = ascii_yscale(y[j][i])
+            point[v][shift_ascii+u] = s
+   else:
+      yzero = ascii_yscale(0.0)
+      for j in range(len(y)):
+         s  = symbols[j]
+         u  = ascii_xscale(x[0])
+         v  = ascii_yscale(y[j][0])
+         va = ascii_yscale(y[j][1])
+         if ((v!=yzero) and (va!=yzero)): point[v][shift_ascii+u] = s
+         for i in range(1,n-1):
+            u  = ascii_xscale(x[i])
+            vb = ascii_yscale(y[j][i-1])
+            v  = ascii_yscale(y[j][i])
+            va = ascii_yscale(y[j][i+1])
+            if ((v!=yzero) and (vb!=yzero) and (va!=yzero)):
+               point[v][shift_ascii+u] = s
+         u  = ascii_xscale(x[n-1])
+         vb = ascii_yscale(y[j][n-2])
+         v  = ascii_yscale(y[j][n-1])
+         if ((v!=yzero) and (vb!=yzero)): point[v][shift_ascii+u] = s
+         
+
+
+   msg = "\n"
+   for i in range(shift_ascii+(maxcol_ascii-len(title))/2): msg += " " 
+   msg += title+ "\n\n"
+   for row in point:
+      for col in row:
+         msg += col
+      msg += "\n"
+
+
+   ### set xlabels ###
+   for i in range(shift_ascii-1): msg += " "
+   msg += "|"
+   for i in range(shift_ascii+1,shift_ascii+(maxcol_ascii)/2): msg += "-"
+   msg += "|"
+   for i in range(shift_ascii+(maxcol_ascii)/2+1,(maxcol_ascii+shift_ascii)): msg += "-"
+   msg += "|\n"
+   msg += "      %10.3e                           %10.3e                            %10.3e\n" % (xmin_ascii,0.5*(xmin_ascii+xmax_ascii),xmax_ascii)
+   msg += "\n"
+   for i in range(shift_ascii+(maxcol_ascii-len(xlabel))/2): msg += " "
+   msg += xlabel +"\n"
+      #write(lunit,900) ,XL,(XL+XR)/2.0d0,XR
+      #write(lunit,MyformatX) Xlabel
+  #900 format(5x,E10.3,27x,E10.3,27x,E10.3)
+
+
+   return msg
+
+
+
+
+
+
+
+def mymedian(x):
+    if len(x)%2 != 0:
+        return sorted(x)[len(x)/2]
+    else:
+        midavg = (sorted(x)[len(x)/2] + sorted(x)[len(x)/2-1])/2.0
+        return midavg
+
+
+################################################
+#                                              #
+#           lowest_energy_esmiles              #
+#                                              #
+################################################
+
+#returns only the lowest energy row
+
+def lowest_energy_esmiles(rows):
+   if (len(rows)>1):
+      newrows = []
+      emin = 99.99e99
+
+      ### search for lowest energy with no negative frequencies ###
+      negative_freq = True
+      for molecule in rows:
+         if (molecule[14]<emin) and (molecule[35]==0):
+            negative_freq = False
+            emin = molecule[14]
+            molecule_min = molecule
+
+      ### if there are always negative frequencies then just search for lowest energy entry ###
+      if (negative_freq):
+         for molecule in rows:
+            if (molecule[14]<emin):
+               emin = molecule[14]
+               molecule_min = molecule
+
+      newrows.append(molecule_min)
+   else:
+      newrows = rows
+
+   return newrows
+
+
+def bondtostring(ii,jj,adjmat):
+   bond = adjmat[ii][jj]
+   if   (bond==1.5):
+      nbii = 0
+      nbjj = 0
+      nion = len(adjmat)
+      for kk in range(nion):
+         if (adjmat[ii][kk]>0): nbii += adjmat[ii][kk]
+         if (adjmat[jj][kk]>0): nbjj += adjmat[jj][kk]
+      if ((nbii+nbjj)<8):
+         tt = '='
+      else:
+         tt = ''
+   elif (bond==2):
+      tt = '='
+   elif (bond==3):
+      tt = '#'
+   elif (bond==4):
+      tt = '$'
+   else:
+      tt = ''
+
+   return tt
+
+
+
+###############################################
+#                                             #
+#            generate_smiles                  #
+#                                             #
+###############################################
+def generate_smiles(findx,indx,symbols,adjmat,visited,cycle,smilecount):
+   nion = len(symbols)
+   #print "INDX,from,VISITED=",indx,findx,visited,cycle
+   #print
+   visited[indx] = True
+   children = []
+   children_strings = []
+
+   all_indexes = range(nion)
+   all_indexes.remove(indx)
+   if (findx in all_indexes): all_indexes.remove(findx)
+   for ii in all_indexes:
+      if (adjmat[indx][ii]>0):
+         if visited[ii]:
+            if not smilecount:
+               count = 1
+            else:
+               count = smilecount[-1] + 1
+            cycle.append((indx,ii,count))
+            smilecount += [count]
+            smilecount.sort()
+         else:
+             children.append(ii)
+
+   children_strings = []
+   for child in children:
+      if not visited[child]:
+         children_strings.append((generate_smiles(indx,child,symbols,adjmat,visited,cycle,smilecount),adjmat[indx][child],(indx,child)))
+      
+   ### find the bonding to indx ###
+   
+   nbonds = 0
+   nh     = 0
+   ns     = 0
+   na     = 0
+   nd     = 0
+   nt     = 0
+   for ii in range(nion):
+      if (adjmat[indx][ii]>0):
+         if (adjmat[indx][ii]==1):   ns += 1
+         if (adjmat[indx][ii]==1.5): na += 1
+         if (adjmat[indx][ii]==2):   nd += 1
+         if (adjmat[indx][ii]==3):   nt += 1
+         nbonds += adjmat[indx][ii]
+         if symbols[ii]=='H':
+            nb = 0
+            for jj in range(nion):
+               if (adjmat[ii][jj]>0): nb += 1
+            if (nb==1):
+               nh += 1
+
+   if symbols[indx]=='C':
+      removeh = True
+      if   (nh==0) and (ns==4) and (na==0) and (nd==0) and (nt==0): str = 'C'
+      elif (nh==0) and (ns==1) and (na==2) and (nd==0) and (nt==0): str = 'c'
+      elif (nh==0) and (ns==2) and (na==0) and (nd==1) and (nt==0): str = 'C'
+      elif (nh==0) and (ns==1) and (na==0) and (nd==0) and (nt==1): str = 'C'
+      elif (nh==1) and (ns==1) and (na==0) and (nd==0) and (nt==1): str = 'C'
+      elif (nh==1) and (ns==1) and (na==2) and (nd==0) and (nt==0): str = 'c'
+      elif (nh==1) and (ns==2) and (na==0) and (nd==1) and (nt==0): str = 'C'
+      elif (nh==1) and (ns==2) and (na==1) and (nd==0) and (nt==0): str = '[CH]'
+      elif (nh==2) and (ns==2) and (na==0) and (nd==1) and (nt==0): str = 'C'
+      elif (nh==2) and (ns==4) and (na==0) and (nd==0) and (nt==0): str = 'C'
+      elif (nh==3) and (ns==4) and (na==0) and (nd==0) and (nt==0): str = 'C'
+      elif (nh==4) and (ns==4) and (na==0) and (nd==0) and (nt==0): str = 'C'
+      #elif (na==2): 
+      #   str = 'c'
+      #   removeh = False
+      else:
+         str = '[C]'
+         removeh = False
+
+   elif symbols[indx]=='N':
+      removeh = True
+      if   (nh==0) and (ns==3) and (na==0) and (nd==0) and (nt==0): str = 'N'
+      elif (nh==0) and (ns==0) and (na==2) and (nd==0) and (nt==0): str = 'n'
+      elif (nh==0) and (ns==1) and (na==0) and (nd==1) and (nt==0): str = 'N'
+      elif (nh==0) and (ns==0) and (na==0) and (nd==0) and (nt==3): str = 'N'
+      elif (nh==1) and (ns==3) and (na==0) and (nd==0) and (nt==0): str = 'N'
+      elif (nh==1) and (ns==1) and (na==2) and (nd==1) and (nt==0): str = 'N'
+      elif (nh==2) and (ns==3) and (na==0) and (nd==0) and (nt==0): str = 'N'
+      elif (nh==3) and (ns==3) and (na==0) and (nd==0) and (nt==0): str = 'N'
+      elif (na==2): 
+         removeh = False
+         str = 'n'
+      else:
+         removeh = False
+         str = '[N]'
+
+   elif symbols[indx]=='P':
+      removeh = True
+      if   (nh==0) and (ns==3) and (na==0) and (nd==0) and (nt==0): str = 'P'
+      elif (nh==0) and (ns==0) and (na==2) and (nd==0) and (nt==0): str = 'p'
+      elif (nh==0) and (ns==1) and (na==0) and (nd==1) and (nt==0): str = 'P'
+      elif (nh==0) and (ns==0) and (na==0) and (nd==0) and (nt==3): str = 'P'
+      elif (nh==1) and (ns==3) and (na==0) and (nd==0) and (nt==0): str = 'P'
+      elif (nh==1) and (ns==1) and (na==2) and (nd==1) and (nt==0): str = 'P'
+      elif (nh==2) and (ns==3) and (na==0) and (nd==0) and (nt==0): str = 'P'
+      elif (nh==3) and (ns==3) and (na==0) and (nd==0) and (nt==0): str = 'P'
+      elif (na==2): 
+         removeh = False
+         str = 'p'
+      else:
+         removeh = False
+         str = '[P]'
+
+   elif symbols[indx]=='O':
+      removeh = True
+      if   (nh==0) and (ns==2) and (na==0) and (nd==0) and (nt==0): str = 'O'
+      elif (nh==0) and (ns==0) and (na==0) and (nd==1) and (nt==0): str = 'O'
+      elif (nh==1) and (ns==1) and (na==0) and (nd==0) and (nt==0): str = '[OH]'
+      elif (nh==1) and (ns==2) and (na==0) and (nd==0) and (nt==0): str = 'O'
+      elif (nh==2) and (ns==2) and (na==0) and (nd==0) and (nt==0): str = 'O'
+      else:
+         removeh = False
+         str = '[O]'
+
+   elif symbols[indx]=='S':
+      removeh = True
+      if   (nh==0) and (ns==2) and (na==0) and (nd==0) and (nt==0): str = 'S'
+      elif (nh==0) and (ns==0) and (na==0) and (nd==1) and (nt==0): str = 'S'
+      elif (nh==1) and (ns==1) and (na==0) and (nd==0) and (nt==0): str = '[SH]'
+      elif (nh==1) and (ns==2) and (na==0) and (nd==0) and (nt==0): str = 'S'
+      elif (nh==2) and (ns==2) and (na==0) and (nd==0) and (nt==0): str = 'S'
+      else:
+         removeh = False
+         str = '[S]'
+
+   elif symbols[indx]=='F':
+      removeh = False
+      if   (nh==0) and (ns==1) and (na==0) and (nd==0) and (nt==0): str = 'F'
+      else:
+         removeh = False
+         str = '[F]'
+
+   elif symbols[indx]=='Cl':
+      removeh = False
+      if   (nh==0) and (ns==1) and (na==0) and (nd==0) and (nt==0): str = 'Cl'
+      else:
+         removeh = False
+         str = '[Cl]'
+
+   elif symbols[indx]=='Br':
+      removeh = False
+      if   (nh==0) and (ns==1) and (na==0) and (nd==0) and (nt==0): str = 'Br'
+      else:
+         removeh = False
+         str = '[Br]'
+       
+   else:
+       removeh = False
+       str = '['+symbols[indx]+']'
+
+   if (removeh):
+      ctmp = []
+      for child_string in children_strings:
+         if child_string[0]!='[H]':
+            ctmp.append(child_string)
+      children_strings = ctmp
+
+   for cc in cycle:
+      if (cc[0]==indx):
+         str += bondtostring(cc[0],cc[1],adjmat)
+         str += "%d" % cc[2]
+      if (cc[1]==indx):
+         str += bondtostring(cc[0],cc[1],adjmat)
+         str += "%d" % cc[2]
+         smilecount.remove(cc[2])
+         cycle.remove(cc)
+
+   for child_string in children_strings[:-1]:
+      ii = child_string[2][0]
+      jj = child_string[2][1]
+      tt = bondtostring(ii,jj,adjmat)+child_string[0]
+      str += "("+tt+")"
+   if (len(children_strings)>0): 
+      child_string = children_strings[-1]
+      ii = child_string[2][0]
+      jj = child_string[2][1]
+      tt = bondtostring(ii,jj,adjmat)+child_string[0]
+      str += tt
+
+   #print "indx,findx,str=",indx,findx,str," visited=",visited," cycle=",cycle
+   #print
+   return str
+
+
+###############################################
+#                                             #
+#            generate_products1               #
+#                                             #
+###############################################
+
+def generate_products1(molecules,indxsyms,bstring,row,level):
+
+   print "not doing anything yet!"
+   print "molecules=",molecules
+   print "bstring=",bstring
+   print "row=",row
+   print "indxsyms=",indxsyms
+   print "number of reactants = ",len(molecules)
+   print
+   nr = len(molecules)
+
+   #print
+   #print "XYZ:"
+   #for r in range(nr):
+   #   nion    = len(molecules[r][1])
+   #   symbols = molecules[r][1]
+   #   rxyz = molecules[r][6]
+   #   print nion
+   #   print
+   #   for ii in range(nion):
+   #      print "%s %f %f %f" % (symbols[ii],rxyz[3*ii],rxyz[3*ii+1],rxyz[3*ii+2])
+   #print ":XYZ"
+   #print 
+
+   nion = 0
+   symbols = []
+   coeff_reactants  = []
+   string_reactants = []
+   charge_reactants = []
+   mult_reactants   = []
+   for r in range(nr):
+      coeff_reactants.append(molecules[r][4])
+      string_reactants.append(molecules[r][5])
+      mult_reactants.append(molecules[r][7])
+      charge_reactants.append(molecules[r][8])
+
+   smult = 0
+   charge_total = 0
+   for r in range(nr):
+      for kk in range(int(molecules[r][4])):
+         nion += len(molecules[r][1])
+         symbols += molecules[r][1]
+         smult += (molecules[r][7] - 1)
+         charge_total += molecules[r][8]
+   if ((smult%2)==1):
+      mult_total = 2
+   else:
+      mult_total = 1
+
+   print "symbols=",symbols
+   print "mult_total=",mult_total
+   print "charge_total=",charge_total
+   print "number of atoms = ",nion
+   adjmat = []
+   for ii in range(nion):
+      adjmat.append([])
+      for jj in range(nion):
+         adjmat[ii].append(0)
+
+   shift = 0
+   for r in range(nr):
+      nionr = len(molecules[r][1])
+      adjmatr = molecules[r][2]
+      for kk in range(int(molecules[r][4])):
+         for ii in range(nionr):
+            for jj in range(nionr):
+               adjmat[ii+shift][jj+shift] = adjmatr[ii][jj]
+         shift += nionr
+
+   for ls in indxsyms:
+      i=ls[0][0]
+      j=ls[0][1]
+      print "i,j=",i,j
+      print "adjmat = ",adjmat[i][j]
+      tmp = adjmat[i][j]
+      if (adjmat[i][j]>0): 
+         print "destroying bond :",i,j
+         adjmat[i][j] = 0
+         adjmat[j][i] = 0
+      else:
+         print "creating bond :",i,j
+         adjmat[i][j] = 1
+         adjmat[j][i] = 1
+
+      string_products = []
+      charge_products = []
+      mult_products   = []
+      coeff_products  = []
+      visited = [False]*nion
+      done = sum(visited) >= nion
+      while (not done):
+         istart = -1
+         for ii in range(nion):
+            if (not visited[ii]):
+               if (symbols[ii]=='C'):
+                  istart = ii
+               else:
+                  if (istart==-1) and (symbols[ii]!='H'): istart = ii
+         if (istart==-1): 
+            for ii in range(nion):
+               if (istart==-1) and (not visited[ii]): istart = ii
+
+         visited0 = []; 
+         for v in visited: visited0.append(v)
+         smiles = generate_smiles(-1,istart,symbols,adjmat,visited,[],[])
+         q    = smiles2charge(smiles)
+         pcharge = q
+         for ii in range(nion):
+            if ((visited[ii]) and (not visited0[ii])):
+               if symbols[ii] in periodic_table_charge:
+                  pcharge += periodic_table_charge[symbols[ii]]
+         if ((pcharge%2)==1):
+            mult = 2
+         else:
+            mult = 1
+         #mult = smiles2mult(smiles,q)
+         string_products.append(smiles)
+         coeff_products.append(1.0)
+         mult_products.append(mult)
+         charge_products.append(q)
+
+         done = sum(visited) >= nion
+         print
+         print "SMILES=",smiles
+         print
+
+      adjmat[i][j] = tmp
+      adjmat[j][i] = tmp
+
+      np = len(string_products)
+      if (np==2):
+         if ((mult_products[0]==1) and (mult_products[1]==2)):
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[1]   = 1
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[1]   = 1
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif ((charge_total%2)==0):
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+
+         elif ((mult_products[0]==2) and (mult_products[1]==1)):
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[0]   = 1
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[0]   = 1
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif ((charge_total%2)==0):
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+
+         else:
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[0] = 1
+               mult_products[1] = 2
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[0] = 1
+               mult_products[1] = 2
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif ((charge_total%2)==0):
+               mult_products[0] = 1
+               mult_products[1] = 1
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+      else:
+         charge_products[0] = charge_total
+         mult_products[0]   = mult_total
+
+
+      np = len(string_products)
+      reaction = "Predicted_Reaction: "
+
+      for r in range(nr):
+         if (abs(coeff_reactants[r]-1.0)>1.0e-3):
+            reaction += "%.2f " % coeff_reactants[r]
+         reaction += string_reactants[r]
+         if ((charge_reactants[r]!=0) or (mult_reactants[r]!=1)):
+            reaction += " ^{%d} mult{%d}" % (charge_reactants[r],mult_reactants[r])
+         if (r<(nr-1)): reaction += " + "
+
+      reaction += " --> "
+
+      for p in range(np):
+         if (abs(coeff_products[p]-1.0)>1.0e-3):
+            reaction += "%.2f " % coeff_products[p]
+         reaction += string_products[p]
+         if ((charge_products[p]!=0) or (mult_products[p]!=1)):
+            reaction += " ^{%d} mult{%d}" % (charge_products[p],mult_products[p])
+         if (p<(np-1)): reaction += " + "
+
+      reaction += " :Reaction_Predicted"
+
+      print  reaction
+      print
+
+
+
+
+
+###############################################
+#                                             #
+#            generate_products2               #
+#                                             #
+###############################################
+
+def generate_products2(molecules,indxsyms,bstring,row,level):
+
+   print "not doing anything yet!"
+   print "molecules=",molecules
+   print "bstring=",bstring
+   print "row=",row
+   print "indxsyms=",indxsyms
+   print "number of reactants = ",len(molecules)
+   print
+   nr = len(molecules)
+
+   nion = 0
+   symbols = []
+   coeff_reactants  = []
+   string_reactants = []
+   charge_reactants = []
+   mult_reactants   = []
+   for r in range(nr):
+      coeff_reactants.append(molecules[r][4])
+      string_reactants.append(molecules[r][5])
+      mult_reactants.append(molecules[r][7])
+      charge_reactants.append(molecules[r][8])
+
+   smult = 0
+   charge_total = 0
+   for r in range(nr):
+      for kk in range(int(molecules[r][4])):
+         nion += len(molecules[r][1])
+         symbols += molecules[r][1]
+         smult += (molecules[r][7] - 1)
+         charge_total += molecules[r][8]
+   if ((smult%2)==1):
+      mult_total = 2
+   else:
+      mult_total = 1
+
+   print "symbols=",symbols
+   print "mult_total=",mult_total
+   print "charge_total=",charge_total
+
+   print "number of atoms = ",nion
+   adjmat = []
+   for ii in range(nion):
+      adjmat.append([])
+      for jj in range(nion):
+         adjmat[ii].append(0)
+
+   shift = 0
+   for r in range(nr):
+      nionr = len(molecules[r][1])
+      adjmatr = molecules[r][2]
+      for kk in range(int(molecules[r][4])):
+         for ii in range(nionr):
+            for jj in range(nionr):
+               adjmat[ii+shift][jj+shift] = adjmatr[ii][jj]
+         shift += nionr
+
+   for ls in indxsyms:
+      i=ls[0][0]
+      j=ls[0][1]
+      k=ls[0][2]
+      print "i,j,k=",i,j,k
+      print "adjmat = ",adjmat[i][j],adjmat[j][k]
+      tmp1 = adjmat[i][j]
+      tmp2 = adjmat[j][k]
+      if (adjmat[i][j]>0): 
+         print "destroying bond :",i,j, " creating bond :",j,k
+         adjmat[i][j] = 0
+         adjmat[j][i] = 0
+         adjmat[j][k] = 1
+         adjmat[k][j] = 1
+      else:
+         print "creating bond :",i,j, " destroying bond :",j,k
+         adjmat[i][j] = 1
+         adjmat[j][i] = 1
+         adjmat[j][k] = 0
+         adjmat[k][j] = 0
+
+      string_products = []
+      charge_products = []
+      mult_products   = []
+      coeff_products  = []
+      visited = [False]*nion
+      done = sum(visited) >= nion
+      while (not done):
+         istart = -1
+         for ii in range(nion):
+            if (not visited[ii]):
+               if (symbols[ii]=='C'):
+                  istart = ii
+               else:
+                  if (istart==-1) and (symbols[ii]!='H'): istart = ii
+         if (istart==-1): 
+            for ii in range(nion):
+               if (istart==-1) and (not visited[ii]): istart = ii
+
+         visited0 = []; 
+         for v in visited: visited0.append(v)
+         smiles = generate_smiles(-1,istart,symbols,adjmat,visited,[],[])
+       
+         q    = smiles2charge(smiles)
+         pcharge = q
+         for ii in range(nion):
+            if ((visited[ii]) and (not visited0[ii])):
+               if symbols[ii] in periodic_table_charge:
+                  pcharge += periodic_table_charge[symbols[ii]]
+         if ((pcharge%2)==1):
+            mult = 2
+         else:
+            mult = 1
+
+         #mult = smiles2mult(smiles,q)
+         string_products.append(smiles)
+         coeff_products.append(1.0)
+         mult_products.append(mult)
+         charge_products.append(q)
+
+         done = sum(visited) >= nion
+         print
+         print "SMILES=",smiles
+         print "mult,charge=",mult,q
+         print
+
+      adjmat[i][j] = tmp1
+      adjmat[j][i] = tmp1
+      adjmat[j][k] = tmp2
+      adjmat[k][j] = tmp2
+
+      np = len(string_products)
+      if (np==2):
+         if ((mult_products[0]==1) and (mult_products[1]==2)):
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[1]   = 1
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[1]   = 1
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif ((charge_total%2)==0):
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+
+         elif ((mult_products[0]==2) and (mult_products[1]==1)):
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[0]   = 1
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[0]   = 1
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif ((charge_total%2)==0):
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+
+         else:
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[0] = 1
+               mult_products[1] = 2
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[0] = 1
+               mult_products[1] = 2
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif ((charge_total%2)==0):
+               mult_products[0] = 1
+               mult_products[1] = 1
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+      else:
+         charge_products[0] = charge_total
+         mult_products[0]   = mult_total
+
+
+      np = len(string_products)
+      reaction = "Predicted_Reaction: "
+
+      for r in range(nr):
+         if (abs(coeff_reactants[r]-1.0)>1.0e-3):
+            reaction += "%.2f " % coeff_reactants[r]
+         reaction += string_reactants[r]
+         if ((charge_reactants[r]!=0) or (mult_reactants[r]!=1)):
+            reaction += " ^{%d} mult{%d}" % (charge_reactants[r],mult_reactants[r])
+         if (r<(nr-1)): reaction += " + "
+
+      reaction += " --> "
+
+      for p in range(np):
+         if (abs(coeff_products[p]-1.0)>1.0e-3):
+            reaction += "%.2f " % coeff_products[p]
+         reaction += string_products[p]
+         if ((charge_products[p]!=0) or (mult_products[p]!=1)):
+            reaction += " ^{%d} mult{%d}" % (charge_products[p],mult_products[p])
+         if (p<(np-1)): reaction += " + "
+
+      reaction += " :Reaction_Predicted"
+
+      print  reaction
+      print
+
+
+
+
+###############################################
+#                                             #
+#            generate_products3               #
+#                                             #
+###############################################
+
+def generate_products3(molecules,indxsyms,bstring,row,level):
+
+   print "not doing anything yet!"
+   print "molecules=",molecules
+   print "bstring=",bstring
+   print "row=",row
+   print "indxsyms=",indxsyms
+   print "number of reactants = ",len(molecules)
+   print
+   nr = len(molecules)
+
+   nion = 0
+   symbols = []
+   coeff_reactants  = []
+   string_reactants = []
+   charge_reactants = []
+   mult_reactants   = []
+   for r in range(nr):
+      coeff_reactants.append(molecules[r][4])
+      string_reactants.append(molecules[r][5])
+      mult_reactants.append(molecules[r][7])
+      charge_reactants.append(molecules[r][8])
+
+   smult = 0
+   charge_total = 0
+   for r in range(nr):
+      for kk in range(int(molecules[r][4])):
+         nion += len(molecules[r][1])
+         symbols += molecules[r][1]
+         smult += (molecules[r][7] - 1)
+         charge_total += molecules[r][8]
+   if ((smult%2)==1):
+      mult_total = 2
+   else:
+      mult_total = 1
+
+   print "symbols=",symbols
+   print "mult_total=",mult_total
+   print "charge_total=",charge_total
+   print "number of atoms = ",nion
+   adjmat = []
+   for ii in range(nion):
+      adjmat.append([])
+      for jj in range(nion):
+         adjmat[ii].append(0)
+
+   shift = 0
+   for r in range(nr):
+      nionr = len(molecules[r][1])
+      adjmatr = molecules[r][2]
+      for kk in range(int(molecules[r][4])):
+         for ii in range(nionr):
+            for jj in range(nionr):
+               adjmat[ii+shift][jj+shift] = adjmatr[ii][jj]
+         shift += nionr
+
+   for ls in indxsyms:
+      i=ls[0][0]
+      j=ls[0][1]
+      k=ls[0][2]
+      l=ls[0][3]
+      print "i,j,k,l=",i,j,k,l
+      print "adjmat = ",adjmat[i][j],adjmat[j][k],adjmat[k][l],adjmat[l][i]
+      tmp1 = adjmat[i][j]
+      tmp2 = adjmat[j][k]
+      tmp3 = adjmat[k][l]
+      tmp4 = adjmat[l][i]
+      if (adjmat[i][j]>0) and (adjmat[k][l]>0): 
+         print "destroying bond :",i,j, " increasing bond :", j,k," destroying bond :",k,l, " creating bond :",i,l
+         adjmat[i][j] = 0
+         adjmat[j][i] = 0
+         adjmat[j][k] += 1
+         adjmat[k][j] += 1
+         adjmat[k][l] = 0
+         adjmat[l][k] = 0
+         adjmat[i][l] = 1
+         adjmat[l][i] = 1
+      else:
+         print "creating bond :",i,j, " decreasing bond :", j,k, " creating bond :",k,l," destroying bond :",i,l
+         adjmat[i][j] = 1
+         adjmat[j][i] = 1
+         adjmat[j][k] -= 1
+         adjmat[k][j] -= 1
+         adjmat[k][l] = 1
+         adjmat[l][k] = 1
+         adjmat[i][l] = 0
+         adjmat[l][i] = 0
+
+      string_products = []
+      charge_products = []
+      mult_products   = []
+      coeff_products  = []
+      visited = [False]*nion
+      done = sum(visited) >= nion
+      while (not done):
+         istart = -1
+         for ii in range(nion):
+            if (not visited[ii]):
+               if (symbols[ii]=='C'):
+                  istart = ii
+               else:
+                  if (istart==-1) and (symbols[ii]!='H'): istart = ii
+         if (istart==-1): 
+            for ii in range(nion):
+               if (istart==-1) and (not visited[ii]): istart = ii
+
+         visited0 = []; 
+         for v in visited: visited0.append(v)
+         smiles = generate_smiles(-1,istart,symbols,adjmat,visited,[],[])
+         q    = smiles2charge(smiles)
+         pcharge = q
+         for ii in range(nion):
+            if ((visited[ii]) and (not visited0[ii])):
+               if symbols[ii] in periodic_table_charge:
+                  pcharge += periodic_table_charge[symbols[ii]]
+         if ((pcharge%2)==1):
+            mult = 2
+         else:
+            mult = 1
+         #mult = smiles2mult(smiles,q)
+         string_products.append(smiles)
+         coeff_products.append(1.0)
+         mult_products.append(mult)
+         charge_products.append(q)
+
+         done = sum(visited) >= nion
+         print
+         print "SMILES=",smiles
+         print
+
+      adjmat[i][j] = tmp1
+      adjmat[j][i] = tmp1
+
+      adjmat[j][k] = tmp2
+      adjmat[k][j] = tmp2
+
+      adjmat[k][l] = tmp3
+      adjmat[l][k] = tmp3
+
+      adjmat[i][l] = tmp4
+      adjmat[l][i] = tmp4
+
+      np = len(string_products)
+      if (np==2):
+         if ((mult_products[0]==1) and (mult_products[1]==2)):
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[1]   = 1
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[1]   = 1
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif ((charge_total%2)==0):
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+
+         elif ((mult_products[0]==2) and (mult_products[1]==1)):
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[0]   = 1
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[0]   = 1
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif ((charge_total%2)==0):
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+
+         else:
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[0] = 1
+               mult_products[1] = 2
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[0] = 1
+               mult_products[1] = 2
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif ((charge_total%2)==0):
+               mult_products[0] = 1
+               mult_products[1] = 1
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+      else:
+         charge_products[0] = charge_total
+         mult_products[0]   = mult_total
+
+
+      np = len(string_products)
+      reaction = "Predicted_Reaction: "
+
+      for r in range(nr):
+         if (abs(coeff_reactants[r]-1.0)>1.0e-3):
+            reaction += "%.2f " % coeff_reactants[r]
+         reaction += string_reactants[r]
+         if ((charge_reactants[r]!=0) or (mult_reactants[r]!=1)):
+            reaction += " ^{%d} mult{%d}" % (charge_reactants[r],mult_reactants[r])
+         if (r<(nr-1)): reaction += " + "
+
+      reaction += " --> "
+
+      for p in range(np):
+         if (abs(coeff_products[p]-1.0)>1.0e-3):
+            reaction += "%.2f " % coeff_products[p]
+         reaction += string_products[p]
+         if ((charge_products[p]!=0) or (mult_products[p]!=1)):
+            reaction += " ^{%d} mult{%d}" % (charge_products[p],mult_products[p])
+         if (p<(np-1)): reaction += " + "
+
+      reaction += " :Reaction_Predicted"
+
+      print  reaction
+      print
+
+
+
+###############################################
+#                                             #
+#            generate_products4               #
+#                                             #
+###############################################
+
+def generate_products4(molecules,indxsyms,bstring,row,level):
+
+   print "not doing anything yet!"
+   print "molecules=",molecules
+   print "bstring=",bstring
+   print "row=",row
+   print "indxsyms=",indxsyms
+   print "number of reactants = ",len(molecules)
+   print
+   nr = len(molecules)
+
+   nion = 0
+   symbols = []
+   coeff_reactants  = []
+   string_reactants = []
+   charge_reactants = []
+   mult_reactants   = []
+   for r in range(nr):
+      coeff_reactants.append(molecules[r][4])
+      string_reactants.append(molecules[r][5])
+      mult_reactants.append(molecules[r][7])
+      charge_reactants.append(molecules[r][8])
+
+   smult = 0
+   charge_total = 0
+   for r in range(nr):
+      for kk in range(int(molecules[r][4])):
+         nion += len(molecules[r][1])
+         symbols += molecules[r][1]
+         smult += (molecules[r][7] - 1)
+         charge_total += molecules[r][8]
+   if ((smult%2)==1):
+      mult_total = 2
+   else:
+      mult_total = 1
+   
+   print "symbols=",symbols
+   print "mult_total=",mult_total
+   print "charge_total=",charge_total
+
+   print "number of atoms = ",nion
+   adjmat = []
+   for ii in range(nion):
+      adjmat.append([])
+      for jj in range(nion):
+         adjmat[ii].append(0)
+
+   shift = 0
+   for r in range(nr):
+      nionr = len(molecules[r][1])
+      adjmatr = molecules[r][2]
+      for kk in range(int(molecules[r][4])):
+         for ii in range(nionr):
+            for jj in range(nionr):
+               adjmat[ii+shift][jj+shift] = adjmatr[ii][jj]
+         shift += nionr
+
+
+   for ls in indxsyms:
+      i=ls[0][0]
+      j=ls[0][1]
+      k=ls[0][2]
+      l=ls[0][3]
+      print "i,j,k,l=",i,j,k,l
+      print "adjmat = ",adjmat[i][j],adjmat[j][k],adjmat[k][l],adjmat[l][i]
+      tmpab = adjmat[i][j]
+      tmpbc = adjmat[j][k]
+      tmpcd = adjmat[k][l]
+      tmpad = adjmat[i][l]
+
+      if (adjmat[i][j]>0) and (adjmat[k][l]>0): 
+         print "destroying bond :",i,j, " destroying bond :",k,l, " creating bond :",i,l," creating bond :",j,k
+         adjmat[i][j] = 0
+         adjmat[j][i] = 0
+
+         adjmat[j][k] = 1
+         adjmat[k][j] = 1
+
+         adjmat[k][l] = 0
+         adjmat[l][k] = 0
+
+         adjmat[i][l] = 1
+         adjmat[l][i] = 1
+      else:
+         print "creating bond :",i,j, " creating bond :",k,l, " destroying bond :",i,l," destroying bond :",j,k
+         adjmat[i][j] = 1
+         adjmat[j][i] = 1
+
+         adjmat[j][k] = 0
+         adjmat[k][j] = 0
+
+         adjmat[k][l] = 1
+         adjmat[l][k] = 1
+
+         adjmat[i][l] = 0
+         adjmat[l][i] = 0
+
+      string_products = []
+      charge_products = []
+      mult_products   = []
+      coeff_products  = []
+      visited = [False]*nion
+      done = sum(visited) >= nion
+      while (not done):
+         istart = -1
+         for ii in range(nion):
+            if (not visited[ii]):
+               if (symbols[ii]=='C'):
+                  istart = ii
+               else:
+                  if (istart==-1) and (symbols[ii]!='H'): istart = ii
+         if (istart==-1): 
+            for ii in range(nion):
+               if (istart==-1) and (not visited[ii]): istart = ii
+
+         visited0 = []; 
+         for v in visited: visited0.append(v)
+         smiles = generate_smiles(-1,istart,symbols,adjmat,visited,[],[])
+         q    = smiles2charge(smiles)
+         pcharge = q
+         for ii in range(nion):
+            if ((visited[ii]) and (not visited0[ii])):
+               if symbols[ii] in periodic_table_charge:
+                  pcharge += periodic_table_charge[symbols[ii]]
+         if ((pcharge%2)==1):
+            mult = 2
+         else:
+            mult = 1
+         #mult = smiles2mult(smiles,q)
+         string_products.append(smiles)
+         coeff_products.append(1.0)
+         mult_products.append(mult)
+         charge_products.append(q)
+
+         done = sum(visited) >= nion
+         print
+         print "SMILES=",smiles
+         print
+
+      adjmat[i][j] = tmpab
+      adjmat[j][i] = tmpab
+
+      adjmat[j][k] = tmpbc
+      adjmat[k][j] = tmpbc
+
+      adjmat[k][l] = tmpcd
+      adjmat[l][k] = tmpcd
+
+      adjmat[l][i] = tmpad
+      adjmat[i][l] = tmpad
+
+
+      np = len(string_products)
+      if (np==2):
+         if ((mult_products[0]==1) and (mult_products[1]==2)):
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[1]   = 1
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[1]   = 1
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif ((charge_total%2)==0):
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+
+         elif ((mult_products[0]==2) and (mult_products[1]==1)):
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[0]   = 1
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[0]   = 1
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif ((charge_total%2)==0):
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+
+         else:
+            if (((charge_total%2)==1) and (charge>0)):
+               mult_products[0] = 1
+               mult_products[1] = 2
+               q0 = (charge_total-1)/2
+               q1 = q0 + 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+               else:
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+            elif (((charge_total%2)==1) and (charge<0)):
+               mult_products[0] = 1
+               mult_products[1] = 2
+               q0 = (charge_total+1)/2
+               q1 = q0 - 1
+               if ((charge_total%4)==1):
+                  charge_products[0] = q1
+                  charge_products[1] = q0
+               else:
+                  charge_products[0] = q0
+                  charge_products[1] = q1
+            elif ((charge_total%2)==0):
+               mult_products[0] = 1
+               mult_products[1] = 1
+               q0 = (charge_total)/2
+               charge_products[0] = q0
+               charge_products[1] = q0
+      else:
+         charge_products[0] = charge_total
+         mult_products[0]   = mult_total
+
+
+      np = len(string_products)
+      reaction = "Predicted_Reaction: "
+
+      for r in range(nr):
+         if (abs(coeff_reactants[r]-1.0)>1.0e-3):
+            reaction += "%.2f " % coeff_reactants[r]
+         reaction += string_reactants[r]
+         if ((charge_reactants[r]!=0) or (mult_reactants[r]!=1)):
+            reaction += " ^{%d} mult{%d}" % (charge_reactants[r],mult_reactants[r])
+         if (r<(nr-1)): reaction += " + "
+
+      reaction += " --> "
+
+      for p in range(np):
+         if (abs(coeff_products[p]-1.0)>1.0e-3):
+            reaction += "%.2f " % coeff_products[p]
+         reaction += string_products[p]
+         if ((charge_products[p]!=0) or (mult_products[p]!=1)):
+            reaction += " ^{%d} mult{%d}" % (charge_products[p],mult_products[p])
+         if (p<(np-1)): reaction += " + "
+
+      reaction += " :Reaction_Predicted"
+
+      print  reaction
+      print
+
+
+
+
+
+   
+
+
+###############################################
+#                                             #
+#            parse_result2multcharge          #
+#                                             #
+###############################################
+
+def parse_result2multcharge(result):
+
+   mult   = eval(result.split("mult            =")[1].split()[0])
+   charge = eval(result.split("charge          =")[1].split()[0])
+   return (mult,charge)
+
+
+
+
+
+
+#############################################
+#                                           #
+#             molecule2esmiles              #
+#                                           #
+#############################################
+def molecule2esmiles(molecule):
+   try:
+      tt = (molecule[4],molecule[9],molecule[11],molecule[10],molecule[17],molecule[12],molecule[13],molecule[35])
+      esmiles = "%s theory{%s} basis{%s} xc{%s} solvation_type{%s} ^{%d} mult{%d} nf{%d}" % tt
+   except:
+      tt = (molecule[4],molecule[9],molecule[11],molecule[10],molecule[17],molecule[12],molecule[13])
+      esmiles = "%s theory{%s} basis{%s} xc{%s} solvation_type{%s} ^{%d} mult{%d} nf{?}" % tt
+   
+   return esmiles
+
+
+###########################################
+#                                         #
+#             xyztoadjmat                 #
+#                                         #
+###########################################
+
+def xyztoadjmat(xyzfilename):
+
+   #### read xyz file ####
+   fdict = {}
+   verts  = []
+   symbol = []
+   rxyz   = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+      line = line.split()
+      symbol.append(line[0].strip())
+      tple = ('atom',(0.0, line[0].strip(), '', 0, 0, -1))
+      verts.append(tple)
+      rxyz.append(eval(line[1]))
+      rxyz.append(eval(line[2]))
+      rxyz.append(eval(line[3]))
+   xyzfile.close()
+
+
+   #### generate mformula ####
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate adjacency matrix ####
+   adjmat = []
+   rij    = []
+   for i in range(n):
+      rij.append([0.0]*n)
+      adjmat.append([0]*n)
+   for i in range(n):
+      for j in range(n):
+         symi = symbol[i]
+         symj = symbol[j]
+         rci   = rcovalent[symbol[i]]
+         rcj   = rcovalent[symbol[j]]
+         dx = rxyz[3*i]   - rxyz[3*j]
+         dy = rxyz[3*i+1] - rxyz[3*j+1]
+         dz = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         rij[i][j] = r
+         if i!=j:
+            b = bond_order(rci,rcj,r)
+            if (b<1.0) and (symi==symj) and (r<(2.5*rci[0])): b = 1
+            adjmat[i][j] = b
+        
+   return  (mformula,symbol,adjmat,rxyz)
+
+
+
+
+
+
+def f_reaction(mformulas,rps,coeffs):
+   ss = []
+   for a in mformulas:
+      ss += re.findall ('[^\d ]+', a)
+   symbols = list(set(ss))
+
+   f = {}
+   for s in symbols:
+      f[s] =  0
+      for i in range(len(mformulas)):
+         mformula = mformulas[i]
+         x        = coeffs[i]
+         z        = rps[i]
+         ss1 = re.findall ('[^\d ]+', mformula)
+         ss2 = re.findall ('[\d]+', mformula)
+         for j in range(len(ss1)):
+            if ss1[j]==s:
+               f[s] += eval(ss2[j])*x*z
+   return f
+
+def f2_reaction(mformulas,rps,coeffs):
+   f = f_reaction(mformulas,rps,coeffs)
+   f2 = 0
+   for key,val in f.iteritems():
+      f2 += val*val
+
+   return f2
+
+def df_reaction_numerical(mformulas,rps,coeffs):
+   f0 = f2_reaction(mformulas,rps,coeffs)
+   print "f0=",f0
+   df = []
+   for i in range(len(mformulas)):
+      coeffs[i] += 0.0000001 
+      f1 = f2_reaction(mformulas,rps,coeffs)
+      coeffs[i] -= 0.0000001 
+      df.append((f1-f0)/0.0000001)
+   return df
+
+def df_reaction(mformulas,rps,coeffs):
+   f = f_reaction(mformulas,rps,coeffs)
+
+   df = []
+   for i in range(len(mformulas)):
+      mformula = mformulas[i]
+      z = rps[i]
+      ss1 = re.findall ('[^\d ]+', mformula)
+      ss2 = re.findall ('[\d]+', mformula)
+      df0 = 0
+      for j in range(len(ss1)):
+         df0 += 2*eval(ss2[j])*f[ss1[j]]*z
+      df.append(df0)
+
+   return df
+
+###############################################
+#                                             #
+#            generate_vlist                   #
+#                                             #
+###############################################
+def generate_vlist(n,adjmat,dd):
+
+   vlist = []
+   for i in range(n):
+      vv = [i]
+      for l in range(dd):
+         for ii in vv:
+            for j in range(n):
+               if (adjmat[ii][j]>0): vv.append(j)
+      vv = list(set(vv))
+      vv.remove(i)
+      vlist.append(vv)
+
+   return vlist
+
+###############################################
+#                                             #
+#            filter_reaction_string           #
+#                                             #
+###############################################
+
+def filter_reaction_string(prune,bondstring1):
+   ss1 = bondstring1.split(':')
+   for i in range(len(prune)):
+      if prune[i]==0:
+         ss1[i] = ''
+   nstring1 = ':'.join(ss1)
+   return nstring1
+
+def rotate(l,n):
+    return l[n:] + l[:n]
+
+
+###############################################
+#                                             #
+#            generate_bond_string0            #
+#                                             #
+###############################################
+def generate_bond_string0(symbol,n,adjmat,indx1,indx2):
+
+   #### generate mformula ####
+   fdict = {}
+   for s in symbol:
+      if (fdict.has_key(s)):
+         fdict[s] += 1
+      else:
+         fdict[s] = 1
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate bonding ####
+   i = indx1
+   j = indx2
+   symi = symbol[i]
+   symj = symbol[j]
+   bonding = symi + "-" + symj
+
+
+   ##### generate bonding2 ####
+   #bond2count = {}
+   #for ij in [(indx1,indx2),(indx2,indx1)]:
+   #   i = ij[0]
+   #   j = ij[1]
+   #   for k in range(n):
+   #      if (adjmat[i][k] > 0) and (k!=i) and (k!=j):
+   #         symi = symbol[i]
+   #         symj = symbol[j]
+   #         symk = symbol[k]
+   #         if (symj<symk):
+   #            key = symj.strip() + symi.strip() + symk.strip()
+   #         else:
+   #            key = symk.strip() + symi.strip() + symj.strip()
+   #         if (bond2count.has_key(key)):
+   #            bond2count[key] += 1
+   #         else:
+   #            bond2count[key] = 1
+   #bonding2 = ''
+   #for x  in sorted(bond2count.items(), key=operator.itemgetter(0)):
+   #   bonding2 += x[0] + "%d" % x[1]
+
+   #### generate bonding2 ####
+   bond2count = {}
+   for ij in [(indx1,indx2),(indx2,indx1)]:
+      i = ij[0]
+      j = ij[1]
+      for k in range(n):
+         if (adjmat[i][k] > 0) and (k!=i) and (k!=j):
+            symi = symbol[i]
+            symj = symbol[j]
+            symk = symbol[k]
+            if (symj<symk):
+               key = symj.strip() + symi.strip() + symk.strip()
+            else:
+               key = symk.strip() + symi.strip() + symj.strip()
+            if (bond2count.has_key(key)):
+               bond2count[key] += 1
+            else:
+               bond2count[key] = 1
+   bonding2 = ''
+   for x  in sorted(bond2count.items(), key=operator.itemgetter(0)):
+      bonding2 += x[0] + "%d" % x[1]
+
+
+   ##### generate bonding3 ####
+   #bond3count = {}
+   #i = indx1
+   #j = indx2
+   #for k in range(n):
+   #   for l in range(n):
+   #      if (adjmat[i][k] > 0) and (adjmat[j][l]>0) and (k!=i) and (k!=j) and (l!=i) and (l!=j) and (l!=k):
+   #         symi = symbol[i]
+   #         symj = symbol[j]
+   #         symk = symbol[k]
+   #         syml = symbol[l]
+   #         key = symk.strip() + symi.strip() + symj.strip() + syml.strip()
+   #         if (bond3count.has_key(key)):
+   #            bond3count[key] += 1
+   #         else:
+   #            bond3count[key] = 1
+   #bonding3 = ''
+   #for x  in sorted(bond3count.items(), key=operator.itemgetter(0)):
+   #   bonding3 += x[0] + "%d" % x[1]
+
+   #### generate bonding3 ####
+   bond3count = {}
+   i = indx1
+   j = indx2
+   for k in range(n):
+      if (adjmat[i][k]>0) and (k!=i) and (k!=j):
+         for l in range(n):
+            if (adjmat[j][l]>0) and (l!=i) and (l!=j) and (l!=k):
+               symi = symbol[i]
+               symj = symbol[j]
+               symk = symbol[k]
+               syml = symbol[l]
+               key = symk.strip() + symi.strip() + symj.strip() + syml.strip()
+               if (bond3count.has_key(key)):
+                  bond3count[key] += 1
+               else:
+                  bond3count[key] = 1
+   bonding3 = ''
+   for x  in sorted(bond3count.items(), key=operator.itemgetter(0)):
+      bonding3 += x[0] + "%d" % x[1]
+
+
+
+   ##### generate bonding3r -  i-j-k-l ####
+   #bond3rcount = {}
+   #for ij in [(indx1,indx2),(indx2,indx1)]:
+   #   i = ij[0]
+   #   j = ij[1]
+   #   for k in range(n):
+   #      for l in range(n):
+   #         if (adjmat[j][k] > 0) and (adjmat[k][l]>0) and (k!=i) and (k!=j) and (l!=i) and (l!=j) and (l!=k):
+   #            symi = symbol[i]
+   #            symj = symbol[j]
+   #            symk = symbol[k]
+   #            syml = symbol[l]
+   #            key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
+   #            if (bond3rcount.has_key(key)):
+   #               bond3rcount[key] += 1
+   #            else:
+   #               bond3rcount[key] = 1
+   #bonding3r = ''
+   #for x  in sorted(bond3rcount.items(), key=operator.itemgetter(0)):
+   #   bonding3r += x[0] + "%d" % x[1]
+
+
+   #### generate bonding3r -  i-j-k-l ####
+   bond3rcount = {}
+   for ij in [(indx1,indx2),(indx2,indx1)]:
+      i = ij[0]
+      j = ij[1]
+      for k in range(n):
+         if (k!=i) and (k!=j) and (adjmat[j][k]>0):
+            for l in range(n):
+               if (adjmat[k][l]>0) and (l!=i) and (l!=j) and (l!=k):
+                  symi = symbol[i]
+                  symj = symbol[j]
+                  symk = symbol[k]
+                  syml = symbol[l]
+                  key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
+                  if (bond3rcount.has_key(key)):
+                     bond3rcount[key] += 1
+                  else:
+                     bond3rcount[key] = 1
+   bonding3r = ''
+   for x  in sorted(bond3rcount.items(), key=operator.itemgetter(0)):
+      bonding3r += x[0] + "%d" % x[1]
+
+
+   ##### generate bonding4r -  i-j-k-l-m ####
+   #bond4rcount = {}
+   #for ij in [(indx1,indx2),(indx2,indx1)]:
+   #   i = ij[0]
+   #   j = ij[1]
+   #   for k in range(n):
+   #      for l in range(n):
+   #         for m in range(n):
+   #            if (adjmat[j][k] > 0) and (adjmat[k][l] > 0) and (adjmat[l][m] > 0)  and (k!=i) and (k!=j) and (l!=i) and (l!=j) and (l!=k) and (m!=i) and (m!=j) and (m!=k) and (m!=l):
+   #               symi = symbol[i]
+   #               symj = symbol[j]
+   #               symk = symbol[k]
+   #               syml = symbol[l]
+   #               symm = symbol[m]
+   #               key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
+   #               if (bond4rcount.has_key(key)):
+   #                  bond4rcount[key] += 1
+   #               else:
+   #                  bond4rcount[key] = 1
+   #bonding4r = ''
+   #for x  in sorted(bond4rcount.items(), key=operator.itemgetter(0)):
+   #   bonding4r += x[0] + "%d" % x[1]
+
+
+   #### generate bonding4r -  i-j-k-l-m ####
+   bond4rcount = {}
+   for ij in [(indx1,indx2),(indx2,indx1)]:
+      i = ij[0]
+      j = ij[1]
+      for k in range(n):
+         if (k!=i) and (k!=j) and (adjmat[j][k]>0):
+            for l in range(n):
+               if (l!=i) and (l!=j) and (l!=k) and (adjmat[k][l]>0):
+                  for m in range(n):
+                     if (adjmat[l][m]>0) and (m!=i) and (m!=j) and (m!=k) and (m!=l):
+                        symi = symbol[i]
+                        symj = symbol[j]
+                        symk = symbol[k]
+                        syml = symbol[l]
+                        symm = symbol[m]
+                        key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
+                        if (bond4rcount.has_key(key)):
+                           bond4rcount[key] += 1
+                        else:
+                           bond4rcount[key] = 1
+   bonding4r = ''
+   for x  in sorted(bond4rcount.items(), key=operator.itemgetter(0)):
+      bonding4r += x[0] + "%d" % x[1]
+
+
+   ##### generate bonding5r -  i-j-k-l-m-a ####
+   #bond5rcount = {}
+   #for ij in [(indx1,indx2),(indx2,indx1)]:
+   #   i = ij[0]
+   #   j = ij[1]
+   #   for k in range(n):
+   #      for l in range(n):
+   #         for m in range(n):
+   #            for a in range(n):
+   #               if (adjmat[j][k] > 0) and (adjmat[k][l] > 0) and (adjmat[l][m] > 0) and (adjmat[m][a]>0)  and (k!=i) and (k!=j) and (l!=i) and (l!=j) and (l!=k) and (m!=i) and (m!=j) and (m!=k) and (m!=l) and (a!=i) and (a!=j) and (a!=k) and (a!=l) and (a!=m):
+   #                  symi = symbol[i]
+   #                  symj = symbol[j]
+   #                  symk = symbol[k]
+   #                  syml = symbol[l]
+   #                  symm = symbol[m]
+   #                  syma = symbol[a]
+   #                  key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
+   #                  if (bond5rcount.has_key(key)):
+   #                     bond5rcount[key] += 1
+   #                  else:
+   #                     bond5rcount[key] = 1
+   #bonding5r = ''
+   #for x  in sorted(bond5rcount.items(), key=operator.itemgetter(0)):
+   #   bonding5r += x[0] + "%d" % x[1]
+
+   #### generate bonding5r -  i-j-k-l-m-a ####
+   bond5rcount = {}
+   for ij in [(indx1,indx2),(indx2,indx1)]:
+      i = ij[0]
+      j = ij[1]
+      for k in range(n):
+         if (k!=i) and (k!=j) and (adjmat[j][k]>0):
+            for l in range(n):
+               if (l!=i) and (l!=j) and (l!=k) and (adjmat[k][l]>0):
+                  for m in range(n):
+                     if (m!=i) and (m!=j) and (m!=k) and (m!=l) and (adjmat[l][m]>0): 
+                        for a in range(n):
+                           if (adjmat[m][a]>0) and (a!=i) and (a!=j) and (a!=k) and (a!=l) and (a!=m):
+                              symi = symbol[i]
+                              symj = symbol[j]
+                              symk = symbol[k]
+                              syml = symbol[l]
+                              symm = symbol[m]
+                              syma = symbol[a]
+                              key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
+                              if (bond5rcount.has_key(key)):
+                                 bond5rcount[key] += 1
+                              else:
+                                 bond5rcount[key] = 1
+   bonding5r = ''
+   for x  in sorted(bond5rcount.items(), key=operator.itemgetter(0)):
+      bonding5r += x[0] + "%d" % x[1]
+
+
+   return  mformula + ":bond:" + bonding + ":" + bonding2 + ":" + bonding3 + ":" + bonding3r + ":" + bonding4r + ":" + bonding5r
+
+
+###############################################
+#                                             #
+#     generate_elimination_string0            #
+#                                             #
+###############################################
+
+## TS:  ...indx1--indx2~~indx3--indx4...
+
+def generate_elimination_string0(symbol,n,adjmat,indx1,indx2,indx3,indx4):
+
+   #### generate mformula ####
+   fdict = {}
+   for s in symbol:
+      if (fdict.has_key(s)):
+         fdict[s] += 1
+      else:
+         fdict[s] = 1
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   bond12 = generate_bond_string0(symbol,n,adjmat,indx1,indx2)
+   bond34 = generate_bond_string0(symbol,n,adjmat,indx3,indx4)
+   bond41 = generate_bond_string0(symbol,n,adjmat,indx4,indx1)
+
+   #### generate bonding4 ####
+   bond4count = {}
+   symi = symbol[indx1]
+   symj = symbol[indx2]
+   symk = symbol[indx3]
+   syml = symbol[indx4]
+   bonding4 = symi.strip() + "-"  + symj.strip() + "-" + symk.strip() + "-" + syml.strip()
+
+   #### generate bonding5 i-j-k-l  --- a  ####
+   bond5count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   l = indx4
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   syml = symbol[l]
+   for a in range(n):
+      if (a!=i) and (a!=j) and (a!=k) and (a!=l):
+         syma = symbol[a]
+         for ar in [i,j,k,l]:
+            if (adjmat[ar][a]>0):
+               key = symi.strip()
+               if (ar==i): key += "("+syma.strip()+")"
+               key += symj.strip()
+               if (ar==j): key += "("+syma.strip()+")"
+               key += symk.strip()
+               if (ar==k): key += "("+syma.strip()+")"
+               key += syml.strip()
+               if (ar==l): key += "("+syma.strip()+")"
+
+               if (bond5count.has_key(key)):
+                  bond5count[key] += 1
+               else:
+                  bond5count[key] = 1
+
+   bonding5 = ''
+   for x  in sorted(bond5count.items(), key=operator.itemgetter(0)):
+      bonding5 += x[0] + "%d" % x[1]
+
+
+   #### generate bonding6 i-j-k-l  --- a,b  ####
+   bond6count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   l = indx4
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   syml = symbol[l]
+   for a in range(n):
+      if (a!=i) and (a!=j) and (a!=k) and (a!=l):
+         for ar in [i,j,k,l]:
+            if (adjmat[ar][a]>0):
+               syma = symbol[a]
+               for b in range(n):
+                  if (b!=i) and (b!=j) and (b!=k) and (b!=l) and (a!=b):
+                     for br in [i,j,k,l]:
+                        if (adjmat[br][b]>0):
+                           symb = symbol[b]
+                           key = symi.strip()
+                           if (ar==i): key += "("+syma.strip()+")"
+                           if (br==i): key += "("+symb.strip()+")"
+                           key += symj.strip()
+                           if (ar==j): key += "("+syma.strip()+")"
+                           if (br==j): key += "("+symb.strip()+")"
+                           key += symk.strip()
+                           if (ar==k): key += "("+syma.strip()+")"
+                           if (br==k): key += "("+symb.strip()+")"
+                           key += syml.strip()
+                           if (ar==l): key += "("+syma.strip()+")"
+                           if (br==l): key += "("+symb.strip()+")"
+
+                           if (bond6count.has_key(key)):
+                              bond6count[key] += 1
+                           else:
+                              bond6count[key] = 1
+   bonding6 = ''
+   for x  in sorted(bond6count.items(), key=operator.itemgetter(0)):
+      bonding6 += x[0] + "%d" % x[1]
+
+   #### generate bonding7 i-j-k-l  --- a,b,c  ####
+   bond7count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   l = indx4
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   syml = symbol[l]
+   for a in range(n):
+      if (a!=i) and (a!=j) and (a!=k) and (a!=l):
+         for ar in [i,j,k,l]:
+            if (adjmat[ar][a]>0):
+               syma = symbol[a]
+               for b in range(n):
+                  if (b!=i) and (b!=j) and (b!=k) and (b!=l) and (a!=b):
+                     for br in [i,j,k,l]:
+                        if (adjmat[br][b]>0):
+                           symb = symbol[b]
+                           for c in range(n):
+                              if (c!=i) and (c!=j) and (c!=k) and (c!=l) and (a!=c) and (b!=c):
+                                 for cr in [i,j,k,l]:
+                                    if (adjmat[cr][c]>0):
+                                       symc = symbol[c]
+                                       key = symi.strip()
+                                       if (ar==i): key += "("+syma.strip()+")"
+                                       if (br==i): key += "("+symb.strip()+")"
+                                       if (cr==i): key += "("+symc.strip()+")"
+                                       key += symj.strip()
+                                       if (ar==j): key += "("+syma.strip()+")"
+                                       if (br==j): key += "("+symb.strip()+")"
+                                       if (cr==j): key += "("+symc.strip()+")"
+                                       key += symk.strip()
+                                       if (ar==k): key += "("+syma.strip()+")"
+                                       if (br==k): key += "("+symb.strip()+")"
+                                       if (cr==k): key += "("+symc.strip()+")"
+                                       key += syml.strip()
+                                       if (ar==l): key += "("+syma.strip()+")"
+                                       if (br==l): key += "("+symb.strip()+")"
+                                       if (cr==l): key += "("+symc.strip()+")"
+
+                                       if (bond7count.has_key(key)):
+                                          bond7count[key] += 1
+                                       else:
+                                          bond7count[key] = 1
+   bonding7 = ''
+   for x  in sorted(bond7count.items(), key=operator.itemgetter(0)):
+      bonding7 += x[0] + "%d" % x[1]
+
+   #### generate bonding8 i-j-k,-l  --- a,b,c,d  ####
+   bond8count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   l = indx4
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   syml = symbol[l]
+   for a in range(n):
+      if (a!=i) and (a!=j) and (a!=k) and (a!=l):
+         for ar in [i,j,k,l]:
+            if (adjmat[ar][a]>0):
+               syma = symbol[a]
+               for b in range(n):
+                  if (b!=i) and (b!=j) and (b!=k) and (b!=l) and (a!=b):
+                     for br in [i,j,k,l]:
+                        if  (adjmat[br][b]>0):
+                           symb = symbol[b]
+                           for c in range(n):
+                              if (c!=i) and (c!=j) and (c!=k) and (c!=l) and (a!=c) and (b!=c):
+                                 for cr in [i,j,k,l]:
+                                    if (adjmat[cr][c]>0):
+                                       symc = symbol[c]
+                                       for d in range(n):
+                                          if (d!=i) and (d!=j) and (d!=k) and (d!=l) and (a!=d) and (b!=d) and (c!=d):
+                                             for dr in [i,j,k,l]:
+                                                if (adjmat[dr][d]>0):
+                                                   symd = symbol[d]
+                                                   key = symi.strip()
+                                                   if (ar==i): key += "("+syma.strip()+")"
+                                                   if (br==i): key += "("+symb.strip()+")"
+                                                   if (cr==i): key += "("+symc.strip()+")"
+                                                   if (dr==i): key += "("+symd.strip()+")"
+                                                   key += symj.strip()
+                                                   if (ar==j): key += "("+syma.strip()+")"
+                                                   if (br==j): key += "("+symb.strip()+")"
+                                                   if (cr==j): key += "("+symc.strip()+")"
+                                                   if (dr==j): key += "("+symd.strip()+")"
+                                                   key += symk.strip()
+                                                   if (ar==k): key += "("+syma.strip()+")"
+                                                   if (br==k): key += "("+symb.strip()+")"
+                                                   if (cr==k): key += "("+symc.strip()+")"
+                                                   if (dr==k): key += "("+symd.strip()+")"
+                                                   key += syml.strip()
+                                                   if (ar==l): key += "("+syma.strip()+")"
+                                                   if (br==l): key += "("+symb.strip()+")"
+                                                   if (cr==l): key += "("+symc.strip()+")"
+                                                   if (dr==l): key += "("+symd.strip()+")"
+
+                                                   if (bond8count.has_key(key)):
+                                                      bond8count[key] += 1
+                                                   else:
+                                                      bond8count[key] = 1
+
+   bonding8 = ''
+   for x  in sorted(bond8count.items(), key=operator.itemgetter(0)):
+      bonding8 += x[0] + "%d" % x[1]
+
+   bondreplacement =   mformula + ":elimination:" +  bonding4 + ":" + bonding5 + ":" + bonding6 + ":" + bonding7 + ":" + bonding8
+   bondreplacement +=  ":" + bond12 + ":" + bond34 + ":" + bond41
+
+   return bondreplacement
+
+
+
+
+
+
+
+
+
+
+###############################################
+#                                             #
+#     generate_2bondreplacement_string0       #
+#                                             #
+###############################################
+
+## TS:  ...indx1--indx2...indx3--indx4...
+
+def generate_2bondreplacement_string0(symbol,n,adjmat,indx1,indx2,indx3,indx4):
+
+   #### generate mformula ####
+   fdict = {}
+   for s in symbol:
+      if (fdict.has_key(s)):
+         fdict[s] += 1
+      else:
+         fdict[s] = 1
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### sort indexes ####
+   symi = symbol[indx1]
+   symj = symbol[indx2]
+   symk = symbol[indx3]
+   syml = symbol[indx4]
+   aa = [symi,symj,symk,syml]
+   a0 = rotate(aa,0)
+   a1 = rotate(aa,1)
+   a2 = rotate(aa,2)
+   a3 = rotate(aa,3)
+   bb = [a0,a1,a2,a3]
+   bb.sort()
+   b0 = bb[0]
+   if (b0==a1):
+      tt = indx1
+      indx1 = indx2
+      indx2 = indx3
+      indx3 = indx4
+      indx4 = tt
+   elif (b0==a2):
+      tt1 = indx1
+      tt2 = indx2
+      indx1 = indx3
+      indx2 = indx4
+      indx3 = tt1
+      indx4 = tt2
+   elif (b0==a3):
+      tt1 = indx1
+      tt2 = indx2
+      tt3 = indx3
+      tt4 = indx4
+      indx1 = tt4
+      indx2 = tt1
+      indx3 = tt2
+      indx4 = tt3
+
+   bond12 = generate_bond_string0(symbol,n,adjmat,indx1,indx2)
+   bond23 = generate_bond_string0(symbol,n,adjmat,indx2,indx3)
+   bond34 = generate_bond_string0(symbol,n,adjmat,indx3,indx4)
+   bond41 = generate_bond_string0(symbol,n,adjmat,indx4,indx1)
+
+   #### generate bonding4 ####
+   bond4count = {}
+   symi = symbol[indx1]
+   symj = symbol[indx2]
+   symk = symbol[indx3]
+   syml = symbol[indx4]
+   bonding4 = symi.strip() + "-"  + symj.strip() + "-" + symk.strip() + "-" + syml.strip()
+
+
+   #### generate bonding5 i-j-k-l  --- a  ####
+   bond5count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   l = indx4
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   syml = symbol[l]
+   for a in range(n):
+      if (a!=i) and (a!=j) and (a!=k) and (a!=l):
+         syma = symbol[a]
+         for ar in [i,j,k,l]:
+            if (adjmat[ar][a]>0):
+               key = symi.strip()
+               if (ar==i): key += "("+syma.strip()+")"
+               key += symj.strip()
+               if (ar==j): key += "("+syma.strip()+")"
+               key += symk.strip()
+               if (ar==k): key += "("+syma.strip()+")"
+               key += syml.strip()
+               if (ar==l): key += "("+syma.strip()+")"
+
+               if (bond5count.has_key(key)):
+                  bond5count[key] += 1
+               else:
+                  bond5count[key] = 1
+
+   bonding5 = ''
+   for x  in sorted(bond5count.items(), key=operator.itemgetter(0)):
+      bonding5 += x[0] + "%d" % x[1]
+
+
+   #### generate bonding6 i-j-k-l  --- a,b  ####
+   bond6count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   l = indx4
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   syml = symbol[l]
+   for a in range(n):
+      if (a!=i) and (a!=j) and (a!=k) and (a!=l):
+         for ar in [i,j,k,l]:
+            if (adjmat[ar][a]>0):
+               syma = symbol[a]
+               for b in range(n):
+                  if (b!=i) and (b!=j) and (b!=k) and (b!=l) and (a!=b):
+                     for br in [i,j,k,l]:
+                        if (adjmat[br][b]>0):
+                           symb = symbol[b]
+                           key = symi.strip()
+                           if (ar==i): key += "("+syma.strip()+")"
+                           if (br==i): key += "("+symb.strip()+")"
+                           key += symj.strip()
+                           if (ar==j): key += "("+syma.strip()+")"
+                           if (br==j): key += "("+symb.strip()+")"
+                           key += symk.strip()
+                           if (ar==k): key += "("+syma.strip()+")"
+                           if (br==k): key += "("+symb.strip()+")"
+                           key += syml.strip()
+                           if (ar==l): key += "("+syma.strip()+")"
+                           if (br==l): key += "("+symb.strip()+")"
+
+                           if (bond6count.has_key(key)):
+                              bond6count[key] += 1
+                           else:
+                              bond6count[key] = 1
+   bonding6 = ''
+   for x  in sorted(bond6count.items(), key=operator.itemgetter(0)):
+      bonding6 += x[0] + "%d" % x[1]
+
+   #### generate bonding7 i-j-k-l  --- a,b,c  ####
+   bond7count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   l = indx4
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   syml = symbol[l]
+   for a in range(n):
+      if (a!=i) and (a!=j) and (a!=k) and (a!=l):
+         for ar in [i,j,k,l]:
+            if (adjmat[ar][a]>0):
+               syma = symbol[a]
+               for b in range(n):
+                  if (b!=i) and (b!=j) and (b!=k) and (b!=l) and (a!=b):
+                     for br in [i,j,k,l]:
+                        if (adjmat[br][b]>0):
+                           symb = symbol[b]
+                           for c in range(n):
+                              if (c!=i) and (c!=j) and (c!=k) and (c!=l) and (a!=c) and (b!=c):
+                                 for cr in [i,j,k,l]:
+                                    if (adjmat[cr][c]>0):
+                                       symc = symbol[c]
+                                       key = symi.strip()
+                                       if (ar==i): key += "("+syma.strip()+")"
+                                       if (br==i): key += "("+symb.strip()+")"
+                                       if (cr==i): key += "("+symc.strip()+")"
+                                       key += symj.strip()
+                                       if (ar==j): key += "("+syma.strip()+")"
+                                       if (br==j): key += "("+symb.strip()+")"
+                                       if (cr==j): key += "("+symc.strip()+")"
+                                       key += symk.strip()
+                                       if (ar==k): key += "("+syma.strip()+")"
+                                       if (br==k): key += "("+symb.strip()+")"
+                                       if (cr==k): key += "("+symc.strip()+")"
+                                       key += syml.strip()
+                                       if (ar==l): key += "("+syma.strip()+")"
+                                       if (br==l): key += "("+symb.strip()+")"
+                                       if (cr==l): key += "("+symc.strip()+")"
+
+                                       if (bond7count.has_key(key)):
+                                          bond7count[key] += 1
+                                       else:
+                                          bond7count[key] = 1
+   bonding7 = ''
+   for x  in sorted(bond7count.items(), key=operator.itemgetter(0)):
+      bonding7 += x[0] + "%d" % x[1]
+
+
+   #### generate bonding8 i-j-k-l  --- a,b,c,d  ####
+   bond8count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   l = indx4
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   syml = symbol[l]
+   for a in range(n):
+      if (a!=i) and (a!=j) and (a!=k) and (a!=l):
+         for ar in [i,j,k,l]:
+            if (adjmat[ar][a]>0):
+               syma = symbol[a]
+               for b in range(n):
+                  if (b!=i) and (b!=j) and (b!=k) and (b!=l) and (a!=b):
+                     for br in [i,j,k,l]:
+                        if (adjmat[br][b]>0):
+                           symb = symbol[b]
+                           for c in range(n):
+                              if (c!=i) and (c!=j) and (c!=k) and (c!=l) and (a!=c) and (b!=c):
+                                 for cr in [i,j,k,l]:
+                                    if (adjmat[cr][c]>0):
+                                       symc = symbol[c]
+                                       for d in range(n):
+                                          if (d!=i) and (d!=j) and (d!=k) and (d!=l) and (a!=d) and (b!=d) and (c!=d):
+                                             for dr in [i,j,k,l]:
+                                                if (adjmat[dr][d]>0):
+                                                   symd = symbol[d]
+                                                   key = symi.strip()
+                                                   if (ar==i): key += "("+syma.strip()+")"
+                                                   if (br==i): key += "("+symb.strip()+")"
+                                                   if (cr==i): key += "("+symc.strip()+")"
+                                                   if (dr==i): key += "("+symd.strip()+")"
+                                                   key += symj.strip()
+                                                   if (ar==j): key += "("+syma.strip()+")"
+                                                   if (br==j): key += "("+symb.strip()+")"
+                                                   if (cr==j): key += "("+symc.strip()+")"
+                                                   if (dr==j): key += "("+symd.strip()+")"
+                                                   key += symk.strip()
+                                                   if (ar==k): key += "("+syma.strip()+")"
+                                                   if (br==k): key += "("+symb.strip()+")"
+                                                   if (cr==k): key += "("+symc.strip()+")"
+                                                   if (dr==k): key += "("+symd.strip()+")"
+                                                   key += syml.strip()
+                                                   if (ar==l): key += "("+syma.strip()+")"
+                                                   if (br==l): key += "("+symb.strip()+")"
+                                                   if (cr==l): key += "("+symc.strip()+")"
+                                                   if (dr==l): key += "("+symd.strip()+")"
+
+                                                   if (bond8count.has_key(key)):
+                                                      bond8count[key] += 1
+                                                   else:
+                                                      bond8count[key] = 1
+
+   bonding8 = ''
+   for x  in sorted(bond8count.items(), key=operator.itemgetter(0)):
+      bonding8 += x[0] + "%d" % x[1]
+
+   bondreplacement =   mformula + ":2bondreplacement:" +  bonding4 + ":" + bonding5 + ":" + bonding6 + ":" + bonding7 + ":" + bonding8 
+   bondreplacement +=  ":" + bond12 + ":" + bond23 + ":" + bond34 + ":" + bond41
+
+   return bondreplacement
+
+
+
+###############################################
+#                                             #
+#            generate_bonddiff_string0        #
+#                                             #
+###############################################
+def generate_bonddiff_string0(symbol,n,adjmat,indx1,indx2,indx3):
+
+   #### generate mformula ####
+   fdict = {}
+   for s in symbol:
+      if (fdict.has_key(s)):
+         fdict[s] += 1
+      else:
+         fdict[s] = 1
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+
+   bond12 = generate_bond_string0(symbol,n,adjmat,indx1,indx2)
+   bond32 = generate_bond_string0(symbol,n,adjmat,indx3,indx2)
+
+   #### generate bonding2 ####
+   bond2count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   symi = symbol[i]
+   symj = symbol[j]
+   symk = symbol[k]
+   bonding2 = symi.strip() + "-"  + symj.strip() + "-" + symk.strip()
+
+
+   #### generate bonding3 i-j-k--l  ####
+   bond3count = {}
+   for ijk in [(indx1,indx2,indx3),(indx3,indx2,indx1)]:
+      i = ijk[0]
+      j = ijk[1]
+      k = ijk[2]
+      for l in range(n):
+         if (adjmat[k][l]>0) and (l!=i) and (l!=j) and (l!=k):
+            symi = symbol[i]
+            symj = symbol[j]
+            symk = symbol[k]
+            syml = symbol[l]
+            key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
+            if (bond3count.has_key(key)):
+               bond3count[key] += 1
+            else:
+               bond3count[key] = 1
+   bonding3 = ''
+   for x  in sorted(bond3count.items(), key=operator.itemgetter(0)):
+      bonding3 += x[0] + "%d" % x[1]
+
+   #### generate bonding4 -  l--i-j-k--m ####
+   bond4count = {}
+   i = indx1
+   j = indx2
+   k = indx3
+   for l in range(n):
+      if (l!=i) and (l!=j) and (l!=k) and (adjmat[l][i]>0):
+         for m in range(n):
+            if (adjmat[k][m]>0) and (m!=i) and (m!=j) and (m!=k):
+               symi = symbol[i]
+               symj = symbol[j]
+               symk = symbol[k]
+               syml = symbol[l]
+               symm = symbol[m]
+               key = syml.strip() + symi.strip() + symj.strip() + symk.strip() + symm.strip()
+               if (bond4count.has_key(key)):
+                  bond4count[key] += 1
+               else:
+                  bond4count[key] = 1
+   bonding4 = ''
+   for x  in sorted(bond4count.items(), key=operator.itemgetter(0)):
+      bonding4 += x[0] + "%d" % x[1]
+
+   #### generate bonding4r -  i-j-k--l--m ####
+   bond4rcount = {}
+   for ijk in [(indx1,indx2,indx3),(indx3,indx2,indx1)]:
+      i = ijk[0]
+      j = ijk[1]
+      k = ijk[2]
+      for l in range(n):
+         if (l!=i) and (l!=j) and (l!=k) and (adjmat[k][l]>0):
+            for m in range(n):
+               if (adjmat[l][m]>0) and (m!=i) and (m!=j) and (m!=k) and (m!=l):
+                  symi = symbol[i]
+                  symj = symbol[j]
+                  symk = symbol[k]
+                  syml = symbol[l]
+                  symm = symbol[m]
+                  key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
+                  if (bond4rcount.has_key(key)):
+                     bond4rcount[key] += 1
+                  else:
+                     bond4rcount[key] = 1
+   bonding4r = ''
+   for x  in sorted(bond4rcount.items(), key=operator.itemgetter(0)):
+      bonding4r += x[0] + "%d" % x[1]
+
+   #### generate bonding5r -  i-j-k--l--m--a ####
+   bond5rcount = {}
+   for ijk in [(indx1,indx2,indx3),(indx3,indx2,indx1)]:
+      i = ijk[0]
+      j = ijk[1]
+      k = ijk[2]
+      for l in range(n):
+         if (l!=i) and (l!=j) and (l!=k) and (adjmat[k][l]>0):
+            for m in range(n):
+               if (m!=i) and (m!=j) and (m!=k) and (m!=l) and (adjmat[l][m]>0):
+                  for a in range(n):
+                     if (adjmat[m][a]>0) and (a!=i) and (a!=j) and (a!=k) and (a!=l) and (a!=m):
+                        symi = symbol[i]
+                        symj = symbol[j]
+                        symk = symbol[k]
+                        syml = symbol[l]
+                        symm = symbol[m]
+                        syma = symbol[a]
+                        key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
+                        if (bond5rcount.has_key(key)):
+                           bond5rcount[key] += 1
+                        else:
+                           bond5rcount[key] = 1
+   bonding5r = ''
+   for x  in sorted(bond5rcount.items(), key=operator.itemgetter(0)):
+      bonding5r += x[0] + "%d" % x[1]
+
+   bonddiff = mformula + ":bonddiff:" +  bonding2 + ":" + bonding3 + ":" + bonding4 + ":" + bonding4r + ":" + bonding5r
+   bonddiff += ":" + bond12 + ":" + bond32
+
+   return bonddiff
+
+
+
+
+
+
+###############################################
+#                                             #
+#            reactiontype_molecules           #
+#                                             #
+###############################################
+
+def reactiontype_molecules(hup,dbfile,table,molecules,reaction,energy):
+
+   if (hup=='sqlite3'):
+      issqlite3 = True
+   else:
+      issqlite3 = False
+   sqlinsert = "insert into " + table
+   sqlinsert += " (reactionid,reactiontype,transitionstate,fullhash,"
+   sqlinsert += "filter0,filter1,filter2,filter3,filter4,filter5,"
+   sqlinsert += "reaction,energy) values ("
+   sqlinsert += "?,?,?,?,?,?,?,?,?,?,?,?);"
+   if (not issqlite3): sqlinsert = sqlinsert.replace('?','%s')
+
+   sqlcheck = "select count(1) from " + table + " where "
+   sqlcheck += "fullhash=? limit 1;"
+   if (not issqlite3): sqlcheck = sqlcheck.replace('?','%s')
+
+
+   bstringsall = []
+   reactionid = -1
+   reactiontype = ""
+   fullhash = ""
+   filter0 = ""
+   filter1 = ""
+   filter2 = ""
+   filter3 = ""
+   filter4 = ""
+   filter5 = ""
+
+   #### generate bond dictionary ####
+   #### Parse reactant and product bonds  ####
+   bonds = {}
+   for mm in molecules:
+      symbol2 = mm[1]
+      adjmat2 = mm[2]
+      x       = -mm[4]*mm[3]
+      nion2   = len(symbol2)
+      for i in range(nion2):
+         for j in range(i+1,nion2):
+            if (adjmat2[i][j]>0):
+               symi = symbol2[i]
+               symj = symbol2[j]
+               if (symi<symj):
+                  key = symi+":"+symj
+               else:
+                  key = symj+":"+symi
+               if key in bonds:
+                  bonds[key] += 1*x
+               else:
+                  bonds[key] = 1*x
+   print
+   print "product bonds -  reactant bonds"
+   nbondsinvolved = 0
+   nbondscreated   = 0
+   nbondsdestroyed = 0
+   createbonds = []
+   destroybonds = []
+   for key,val in bonds.iteritems():
+      syms = key.split(':')
+      print  syms[0]+ " " + syms[1] + "  val=",val
+      if (val>0): 
+         for ii in range(int(abs(val))): createbonds.append(syms)
+         nbondscreated += abs(val)
+      if (val<0):
+         for ii in range(int(abs(val))): destroybonds.append(syms)
+         nbondsdestroyed += abs(val)
+      nbondsinvolved += abs(val)
+   
+   print "nbondsinvolved=",nbondsinvolved
+   print "len(createbonds) =",len(createbonds)
+   print "len(destroybonds)=",len(destroybonds)
+
+   ### make reactant adjmatrix
+   nionr = 0
+   nionp = 0
+   for mm in molecules:
+      if (mm[3]>0):  nionr += len(mm[1])*int(mm[4])
+      if (mm[3]<0):  nionp += len(mm[1])*int(mm[4])
+   if (nionr != nionp): 
+      print "Error: The number of reactant atoms and product atoms are not the same."
+      return
+
+   nion = nionr
+   adj_reactants    = []
+   symbol_reactants = []
+   adj_products     = []
+   symbol_products  = []
+   for i in range(nion):
+      adj_reactants.append([])
+      adj_products.append([])
+      for j in range(nion):
+         adj_reactants[i].append(0)
+         adj_products[i].append(0)
+   nionr = 0
+   nionp = 0
+   for mm in molecules:
+      adjmat1 = mm[2]
+      nion1   = len(mm[1])
+      if (mm[3]>0):
+         for kk in range(int(mm[4])):
+            symbol_reactants += mm[1]
+            for i in range(nion1):
+               for j in range(nion1):
+                  adj_reactants[nionr+i][nionr+j] = adjmat1[i][j]
+            nionr += nion1
+      else:
+         for kk in range(int(mm[4])):
+            symbol_products  += mm[1]
+            for i in range(nion1):
+               for j in range(nion1):
+                  adj_products[nionp+i][nionp+j] = adjmat1[i][j]
+            nionp += nion1
+
+
+
+
+
+   if (abs(nbondsinvolved-1)<1.0e-6):
+      reactionid = 1
+      reactiontype = "A + B --> AB"
+      if  (abs(nbondscreated-1)<1.0e-6):
+         print "This is a combination reaction"
+         print "This is an A + B --> AB Reaction"
+         sym1 = createbonds[0][0]
+         sym2 = createbonds[0][1]
+         reactants1 = False
+      elif  (abs(nbondsdestroyed-1)<1.0e-6):
+         print "This is a  decomposition reaction"
+         print "This is an AB --> A + B Reaction"
+         energy = -energy
+         sym1 = destroybonds[0][0]
+         sym2 = destroybonds[0][1]
+         reactants1 = True
+      else:
+         print "Error in combination decomposition reaction"
+         return
+
+      if (sym1>sym2):
+         sym1,sym2 = sym2,sym1
+      
+      bstrings_reactants = []
+      for i in range(nion):
+         if (symbol_reactants[i]==sym1):
+            for j in range(nion):
+               if reactants1:
+                  bstructure = (adj_reactants[i][j]>0)
+               else:
+                  bstructure = (adj_reactants[i][j]==0)
+               if (symbol_reactants[j]==sym2) and (i!=j) and (bstructure):
+                  aij = adj_reactants[i][j]
+                  adj_reactants[i][j] = 1
+                  adj_reactants[j][i] = 1
+                  bstrings_reactants.append(generate_bond_string0(symbol_reactants,nion,adj_reactants,i,j))
+                  adj_reactants[i][j] = aij
+                  adj_reactants[j][i] = aij
+      bstrings_reactants = list(set(bstrings_reactants))
+
+      bstrings_products = []
+      for i in range(nion):
+         if (symbol_products[i]==sym1):
+            for j in range(nion):
+               if reactants1:
+                  bstructure = (adj_products[i][j]==0)
+               else:
+                  bstructure = (adj_products[i][j]>0)
+               if (symbol_products[j]==sym2) and (i!=j) and (bstructure):
+                  aij = adj_products[i][j]
+                  adj_products[i][j] = 1
+                  adj_products[j][i] = 1
+                  bstrings_products.append(generate_bond_string0(symbol_products,nion,adj_products,i,j))
+                  adj_products[i][j] = aij
+                  adj_products[j][i] = aij
+      bstrings_products = list(set(bstrings_products))
+
+      bstrings_reaction = []
+      for b1 in bstrings_reactants:
+         for b2 in bstrings_products:
+            if b1==b2:
+               #print "success!: "+ b1
+               bstrings_reaction.append(b1)
+      bstrings_reaction = list(set(bstrings_reaction))
+      bond_prune     = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
+      bonddiff_prune = [[0,1,1,1,1,1,1],  [0,1,1,1,1,1,0],   [0,1,1,1,1,0,0],  [0,1,1,1,0,0,0],  [0,1,1,1,0,0,0],  [0,1,1,0,0,0,0]]
+      bstringsall = []
+      for bstring in bstrings_reaction:
+         print
+         print "reaction constraint_string = " + bstring
+         transitionstate = bstring.split(":")[2]
+         bstrings_filtered = [bstring]
+         for b in bond_prune:
+            bstring_filter = filter_reaction_string(b,bstring)
+            bstrings_filtered.append(bstring_filter)
+         print
+         print "filtered reaction constraint_strings = ",bstrings_filtered
+         bstringsall.append([reactionid,reactiontype,transitionstate]+bstrings_filtered+[reaction,energy])
+
+
+   elif (abs(nbondsinvolved-2)<1.0e-6) and (abs(nbondsdestroyed-0)<1.0e-6) and (abs(nbondscreated-2)<1.0e-6):
+      reactionid = 2
+      print "This is a double combination reaction"
+      print "This is an A + B + C + D --> AB + CD  or an A + B + C --> ABC Reaction"
+      reactiontype = "A + B + C --> ABC"
+
+   elif (abs(nbondsinvolved-2)<1.0e-6) and (abs(nbondsdestroyed-2)<1.0e-6) and (abs(nbondscreated-0)<1.0e-6):
+      reactionid = 2
+      print "This is a double decomposition reaction"
+      print "This is an AB + CD --> A + B + C + D or an ABC --> A + B + C Reaction"
+      reactiontype = "ABC --> A + B + C" 
+
+
+   elif (abs(nbondsinvolved-2)<1.0e-6) and (abs(nbondsdestroyed-1)<1.0e-6) and (abs(nbondscreated-1)<1.0e-6):
+      reactionid = 3
+      print "This is a single replacement or substitution reaction"
+      print "This is an AB + C --> AC + B  Reaction"
+      reactiontype = "AB + C --> AC + B"
+      name0 = createbonds[0][0]
+      name1 = createbonds[0][1]
+      name2 = destroybonds[0][0]
+      name3 = destroybonds[0][1]
+      if (name0==name2):
+          sym1 = name3
+          sym2 = name2
+          sym3 = name1
+      elif (name0==name3):
+          sym1 = name2
+          sym2 = name3
+          sym3 = name1
+      elif (name1==name2):
+          sym1 = name3
+          sym2 = name2
+          sym3 = name0
+      elif (name1==name3):
+          sym1 = name2
+          sym2 = name3
+          sym3 = name0
+      else:
+         sym1 = 'XXXX'
+         sym2 = 'XXXX'
+         sym3 = 'XXXX'
+      reactantproduct = True
+      if (sym1>sym3):
+         reactantproduct = False
+         sym1,sym3 = sym3,sym1
+         energy = -energy
+
+      print "transition state structure: "+sym1+"-"+sym2+"-"+sym3
+
+      bstrings_reactants = []
+      for i in range(nion):
+         if (symbol_reactants[i]==sym1):
+            for j in range(nion):
+               nb0 = adj_reactants[i][j]
+               if (symbol_reactants[j]==sym2) and (i!=j):
+                  for k in range(nion):
+                     nb1 = adj_reactants[k][j]
+                     if reactantproduct:
+                        bstructure = ((nb0>0) and (nb1==0))
+                     else:
+                        bstructure = ((nb0==0) and (nb1>0))
+                     if (symbol_reactants[k]==sym3) and (k!=i) and (k!=j) and (bstructure):
+
+                        aij = adj_reactants[i][j]
+                        adj_reactants[i][j] = 1
+                        adj_reactants[j][i] = 1
+
+                        ajk = adj_reactants[j][k]
+                        adj_reactants[j][k] = 1
+                        adj_reactants[k][j] = 1
+
+                        tmpstr = generate_bonddiff_string0(symbol_reactants,nion,adj_reactants,i,j,k)
+                        bstrings_reactants.append(tmpstr)
+
+                        adj_reactants[i][j] = aij
+                        adj_reactants[j][i] = aij
+
+                        adj_reactants[j][k] = ajk
+                        adj_reactants[k][j] = ajk
+      bstrings_reactants = list(set(bstrings_reactants))
+
+      bstrings_products = []
+      for i in range(nion):
+         if (symbol_products[i]==sym1):
+            for j in range(nion):
+               nb0 = adj_products[i][j]
+               if (symbol_products[j]==sym2) and (i!=j):
+                  for k in range(nion):
+                     nb1 = adj_products[k][j]
+                     if reactantproduct:
+                        bstructure = ((nb0==0) and (nb1>0))
+                     else:
+                        bstructure = ((nb0>0) and (nb1==0))
+                     if (symbol_products[k]==sym3) and (k!=i) and (k!=j) and (bstructure):
+
+                        aij = adj_products[i][j]
+                        adj_products[i][j] = 1
+                        adj_products[j][i] = 1
+
+                        ajk = adj_products[j][k]
+                        adj_products[j][k] = 1
+                        adj_products[k][j] = 1
+
+                        tmpstr = generate_bonddiff_string0(symbol_products,nion,adj_products,i,j,k)
+                        bstrings_products.append(tmpstr)
+
+                        adj_products[i][j] = aij
+                        adj_products[j][i] = aij
+
+                        adj_products[j][k] = ajk
+                        adj_products[k][j] = ajk
+      bstrings_products = list(set(bstrings_products))
+
+      bstrings_reaction = []
+      for b1 in bstrings_reactants:
+         for b2 in bstrings_products:
+            if b1==b2:
+               #print "success!: "+ b1
+               bstrings_reaction.append(b1)
+
+      bstrings_reaction = list(set(bstrings_reaction))
+
+      bond_prune     = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
+      bonddiff_prune = [[0,1,1,1,1,1,1],  [0,1,1,1,1,1,0],   [0,1,1,1,1,0,0],  [0,1,1,1,0,0,0],  [0,1,1,1,0,0,0],  [0,1,1,0,0,0,0]]
+      all_prune =  [bonddiff_prune[i]+bond_prune[i]+bond_prune[i] for i in range(6)]
+      bstringsall = []
+      for bstring in bstrings_reaction:
+         print
+         print "reaction constraint_string = " + bstring
+         transitionstate = bstring.split(":")[2]
+         bstrings_filtered = [bstring]
+         for b in all_prune:
+            bstrings_filtered.append(filter_reaction_string(b,bstring))
+         print
+         print "filtered reaction constraint_strings = ",bstrings_filtered
+         bstringsall.append([reactionid,reactiontype,transitionstate]+bstrings_filtered+[reaction,energy])
+
+
+
+   ### elimination and double addition reactions
+   elif (abs(nbondsinvolved-3)<1.0e-6):
+      reactionid = 4
+      reactiontype = "AB + CD --> CABD"
+
+      if (abs(nbondsdestroyed-1)<1.0e-6) and (abs(nbondscreated-2)<1.0e-6):
+         print "This is an AB + CD --> CABD elimination reaction"
+         name1 = createbonds[0][0]
+         name2 = createbonds[0][1]
+         name3 = createbonds[1][0]
+         name4 = createbonds[1][1]
+         sym1 = destroybonds[0][0]
+         sym4 = destroybonds[0][1]
+         reactants1 = False
+      elif  (abs(nbondsdestroyed-2)<1.0e-6) and (abs(nbondscreated-1)<1.0e-6):
+         print "This is an CABD --> AB + CD elimination reaction"
+         energy = -energy
+         name1 = destroybonds[0][0]
+         name2 = destroybonds[0][1]
+         name3 = destroybonds[1][0]
+         name4 = destroybonds[1][1]
+         sym1 = createbonds[0][0]
+         sym4 = createbonds[0][1]
+         reactants1 = True
+      else:
+         print "Error in elimination reaction"
+         return
+
+      if (sym1==name1):
+         sym2 = name2
+         if (sym4==name3):
+            sym3 = name4
+         elif (sym4==name4):
+            sym3 = name3
+
+      elif (sym1==name2):
+         sym2 = name1
+         if (sym4==name3):
+            sym3 = name4
+         elif (sym4==name4):
+            sym3 = name3
+      elif (sym1==name3):
+         sym2 = name4
+         if (sym4==name1):
+            sym3 = name2
+         elif (sym4==name2):
+            sym3 = name1
+
+      elif (sym1==name4):
+         sym2 = name3
+         if (sym4==name1):
+            sym3 = name2
+         elif (sym4==name2):
+            sym3 = name1
+
+      if sym2>sym3:
+         sym2,sym3 = sym3,sym2
+
+      if sym1>sym4:
+         sym1,sym4 = sym4,sym1
+
+      print "transition state structure: "+".."+sym1+"-"+sym2+"~"+sym3+"-"+sym4+".."
+
+      bstrings_reactants = []
+      for i in range(nion):
+         if (symbol_reactants[i]==sym1):
+            for j in range(nion):
+               nbij = adj_reactants[i][j]
+               if (symbol_reactants[j]==sym2) and (i!=j):
+                  for k in range(nion):
+                     nbik = adj_reactants[i][k]
+                     nbjk = adj_reactants[j][k]
+                     if (symbol_reactants[k]==sym3) and (k!=i) and (k!=j):
+                        for l in range(nion):
+                           nbil = adj_reactants[i][l]
+                           nbjl = adj_reactants[j][l]
+                           nbkl = adj_reactants[k][l]
+                           if (reactants1):
+                              bstructure = (nbij==1) and (nbjk>0) and (nbkl==1) and (nbil==0) and (nbik==0) and (nbjl==0)
+                           else:
+                              bstructure = (nbij==0) and (nbjk>0) and (nbkl==0) and (nbil==1) and (nbik==0) and (nbjl==0)
+
+                           if (symbol_reactants[l]==sym4) and (l!=i) and (l!=j) and (l!=k) and (bstructure):
+
+                              aij = adj_reactants[i][j]
+                              adj_reactants[i][j] = 1
+                              adj_reactants[j][i] = 1
+
+                              akl = adj_reactants[k][l]
+                              adj_reactants[k][l] = 1
+                              adj_reactants[l][k] = 1
+
+                              ali = adj_reactants[l][i]
+                              adj_reactants[l][i] = 1
+                              adj_reactants[i][l] = 1
+
+                              tmpstr = generate_elimination_string0(symbol_reactants,nion,adj_reactants,i,j,k,l)
+                              bstrings_reactants.append(tmpstr)
+
+                              adj_reactants[i][j] = aij
+                              adj_reactants[j][i] = aij
+
+                              adj_reactants[k][l] = akl
+                              adj_reactants[l][k] = akl
+
+                              adj_reactants[l][i] = ali
+                              adj_reactants[i][l] = ali
+      bstrings_reactants = list(set(bstrings_reactants))
+
+      bstrings_products = []
+      for i in range(nion):
+         if (symbol_products[i]==sym1):
+            for j in range(nion):
+               nbij = adj_products[i][j]
+               if (symbol_products[j]==sym2) and (i!=j):
+                  for k in range(nion):
+                     nbik = adj_products[i][k]
+                     nbjk = adj_products[j][k]
+                     if (symbol_products[k]==sym3) and (k!=i) and (k!=j):
+                        for l in range(nion):
+                           nbil = adj_products[i][l]
+                           nbjl = adj_products[j][l]
+                           nbkl = adj_products[k][l]
+                           if (reactants1):
+                              bstructure = (nbij==0) and (nbjk>0) and (nbkl==0) and (nbil==1) and (nbik==0) and (nbjl==0)
+                           else:
+                              bstructure = (nbij==1) and (nbjk>0) and (nbkl==1) and (nbil==0) and (nbik==0) and (nbjl==0)
+
+                           if (symbol_products[l]==sym4) and (l!=i) and (l!=j) and (l!=k) and (bstructure):
+
+                              aij = adj_products[i][j]
+                              adj_products[i][j] = 1
+                              adj_products[j][i] = 1
+
+                              akl = adj_products[k][l]
+                              adj_products[k][l] = 1
+                              adj_products[l][k] = 1
+
+                              ali = adj_products[l][i]
+                              adj_products[l][i] = 1
+                              adj_products[i][l] = 1
+
+                              tmpstr = generate_elimination_string0(symbol_products,nion,adj_products,i,j,k,l)
+                              bstrings_products.append(tmpstr)
+                              adj_products[i][j] = aij
+                              adj_products[j][i] = aij
+
+                              adj_products[k][l] = akl
+                              adj_products[l][k] = akl
+
+                              adj_products[l][i] = ali
+                              adj_products[i][l] = ali
+      bstrings_products = list(set(bstrings_products))
+      bstrings_reaction = []
+      for b1 in bstrings_reactants:
+         for b2 in bstrings_products:
+            if b1==b2:
+               #print "success!: "+ b1
+               bstrings_reaction.append(b1)
+      bstrings_reaction = list(set(bstrings_reaction))
+
+      bond_prune     = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
+      elimination_prune = [[0,1,1,1,1,1,1],  [0,1,1,1,1,1,0],   [0,1,1,1,1,0,0],  [0,1,1,1,0,0,0],  [0,1,1,1,0,0,0],  [0,1,1,0,0,0,0]]
+
+      all_prune =  [elimination_prune[i]+bond_prune[i]+bond_prune[i]+bond_prune[i] for i in range(6)]
+      bstringsall = []
+      for bstring in bstrings_reaction:
+         print
+         print "reaction constraint_string = " + bstring
+         transitionstate = bstring.split(":")[2]
+         bstrings_filtered = [bstring]
+         for b in all_prune:
+            bstrings_filtered.append(filter_reaction_string(b,bstring))
+         print
+         print "filtered reaction constraint_strings = ",bstrings_filtered
+         bstringsall.append([reactionid,reactiontype,transitionstate]+bstrings_filtered+[reaction,energy])
+
+
+
+
+   elif (abs(nbondsinvolved-4)<1.0e-6) and (abs(nbondsdestroyed-2)<1.0e-6) and (abs(nbondscreated-2)<1.0e-6):
+      reactionid = 5
+      print "This is a double replacement or substitution reaction"
+      print "This is an AB + CD --> AD + BC  Reaction"
+      reactiontype = "AB + CD --> AD + BC"
+     
+      name1 = destroybonds[0][0]
+      name2 = destroybonds[0][1]
+      name3 = destroybonds[1][0]
+      name4 = destroybonds[1][1]
+
+      name5 = createbonds[0][0]
+      name6 = createbonds[0][1]
+      name7 = createbonds[1][0]
+      name8 = createbonds[1][1]
+     
+      if (name1==name5):
+          if (name6==name4):
+             sym1 = name1
+             sym2 = name2
+             sym3 = name3
+             sym4 = name4
+          if (name6==name3):
+             sym1 = name1
+             sym2 = name2
+             sym3 = name4
+             sym4 = name3
+      if (name1==name6):
+          if (name5==name4):
+             sym1 = name1
+             sym2 = name2
+             sym3 = name3
+             sym4 = name4
+          if (name5==name3):
+             sym1 = name1
+             sym2 = name2
+             sym3 = name4
+             sym4 = name3
+      if (name1==name7):
+          if (name8==name4):
+             sym1 = name1
+             sym2 = name2
+             sym3 = name3
+             sym4 = name4
+          if (name8==name3):
+             sym1 = name1
+             sym2 = name2
+             sym3 = name4
+             sym4 = name3
+      if (name1==name8):
+          if (name7==name4):
+             sym1 = name1
+             sym2 = name2
+             sym3 = name3
+             sym4 = name4
+          if (name7==name3):
+             sym1 = name1
+             sym2 = name2
+             sym3 = name4
+             sym4 = name3
+
+      print "transition state structure: .."+sym1+"-"+sym2+".."+sym3+"-"+sym4+".."
+
+
+      #### Not sure about this forward/backword classification for this type of reaction ####
+      if (sym1<sym2): a = (sym1,sym2)
+      else:           a = (sym2,sym1)
+      if (sym3<sym4): b = (sym3,sym4)
+      else:           b = (sym4,sym3)
+      if (a<b): ts0 = (a,b)
+      else:     ts0 = (b,a)
+
+      if (sym1<sym4): a = (sym1,sym4)
+      else:           a = (sym4,sym1)
+      if (sym2<sym3): b = (sym2,sym3)
+      else:           b = (sym3,sym2)
+      if (a<b): ts1 = (a,b)
+      else:     ts1 = (b,a)
+      if (ts0>ts1): energy = -energy
+      
+      bstrings_reactants = []
+      for i in range(nion):
+         if (symbol_reactants[i]==sym1):
+            for j in range(nion):
+               nb0 = adj_reactants[i][j]
+               if (symbol_reactants[j]==sym2) and (i!=j):
+                  for k in range(nion):
+                     nb1 = adj_reactants[j][k]
+                     if (symbol_reactants[k]==sym3) and (k!=i) and (k!=j):
+                        for l in range(nion):
+                           nb2 = adj_reactants[k][l]
+                           nb3 = adj_reactants[l][i]
+                           bstructure = ((nb0>0)and(nb1==0)and(nb2>0)and(nb3==0)) or ((nb0==0)and(nb1>0)and(nb2==0)and(nb3>0))
+                           if (symbol_reactants[l]==sym4) and (l!=i) and (l!=j) and (l!=k) and (bstructure):
+
+                              aij = adj_reactants[i][j]
+                              adj_reactants[i][j] = 1
+                              adj_reactants[j][i] = 1
+
+                              ajk = adj_reactants[j][k]
+                              adj_reactants[j][k] = 1
+                              adj_reactants[k][j] = 1
+
+                              akl = adj_reactants[k][l]
+                              adj_reactants[k][l] = 1
+                              adj_reactants[l][k] = 1
+
+                              ali = adj_reactants[l][i]
+                              adj_reactants[l][i] = 1
+                              adj_reactants[i][l] = 1
+
+                              tmpstr = generate_2bondreplacement_string0(symbol_reactants,nion,adj_reactants,i,j,k,l)
+                              bstrings_reactants.append(tmpstr)
+
+                              adj_reactants[i][j] = aij
+                              adj_reactants[j][i] = aij
+
+                              adj_reactants[j][k] = ajk
+                              adj_reactants[k][j] = ajk
+
+                              adj_reactants[k][l] = akl
+                              adj_reactants[l][k] = akl
+
+                              adj_reactants[l][i] = ali
+                              adj_reactants[i][l] = ali
+      bstrings_reactants = list(set(bstrings_reactants))
+
+      bstrings_products = []
+      for i in range(nion):
+         if (symbol_products[i]==sym1):
+            for j in range(nion):
+               nb0 = adj_products[i][j]
+               if (symbol_products[j]==sym2) and (i!=j):
+                  for k in range(nion):
+                     nb1 = adj_products[j][k]
+                     if (symbol_products[k]==sym3) and (k!=i) and (k!=j):
+                        for l in range(nion):
+                           nb2 = adj_products[k][l]
+                           nb3 = adj_products[l][i]
+                           bstructure = ((nb0>0)and(nb1==0)and(nb2>0)and(nb3==0)) or ((nb0==0)and(nb1>0)and(nb2==0)and(nb3>0))
+                           if (symbol_products[l]==sym4) and (l!=i) and (l!=j) and (l!=k) and (bstructure):
+
+                              aij = adj_products[i][j]
+                              adj_products[i][j] = 1
+                              adj_products[j][i] = 1
+
+                              ajk = adj_products[j][k]
+                              adj_products[j][k] = 1
+                              adj_products[k][j] = 1
+
+                              akl = adj_products[k][l]
+                              adj_products[k][l] = 1
+                              adj_products[l][k] = 1
+
+                              ali = adj_products[l][i]
+                              adj_products[l][i] = 1
+                              adj_products[i][l] = 1
+
+                              tmpstr = generate_2bondreplacement_string0(symbol_products,nion,adj_products,i,j,k,l)
+                              bstrings_products.append(tmpstr)
+                              adj_products[i][j] = aij
+                              adj_products[j][i] = aij
+
+                              adj_products[j][k] = ajk
+                              adj_products[k][j] = ajk
+
+                              adj_products[k][l] = akl
+                              adj_products[l][k] = akl
+
+                              adj_products[l][i] = ali
+                              adj_products[i][l] = ali
+      bstrings_products = list(set(bstrings_products))
+
+      bstrings_reaction = []
+      for b1 in bstrings_reactants:
+         for b2 in bstrings_products:
+            if b1==b2:
+               #print "success!: "+ b1
+               bstrings_reaction.append(b1)
+      bstrings_reaction = list(set(bstrings_reaction))
+    
+      bond_prune        = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
+      replacement_prune = [[0,1,1,1,1,1,1],  [0,1,1,1,1,1,0],   [0,1,1,1,1,0,0],  [0,1,1,1,0,0,0],  [0,1,1,1,0,0,0],  [0,1,1,0,0,0,0]]
+
+      all_prune =  [replacement_prune[i]+bond_prune[i]+bond_prune[i]+bond_prune[i] for i in range(6)]
+      bstringsall = []
+      for bstring in bstrings_reaction:
+         print
+         print "reaction constraint_string = " + bstring
+         transitionstate = bstring.split(":")[2]
+         bstrings_filtered = [bstring]
+         for b in all_prune:
+            bstrings_filtered.append(filter_reaction_string(b,bstring))
+         print
+         print "filtered reaction constraint_strings = ",bstrings_filtered
+         bstringsall.append([reactionid,reactiontype,transitionstate]+bstrings_filtered+[reaction,energy])
+
+
+   else:
+      print "This is not an elementary reaction"
+
+
+   print
+   print "bstringsall =",bstringsall
+   print
+
+   for insertlist in bstringsall:
+      checklist = []
+      checklist.append(insertlist[3])
+
+      if (issqlite3):
+         dbcon = sqlite3.connect(dbfile)
+      else:
+         host = hup.split()[0]
+         user = hup.split()[1]
+         pss = hup.split()[2]
+         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+      with dbcon:
+         cur = dbcon.cursor()
+         cur.execute(sqlcheck,checklist)
+         row = cur.fetchone()
+
+         duplicate = (row[0]>0)
+         if (not duplicate) :
+            print
+            print "Inserting reaction hash  into " + table
+            print "   - insertlist = ",insertlist
+            print
+            cur.execute(sqlinsert,insertlist)
+         else:
+            print
+            print "Reaction hash already exists in  " + table
+            print "   - insertlist = ",insertlist
+            print
+      dbcon.close()
+
+
+
+###############################################
+#                                             #
+#            findreactions_molecules          #
+#                                             #
+###############################################
+
+def findreactions_molecules(hup,dbfile,table,molecules,maxlevel):
+
+   if maxlevel>6: maxlevel=6
+   if maxlevel<0: maxlevel=0
+   if (hup=='sqlite3'):
+      issqlite3 = True
+   else:
+      issqlite3 = False
+
+   sqlcheck = "select * from " + table + " where "
+   sqlcheck += "reactionid=? and energy<=? and (fullhash=?"
+   if maxlevel==1: sqlcheck += " or filter0=? "
+   if maxlevel==2: sqlcheck += " or filter0=? or filter1=?"
+   if maxlevel==3: sqlcheck += " or filter0=? or filter1=? or filter2=?"
+   if maxlevel==4: sqlcheck += " or filter0=? or filter1=? or filter2=? or filter3=?"
+   if maxlevel==5: sqlcheck += " or filter0=? or filter1=? or filter2=? or filter3=? or filter4=?"
+   if maxlevel==6: sqlcheck += " or filter0=? or filter1=? or filter2=? or filter3=? or filter4=? or filter5=?"
+   sqlcheck += ");"
+   if (not issqlite3): sqlcheck = sqlcheck.replace('?','%s')
+
+   print "molecules=",molecules
+
+   ### make reactant adjmatrix
+   nion = 0
+   nr = 0
+   for mm in molecules:
+      if (mm[3]>0):
+         nion += len(mm[1])*int(mm[4])
+         nr += int(mm[4])
+
+   adj_reactants    = []
+   symbol_reactants = []
+   for i in range(nion):
+      adj_reactants.append([])
+      for j in range(nion):
+         adj_reactants[i].append(0)
+   nionr = 0
+   for mm in molecules:
+      adjmat1 = mm[2]
+      nion1   = len(mm[1])
+      if (mm[3]>0):
+         for kk in range(int(mm[4])):
+            symbol_reactants += mm[1]
+            for i in range(nion1):
+               for j in range(nion1):
+                  adj_reactants[nionr+i][nionr+j] = adjmat1[i][j]
+            nionr += nion1
+   reactants1 = (nr==1)
+   reactants2 = (nr==2)
+
+   print "reactants1,reactants2=",reactants1,reactants2
+   print "adj_reactants=",reactants1,adj_reactants
+
+   print "Checking for A + B --> AB reactions"
+   bstrings_reactants1 = {}
+   if (reactants1 or reactants2):
+      for i in range(nion):
+         symi = symbol_reactants[i]
+         for j in range(nion):
+            symj = symbol_reactants[j]
+            if reactants1:
+               bstructure = (adj_reactants[i][j]>0)
+            else:
+               bstructure = (adj_reactants[i][j]==0)
+            if (i!=j) and (symj>=symi) and (bstructure):
+               aij = adj_reactants[i][j]
+               adj_reactants[i][j] = 1
+               adj_reactants[j][i] = 1
+
+               tmpstr = generate_bond_string0(symbol_reactants,nion,adj_reactants,i,j)
+               if tmpstr in bstrings_reactants1:
+                  bstrings_reactants1[tmpstr] += [((i,j),(symi,symj))]
+               else:
+                  bstrings_reactants1[tmpstr]  = [((i,j),(symi,symj))]
+
+               adj_reactants[i][j] = aij
+               adj_reactants[j][i] = aij
+
+   n1 = len(bstrings_reactants1)
+   print "n1=",n1
+
+   #print "sqlcheck=",sqlcheck
+   bond_prune     = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
+
+
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   with dbcon:
+      cur = dbcon.cursor()
+      for bstring,indxsym in bstrings_reactants1.iteritems():
+         checklist = [1]
+         checklist.append(10.0)
+         checklist.append(bstring)
+         for ii in range(maxlevel):
+            p = bond_prune[ii]
+            bstring_filter = filter_reaction_string(p,bstring)
+            checklist.append(bstring_filter)
+
+         cur.execute(sqlcheck,checklist)
+         #rows = cur.fetchall()
+         #for row in rows:
+         row = cur.fetchone()
+         if (row != None):
+            level = 10
+            if   checklist[2]==row[4]:
+               level = 0
+            else:
+               for ii in range(maxlevel):
+                  if checklist[maxlevel+2-ii]==row[maxlevel+4-ii]: level = maxlevel-ii
+            if (level<=maxlevel):
+               print "level=",level," addition bstring=",bstring," row=",row
+               print "indexes = ", indxsym
+               print
+               generate_products1(molecules,indxsym,bstring,row,level)
+   dbcon.close()
+
+
+   print
+   print "Checking for AB + C --> AC + B reactions"
+   bstrings_reactants3 = {}
+   if (reactants2):
+      for i in range(nion):
+         symi = symbol_reactants[i]
+         for j in range(nion):
+            symj = symbol_reactants[j]
+            nb0 = adj_reactants[i][j]
+            if (i!=j):
+               for k in range(nion):
+                  symk = symbol_reactants[k]
+                  nb1 = adj_reactants[k][j]
+                  bstructure = ((nb0>0) and (nb1==0)) or ((nb0==0) and (nb1>0)) 
+                  if (k!=i) and (k!=j) and (symk>=symi) and (bstructure):
+
+                     aij = adj_reactants[i][j]
+                     adj_reactants[i][j] = 1
+                     adj_reactants[j][i] = 1
+
+                     ajk = adj_reactants[j][k]
+                     adj_reactants[j][k] = 1
+                     adj_reactants[k][j] = 1
+
+                     tmpstr = generate_bonddiff_string0(symbol_reactants,nion,adj_reactants,i,j,k)
+                     if tmpstr in bstrings_reactants3:
+                        bstrings_reactants3[tmpstr] += [((i,j,k),(symi,symj,symk))]
+                     else:
+                        bstrings_reactants3[tmpstr]  = [((i,j,k),(symi,symj,symk))]
+
+                     adj_reactants[i][j] = aij
+                     adj_reactants[j][i] = aij
+
+                     adj_reactants[j][k] = ajk
+                     adj_reactants[k][j] = ajk
+   n3 = len(bstrings_reactants3)
+   print "n3=",n3
+
+   bond_prune     = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
+   bonddiff_prune = [[0,1,1,1,1,1,1],  [0,1,1,1,1,1,0],   [0,1,1,1,1,0,0],  [0,1,1,1,0,0,0],  [0,1,1,1,0,0,0],  [0,1,1,0,0,0,0]]
+   all_prune =  [bonddiff_prune[i]+bond_prune[i]+bond_prune[i] for i in range(6)]
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   with dbcon:
+      cur = dbcon.cursor()
+      for bstring,indxsym in bstrings_reactants3.iteritems():
+         checklist = [3]
+         checklist.append(10.0)
+         checklist.append(bstring)
+         for ii in range(maxlevel):
+            p = all_prune[ii]
+            bstring_filter = filter_reaction_string(p,bstring)
+            checklist.append(bstring_filter)
+
+         cur.execute(sqlcheck,checklist)
+         #rows = cur.fetchall()
+         #for row in rows:
+         row = cur.fetchone()
+         if (row != None):
+            level = 10 
+            if   checklist[2]==row[4]:
+               level = 0
+            else:
+               for ii in range(maxlevel):
+                  if checklist[maxlevel+2-ii]==row[maxlevel+4-ii]: level = maxlevel-ii
+            if (level<=maxlevel):
+               print "level=",level," single replacement bstring=",bstring," row=",row
+               print "indexes = ", indxsym
+               generate_products2(molecules,indxsym,bstring,row,level)
+               print
+   dbcon.close()
+
+
+
+   print
+   print "Checking for AB + CD --> CABD  elimination reactions" 
+   bstrings_reactants4 = {}
+   if (reactants1 or reactants2):
+      for i in range(nion):
+         symi = symbol_reactants[i]
+         for j in range(nion):
+            symj = symbol_reactants[j]
+            nbij = adj_reactants[i][j]
+            if (i!=j):
+               for k in range(nion):
+                  symk = symbol_reactants[k]
+                  nbik = adj_reactants[i][k]
+                  nbjk = adj_reactants[j][k]
+                  if (k!=i) and (k!=j) and (symk>=symj):
+                     for l in range(nion):
+                        syml = symbol_reactants[l]
+                        nbkl = adj_reactants[k][l]
+                        nbjl = adj_reactants[j][l]
+                        nbil = adj_reactants[i][l]
+                        if (reactants1):
+                           bstructure = (nbij==1) and (nbjk>0) and (nbkl==1) and (nbik==0) and (nbil==0) and (nbjl==0)
+                        else:
+                           bstructure = (nbij==0) and (nbjk>0) and (nbkl==0) and (nbik==0) and (nbil==1) and (nbjl==0)
+
+                        if (l!=i) and (l!=j) and (l!=k) and (syml>=symi) and (bstructure):
+
+                           aij = adj_reactants[i][j]
+                           adj_reactants[i][j] = 1
+                           adj_reactants[j][i] = 1
+
+                           akl = adj_reactants[k][l]
+                           adj_reactants[k][l] = 1
+                           adj_reactants[l][k] = 1
+
+                           ali = adj_reactants[l][i]
+                           adj_reactants[l][i] = 1
+                           adj_reactants[i][l] = 1
+
+                           tmpstr = generate_elimination_string0(symbol_reactants,nion,adj_reactants,i,j,k,l)
+                           if tmpstr in bstrings_reactants4:
+                              bstrings_reactants4[tmpstr] += [((i,j,k,l),(symi,symj,symk,syml))]
+                           else:
+                              bstrings_reactants4[tmpstr]  = [((i,j,k,l),(symi,symj,symk,syml))]
+
+
+                           adj_reactants[i][j] = aij
+                           adj_reactants[j][i] = aij
+
+                           adj_reactants[k][l] = akl
+                           adj_reactants[l][k] = akl
+
+                           adj_reactants[l][i] = ali
+                           adj_reactants[i][l] = ali
+
+   n4 = len(bstrings_reactants4)
+   print "n4=",n4
+
+   bond_prune     = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
+   elimination_prune = [[0,1,1,1,1,1,1],  [0,1,1,1,1,1,0],   [0,1,1,1,1,0,0],  [0,1,1,1,0,0,0],  [0,1,1,1,0,0,0],  [0,1,1,0,0,0,0]]
+   all_prune =  [elimination_prune[i]+bond_prune[i]+bond_prune[i]+bond_prune[i] for i in range(6)]
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   with dbcon:
+      cur = dbcon.cursor()
+      for bstring,indxsym in bstrings_reactants4.iteritems():
+         checklist = [4]
+         checklist.append(10.0)
+         checklist.append(bstring)
+         for ii in range(maxlevel):
+            p = all_prune[ii]
+            bstring_filter = filter_reaction_string(p,bstring)
+            checklist.append(bstring_filter)
+
+         cur.execute(sqlcheck,checklist)
+         #rows = cur.fetchall()
+         #for row in rows:
+         row = cur.fetchone()
+         if (row != None):
+            level = 10
+            if   checklist[2]==row[4]:
+               level = 0
+            else:
+               for ii in range(maxlevel):
+                  if checklist[maxlevel+2-ii]==row[maxlevel+4-ii]: level = maxlevel-ii
+            if (level<=maxlevel):
+               print "level=",level," elimination bstring=",bstring," row=",row
+               print "indexes = ", indxsym
+               print
+               generate_products3(molecules,indxsym,bstring,row,level)
+   dbcon.close()
+
+
+
+
+   print
+   print "Checking for AB + CD --> AD + BC  double replacement reactions"
+   bstrings_reactants5 = {}
+   if (reactants2):
+      for i in range(nion):
+         symi = symbol_reactants[i]
+         for j in range(nion):
+            symj = symbol_reactants[j]
+            nbij = adj_reactants[i][j]
+            if (i!=j) and (symj>=symi):
+               for k in range(nion):
+                  symk = symbol_reactants[k]
+                  nbik = adj_reactants[i][k]
+                  nbjk = adj_reactants[i][k]
+                  if (k!=i) and (k!=j):
+                     for l in range(nion):
+                        syml = symbol_reactants[l]
+                        nbil = adj_reactants[i][l]
+                        nbjl = adj_reactants[j][l]
+                        nbkl = adj_reactants[k][l]
+                        bstructure = (nbij==1) and (nbik==0) and (nbil==0) and (nbjk==0) and (nbjl==0) and (nbkl==1)
+                        if (l!=i) and (l!=j) and (l!=k) and (bstructure):
+
+                           aij = adj_reactants[i][j]
+                           adj_reactants[i][j] = 1
+                           adj_reactants[j][i] = 1
+
+                           ajk = adj_reactants[j][k]
+                           adj_reactants[j][k] = 1
+                           adj_reactants[k][j] = 1
+
+                           akl = adj_reactants[k][l]
+                           adj_reactants[k][l] = 1
+                           adj_reactants[l][k] = 1
+
+                           ali = adj_reactants[l][i]
+                           adj_reactants[l][i] = 1
+                           adj_reactants[i][l] = 1
+
+                           tmpstr = generate_2bondreplacement_string0(symbol_reactants,nion,adj_reactants,i,j,k,l)
+                           if tmpstr in bstrings_reactants5:
+                              bstrings_reactants5[tmpstr] += [((i,j,k,l),(symi,symj,symk,syml))]
+                           else:
+                              bstrings_reactants5[tmpstr]  = [((i,j,k,l),(symi,symj,symk,syml))]
+
+                           adj_reactants[i][j] = aij
+                           adj_reactants[j][i] = aij
+
+                           adj_reactants[j][k] = ajk
+                           adj_reactants[k][j] = ajk
+
+                           adj_reactants[k][l] = akl
+                           adj_reactants[l][k] = akl
+
+                           adj_reactants[l][i] = ali
+                           adj_reactants[i][l] = ali
+   n5 = len(bstrings_reactants5)
+   print "n5=",n5
+
+   bond_prune        = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
+   replacement_prune = [[0,1,1,1,1,1,1],  [0,1,1,1,1,1,0],   [0,1,1,1,1,0,0],  [0,1,1,1,0,0,0],  [0,1,1,1,0,0,0],  [0,1,1,0,0,0,0]]
+   all_prune =  [replacement_prune[i]+bond_prune[i]+bond_prune[i]+bond_prune[i] for i in range(6)]
+
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   with dbcon:
+      cur = dbcon.cursor()
+      for bstring,indxsym in bstrings_reactants5.iteritems():
+         checklist = [5]
+         checklist.append(10.0)
+         checklist.append(bstring)
+         for ii in range(maxlevel):
+            p = all_prune[ii]
+            bstring_filter = filter_reaction_string(p,bstring)
+            checklist.append(bstring_filter)
+
+         cur.execute(sqlcheck,checklist)
+         #rows = cur.fetchall()
+         #for row in rows:
+         row = cur.fetchone()
+         if (row != None):
+            level = 10
+            if   checklist[2]==row[4]:
+               level = 0
+            else:
+               for ii in range(maxlevel):
+                  if checklist[maxlevel+2-ii]==row[maxlevel+4-ii]: level = maxlevel-ii
+            if (level<=maxlevel):
+               print "level=",level," double replacement bstring=",bstring," row=",row
+               print "indexes = ", indxsym
+               print
+               generate_products4(molecules,indxsym,bstring,row,level)
+   dbcon.close()
+
+
+
+   print 
+   print "n1 = ",n1
+   print "n3 = ",n3
+   print "n4 = ",n4
+   print "n5 = ",n5
+   print 
+
+
+
+
+
+
+###############################################
+#                                             #
+#            reactionbalance_molecules        #
+#                                             #
+###############################################
+
+def reactionbalance_molecules(molecules):
+   rps       = []
+   coeff     = []
+   mformulas = []
+   esmiles2all = []
+   fullreaction = False
+   for mm in molecules:
+      mformulas.append(mm[0])
+      rps.append(mm[3])
+      coeff.append(mm[4])
+      esmiles2all.append(mm[5])
+      if (mm[3]<0): fullreaction = True
+
+   bstr = ''
+   n = len(esmiles2all)
+   ii = 0
+   for i in range(n):
+      if (rps[i]>0):
+         if (ii>0): bstr += " + "
+         bstr += "%.3f %s" % (coeff[i],esmiles2all[i])
+         ii += 1
+   if (fullreaction):
+      bstr += " --> "
+      ii = 0
+      for i in range(n):
+         if (rps[i]<0):
+            if (ii>0): bstr += " + "
+            bstr += "%.3f %s" % (coeff[i],esmiles2all[i])
+            ii += 1
+   print
+   print "initial reaction = " + bstr
+   reaction = bstr
+
+
+
+
+
+   f2 = f2_reaction(mformulas,rps,coeff)
+   print "initial f2=",f2
+   if (f2<1.0e-6): print "The initial chemical reaction is balanced!"
+
+   #### not a balanced reaction - balance it####
+   coeff2 = [x/min(coeff) for x in coeff]
+   coeff  = coeff2
+   alpha = 0.01
+   iter_max = 50000
+   niter    = 0
+   while ((f2>1.0e-12) and (niter<iter_max)):
+      df=df_reaction(mformulas,rps,coeff)
+      coeff2 = [coeff[i]-alpha*df[i] for i in range(len(coeff))]
+      for i in range(len(coeff)):
+         if (coeff2[i]<0):
+            coeff2[i] *= -1
+            rps[i]    *= -1
+      coeff = [x/min(coeff2) for x in coeff2]
+      f2old = f2
+      f2=f2_reaction(mformulas,rps,coeff)
+      if ((f2-f2old)>0.0): alpha *= 0.5
+      niter += 1
+
+   print "final coeff = ",coeff
+   print "final f2=",f2
+
+   coeff3 = [round(x) for x in coeff]
+   f3 = f2_reaction(mformulas,rps,coeff3)
+   print "final coeff3 = ",coeff3
+   print "final f3=",f3
+   if (f3<f2):
+      f2 = f3
+      coeff = coeff3
+
+   #### try to remove small components and then rebalance ####
+   alpha = 0.01
+   f0 = 393939.0393
+   if (max(coeff) > 50*min(coeff)) or (f2>1.0e-6):
+      print "large coeffients found  = ",coeff
+      coeff0       = []
+      esmiles2all0 = []
+      mformulas0   = []
+      rps0         = []
+      mcoeff = max(max(coeff)/50.0,min(coeff)+0.01)
+      for i in range(len(coeff)):
+         if coeff[i]>mcoeff:
+            coeff0.append(coeff[i])
+            mformulas0.append(mformulas[i])
+            rps0.append(rps[i])
+            esmiles2all0.append(esmiles2all[i])
+
+      f0=f2_reaction(mformulas0,rps0,coeff0)
+      niter = 0
+      while ((f0>1.0e-12) and (niter<iter_max)):
+         df=df_reaction(mformulas0,rps0,coeff0)
+         coeff2 = [coeff0[i]-alpha*df[i] for i in range(len(coeff0))]
+         for i in range(len(coeff0)):
+            if (coeff2[i]<0):
+               coeff2[i] *= -1
+               rps0[i]   *= -1
+         coeff0 = [x/min(coeff2) for x in coeff2]
+         f0old = f0
+         f0=f2_reaction(mformulas0,rps0,coeff0)
+         if ((f0-f0old)>0.0): alpha *= 0.5
+         niter += 1
+      print "final coeff0 = ",coeff0
+      print "final f0=",f0
+
+   #### balanced reaction ####
+   if (f2<1e-6):
+      bstr = ''
+      n = len(esmiles2all)
+      ii = 0
+      for i in range(n):
+         if (rps[i]>0):
+            if (ii>0): bstr += " + "
+            bstr += "%.3f %s" % (coeff[i],esmiles2all[i])
+            ii += 1
+      bstr += " --> "
+      ii = 0
+      for i in range(n):
+         if (rps[i]<0):
+            if (ii>0): bstr += " + "
+            bstr += "%.3f %s" % (coeff[i],esmiles2all[i])
+            ii += 1
+
+      print
+      print "balanced reaction = " + bstr
+      reaction = bstr
+
+
+   #### reduced balanced reaction ####
+   if (f0<1e-6):
+      bstr = ''
+      n = len(esmiles2all0)
+      ii = 0
+      for i in range(n):
+         if (rps0[i]>0):
+            if (ii>0): bstr += " + "
+            bstr += "%.3f %s" % (coeff0[i],esmiles2all0[i])
+            ii += 1
+      bstr += " --> "
+      ii = 0
+      for i in range(n):
+         if (rps0[i]<0):
+            if (ii>0): bstr += " + "
+            bstr += "%.3f %s" % (coeff0[i],esmiles2all0[i])
+            ii += 1
+
+      print
+      print "reduced balanced reaction = " + bstr
+      reaction = bstr
+
+   print
+   print
+   print "reaction: " + reaction + " :reaction"
+   print
+
+
+############################# main program ###################################
+usage = \
+"""
+chemdb balance reaction program
+
+  Usage: chemdb_balance_reaction -h hup_string -d database -t table -e energy -l maxlevel -a -f  reaction
+
+  -h hup_string="machine user password" or enter sqlite3 for sqlite3 db
+  -d database = "name of database"
+  -t table = "name of reactionhashes table"
+  -a add reaction to reactionhash database
+  -f find reactions
+  -e energy
+  -l maxlevel
+  -h prints this message
+
+"""
+
+
+eoln = "\n"
+#Database defaults
+hup    = hup0
+dbfile = "TNT_Project"
+table  = "reactionhashes"
+
+print
+print "chemdb_balance_reaction mysql version"
+print
+tt      = time.localtime()
+
+maxlevel = 3
+energy = 0.0
+findreactions   = False
+addreaction     = False
+balancereaction = True
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:l:e:afh")
+for o, a in opts:
+  if '-h' in o:
+     hup = a
+  if '-d' in o:
+     dbfile = a
+  if '-t' in o:
+     table = a
+  if '-e' in o:
+     energy = evalnum(a)
+  if '-l' in o:
+     maxlevel = evalnum(a)
+  if '-f' in o:
+     findreactions   = True
+     balancereaction = False
+  if '-a' in o:
+     addreaction     = True
+     balancereaction = False
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<1): 
+   print usage
+   exit()
+print args[0]
+
+
+### load the reaction input file into rstring ###
+if (os.path.isfile(args[0])):
+   with open(args[0],'r') as rfile:
+      reaction = rfile.read()
+else:
+   reaction = args[0]
+
+
+######################
+### parse reaction ###
+######################
+sslist = reaction.split("-->")
+left  = sslist[0].strip()
+left = left.replace("\t"," ")
+left = left.replace("\n"," ")
+   #left = left.decode('ascii', 'replace')
+left = left.replace('\xc2', ' ')
+left = left.replace('\xa0', ' ')
+esmiles_reactants  = left.split(' + ')
+number_reactants = len(esmiles_reactants)
+
+if (len(sslist)>1):
+   right = sslist[1].strip()
+   right= right.replace("\t"," ")
+   right= right.replace("\n"," ")
+   right= right.replace('\xc2', ' ')
+   right= right.replace('\xa0', ' ')
+   esmiles_products   = right.split(' + ')
+   number_products  = len(esmiles_products)
+else:
+   esmiles_products = []
+   number_products  = 0
+
+print
+print "esmiles_reactants=",esmiles_reactants
+print "esmiles_products =",esmiles_products
+print "numbers=",number_reactants,number_products
+
+molecules          = []
+rps = []
+smiles_reactants   = []
+esmiles2_reactants = []
+mformula_reactants = []
+coeff_reactants    = []
+for esmiles in esmiles_reactants:
+   try:
+      x = float(esmiles.split(None,1)[0])
+      coeff_reactants.append(x)
+      esmiles2 = esmiles.split(None,1)[1]
+   except:
+      x = 1.0
+      coeff_reactants.append(1.0)
+      esmiles2 = esmiles
+   esmiles2_reactants.append(esmiles2)
+
+   cmd    = esmiles2xyz + '\"' + esmiles2 + '\" ' + tmpxyz1
+   result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+   (mult,charge) = parse_result2multcharge(result)
+   (mformula1,symbol1,adjmat1,rxyz) = xyztoadjmat(tmpxyz1)
+   molecules.append([mformula1,symbol1,adjmat1,1,x,esmiles2,rxyz,mult,charge])
+   mformula_reactants.append(mformula1)
+   rps.append(1)
+
+
+smiles_products   = []
+esmiles2_products = []
+mformula_products = []
+coeff_products    = []
+for esmiles in esmiles_products:
+   try:
+      x = float(esmiles.split(None,1)[0])
+      coeff_products.append(x)
+      esmiles2 = esmiles.split(None,1)[1]
+   except:
+      x = 1.0
+      coeff_products.append(1.0)
+      esmiles2 = esmiles
+   esmiles2_products.append(esmiles2)
+
+   cmd    = esmiles2xyz + '\"' + esmiles2 + '\" ' + tmpxyz1
+   result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+   (mult,charge) = parse_result2multcharge(result)
+   (mformula1,symbol1,adjmat1,rxyz) = xyztoadjmat(tmpxyz1)
+   molecules.append([mformula1,symbol1,adjmat1,-1,x,esmiles2,rxyz,mult,charge])
+   mformula_products.append(mformula1)
+   rps.append(-1)
+   #print "product symbol,adjmat=",symbol1,adjmat1
+esmiles2all = esmiles2_reactants + esmiles2_products
+
+print
+print "mformula_reactants=",mformula_reactants,coeff_reactants
+print "mformula_products =",mformula_products, coeff_products
+print "rps=",rps
+
+if (addreaction):
+   reactiontype_molecules(hup,dbfile,table,molecules,reaction,energy)
+
+if (findreactions):
+   findreactions_molecules(hup,dbfile,table,molecules,maxlevel)
+
+if (balancereaction):
+   reactionbalance_molecules(molecules)
+
+
+### remove temporary wrkdir files ###
+try:
+   os.unlink(wrkdir + "/"+tmpsmi1)
+except:
+   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi1
+
+try:
+   os.unlink(wrkdir + "/"+tmpsmi2)
+except:
+   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi2
+
+try:
+   os.unlink(wrkdir + "/"+tmpxyz1)
+except:
+   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpxyz1
+
+try:
+   os.unlink(wrkdir + "/"+tmperxn)
+except:
+   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmperxn
+
+try:
+   os.unlink(wrkdir + "/"+tmpnwout)
+except:
+   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpnwout
+

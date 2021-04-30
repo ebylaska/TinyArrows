@@ -1,0 +1,889 @@
+#!/usr/bin/env python
+
+"""
+Routines to calculate the Accessible Surface Area of a set of atoms.
+The algorithm is adapted from the Rose lab's chasa.py, which uses
+the dot density technique found in:
+
+Shrake, A., and J. A. Rupley. "Environment and Exposure to Solvent
+of Protein Atoms. Lysozyme and Insulin." JMB (1973) 79:351-371.
+"""
+
+import math,random,operator
+
+############## machine parameters #########################
+esmiles2xyz = "/srv/arrows/bin/esmiles2xyz "
+wrkdir      = "/srv/arrows/Projects/Work"
+ddrand = random.randint(0,999999)
+tmpxyz  = "tmpxyz-%d.xyz" % ddrand
+xyzfilename = wrkdir + "/" + tmpxyz
+############## machine parameters #########################
+
+
+
+vdw = { 
+ 'H': 1.20,
+ 'N': 1.55,
+ 'NA': 2.27,
+ 'CU': 1.40,
+ 'Cu': 1.40,
+ 'Cl': 1.75,
+ 'S': 1.80,
+ 'C': 1.70,
+ 'O': 1.52,
+ 'I': 1.98,
+ 'P': 1.80,
+ 'B': 1.85,
+ 'BR': 1.85,
+ 'S': 1.80,
+ 'SE': 1.90,
+ 'Se': 1.90,
+ 'F': 1.47,
+ 'Al': 1.75,
+ 'FE': 1.80,
+ 'Fe': 1.80,
+ 'Co': 1.78,
+ 'CO': 1.78,
+ 'Ru': 1.80,
+ 'K':  2.75,
+ 'MN': 1.73,
+ 'MG': 1.73,
+ 'ZN': 1.39,
+ 'HG': 1.8,
+ 'XE': 1.8,
+ 'AU': 1.8,
+ 'LI': 1.8,
+ 'Ow': 1.52,
+ 'U': 1.8,
+ 'Er': 1.8,
+ 'Ca': 1.73,
+ 'Mg': 1.73,
+ '.': 1.8
+}
+
+vdw2 = {
+ 'H': 1.20,
+ 'N': 1.55,
+ 'NA': 2.27,
+ 'CU': 1.40,
+ 'Cu': 1.40,
+ 'Cl': 1.75,
+ 'S': 1.80,
+ 'C': 1.70,
+ 'O': 3.52,
+ 'I': 1.98,
+ 'P': 1.80,
+ 'B': 1.85,
+ 'BR': 1.85,
+ 'S': 1.80,
+ 'SE': 1.90,
+ 'Se': 1.90,
+ 'F': 1.47,
+ 'Al': 3.75,
+ 'FE': 1.80,
+ 'Fe': 1.80,
+ 'Co': 1.78,
+ 'CO': 1.78,
+ 'Ru': 1.80,
+ 'K':  2.75,
+ 'MN': 1.73,
+ 'MG': 1.73,
+ 'ZN': 1.39,
+ 'HG': 1.8,
+ 'XE': 1.8,
+ 'AU': 1.8,
+ 'LI': 1.8,
+ 'Ow': 1.52,
+ 'U': 1.8,
+ 'Er': 1.8,
+ 'Ca': 1.73,
+ 'Mg': 1.73,
+ '.': 1.8
+}
+
+
+LJparam = { 
+ 'H':  [0.7,0.044],
+ 'N':  [3.26,0.069],
+ 'Mg': [1.3976,0.8750],
+ 'Ca': [2.3609,0.4497],
+ 'Sr': [3.1024,0.1182],
+ 'Ba': [3.7862,0.0471],
+ 'F':  [4.40,0.1001],
+ 'Cl': [4.40,0.1001],
+ 'C':  [3.41, 0.100],
+ 'O':  [3.16555789,0.15539425],
+ 'Al':  [1.4472,0.2166],
+ 'Fe':  [2.15,0.124],
+ 'Co':  [2.15,0.124],
+ 'Cu':  [2.15,0.124],
+ 'Fe2':  [2.6250,0.13650],
+ 'Fe3':  [2.4110,0.19798],
+ 'Ru':  [2.15,0.124],
+ 'S': [4.40,0.1001],
+ 'Se': [4.40,0.1001],
+ 'U':  [3.16555789,0.15539425],
+ 'Er':  [3.16555789,0.15539425],
+ '.':  [3.5,0.1]
+}
+
+def eval_dict(dict0,key):
+   if key in dict0:
+      aak = dict0[key]
+   else:
+      aak = dict0['.']
+   return aak
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+
+#### functions ####
+def xyz_molecular_formula(xyzfilename):
+   #
+   fdict = {}
+   xyzfile = open(xyzfilename,'r')
+   n = evalnum(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline().strip()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+   xyzfile.close()
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+
+
+def generate_sphere_points(n):
+    """
+    Returns list of 3d coordinates of points on a sphere using the
+    Golden Section Spiral algorithm.
+    """
+    points = []
+    inc = math.pi * (3 - math.sqrt(5))
+    offset = 2 / float(n)
+    for k in range(int(n)):
+        y = k * offset - 1 + (offset / 2)
+        r = math.sqrt(1 - y*y)
+        phi = k * inc
+        points.append([math.cos(phi)*r, y, math.sin(phi)*r])
+    return points
+
+def generate_volume_sphere_points(n):
+    """
+    """
+    points = []
+    k = 0
+    while (k<int(n)):
+        x = 2.0*random.random() - 1.0
+        y = 2.0*random.random() - 1.0
+        z = 2.0*random.random() - 1.0
+        r2 = x*x + y*y + z*z
+        if (r2 < 1.0000000001):
+           points.append([x,y,z])
+           #print "H",10.0*x,10.0*y,10.0*z
+           k += 1
+    return points
+
+
+
+def find_neighbor_indices_periodic(atoms, probe, k,L):
+    """
+    Returns list of indices of atoms within probe distance to atom k. 
+    """
+    try:
+       a1x = L[0]; a1y = L[1]; a1z = L[2]
+       a2x = L[3]; a2y = L[4]; a2z = L[5]
+       a3x = L[6]; a3y = L[7]; a3z = L[8]
+    except:
+       try:
+          a1x = L[0]; a1y = 0.0;  a1z = 0.0
+          a2x = 0.0;  a2y = L[1]; a2z = 0.0
+          a3x = 0.0;  a3y = 0.0;  a3z = L[2]
+       except:
+          a1x = L;    a1y = 0.0;  a1z = 0.0
+          a2x = 0.0;  a2y = L;    a2z = 0.0
+          a3x = 0.0;  a3y = 0.0;  a3z = L
+
+    neighbor_indices = []
+    atom_k = atoms[k]
+    #radius = vdw[atom_k[0]] + 2*probe
+    radius = eval_dict(vdw,atom_k[0]) + 2*probe
+    indices = range(k)
+    #indices.extend(range(k+1, len(atoms)))
+    for i in indices:
+        atom_i = atoms[i]
+        x = atom_i[1] - atom_k[1]
+        y = atom_i[2] - atom_k[2]
+        z = atom_i[3] - atom_k[3]
+        dist = 99999999.0
+        for n3 in range(-1,2):
+           for n2 in range(-1,2):
+              for n1 in range(-1,2):
+                 dx = x +  n1*a1x + n2*a2x + n3*a3x
+                 dy = y +  n1*a1y + n2*a2y + n3*a3y
+                 dz = y +  n1*a1z + n2*a2z + n3*a3z
+                 d = math.sqrt(dx*dx + dy*dy + dz*dz)
+                 if (d < dist): dist = d
+        if (dist <  (radius+eval_dict(vdw,atom_i[0]))):
+            neighbor_indices.append(i)
+    return neighbor_indices
+
+def find_neighbor_indices(atoms, probe, k):
+    """
+    Returns list of indices of atoms within probe distance to atom k.
+    """
+    neighbor_indices = []
+    atom_k = atoms[k]
+    radius = eval_dict(vdw,atom_k[0]) + probe + probe
+    indices = range(k)
+    indices.extend(range(k+1, len(atoms)))
+    for i in indices:
+        atom_i = atoms[i]
+        dx = atom_i[1] - atom_k[1]
+        dy = atom_i[2] - atom_k[2]
+        dz = atom_i[3] - atom_k[3]
+        dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+        if (dist <  (radius+eval_dict(vdw,atom_i[0]))):
+           neighbor_indices.append(i)
+    return neighbor_indices
+
+
+
+def find_kneighbor_indices(atoms, probe, k):
+    """
+    Returns list of indices of atoms less than k within probe distance to atom k.
+    """
+    neighbor_indices = []
+    atom_k = atoms[k]
+    radius = eval_dict(vdw,atom_k[0]) + probe + probe
+    indices = range(k)
+    #indices.extend(range(k+1, len(atoms)))
+    for i in indices:
+        atom_i = atoms[i]
+        dx = atom_i[1] - atom_k[1]
+        dy = atom_i[2] - atom_k[2]
+        dz = atom_i[3] - atom_k[3]
+        dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+        if (dist <  (radius+eval_dict(vdw,atom_i[0]))):
+            neighbor_indices.append(i)
+    return neighbor_indices
+
+
+
+
+def calculate_asa(atoms, probe, n_sphere_point=960):
+    """
+    Returns list of accessible surface areas of the atoms, using the probe
+    and atom radius to define the surface.
+    """
+    sphere_points = generate_sphere_points(n_sphere_point)
+
+    const = 4.0 * math.pi / len(sphere_points)
+    areas = []
+    for i in range(len(atoms)):
+
+        atom_i = atoms[i]
+        neighbor_indices = find_neighbor_indices(atoms, probe, i)
+        n_neighbor = len(neighbor_indices)
+        j_closest_neighbor = 0
+        radius = probe + eval_dict(vdw,atoms[i][0])
+
+        n_accessible_point = 0
+        for point in sphere_points:
+            is_accessible = True
+
+            x = point[0]*radius + atom_i[1]
+            y = point[1]*radius + atom_i[2]
+            z = point[2]*radius + atom_i[3]
+
+            cycled_indices = range(j_closest_neighbor, n_neighbor)
+            cycled_indices.extend(range(j_closest_neighbor))
+
+            for j in cycled_indices:
+                atom_j = atoms[neighbor_indices[j]]
+                r = eval_dict(vdw,atom_j[0]) + probe
+                dx = atom_j[1] - x
+                dy = atom_j[2] - y
+                dz = atom_j[3] - z
+                diff_sq = dx*dx + dy*dy + dz*dz
+                if diff_sq < r*r:
+                    j_closest_neighbor = j
+                    is_accessible = False
+                    break
+            if is_accessible:
+                n_accessible_point += 1
+
+        area = const*n_accessible_point*radius*radius 
+        areas.append(area)
+    return areas
+
+
+
+def calculate_sav(atoms, probe, n_sphere_point=960):
+    """
+    Returns list of solvent accessible volume of the atoms, using the probe
+    and atom radius to define the surface.
+    """
+    sphere_points = generate_volume_sphere_points(n_sphere_point)
+
+    const = 4.0 * math.pi / (3.0*len(sphere_points))
+    volumes = []
+    v2      = 0.0
+    for i in range(len(atoms)):
+
+        atom_i = atoms[i]
+        neighbor_indices = find_kneighbor_indices(atoms, probe, i)
+        n_neighbor = len(neighbor_indices)
+        j_closest_neighbor = 0
+        radius = probe + eval_dict(vdw,atoms[i][0])
+
+        n_accessible_point = 0
+        for point in sphere_points:
+            is_accessible = True
+
+            x = point[0]*radius + atom_i[1]
+            y = point[1]*radius + atom_i[2]
+            z = point[2]*radius + atom_i[3]
+
+            cycled_indices = range(j_closest_neighbor, n_neighbor)
+            cycled_indices.extend(range(j_closest_neighbor))
+
+            for j in cycled_indices:
+                atom_j = atoms[neighbor_indices[j]]
+                r = eval_dict(vdw,atom_j[0]) + probe
+                dx = atom_j[1] - x
+                dy = atom_j[2] - y
+                dz = atom_j[3] - z
+                diff_sq = dx*dx + dy*dy + dz*dz
+                if diff_sq < r*r:
+                    j_closest_neighbor = j
+                    is_accessible = False
+                    break
+            if is_accessible:
+                n_accessible_point += 1
+
+        volume = const*n_accessible_point*radius*radius*radius
+        v2 += (4.0*math.pi/3.0)*radius*radius*radius
+        volumes.append(volume)
+    return (volumes,v2)
+
+
+def generate_solventbox(nwater,solute,L,probe):
+    """
+    Returns solventbox
+    """
+    try:
+       a1x = L[0]; a1y = L[1]; a1z = L[2]
+       a2x = L[3]; a2y = L[4]; a2z = L[5]
+       a3x = L[6]; a3y = L[7]; a3z = L[8]
+    except:
+       try:
+          a1x = L[0]; a1y = 0.0;  a1z = 0.0
+          a2x = 0.0;  a2y = L[1]; a2z = 0.0
+          a3x = 0.0;  a3y = 0.0;  a3z = L[2]
+       except:
+          a1x = L;    a1y = 0.0;  a1z = 0.0
+          a2x = 0.0;  a2y = L;    a2z = 0.0
+          a3x = 0.0;  a3y = 0.0;  a3z = L
+
+    atoms = []
+    neighbor_indices = []
+    for i in range(len(solute)):
+       solute_i = solute[i];
+       xyz = []
+       xyz.append(solute_i[0])
+       xyz.append(solute_i[1])
+       xyz.append(solute_i[2])
+       xyz.append(solute_i[3])
+       atoms.append(xyz)
+       #neighbor_indices.append(i)
+
+    ii = len(solute)
+    for i in range(nwater):
+       #print "#adding water molecule = %d of %d" % (i,nwater)
+       xyz = []
+       xyz.append('Ow')
+       xyz.append(0.0)
+       xyz.append(0.0)
+       xyz.append(0.0)
+       atoms.append(xyz)
+       done = False
+       while (not done):
+          i1 = random.random()-0.5
+          i2 = random.random()-0.5
+          i3 = random.random()-0.5
+          x = a1x*i1 + a2x*i2 + a3x*i3
+          y = a1y*i1 + a2y*i2 + a3y*i3
+          z = a1z*i1 + a2z*i2 + a3z*i3
+
+          atoms[ii+i][1] = x
+          atoms[ii+i][2] = y
+          atoms[ii+i][3] = z
+          neighbor_indices = find_neighbor_indices_periodic(atoms, 5*probe, ii+i,L)
+          #neighbor_indices = find_neighbor_indices(atoms, probe, ii+i)
+          neighbor_indices = range(ii+i)
+
+          n_neighbor = len(neighbor_indices)
+
+          nooverlap = True
+          for j in neighbor_indices:
+             atom_j = atoms[j]
+             r = eval_dict(vdw,atom_j[0]) + probe
+             diff_sq = 99.9e9
+             for n3 in range(-1,2):
+                for n2 in range(-1,2):
+                   for n1 in range(-1,2):
+                      dx = atom_j[1] - x + n1*a1x + n2*a2x + n3*a3x
+                      dy = atom_j[2] - y + n1*a1y + n2*a2y + n3*a3y
+                      dz = atom_j[3] - z + n1*a1z + n2*a2z + n3*a3z
+                      rt = dx*dx + dy*dy + dz*dz
+                      if (rt<diff_sq):
+                         diff_sq = rt
+             if diff_sq < r*r:
+                nooverlap = False
+                break
+          if (nooverlap):
+             done = True
+             neighbor_indices.append(ii+i)
+    return atoms
+
+
+
+def main():
+  import sys,time,os
+  import getopt,subprocess
+  
+
+
+  usage = \
+  """
+  This program sets up an AIMD/MM simulation of a solute + nH2O simulation.  The solulte is
+  entered as an esmiles
+
+  Usage: solvatedsolute_esmiles -n n_sphere esmiles
+  
+  -n n_sphere  number of points used in generating the spherical
+               dot-density for the calculation (default=9600). The 
+               more points, the more accurate (but slower) the 
+               calculation. 
+  -m molarity  Molarity of solute (default = 1 mol/L)
+  -x xyzfile  Generate xyzfile
+  -w nwfile    Generate nwchem input file
+  -l unit cell length in angstroms
+  -L unit cell lengths in angstroms
+  -A unit cell vectors in angstroms 
+  -q charge of solute
+  -s multiplicity of solute
+
+  """
+
+  opts, args = getopt.getopt(sys.argv[1:], "l:L:A:q:s:m:n:x:w:")
+  if len(args) < 1:
+    print usage
+    return
+
+  #print "opts=",opts
+  #print "args=",args
+    
+  esmiles = args[0]
+
+  if "xyzdata{" in esmiles:
+     xyzlist = esmiles.split("xyzdata{")[1].split("}")[0].strip().split("|")
+     with open(xyzfilename,'w') as ff:
+        ff.write("%d\n\n" % len(xyzlist))
+        for ll in xyzlist:
+           ff.write(ll.strip()+"\n")
+     q    = 0
+     mult = 1
+     mformula = xyz_molecular_formula(xyzfilename)
+     print "#Fetched the following entry:"
+     print "#mformula = " + mformula
+  else:
+     cmd6 = esmiles2xyz + ' "' + esmiles.strip() + '" ' +xyzfilename
+     esmiles2xyzresult = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+     for line in esmiles2xyzresult.split("\n"): print "#"+line
+     q    = eval(esmiles2xyzresult.split("charge          =")[1].split("\n")[0].strip())
+     mult = eval(esmiles2xyzresult.split("mult            =")[1].split("\n")[0].strip())
+  molarity = 1
+  solute_q = q
+  solute_mult = mult
+  henry = False
+  xc = "pbe"
+  unitcell = False
+  unitcell3 = False
+  unitcell9 = False
+
+  if 'mult' in esmiles:
+      solute_mult = evalnum(esmiles.split('mult{')[1].split('}')[0])
+  if '^' in esmiles:
+      solute_q = evalnum(esmiles.split('^{')[1].split('}')[0])
+  if 'molarity' in esmiles:
+      molarity = evalnum(esmiles.split('molarity{')[1].split('}')[0])
+  if 'xc' in esmiles: xc = esmiles.split('xc{')[1].split('}')[0]
+  if xc=='pbe0':
+     xc0 = 'pbe'
+  elif xc=='b3lyp':
+     xc0 = 'blyp'
+  else:
+     xc0 = xc
+  if ('property{henry}' in esmiles.lower()) or ('property{solvation}' in esmiles.lower()):
+     henry = True
+
+  if 'unitcell{' in esmiles:
+     uc = esmiles.split('unitcell{')[1].split('}')[0]
+     if ("lattice_vectors" in uc):
+         ucc = uc.split("|")
+         unitcell9 = True
+         L9 = [float(ucc[1].split()[0]), float(ucc[1].split()[1]), float(ucc[1].split()[2]), float(ucc[2].split()[0]), float(ucc[2].split()[1]), float(ucc[2].split()[2]), float(ucc[3].split()[0]), float(ucc[3].split()[1]), float(ucc[3].split()[2])]
+
+
+
+  ##### read the xyzfile ####
+  kindatoms = []
+  atoms = []
+  xyzfile = open(xyzfilename,"r")
+  natoms =  eval(xyzfile.readline())
+  xyzfile.readline()
+  for i in range(natoms):
+     line = xyzfile.readline().split()
+     xyz = []
+     xyz.append(line[0])
+     xyz.append(eval(line[1]))
+     xyz.append(eval(line[2]))
+     xyz.append(eval(line[3]))
+     atoms.append(xyz)
+     found = False
+     for ka in kindatoms:
+        if (ka==line[0]): 
+           found = True
+     if (not found):
+        kindatoms.append(line[0])
+  xyzfile.close()
+
+  
+  n_sphere = 9600
+  printxyz = False
+  printnw  = True
+  for o, a in opts:
+    if '-n' in o:
+      n_sphere = int(a)
+      print "Points on sphere: ", n_sphere
+    if '-m' in o:
+      molarity = float(a)
+    if o in ("-x","--xyz"):
+      xyzfile = a
+      printxyz = True
+    if o in ("-w"):
+      nwfile = a
+      printnw = True
+    if o in ("-l"):
+      SC_length = float(a)
+      unitcell  = True
+    if o in ("-L"):
+      L3 = [float(eval(a)[0]),float(eval(a)[1]),float(eval(a)[2])]
+      unitcell3  = True
+    if o in ("-A"):
+      print a, eval(a)
+      L9 = [float(eval(a)[0]),float(eval(a)[1]),float(eval(a)[2]),float(eval(a)[3]),float(eval(a)[4]),float(eval(a)[5]),float(eval(a)[6]),float(eval(a)[7]),float(eval(a)[8])]
+      unitcell9  = True
+    if o in ("-q"):
+      solute_q = int(a)
+    if o in ("-s"):
+      solute_mult = int(a)
+
+
+
+
+  nwater = int(round(55.556/molarity))
+  vwater = (1660.55208/molarity)
+  asas = calculate_asa(atoms, 1.4, n_sphere)
+  (savs,vmax) = calculate_sav(atoms, 0.0, n_sphere)
+  vsolute = sum(savs)
+  L = (vwater+vsolute)**0.33333333333
+
+  print 
+  if (henry): 
+     print "#################################"
+     print "# AIMD-MM Solvation Calculation #"
+     print "#################################"
+  else:
+     print "######################"
+     print "# AIMD-MM Simulation #"
+     print "######################"
+  print 
+  print "#Molarity = %.3f" % molarity
+  print "#ASA = %.1f angstrom squared." % sum(asas)
+  print "#SAV = %.1f angstrom cubed. (max %.1f) " % (sum(savs),vmax)
+  print "#charge of solute molecule  = %d" % solute_q
+  print "#multiplicity of solute molecule  = %d" % solute_mult
+  print "#size of solute molecule    = %d" % len(atoms)
+  print "#number of solute molecules = %d" % 1
+  print "#number of water molecules  = %d" % nwater
+  print "#volume of water molecules  = %.1f angstrom cubed." % vwater
+  print "#volume of solute molecules = %.1f angstrom cubed." % vsolute
+  print "#volume of unit cell       = %.1f angstrom cubed." % (vwater+vsolute)
+  print "#side length of water-only cubic cell = %.3f angstrom " % (vwater)**0.33333333333
+  print "#side length of cubic cell            = %.3f angstrom " % (vwater+vsolute)**0.33333333333
+  if (unitcell):
+     L = SC_length
+     print
+     print "#Unit Cell Input Option:"
+     print "#inputed side length of cubic cell    = %.3f angstrom " % L
+     print "#inputed volume of unit cell          = %.1f angstrom cubed." % (L*L*L)
+  if (unitcell3):
+     L = L3
+     vol = L[0]*L[1]*L[2]
+     vwater = abs(vol)-vsolute
+     tmolarity = (1660.55208/vwater)
+     molarity *= tmolarity
+     nwater = int(round(55.556/molarity))
+     print
+     print "#Unit Cell Input Option:"
+     print "#inputed side lengths of cubic cell   = %.3f %.3f %.3f angstrom " % (L[0],L[1],L[2])
+     print "#inputed volume of unit cell          = %.1f angstrom cubed." % (L[0]*L[1]*L[2])
+     print "#volume of solute molecules = %.1f angstrom cubed." % vsolute
+     print "#volume of water molecules  = %.1f angstrom cubed." % vwater
+     print "#effective molarity         = %.3f" % molarity
+     print "#number of water molecules  = %d" % nwater
+  if (unitcell9):
+     L = L9
+     x = L[4]*L[8] - L[5]*L[7]
+     y = L[5]*L[6] - L[3]*L[8]
+     z = L[3]*L[7] - L[4]*L[6]
+     vol = L[0]*x + L[1]*y + L[2]*z
+     vwater = abs(vol)-vsolute
+     tmolarity = (1660.55208/vwater)
+     molarity *= tmolarity
+     nwater = int(round(55.556/molarity))
+     print
+     print "#Unit Cell Input Option:"
+     print "#inputed unitcell vectors:"
+     print "#     a1  = %.3f %.3f %.3f angstrom " % (L[0],L[1],L[2])
+     print "#     a2  = %.3f %.3f %.3f angstrom " % (L[3],L[4],L[5])
+     print "#     a3  = %.3f %.3f %.3f angstrom " % (L[6],L[7],L[8])
+     print "#inputed volume of unit cell          = %.1f angstrom cubed." % (abs(vol))
+     print "#volume of solute molecules = %.1f angstrom cubed." % vsolute
+     print "#volume of water molecules  = %.1f angstrom cubed." % vwater
+     print "#effective molarity         = %.3f" % molarity
+     print "#number of water molecules  = %d" % nwater
+    
+
+  try:
+     os.unlink(xyzfilename)
+  except:
+     print "#solvatedsolute_emsiles unlinking " + xyzfilename
+
+
+  solventbox = generate_solventbox(nwater,atoms,L,1.0)
+  angle = (109.45/180.0)*math.pi
+
+  print "#size of solvent box = %d" % len(solventbox)
+  #print "solventbox:",solventbox
+  newatoms = []
+  for s in solventbox:
+     if (s[0]=='Ow'):
+        xyz = []
+        xyz.append('O')
+        xyz.append(s[1])
+        xyz.append(s[2])
+        xyz.append(s[3])
+        newatoms.append(xyz)
+        xyz = []
+        xyz.append('H')
+        xyz.append(s[1]+1.0)
+        xyz.append(s[2])
+        xyz.append(s[3])
+        newatoms.append(xyz)
+        xyz = []
+        xyz.append('H')
+        xyz.append(s[1]+math.cos(angle))
+        xyz.append(s[2]+math.sin(angle))
+        xyz.append(s[3])
+        newatoms.append(xyz)
+     else:
+        newatoms.append(s)
+
+
+
+  if (printnw):
+     #print "Generating nwfile=",nwfile
+     tt = time.localtime()
+     dd = "-%d-%d-%d-%d:%d.%d" % (tt[0],tt[1],tt[2],tt[3],tt[4],tt[5])
+     dd0 = "-%d-%d-%d-%d" % (tt[0],tt[1],tt[2],tt[3])
+     startl = "startl"+dd0
+     tequil = "tequil"+dd0
+     print
+     print("##################### Start of AIMD-MM NWChem Input Deck ######################")
+     print("#solute = %s  \n" % (args[0]))
+     print("title \"tequil 300K  solute + %d water aimdmm simulation\" \n" % (nwater))
+     print("memory 1900 mb\n")
+     print("start solutesolvent\n")
+     print("#permanent_dir ./perm")
+     print("#scratch_dir   ./perm\n")
+     print("charge %d" % (solute_q))
+     print("geometry noautosym noautoz")
+     for a in newatoms:
+        print("%s  %.6f %.6f %.6f" % (a[0],a[1],a[2],a[3]))
+     print("end\n")
+     print("set nwpw:cif_filename solutesolvent\n")
+     print("nwpw")
+     print("   simulation_cell")
+     if (unitcell9):
+        print("      lattice_vectors")
+        print("          %.6f %.6f %.6f"   % (L[0]/0.529177,L[1]/0.529177,L[2]/0.529177))
+        print("          %.6f %.6f %.6f"   % (L[3]/0.529177,L[4]/0.529177,L[5]/0.529177))
+        print("          %.6f %.6f %.6f\n" % (L[6]/0.529177,L[7]/0.529177,L[8]/0.529177))
+     elif (unitcell3):
+        print("      lattice")
+        print("         lat_a %.6f" % (L[0]/0.529177))
+        print("         lat_b %.6f" % (L[1]/0.529177))
+        print("         lat_c %.6f" % (L[2]/0.529177))
+        print("      end")
+     else:
+        print("      SC %.6f" % (L/0.529177))
+     print("   end")
+     print("   qmmm")
+     print("      mm_tags %d:%d" % (len(atoms)+1,len(newatoms)))
+     for ka in kindatoms:
+        print("      lj_ion_parameters %s %.6f %.6f" % (ka,eval_dict(LJparam,ka)[0],eval_dict(LJparam,ka)[1]))
+     print("      lj_ion_parameters %s %.6f %.6f\n" % ('O^',3.16555789,0.15539425))
+     print("      fragment spc")
+     print("         size 3")
+     print("         index_start %d:%d:3\n" % (len(atoms)+1,len(newatoms)-2))
+     print("         #spc/e water")
+     print("         shake units angstroms 1 2 3 cyclic 1.0 1.632993125 1.0\n")
+     print("         #Toukan-Rahman Potential")
+     print("         #bond_morse  1 2    0.1623940 1.3578682  1.889726878")
+     print("         #bond_morse  1 3    0.1623940 1.3578682  1.889726878")
+     print("         #bond_spring 2 3    0.0733187 3.0864590")
+     print("         #cross_bond_spring 1 2 1.889726878 2 3 3.0864590 -0.0943540")
+     print("         #cross_bond_spring 1 3 1.889726878 2 3 3.0864590 -0.0943540")
+     print("         #cross_bond_spring 1 2 1.889726878 1 3 1.889726878 0.0498426")
+     print("      end")
+     print("   end")
+     print("   xc %s" % xc0)
+     print("   mult %d" % (solute_mult))
+     print("   cutoff 2.0")
+     print("   lmbfgs")
+     print("end\n")
+     print("set geometry:actlist %d:%d" % (len(atoms)+1,len(newatoms)))
+     print("task pspw noit_energy\n")
+     print("task pspw gradient\n")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-9; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-8; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-7; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-6; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-5; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-4; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-3; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-2; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0e-1; loop 10 10; end; end; task pspw steepest_descent")
+     print("nwpw; steepest_descent; geometry_optimize; time_step 1.0;    loop 10 10; end; end; task pspw steepest_descent\n")
+     print("nwpw");
+     print("   car-parrinello")
+     #print("      nose-hoover 1200.0 400.0 1200 400.0")
+     print("      temperature 400.0")
+     print("      time_step 5.0")
+     print("      fake_mass 750.0")
+     print("      loop 10 1000")
+     print("      xyz_filename        %s" % (startl + ".xyz"))
+     print("      emotion_filename    %s" % (startl + ".emotion"))
+     print("      ion_motion_filename %s" % (startl + ".ion_motion"))
+     print("   end")
+     print("end");
+     print("task pspw car-parrinello\n\n")
+     print("### restart here ###")
+     print("unset geometry:actlist")
+     print("nwpw")
+     print("   lmbfgs")
+     print("   xc %s" % xc)
+     print("   cutoff 50.0")
+     print("end")
+     print("task pspw gradient\n")
+     print("nwpw")
+     print("   car-parrinello")
+     #print("      nose-hoover 1200.0 300.0 1200 300.0 start")
+     print("      temperature 300.0 start")
+     print("      time_step 5.0")
+     print("      fake_mass 750.0")
+     print("      loop 10 1000")
+     print("      xyz_filename        %s" % (tequil + ".xyz"))
+     print("      emotion_filename    %s" % (tequil + ".emotion"))
+     print("      ion_motion_filename %s" % (tequil + ".ion_motion"))
+     print("      fei                 %s" % (tequil + ".fei"))
+     print("   end")
+     print("end")
+     print("task pspw car-parrinello\n")
+
+     if (henry):
+        print("##################### Start of Henry's Law Calculations ######################")
+        lmbdas = [1.0,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0.05,0.01,0.005,0.001,0.0005,0.0001]
+        for lmbda in lmbdas:
+           tstr = "tequil-%.4f" % lmbda
+           print("### restart here ###")
+           print("nwpw")
+           print("   qmmm")
+           print("      qmmm_lambda %.4f" % lmbda)
+           print("   end")
+           print("   car-parrinello")
+           print("      temperature 300.0 start")
+           print("      time_step 5.0")
+           print("      fake_mass 750.0")
+           print("      loop 10 1000")
+           #print("      scaling 0.0 1.0")
+           print("      xyz_filename        %s" % (tstr + ".xyz"))
+           print("      emotion_filename    %s" % (tstr + ".emotion"))
+           print("      ion_motion_filename %s" % (tstr + ".ion_motion"))
+           print("      fei                 %s" % (tstr + ".fei"))
+           print("   end")
+           print("end")
+           #print("task pspw energy\n\n")
+           print("task pspw car-parrinello\n")
+        print("##################### End of Henry's Law Calculations   ######################")
+     else:
+        print("### restart here ###")
+        print("nwpw")
+        print("   car-parrinello")
+        #print("      nose-hoover 1200.0 300.0 1200 300.0 restart")
+        print("      temperature 300.0 restart")
+        print("   end")
+        print("end")
+        print("task pspw car-parrinello")
+
+        print("\n### restart here ###")
+        print("task pspw car-parrinello")
+
+        print("\n### restart here ###")
+        print("task pspw car-parrinello")
+
+        print("\n### restart here ###")
+        print("task pspw car-parrinello")
+     print("##################### End of AIMD-MM NWChem Input Deck ######################")
+     print
+
+
+  
+if __name__ == "__main__":
+  main()
+
+

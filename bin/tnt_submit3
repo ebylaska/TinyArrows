@@ -1,0 +1,2974 @@
+#!/usr/bin/python
+
+import pymongo
+import sys,os,time,pickle,urllib2,getopt,subprocess,random,operator,datetime
+import re
+from math import *
+from numpy import *
+from numpy.linalg import *
+from numpy.fft import *
+
+####################### mongoDB #############################
+#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+mongo_client       = pymongo.MongoClient(uri)
+arrows_db          = mongo_client.Arrows
+tnt_collection     = arrows_db.tnt_queue
+qnumber_collection = arrows_db.queue_number
+nwchem_collection  = arrows_db.nwchem_queue
+machine_collection = arrows_db.nwchem_machinedata
+
+## set queue number ##
+queue_number00  = qnumber_collection.find_one({'queue':'tnt'})['count']
+qqq = qnumber_collection.update({'queue':'tnt'},{'$inc':{'count':1}},upsert=False,multi=False)
+
+
+#################### machine specifics ######################
+nwpythonlib    = "/srv/arrows/Codes/InSilico/tntqueue/nwpythonlib.py"
+babel     = "/usr/local/bin/babel"
+obabel    = "/usr/local/bin/obabel "
+obrotamer = "/usr/local/bin/obrotamer"
+esmiles2xyz    = "/srv/arrows/bin/esmiles2xyz "
+esmilespmf2xyz = "/srv/arrows/bin/esmilespmf2xyz "
+#remote_nwchem  = "/Users/bylaska/bin/remote_nwchem"
+remote_nwchem  = "/srv/arrows/bin/submit_nwchem3"
+#lsnwcdir       = "/Users/bylaska/Codes/InSilico/tntqueue"
+#queuename      = "tnt.q"
+curdir         = os.getcwd()
+#submitdir      = "/Users/bylaska/Projects/TNTQ"
+#wrkdir         = "/Users/bylaska/Projects/Work"
+geom_maxiter   = 50
+remote_computer = None
+ddrand = random.randint(0,999999)
+tmpsmi1  = "tmpsmi1-%d.smi" % ddrand
+tmpsmi2  = "tmpsmi2-%d.smi" % ddrand
+tmpsdf1  = "tmpsdf1-%d.sdf" % ddrand
+tmpsdf2  = "tmpsdf2-%d.sdf" % ddrand
+tmpjunk  = "tmpjunk-%d.err" % ddrand
+tmpjob   = "tntjob-%d"      % ddrand
+submitdir      = "/srv/arrows/Projects/TNTQ/%d" % queue_number00
+wrkdir         = submitdir
+#wrkdir         = "/srv/arrows/Project/Work"
+os.system("mkdir " + submitdir)
+#################### machine specifics ######################
+
+#global variables
+bad_smiles2xyz_geom = False
+use_cactus_geom     = False
+def reset_bad_smiles2xyz_geom():
+   global bad_smiles2xyz_geom
+   bad_smiles2xyz_geom = True  
+def reset_use_cactus_geom():
+   global use_cactus_geom
+   use_cactus_geom = True
+
+LJparam = {
+ 'H':  [0.7,0.044],
+ 'N':  [3.26,0.069],
+ 'F': [3.26,0.08],
+ 'Cl': [3.52,0.16],
+ 'C':  [3.41, 0.100],
+ 'O':  [3.16555789,0.15539425],
+ 'Fe':  [2.15,0.124],
+ 'U':  [3.16555789,0.15539425],
+ 'Ca': [3.028,0.238],
+ '.':  [3.5,0.1]
+}
+
+vdw = {
+ 'H': 1.20,
+ 'N': 1.55,
+ 'NA': 2.27,
+ 'Na': 2.27,
+ 'CU': 1.40,
+ 'Cu': 1.40,
+ 'CL': 1.75,
+ 'Cl': 1.75,
+ 'C': 1.70,
+ 'O': 1.52,
+ 'I': 1.98,
+ 'P': 1.80,
+ 'B': 1.85,
+ 'BR': 1.85,
+ 'Br': 1.85,
+ 'S': 1.80,
+ 'SE': 1.90,
+ 'Se': 1.90,
+ 'F': 1.47,
+ 'FE': 1.80,
+ 'Fe': 1.80,
+ 'K':  2.75,
+ 'MN': 1.73,
+ 'Mn': 1.73,
+ 'MG': 1.73,
+ 'Mg': 1.73,
+ 'ZN': 1.39,
+ 'Zz': 1.39,
+ 'HG': 1.8,
+ 'Hg': 1.8,
+ 'XE': 1.8,
+ 'Xe': 1.8,
+ 'AU': 1.8,
+ 'Au': 1.8,
+ 'LI': 1.8,
+ 'Li': 1.8,
+ 'Ow': 1.52,
+ 'U': 1.8,
+ 'Ca': 1.73,
+ '.': 1.8
+}
+
+periodic_table_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 3,
+    'Be' : 4,
+    'B'  : 5,
+    'C'  : 6,
+    'N'  : 7,
+    'O'  : 8,
+    'F'  : 9,
+    'Ne' : 10,
+    'Na' : 11,
+    'Mg' : 12,
+    'Al' : 13,
+    'Si' : 14,
+    'P'  : 15,
+    'S'  : 16,
+    'Cl' : 17,
+    'Ar' : 18,
+    'K'  : 19,
+    'Ca' : 20,
+    'Sc' : 21,
+    'Ti' : 22,
+    'V'  : 23,
+    'Cr' : 24,
+    'Mn' : 25,
+    'Fe' : 26,
+    'Co' : 27,
+    'Ni' : 28,
+    'Cu' : 29,
+    'Zn' : 30,
+    'Ga' : 31,
+    'Ge' : 32,
+    'As' : 33,
+    'Se' : 34,
+    'Br' : 35,
+    'Kr' : 36,
+    'Rb' : 37,
+    'Sr' : 38,
+    'Y'  : 39,
+    'Zr' : 40,
+    'Nb' : 41,
+    'Mo' : 42,
+    'Tc' : 43,
+    'Ru' : 44,
+    'Rh' : 45,
+    'Pd' : 46,
+    'Ag' : 47,
+    'Cd' : 48,
+    'In' : 49,
+    'Sn' : 50,
+    'Sb' : 51,
+    'Te' : 52,
+    'I'  : 53,
+    'Xe' : 54,
+    'Cs' : 55,
+    'Ba' : 56,
+    'La' : 57,
+    'Ce' : 58,
+    'Pr' : 59,
+    'Nd' : 60,
+    'Pm' : 61,
+    'Sm' : 62,
+    'Eu' : 63,
+    'Gd' : 64,
+    'Tb' : 65,
+    'Dy' : 66,
+    'Ho' : 67,
+    'Er' : 68,
+    'Tm' : 69,
+    'Yb' : 70,
+    'Lu' : 71,
+    'Hf' : 72,
+    'Ta' : 73,
+    'W'  : 74,
+    'Re' : 75,
+    'Os' : 76,
+    'Ir' : 77,
+    'Pt' : 78,
+    'Au' : 79,
+    'Hg' : 80,
+    'Tl' : 81,
+    'Pb' : 82,
+    'Bi' : 83,
+    'Po' : 84,
+    'At' : 85,
+    'Rn' : 86,
+    'Fr' : 87,
+    'Ra' : 88,
+    'Ac' : 89,
+    'Th' : 90,
+    'Pa' : 91,
+    'U'  : 92,
+    'Np' : 93,
+    'Pu' : 94,
+    'Am' : 95,
+    'Cm' : 96,
+    'Bk' : 97,
+    'Cf' : 98,
+    'Es' : 99,
+    'Fm' : 100,
+    'Md' : 101,
+    'No' : 102,
+    'Lr' : 103,
+    'Rf' : 104,
+    'Ha' : 105,
+    'Sg' : 106,
+    'Bh' : 107,
+    'Hs' : 108,
+    'Mt' : 109
+}
+
+
+periodic_table_valence_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 1,
+    'Be' : 2,
+    'B'  : 3,
+    'C'  : 4,
+    'N'  : 5,
+    'O'  : 6,
+    'F'  : 7,
+    'Ne' : 8,
+    'Na' : 1,
+    'Mg' : 2,
+    'Al' : 3,
+    'Si' : 4,
+    'P'  : 5,
+    'S'  : 6,
+    'Cl' : 7,
+    'Ar' : 8,
+    'K'  : 1,
+    'Ca' : 2,
+    'Sc' : 3,
+    'Ti' : 4,
+    'V'  : 5,
+    'Cr' : 6,
+    'Mn' : 7,
+    'Fe' : 8,
+    'Co' : 9,
+    'Ni' : 10,
+    'Cu' : 11,
+    'Zn' : 12,
+    'Ga' : 3,
+    'Ge' : 4,
+    'As' : 5,
+    'Se' : 6,
+    'Br' : 7,
+    'Kr' : 8,
+    'Rb' : 1,
+    'Sr' : 2,
+    'Y'  : 3,
+    'Zr' : 4,
+    'Nb' : 5,
+    'Mo' : 6,
+    'Tc' : 7,
+    'Ru' : 8,
+    'Rh' : 9,
+    'Pd' : 10,
+    'Ag' : 11,
+    'Cd' : 12,
+    'In' : 3,
+    'Sn' : 4,
+    'Sb' : 5,
+    'Te' : 6,
+    'I'  : 7,
+    'Xe' : 8,
+    'Cs' : 1,
+    'Ba' : 2,
+    'La' : 3,
+    'Ce' : 4,
+    'Pr' : 5,
+    'Nd' : 6,
+    'Pm' : 7,
+    'Sm' : 8,
+    'Eu' : 9,
+    'Gd' : 10,
+    'Tb' : 11,
+    'Dy' : 12,
+    'Ho' : 13,
+    'Er' : 14,
+    'Tm' : 15,
+    'Yb' : 16,
+    'Lu' : 17,
+    'Hf' : 4,
+    'Ta' : 5,
+    'W'  : 6,
+    'Re' : 7,
+    'Os' : 8,
+    'Ir' : 9,
+    'Pt' : 10,
+    'Au' : 11,
+    'Hg' : 12,
+    'Tl' : 3,
+    'Pb' : 4,
+    'Bi' : 5,
+    'Po' : 6,
+    'At' : 7,
+    'Rn' : 8,
+    'Fr' : 1,
+    'Ra' : 2,
+    'Ac' : 3,
+    'Th' : 4,
+    'Pa' : 5,
+    'U'  : 6,
+    'Np' : 7,
+    'Pu' : 8,
+    'Am' : 9,
+    'Cm' : 10,
+    'Bk' : 11,
+    'Cf' : 12,
+    'Es' : 13,
+    'Fm' : 14,
+    'Md' : 15,
+    'No' : 16,
+    'Lr' : 17,
+    'Rf' : 4,
+    'Ha' : 5,
+    'Sg' : 6,
+    'Bh' : 7,
+    'Hs' : 8,
+    'Mt' : 9
+}
+
+
+
+
+
+def taskjobtheory(jobtheory,mult):
+   if (jobtheory=="ccsd(t)") and (mult==1):
+      tt = 'ccsd(t)'
+   elif (jobtheory=="ccsd(t)") and (mult>1):
+      tt = 'tce'
+   elif (jobtheory=="mp2") and (mult==1):
+      tt = "direct_mp2"
+   elif (jobtheory=="hf") or (jobtheory=="uhf"):
+      tt = "scf"
+   else:
+      tt = jobtheory
+   return tt
+
+
+#############################################
+#                                           #
+#             addspaces_esmiles              #
+#                                           #
+#############################################
+def addspaces_esmiles(esmiles):
+   tags = ['^','mult','theory','xc','solvation_type','basis','xyzdata','calculation_type']
+   esmiles2 = esmiles[:]
+   for tag1 in tags: 
+      if tag1 in esmiles2: esmiles2 = esmiles2.replace(tag1," " + tag1)
+   return esmiles2
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+#######################################
+#                                     #
+#          smiles2twirl               #
+#                                     #
+#######################################
+def smiles2twirl(smiles):
+   link = "http://cactus.nci.nih.gov/chemical/structure/"+ smiles + "/twirl"
+   #result = "</pre>"
+   #result = "<a href=\"" + link + "\">TwirlMol Link</a>"
+   #result += "<pre style=\"font-size:0.6em;color:red\">"
+   #result = "http://cactus.nci.nih.gov/chemical/structure/"+ smiles + "/twirl"
+   result = "<a href=\"" + link + "\">TwirlMol Link</a>"
+   return result
+
+#######################################
+#                                     #
+#          smiles2image               #
+#                                     #
+#######################################
+def smiles2image(smiles):
+   link = "http://cactus.nci.nih.gov/chemical/structure/"+ smiles + "/image"
+   #result = "</pre>"
+   #result = "<a href=\"" + link + "\">GIF Image Link</a>"
+   #result += "<pre style=\"font-size:0.6em;color:red\">"
+   #result = "http://cactus.nci.nih.gov/chemical/structure/"+ smiles + "/image"
+   result = "<a href=\"" + link + "\">GIF Image Link</a>"
+   return result
+
+#######################################
+#                                     #
+#          smiles2ascii               #
+#                                     #
+#######################################
+
+#  This function converts a smiles string and converts
+# it to a chemical drawing in ascii art.
+
+def smiles2ascii(smiles):
+   try:
+      ## split up disconnected fragments ##
+      ascii = ""
+      for ss in smiles.split('.'):
+         cmd = obabel + ' --gen3d -:\"' + ss.strip() + '\" -oascii'
+         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+         ascii  += result.replace("1 molecule converted","").rstrip() + "\n"
+   except:
+      ascii = ""
+
+   ascii2 = ""
+   for a in ascii.split('\n'):
+      if 'WARNING' not in a:
+         ascii2 += a + '\n'
+
+   return ascii2
+
+###### xyz_badgeom ####
+#### geometry is badd if nan's are produced or a bond distance < 0.5 ####
+def xyz_badgeom(xyzfile):
+   with open(xyzfile,'r') as ff:
+      test = ff.read()
+   badgeom = False
+   if "nan" in test:
+      badgeom = True
+   else:
+      ### check bond distances ###
+      geomlst = test.strip().split("\n")
+      rxyz = []
+      for ln in geomlst[2:]:
+         ss = ln.strip().split()
+         rxyz.append(eval(ss[1]))
+         rxyz.append(eval(ss[2]))
+         rxyz.append(eval(ss[3]))
+      nion = len(rxyz)/3
+      for i in range(nion-1):
+         for j in range(i+1,nion):
+            x = rxyz[3*i]   - rxyz[3*j]
+            y = rxyz[3*i+1] - rxyz[3*j+1]
+            z = rxyz[3*i+2] - rxyz[3*j+2]
+            r = sqrt(x*x + y*y + z*z)
+            if (r<0.7): badgeom = True
+
+   return badgeom
+
+
+#### cactus_smiles2xyz function ####
+def cactus_smiles2xyz(smiles):
+    ### cactus cannot handle # and $ symbols ###
+    tsmiles = smiles.replace("#","")
+    tsmiles = tsmiles.replace("$","")
+    result = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/file?format=xyz&get3d=True" % tsmiles)
+    return result
+
+#### cml2xyz function ####
+def cml2xyz(cmlfile,xyzfile):
+   cmd6 = babel + " --ffuff --gen3d -icml " + cmlfile + " -oxyz " + xyzfile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+
+#### xyz2cml function ####
+def xyz2cml(xyzfile,cmlfile):
+   cmd6 = babel + " -ixyz " + xyzfile + " -ocml " + cmlfile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+
+#### smiles2cml function ####
+def smiles2cml(smiles,cmlfile):
+   eoln = "\n"
+   smilefile = wrkdir + "/" + tmpsmi1
+   ofile = open(smilefile,'w')
+   ofile.write(smiles); ofile.write(eoln)
+   ofile.close()
+   cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -ocml " + cmlfile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+
+#### smiles2xyz function ####
+def smiles2xyz(smiles,xyzfile):
+   #eoln = "\n"
+   #smilefile = wrkdir + "/" + tmpsmi1
+   #ofile = open(smilefile,'w')
+   #ofile.write(smiles); ofile.write(eoln)
+   #ofile.close()
+   #cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
+   #os.system(cmd6)
+   cmd6 = esmiles2xyz + ' "'+ smiles.strip() + '" ' + xyzfile
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+
+   #### if nan's are produced or a bond distance < 0.5 then use cactus smiles2xyz rest interface ####
+   badgeom = xyz_badgeom(xyzfile)
+   if (badgeom or use_cactus_geom):
+      reset_bad_smiles2xyz_geom()
+      xyzdata = cactus_smiles2xyz(smiles)
+      xyzdata = xyzdata.strip()
+      with open(xyzfile,'w') as ff:
+         ff.write(xyzdata+"\n")
+
+
+
+#### smilespmf2xyz function ####
+def smilespmf2xyz(esmiles,xyzfile):
+   #eoln = "\n"
+   cmd = esmilespmf2xyz + ' "'+ esmiles.strip() + '" ' + xyzfile
+   result1 = subprocess.check_output(cmd,shell=True)
+   print result1
+   solutejob = result1.split("solutejob:")[1].split(":solutejob")[0]
+
+   return eval(solutejob)
+
+
+#### pubchem_smiles2cid function ####
+def pubchem_smiles2cid(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/cids/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2iupac function ####
+def pubchem_smiles2iupac(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/IUPACName/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2synonyms function ####
+def pubchem_smiles2synonyms(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles).replace(';','\n').split('\n')
+    return result
+
+#### pubchem_smiles2synonym0 function ####
+def pubchem_smiles2synonym0(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles).replace(';','\n').split('\n')
+    return result[0]
+
+#### pubchem_smiles2canonicalsmiles function ####
+def pubchem_smiles2canonicalsmiles(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/CanonicalSMILES/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2InChI function ####
+def pubchem_smiles2InChI(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/InChI/TXT" % smiles)
+    return result
+
+#### pubchem_cid2smiles function ####
+def pubchem_cid2smiles(cid):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/property/CanonicalSMILES/TXT" % cid)
+    return result
+
+#### pubchem_cid2InChI function ####
+def pubchem_cid2InChI(cid):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/property/InChI/TXT" % cid)
+    return result
+
+
+def cannonicalsmiles(smiles):
+   eoln = "\n"
+   try:
+      smilefile  = wrkdir + "/" + tmpsmi1
+      smilefile2 = wrkdir + "/" + tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+
+      #cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      smiles2 = "nosmiles"
+      sdat = []
+      ofile = open(smilefile2,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles2 = sdat[0].split()[0]
+   except:
+      smiles2 = smiles
+
+   ### special cases ###
+   if ((smiles=='[HH]') or
+       (smiles=='[H2]') or
+       (smiles=='HH')   or
+       (smiles=='[H].[H]')): smiles2 = '[HH]'
+
+   return smiles2
+
+
+
+#### cml2smiles function ####
+def cml2smiles(cmlfile):
+   smiles = "nosmiles"
+   smilefile = wrkdir + "/" + tmpsmi1
+   cmd6 = babel + " -icml " + cmlfile + " -ocan " + smilefile 
+   #os.system(cmd6)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   sdat = []
+   ofile = open(smilefile,'r')
+   for line in ofile:
+      sdat.append(line)
+   ofile.close()
+   smiles = sdat[0].split()[0]
+   return smiles
+
+#### xyz2smiles function ####
+def xyz2smiles(xyzfile):
+   smiles = "nosmiles"
+   smilefile = wrkdir + "/" + tmpsmi1
+   cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   sdat = []
+   ofile = open(smilefile,'r')
+   for line in ofile:
+      sdat.append(line)
+   ofile.close()
+   smiles = sdat[0].split()[0]
+   return smiles
+
+#### xyzrotamer function ####
+def xyzrotamer(xyzfile):
+   with open(xyzfile,'r') as ff: 
+      xyzbak = ff.read()
+   sdffile  = wrkdir + "/" + tmpsdf1
+   sdffile2 = wrkdir + "/" + tmpsdf2
+   #cmd6 = babel + " -ixyz " + xyzfile + " -osdf " + sdffile + " >& "  + wrkdir + "/junk.err"
+   #cmd7 = "(" + obrotamer + " " + sdffile + " > " + sdffile2 + ") >& "+ wrkdir + "/" + tmpjunk
+   #cmd8 = babel + " -isdf " + sdffile2 + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
+   cmd6 = babel + " -ixyz " + xyzfile + " -osdf " + sdffile 
+   cmd7 = "(" + obrotamer + " " + sdffile + " > " + sdffile2 + ") > "+ wrkdir + "/" + tmpjunk
+   cmd8 = babel + " -isdf " + sdffile2 + " -oxyz " + xyzfile 
+   os.system(cmd6)
+   os.system(cmd7)
+   os.system(cmd8)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+   sdat = []
+   ofile = open(wrkdir + "/"+tmpjunk,'r')
+   for line in ofile:
+      sdat.append(line)
+   ofile.close()
+   rots = sdat[0]
+
+   ### check for bad geometry -revert to orginal file if geometry is bas ###
+   badgeom = xyz_badgeom(xyzfile)
+   if badgeom:
+      with open(xyzfile,'w') as ff:
+         ff.write(xyzbak)
+         rots = 'Using the non-rotated geometry because the rotation caused a bad geometry.'
+
+   return rots
+
+
+
+#### xyz2InChI function ####
+def xyz2InChI(xyzfile):
+   inchi = ""
+   inchifile = wrkdir + "/" + tmpsmi1
+   cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   sdat = []
+   ofile = open(inchifile,'r')
+   for line in ofile:
+      sdat.append(line)
+   ofile.close()
+   inchi = sdat[0].split()[0]
+   return inchi
+
+#### xyz2InChIKey function ####
+def xyz2InChIKey(xyzfile):
+   inchi = ""
+   inchifile = wrkdir + "/" + tmpsmi1
+   cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   sdat = []
+   ofile = open(inchifile,'r')
+   for line in ofile:
+      sdat.append(line)
+   ofile.close()
+   inchi = sdat[0].split()[0]
+   return inchi
+
+
+
+
+#### smiles2InChI function ####
+def smiles2InChI(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+#### smiles2InChIKey function ####
+def smiles2InChIKey(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+
+
+def smiles2charge(smiles):
+  charge = 0
+  ss = smiles.split('[')
+  if (len(ss)>1):
+     ss = ss[1:]
+  else:
+     ss = []
+  for s in ss:
+     inside = s.split(']')[0]
+     if   (inside.find("+10")!=-1): charge += 10
+     elif (inside.find("-10")!=-1): charge -= 10
+     elif (inside.find("+9")!=-1): charge += 9
+     elif (inside.find("-9")!=-1): charge -= 9
+     elif (inside.find("+8")!=-1): charge += 8
+     elif (inside.find("-8")!=-1): charge -= 8
+     elif (inside.find("+7")!=-1): charge += 7
+     elif (inside.find("-7")!=-1): charge -= 7
+     elif (inside.find("+6")!=-1): charge += 6
+     elif (inside.find("-6")!=-1): charge -= 6
+     elif (inside.find("+5")!=-1): charge += 5
+     elif (inside.find("-5")!=-1): charge -= 5
+     elif (inside.find("+4")!=-1): charge += 4
+     elif (inside.find("-4")!=-1): charge -= 4
+     elif (inside.find("+3")!=-1): charge += 3
+     elif (inside.find("-3")!=-1): charge -= 3
+     elif (inside.find("+2")!=-1): charge += 2
+     elif (inside.find("-2")!=-1): charge -= 2
+     elif (inside.find("+1")!=-1): charge += 1
+     elif (inside.find("-1")!=-1): charge -= 1
+     elif (inside.find("+")!=-1):  charge += inside.count('+')
+     elif (inside.find("-")!=-1):  charge -= inside.count('-')
+
+  return charge
+
+def smiles2mult(smiles,q):
+  mult = 1
+  smiles2xyz(smiles,wrkdir + "/"+tmpjunk)
+  pcharge = q
+  count = 0
+  xyzfile = open(wrkdir + "/"+tmpjunk,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+
+def xyz2mult(xyzfilename,q):
+  mult = 1
+  pcharge = q
+  count = 0
+  xyzfile = open(xyzfilename,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+
+def xyz2ncharge(xyzfilename,q):
+  ncharge = -q
+  count = 0
+  xyzfile = open(xyzfilename,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           ncharge += periodic_table_charge[Symb]
+  xyzfile.close()
+  return ncharge
+
+
+
+def smiles2valencecharge(smiles):
+  mult = 1
+  smiles2xyz(smiles,wrkdir + "/"+tmpjunk)
+  vcharge = 0
+  count = 0
+  xyzfile = open(wrkdir + "/"+tmpjunk,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_valence_charge:
+           vcharge += periodic_table_valence_charge[Symb]
+  xyzfile.close()
+
+  return vcharge
+
+
+def theorysmiles2machine(theory,smiles):
+   machine = 'email_machine'
+   vachinetype = "toobig"
+   hasmopac    = False
+   vcharge = smiles2valencecharge(smiles)
+   if ('am1' in theory) or ('pm3' in theory) or ('mndo' in theory) or ('mindo3' in theory):
+      hasmopac = True
+      if vcharge<2000:
+         vachinetype = 'small'
+   elif ('ccsd(t)' in theory) or ('mp2' in theory):
+      if vcharge<80:
+         vachinetype = 'large'
+   else:
+      if vcharge<50:
+         vachinetype = 'small'
+      elif vcharge<150:
+         vachinetype = 'medium'
+      elif vcharge<500:
+         vachinetype = 'large'
+
+   if (vachinetype=='small' or vachinetype=='medium' or vachinetype=='large'):
+      machinedata = machine_collection.find()
+      machinejobs  = {}
+      for mach in machinedata:
+         mname = mach['machinename']
+         if 'machinetype' in mach:
+            mts = mach['machinetype']
+         else:
+            mts = ''
+         if 'mopacbinary' in mach:
+            mps = True
+         else:
+            mps = False
+         if hasmopac:
+             if mps: machinejobs[mname]  = 0
+         else:
+            if vachinetype=='small'  and (mts=='small' or mts=='medium'):
+               machinejobs[mname]  = 0
+            elif vachinetype=='medium' and (mts=='medium' or mts=='large'):
+               machinejobs[mname]  = 0
+            elif vachinetype=='large'  and (mts=='large'):
+               machinejobs[mname]  = 0
+
+      spokane_q = nwchem_collection.find()
+      for job in spokane_q:
+         mname = job['machinename']
+         if mname in machinejobs: machinejobs[mname] += 1
+
+      smallest = 999999999
+      for key,val in machinejobs.iteritems():
+         if val < smallest:
+            smallest = val
+            machine  = key
+
+   print "VALENCE CHARGE=",vcharge, " MACHINE=",machine
+
+   return machine
+
+
+
+
+
+
+
+
+
+
+
+def datafile_xyzfile(datafile,tmpxyzfile):
+   try:
+      count = -1
+      xyzdat = []
+      ofound = False
+      gfound = False
+      done = False
+      for line in datafile.split("\n"):
+        if (not done):
+           if (count>0):
+              if (len(line)<=5):
+                 done = True
+              else:
+                 xyzdat.append(line)
+           if (not done):
+              if (count>=0):
+                 count += 1
+              if (line.find("Optimization converged") != -1):
+                 ofound = True
+              if (line.find("Failed to converge in maximum number of steps") != -1):
+                 ofound = True
+              if (ofound and (line.find("No.") != -1)):
+                 gfound = True
+                 count = 0
+
+      #print "Generating xyzfile = ",xyzfile
+      n = len(xyzdat)
+      xfile = open(tmpxyzfile,'w')
+      xfile.write("%d\n\n" % n)
+      for i in range(n):
+         split = xyzdat[i].split()
+         xfile.write("%s   %f %f %f\n" % (split[1],eval(split[3]),eval(split[4]),eval(split[5])))
+      xfile.close()
+
+   except:
+      print "Cannot generate xyzfile "
+
+
+
+
+
+
+#### functions ####
+def makeheader(file,jobname,jobtheory,jobxc,jobtype,mformula,charge,mult,vtag,machine,permdir,mem):
+   #
+   eoln = "\n"
+   titlestr = "title \"" + "swnc: " + jobtype 
+   titlestr += " theory=%s" % jobtheory
+   if (jobtheory=='pspw' or jobtheory=='dft'):
+      titlestr += " xc=%s" % jobxc
+   titlestr += " formula=%s" % mformula
+   titlestr += " charge=%d"  % charge
+   titlestr += " mult=%d"    % mult
+   #titlestr += " jobname=%s" % jobname
+   titlestr += " machinejob:%s  "    % machine
+   titlestr += "\""
+   titlestr += "\n#vtag= %s  "    % vtag
+
+   echostr = "echo"
+   startstr = "start " + jobname
+   #dirsstr  = "permanent_dir " + permdir + eoln + "scratch_dir  " + permdir 
+   #dirsstr  = "permanent_dir " + permdir + eoln
+   memstr   = "memory " + mem
+
+   file.write(titlestr); file.write(eoln); file.write(eoln)
+   file.write(echostr);  file.write(eoln); file.write(eoln)
+   file.write(startstr); file.write(eoln); file.write(eoln)
+   file.write(memstr);   file.write(eoln); file.write(eoln)
+   #file.write(dirsstr);  file.write(eoln); file.write(eoln); 
+   file.write("charge %d" % charge); file.write(eoln)
+
+
+def makecosmoradii(xyzfilename):
+   symbol = []; x = []; y = []; z = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline().split()
+      symbol.append(line[0]) 
+      x.append(eval(line[1]))
+      y.append(eval(line[2]))
+      z.append(eval(line[3]))
+   xyzfile.close()
+   radii = []
+   for i in range(n): radii.append(0.0)
+   for i in range(n): 
+      if (symbol[i]=='H'):    radii[i] = 1.172
+      elif (symbol[i]=='N'):  radii[i] = 2.126
+      elif (symbol[i]=='O'):  radii[i] = 1.576
+      elif (symbol[i]=='F'):  radii[i] = 1.28
+      elif (symbol[i]=='P'):  radii[i] = 2.279
+      elif (symbol[i]=='S'):  radii[i] = 2.023
+      elif (symbol[i]=='Cl'): radii[i] = 1.75
+      elif (symbol[i]=='Al'): radii[i] = 1.404
+      elif (symbol[i]=='Si'): radii[i] = 2.457
+      elif (symbol[i]=='Br'): radii[i] = 2.16
+      elif (symbol[i]=='I'):  radii[i] = 2.32
+      elif (symbol[i]=='C'): 
+        dsigma = True
+        for j in range(n):
+           if ((symbol[j]=='C') and (j!=i)): 
+             xx= x[i]-x[j]; yy= y[i]-y[j]; zz= z[i]-z[j]
+             r = sqrt(xx*xx + yy*yy + zz*zz)
+             if (r <= 1.46):
+               dsigma = False
+        if (dsigma):
+           radii[i] = 2.096
+        else:
+           radii[i] = 1.635
+      else:
+        radii[i] = 2.223
+   return radii
+
+
+
+def makemasses(xyzfilename):
+   symbol = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline().split()
+      symbol.append(line[0])
+   xyzfile.close()
+   masses = []
+   for i in range(n): masses.append(0.0)
+   for i in range(n): 
+      if (symbol[i]=='H'):  masses[i] = 1.007825
+      if (symbol[i]=='C'):  masses[i] = 12.01100
+      if (symbol[i]=='N'):  masses[i] = 14.00307
+      if (symbol[i]=='O'):  masses[i] = 15.9994
+      if (symbol[i]=='F'):  masses[i] = 18.9984
+      if (symbol[i]=='P'):  masses[i] = 30.97376
+      if (symbol[i]=='S'):  masses[i] = 31.97207
+      if (symbol[i]=='Cl'): masses[i] = 35.4530
+   return masses
+
+
+def makerion(xyzfilename):
+   rion = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline().split()
+      rion.append(eval(line[1]))
+      rion.append(eval(line[2]))
+      rion.append(eval(line[3]))
+   xyzfile.close()
+   return rion
+
+
+def makesymbols(xyzfilename):
+   symbol = [];
+   xyzfile = open(xyzfilename,'r')     
+   n = eval(xyzfile.readline())
+   xyzfile.readline()  
+   for i in range(n):  
+      line = xyzfile.readline().split() 
+      symbol.append(line[0])
+   xyzfile.close()
+   return symbol
+
+
+
+def makegeom(file,xyzfilename,diagonal_hessian):
+   #
+   ### generate geometry input ###
+   eoln = "\n"
+   file.write(eoln); file.write(eoln); file.write(eoln);
+   if (diagonal_hessian) or (bad_smiles2xyz_geom):
+      file.write("geometry units angstroms print xyz noautosym noautoz"); file.write(eoln)
+   else:
+      file.write("geometry units angstroms print xyz noautosym"); file.write(eoln)
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      file.write(xyzfile.readline().strip() +eoln)
+   xyzfile.close()
+   file.write("end"); file.write(eoln)
+
+def makegeom_neb(file,xyzfilename,xyzfilename2):
+   #
+   ### generate neb_start geometry input ###
+   eoln = "\n"
+   file.write(eoln); file.write(eoln); file.write(eoln);
+   file.write("geometry neb_start units angstroms print xyz noautosym"); file.write(eoln)
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      file.write(xyzfile.readline().strip()+eoln)
+   xyzfile.close()
+   file.write("end"); file.write(eoln)
+
+   ### generate neb_end geometry input ###
+   eoln = "\n"
+   file.write(eoln); file.write(eoln); file.write(eoln);
+   file.write("geometry neb_end units angstroms print xyz noautosym"); file.write(eoln)
+   xyzfile = open(xyzfilename2,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      file.write(xyzfile.readline().strip() + eoln)
+   xyzfile.close()
+   file.write("end"); file.write(eoln)
+
+
+def makegaussianbasis(mformula,basis,basisHZ):
+   foundHZ = False
+   str = "basis \"ao basis\" cartesian print\n"
+   for aa in re.findall('[^\d ]+', mformula):
+      if (periodic_table_charge[aa]<21):
+         if (basis=='default'):
+            str += " " + aa + " library \"6-311++G(2d,2p)\"" + "\n"
+         else:
+            str += " " + aa + " library " + basis + "\n"
+      else:
+         if (basisHZ=='default'):
+            if (periodic_table_charge[aa]<37):
+               str += " " + aa + " library aug-cc-pVTZ" + "\n"
+            else:
+               str += " " + aa + " library crenbl_ecp" + "\n"
+               foundHZ = True
+         else:
+            str += " " + aa + " library " + basisHZ + "\n"
+   str += "end\n"
+   if foundHZ: 
+      str += "ecp\n"
+      for aa in re.findall('[^\d ]+', mformula):
+         if (periodic_table_charge[aa]>=37):
+            if (basisHZ=='default'):
+               str += " " + aa + " library crenbl_ecp" + "\n"
+            else:
+               str += " " + aa + " library " + basisHZ + "\n"
+      str += "end\n"
+
+   return str
+
+def maketheory(file,jobtheory,xc,mult,pspw4,paw,basis,basisHZ,job):
+   #
+   eoln = "\n"
+   file.write(eoln); file.write(eoln)
+   if (jobtheory=='pspw'):
+      file.write("nwpw"); file.write(eoln)
+      if (paw):
+         file.write("pseudopotentials"); file.write(eoln)
+         file.write(" *  library paw_default"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (basis=='default'):
+         file.write("  cutoff 50.0");     file.write(eoln)
+      else:
+         file.write("  cutoff %s" % (basis));     file.write(eoln)
+      file.write("  mult %d" % mult);  file.write(eoln)
+      if (xc=='lda'):   file.write("  xc vosko")
+      if (xc=='pbe'):   file.write("  xc pbe96")
+      if (xc=='b3lyp'): file.write("  xc b3lyp")
+      if (xc=='pbe0'):  file.write("  xc pbe0")
+      if (xc=='m06-2x'):file.write("  xc m06-2x")
+      file.write(eoln)
+      #file.write("  lcao_skip"); file.write(eoln)
+      file.write("  lmbfgs");    file.write(eoln)
+      file.write("end");  file.write(eoln)
+
+      if 'solutejob' in job:
+         solutejob = job['solutejob']
+         file.write("nwpw\n")
+         file.write("   simulation_cell\n")
+         file.write("      SC %.6f\n" % (solutejob['L']/0.529177))
+         file.write("   end\n")
+         file.write("   qmmm\n")
+         file.write("      mm_tags %d:%d\n" % (solutejob['solute_size']+1,solutejob['solute_size']+solutejob['solvent_size']))
+         for ka in job['kindatoms']:
+           file.write("      lj_ion_parameters %s %.6f %.6f\n" % (ka,LJparam[ka][0],LJparam[ka][1]))
+         file.write("      lj_ion_parameters %s %.6f %.6f\n\n" % ('O^',3.16555789,0.15539425))
+         file.write("      fragment spc\n")
+         file.write("         size 3\n")
+         file.write("         index_start %d:%d:3\n\n" % (solutejob['solute_size']+1,solutejob['solute_size']+solutejob['solvent_size']-2))
+         file.write("         #spc/e water\n")
+         file.write("         shake units angstroms 1 2 3 cyclic 1.0 1.632993125 1.0\n\n")
+         file.write("         #Toukan-Rahman Potential\n")
+         file.write("         #bond_morse  1 2    0.1623940 1.3578682  1.889726878\n")
+         file.write("         #bond_morse  1 3    0.1623940 1.3578682  1.889726878\n")
+         file.write("         #bond_spring 2 3    0.0733187 3.0864590\n")
+         file.write("         #cross_bond_spring 1 2 1.889726878 2 3 3.0864590 -0.0943540\n")
+         file.write("         #cross_bond_spring 1 3 1.889726878 2 3 3.0864590 -0.0943540\n")
+         file.write("         #cross_bond_spring 1 2 1.889726878 1 3 1.889726878 0.0498426\n")
+         file.write("      end\n")
+         file.write("   end\n")
+         file.write("end\n\n")
+
+         #### add constraints ####
+         if (solutejob['constraint_type']=='bonddiff'):
+            tup = (solutejob['constraint_index1'],solutejob['constraint_index3'],solutejob['constraint_index2'],solutejob['constraint_value'])
+            file.write("set nwpw:shake_constraint \"%d %d %d d %f\" " % tup)
+         elif (solutejob['constraint_type']=='bond'):
+            tup = (solutejob['constraint_index1'],solutejob['constraint_index2'],solutejob['constraint_value']/0.529177)
+            file.write("set nwpw:shake_constraint \"%d %d L %f\" " % tup)
+
+      else:
+         file.write("nwpw"); file.write(eoln)
+         file.write("  simulation_cell"); file.write(eoln)
+         file.write("    fcc 38.0");      file.write(eoln)
+         if (job['pspw4']):
+            file.write("    boundary_conditions aperiodic");      file.write(eoln)
+         file.write("  end");             file.write(eoln)
+         file.write("  end");             file.write(eoln)
+
+
+   if (jobtheory=='am1' or jobtheory=='pm3' or jobtheory=='mndo' or jobtheory=='mindo3'):
+      file.write("mopacker"); file.write(eoln)
+      file.write("  mult %d" % mult);  file.write(eoln)
+      file.write("end");  file.write(eoln)
+
+   if ((jobtheory=='hf') or (jobtheory=='uhf')):
+      file.write(makegaussianbasis(job['mformula'],basis,basisHZ)); file.write(eoln)
+      #if (basis=='default'):
+      #   file.write("basis \"ao basis\" cartesian print"); file.write(eoln)
+      #   file.write("  * library \"6-311++G(2d,2p)\"");    file.write(eoln)
+      #   file.write("end"); file.write(eoln);              file.write(eoln)
+      #else:
+      #   file.write("basis \"ao basis\" cartesian print"); file.write(eoln)
+      #   file.write("  * library \"%s\"" % (basis));       file.write(eoln)
+      #   file.write("end"); file.write(eoln);              file.write(eoln)
+      if (mult==1):
+         file.write("scf"); file.write(eoln)
+         if (jobtheory=='uhf'): file.write("uhf"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==2):
+         file.write("scf"); file.write(eoln)
+         if (jobtheory=='uhf'): file.write("uhf"); file.write(eoln)
+         file.write("doublet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==3):
+         file.write("scf"); file.write(eoln)
+         if (jobtheory=='uhf'): file.write("uhf"); file.write(eoln)
+         file.write("triplet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==4):
+         file.write("scf"); file.write(eoln)
+         if (jobtheory=='uhf'): file.write("uhf"); file.write(eoln)
+         file.write("quartet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==5):
+         file.write("scf"); file.write(eoln)
+         if (jobtheory=='uhf'): file.write("uhf"); file.write(eoln)
+         file.write("quintet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+
+
+   if (jobtheory=='dft'):
+      file.write(makegaussianbasis(job['mformula'],basis,basisHZ)); file.write(eoln)
+      #if (basis=='default'):
+      #   file.write("basis \"ao basis\" cartesian print"); file.write(eoln)
+      #   file.write("  * library \"6-311++G(2d,2p)\"");    file.write(eoln)
+      #   file.write("end"); file.write(eoln);              file.write(eoln)
+      #else:
+      #   file.write("basis \"ao basis\" cartesian print"); file.write(eoln)
+      #   file.write("  * library \"%s\"" % (basis));       file.write(eoln)
+      #   file.write("end"); file.write(eoln);              file.write(eoln)
+
+      file.write("dft"); file.write(eoln)
+      file.write("direct"); file.write(eoln)
+      file.write("noio"); file.write(eoln)
+      file.write("grid nodisk"); file.write(eoln)
+      file.write("  mult %d" % mult);  file.write(eoln)
+      #if (xc=='lda'):  file.write("  xc svwn5")
+      if ('pbe0'   in xc):
+         file.write("  xc pbe0")
+      elif ('pbe'    in xc):
+         file.write("  xc xpbe96 cpbe96")
+
+      if ('b3lyp'  in xc): file.write("  xc b3lyp")
+      if ('m06-2x' in xc): file.write("  xc m06-2x")
+      file.write(eoln)
+      if ('coarse' in xc): file.write("  grid coarse")
+      if ('fine'   in xc): file.write("  grid fine")
+      if ('xfine'  in xc): file.write("  grid xfine")
+      file.write(eoln)
+  
+      file.write("  iterations 5001");  file.write(eoln)
+      file.write("end"); file.write(eoln)
+   if (jobtheory=='mp2'):
+      file.write(makegaussianbasis(job['mformula'],basis,basisHZ)); file.write(eoln)
+      #if (basis=='default'):
+      #   file.write("basis \"ao basis\" cartesian print"); file.write(eoln)
+      #   file.write("  * library \"6-311++G(2d,2p)\"");    file.write(eoln)
+      #   file.write("end"); file.write(eoln);              file.write(eoln)
+      #else:
+      #   file.write("basis \"ao basis\" cartesian print"); file.write(eoln)
+      #   file.write("  * library \"%s\"" % (basis));       file.write(eoln)
+      #   file.write("end"); file.write(eoln);              file.write(eoln)
+      if (mult==1):
+         file.write("scf"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==2):
+         file.write("scf"); file.write(eoln)
+         file.write("uhf"); file.write(eoln)
+         file.write("doublet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==3):
+         file.write("scf"); file.write(eoln)
+         file.write("uhf"); file.write(eoln)
+         file.write("triplet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==4):
+         file.write("scf"); file.write(eoln)
+         file.write("uhf"); file.write(eoln)
+         file.write("quartet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==5):
+         file.write("scf"); file.write(eoln)
+         file.write("uhf"); file.write(eoln)
+         file.write("quintet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      file.write("mp2"); file.write(eoln)
+      file.write("freeze atomic"); file.write(eoln)
+      file.write("end"); file.write(eoln)
+      file.write("set cphf:maxiter 1500"); file.write(eoln)
+   if (jobtheory=='ccsd(t)'):
+      file.write(makegaussianbasis(job['mformula'],basis,basisHZ)); file.write(eoln)
+      #if (basis=='default'):
+      #   file.write("basis \"ao basis\" cartesian print"); file.write(eoln)
+      #   file.write("  * library \"6-311++G(2d,2p)\"");    file.write(eoln)
+      #   file.write("end"); file.write(eoln);              file.write(eoln)
+      #else:
+      #   file.write("basis \"ao basis\" cartesian print"); file.write(eoln)
+      #   file.write("  * library \"%s\"" % (basis));       file.write(eoln)
+      #   file.write("end"); file.write(eoln);              file.write(eoln)
+      if (mult==1):
+         file.write("scf"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==2):
+         file.write("scf"); file.write(eoln)
+         file.write("uhf"); file.write(eoln)
+         file.write("doublet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==3):
+         file.write("scf"); file.write(eoln)
+         file.write("uhf"); file.write(eoln)
+         file.write("triplet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==4):
+         file.write("scf"); file.write(eoln)
+         file.write("uhf"); file.write(eoln)
+         file.write("quartet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult==5):
+         file.write("scf"); file.write(eoln)
+         file.write("uhf"); file.write(eoln)
+         file.write("quintet"); file.write(eoln)
+         file.write("maxiter 501"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      if (mult>1):
+         file.write("tce"); file.write(eoln)
+         file.write("freeze atomic"); file.write(eoln)
+         file.write("ccsd(t)"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+      else:
+         file.write("ccsd"); file.write(eoln)
+         file.write("   freeze atomic"); file.write(eoln)
+         file.write("   maxiter 51"); file.write(eoln)
+         file.write("end"); file.write(eoln)
+#      file.write("set cphf:lshift 0.1"); file.write(eoln)
+
+
+def inertia_compute(rion,masses):
+   # computes the inertia
+   nion = len(rion)/3
+   mass = array(masses)
+   for i in range(nion): mass[i] *= 1822.89
+   TMass = 0.0
+   for i in range(nion): TMass += mass[i]
+
+   ## determine Ixx ##
+   tx = 0.0
+   ty = 0.0
+   tz = 0.0
+   for i in range(nion): tx += mass[i]*(rion[3*i+1]**2 + rion[3*i+2]**2)
+   for i in range(nion): ty += mass[i]*(rion[3*i+1])
+   for i in range(nion): tz += mass[i]*(rion[3*i+2]);
+   Ixx = tx - ty*ty/TMass - tz*tz/TMass
+   ## determine Iyy ##
+   tx = 0.0
+   ty = 0.0
+   tz = 0.0
+   for i in range(nion): tx += mass[i]*(rion[3*i]**2 + rion[3*i+2]**2)
+   for i in range(nion): ty += mass[i]*(rion[3*i])
+   for i in range(nion): tz += mass[i]*(rion[3*i+2])
+   Iyy = tx - ty*ty/TMass - tz*tz/TMass
+   ## determine Izz ##
+   tx = 0.0
+   ty = 0.0
+   tz = 0.0
+   for i in range(nion): tx += mass[i]*(rion[3*i]**2 + rion[3*i+1]**2)
+   for i in range(nion): ty += mass[i]*(rion[3*i])
+   for i in range(nion): tz += mass[i]*(rion[3*i+1])
+   Izz = tx - ty*ty/TMass - tz*tz/TMass
+   ## determine Ixy  and Iyx ##
+   tx = 0.0
+   ty = 0.0
+   tz = 0.0
+   for i in range(nion): tx += mass[i]*(rion[3*i]*rion[3*i+1])
+   for i in range(nion): ty += mass[i]*(rion[3*i])
+   for i in range(nion): tz += mass[i]*(rion[3*i+1])
+   Ixy = tx - ty*tz/TMass
+   Iyx = Ixy
+   ## determine Ixz  and Izx ##
+   tx = 0.0
+   ty = 0.0
+   tz = 0.0
+   for i in range(nion): tx += mass[i]*(rion[3*i]*rion[3*i+2])
+   for i in range(nion): ty += mass[i]*(rion[3*i])
+   for i in range(nion): tz += mass[i]*(rion[3*i+2])
+   Ixz = tx - ty*tz/TMass
+   Izx = Ixz
+   ## determine Iyz  and Izy ##
+   tx = 0.0
+   ty = 0.0
+   tz = 0.0
+   for i in range(nion): tx += mass[i]*(rion[3*i+1]*rion[3*i+2]);
+   for i in range(nion): ty += mass[i]*(rion[3*i+1]);
+   for i in range(nion): tz += mass[i]*(rion[3*i+2]);
+   Iyz = tx - ty*tz/TMass
+   Izy = Iyz
+
+   M = [[Ixx, -Iyx, -Izx], [-Ixy, Iyy, -Izy], [-Ixz, -Iyz, Izz]]
+   MM = array(M)
+   return MM
+
+
+
+def rotate_about_axis(phi,x1,x2,r1):
+   #
+   t   = [0,0,0]
+   c   = [0,0,0]
+   n   = [0,0,0]
+   eta = [0,0,0]
+   p   = [0,0,0]
+   g   = [0,0,0]
+   gg  = [0,0,0]
+   r2  = [0,0,0]
+   A    = [0,0,0,0,0,0,0,0,0]
+   Ainv = [0,0,0,0,0,0,0,0,0]
+   RR   = [0,0,0,0,0,0,0,0,0]
+   #define axis
+   t[0] = x2[0]-x1[0]
+   t[1] = x2[1]-x1[1]
+   t[2] = x2[2]-x1[2]
+   sum = sqrt(t[0]*t[0]+t[1]*t[1]+t[2]*t[2])
+   t[0] = t[0]/sum
+   t[1] = t[1]/sum
+   t[2] = t[2]/sum
+
+   #find unit tangent
+   c[0] = r1[0]-x1[0]
+   c[1] = r1[1]-x1[1]
+   c[2] = r1[2]-x1[2]
+   sum = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2])
+   if (abs(sum-1.0) < 0.0001):
+      c[0] = r1[0]-x2[0];
+      c[1] = r1[1]-x2[1];
+      c[2] = r1[2]-x2[2];
+      sum = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);
+   c[0] = c[0]/sum
+   c[1] = c[1]/sum
+   c[2] = c[2]/sum
+
+   #find unit normal
+   sum = (c[0]*t[0] + c[1]*t[1] + c[2]*t[2]);
+   if (fabs(sum-1.0) < 0.0001):
+      c[0] = 1.43434934
+      c[1] = -348.4294
+      c[2] = 0.482442
+      sum = (c[0]*t[0] + c[1]*t[1] + c[2]*t[2])
+   n[0] = c[0] - sum*t[0]
+   n[1] = c[1] - sum*t[1]
+   n[2] = c[2] - sum*t[2]
+   sum = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2])
+   n[0] = n[0]/sum
+   n[1] = n[1]/sum
+   n[2] = n[2]/sum
+
+   eta[0] = (t[1]*n[2] - t[2]*n[1]);
+   eta[1] = (t[2]*n[0] - t[0]*n[2]);
+   eta[2] = (t[0]*n[1] - t[1]*n[0]);
+
+   p[0] = x2[0]
+   p[1] = x2[1]
+   p[2] = x2[2]
+
+   Ainv[0] = n[0]
+   Ainv[1] = n[1]
+   Ainv[2] = n[2]
+   Ainv[3] = eta[0]
+   Ainv[4] = eta[1]
+   Ainv[5] = eta[2]
+   Ainv[6]    = t[0]
+   Ainv[7]    = t[1]
+   Ainv[8]    = t[2]
+   A[0] = n[0]
+   A[1] = eta[0]
+   A[2] = t[0]
+   A[3] = n[1]
+   A[4] = eta[1]
+   A[5] = t[1]
+   A[6] = n[2]
+   A[7] = eta[2]
+   A[8] = t[2]
+
+   g[0] = r1[0] - p[0]
+   g[1] = r1[1] - p[1]
+   g[2] = r1[2] - p[2]
+   gg[0] = A[0]*g[0] + A[3]*g[1] + A[6]*g[2]
+   gg[1] = A[1]*g[0] + A[4]*g[1] + A[7]*g[2]
+   gg[2] = A[2]*g[0] + A[5]*g[1] + A[8]*g[2]
+
+   RR[0] = cos(phi)
+   RR[1] = -sin(phi)
+   RR[2] = 0.0
+   RR[3] = sin(phi)
+   RR[4] = cos(phi)
+   RR[5] = 0.0
+   RR[6] = 0.0
+   RR[7] = 0.0
+   RR[8] = 1.0
+   g[0] = RR[0]*gg[0] + RR[3]*gg[1] + RR[6]*gg[2]
+   g[1] = RR[1]*gg[0] + RR[4]*gg[1] + RR[7]*gg[2]
+   g[2] = RR[2]*gg[0] + RR[5]*gg[1] + RR[8]*gg[2]
+   gg[0] = Ainv[0]*g[0] + Ainv[3]*g[1] + Ainv[6]*g[2]
+   gg[1] = Ainv[1]*g[0] + Ainv[4]*g[1] + Ainv[7]*g[2]
+   gg[2] = Ainv[2]*g[0] + Ainv[5]*g[1] + Ainv[8]*g[2]
+   r2[0] = gg[0] + p[0]
+   r2[1] = gg[1] + p[1]
+   r2[2] = gg[2] + p[2]
+
+   return r2
+
+
+
+def rotor_thermo(rbond1,rgroup1,sym_num,xyzfile):
+   #
+   thermo = {}
+   NNmax      = 2000
+   R          = 1.986
+   boltzman   = 1.38e-23
+   plank      = 6.63e-34
+   CONVERT_SI = 1.67e-47
+   T = 298.15
+   nphi = 72
+  
+   oprint = (1==1)
+   symbol = makesymbols(xyzfile)
+   rion   = makerion(xyzfile)
+   rion2  = makerion(xyzfile)
+   masses = makemasses(xyzfile)
+
+   rbond2  = rbond1.split()
+   rbond = []
+   for i in range(len(rbond2)):
+      rbond.append(eval(rbond2[i]))
+
+   rgroup2 = rgroup1.split()
+   rgroup = []
+   for i in range(len(rgroup2)):
+      rgroup.append(eval(rgroup2[i]))
+
+   thermo['rbond']  = rbond
+   thermo['rgroup'] = rgroup
+   thermo['rion']   = rion
+   thermo['masses'] = masses
+   thermo['symbol'] = symbol
+   thermo['nphi']   = nphi
+   thermo['T']      = T
+   thermo['NNmax']   = NNmax
+   thermo['sym_num'] = sym_num
+
+   ## compute the total inertia ##
+   for i in range(len(rion)): rion[i] /= 0.5291770
+   M = inertia_compute(rion,masses)
+   (e,V) = eig(M)
+   IA = e[0]
+   IB = e[1]
+   IC = e[2]
+   if (oprint):    
+      print '@@ Total inertia:'
+      print '@@   I='
+      print '@@    %13.6e %13.6e %13.6e' % (M[0][0],M[1][0],M[2][0])
+      print '@@    %13.6e %13.6e %13.6e' % (M[0][1],M[1][1],M[2][1])
+      print '@@    %13.6e %13.6e %13.6e' % (M[0][2],M[1][2],M[2][2])
+      print '@@'
+      print '@@   IA = %10.6e' % (IA)
+      print '@@   IB = %10.6e' % (IB)
+      print '@@   IC = %10.6e' % (IC)
+      print '@@'
+      print '@@   VA = <%10.6e %10.6e %10.6e>' % (V[0][0],V[1][0],V[2][0])
+      print '@@   VB = <%10.6e %10.6e %10.6e>' % (V[0][1],V[1][1],V[2][1])
+      print '@@   VC = <%10.6e %10.6e %10.6e>' % (V[0][2],V[1][2],V[2][2])
+   thermo['total_inertia'] = M
+
+   ## compute the group inertia ##
+   ia1=3*(rbond[0]-1)
+   ia2=3*(rbond[1]-1)
+   tx = rion[ia2]   - rion[ia1]
+   ty = rion[ia2+1] - rion[ia1+1]
+   tz = rion[ia2+2] - rion[ia1+2]
+   tt = sqrt(tx*tx + ty*ty + tz*tz)
+   bond = resize(0.0,3)
+   bond[0] = tx/tt
+   bond[1] = ty/tt
+   bond[2] = tz/tt
+   submass = resize(0.0,len(rgroup))
+   subrion = resize(0.0,3*len(rgroup))
+   for i in range(len(rgroup)):
+      submass[i] = masses[rgroup[i]-1]
+      subrion[3*i]   = rion[3*(rgroup[i]-1)]
+      subrion[3*i+1] = rion[3*(rgroup[i]-1)+1]
+      subrion[3*i+2] = rion[3*(rgroup[i]-1)+2]
+   Msub = inertia_compute(subrion,submass)
+
+   tx = Msub[0][0]*bond[0] + Msub[1][0]*bond[1] + Msub[2][0]*bond[2]
+   ty = Msub[0][1]*bond[0] + Msub[1][1]*bond[1] + Msub[2][1]*bond[2]
+   tz = Msub[0][2]*bond[0] + Msub[1][2]*bond[1] + Msub[2][2]*bond[2]
+   tt = bond[0]*tx + bond[1]*ty + bond[2]*tz
+   if (len(rgroup)==1):
+      x = rion[3*(rgroup[0]-1)]   - rion[ia2]
+      y = rion[3*(rgroup[0]-1)+1] - rion[ia2+1]
+      z = rion[3*(rgroup[0]-1)+2] - rion[ia2+2]
+      a  = bond[0]*x + bond[1]*y + bond[2]*z
+      cc = x*x + y*y + z*z
+      bb  = cc - a*a
+      Im0 =  1822.89*masses[rgroup[0]-1]*bb
+   else:
+      Im0 = tt
+
+   if (oprint):
+      print '@@'
+      print '@@ Group inertia:'
+      print '@@   Isub='
+      print '@@    %13.6e %13.6e %13.6e' % (Msub[0][0],Msub[1][0],Msub[2][0])
+      print '@@    %13.6e %13.6e %13.6e' % (Msub[0][1],Msub[1][1],Msub[2][1])
+      print '@@    %13.6e %13.6e %13.6e' % (Msub[0][2],Msub[1][2],Msub[2][2])
+      print '@@'  
+      print '@@   rotation axis <b| = <%10.6e %10.6e %10.6e>' % (bond[0],bond[1],bond[2])
+      print '@@'   
+      print '@@    Im0 = <b|Isub|b> = %10.6e' % Im0
+      print '@@    <b|b>            = %10.6e' % (bond[0]*bond[0]+bond[1]*bond[1]+bond[2]*bond[2])
+   tx = bond[0]*V[0][0] + bond[1]*V[0][1] + bond[2]*V[0][2]
+   ty = bond[0]*V[1][0] + bond[1]*V[1][1] + bond[2]*V[1][2]
+   tz = bond[0]*V[2][0] + bond[1]*V[2][1] + bond[2]*V[2][2]
+   tx = tx*tx 
+   ty = ty*ty
+   tz = tz*tz
+   Im = Im0*(1.0 - Im0*(tx/IA + ty/IB + tz/IC))
+   thermo['group_inertia'] = Msub
+   thermo['Im'] = Im
+
+
+   ## Pitzer and Gwinn Calculation ##
+   Qf = 8.0*pi*pi*pi*Im*CONVERT_SI*boltzman*T*0.529177*0.529177/1822.89
+   Qf = sqrt(Qf)/(sym_num*plank)
+   Qp = (1.0/(2.0*T))*Qf 
+   Sf = R*log(Qf) + 0.5*R
+   Uf = R*T*T*Qp/Qf
+   if (oprint):
+      print '@@'
+      print '@@ Pitzer-Gwinn Formula:'
+      print '@@    T   = %f' % (T)
+      print '@@    Im  = %f (%le Kg-m2)\n' % (Im,Im*CONVERT_SI*0.529177*0.529177/1822.89)
+      print '@@    n   = %d' % (sym_num)
+      print '@@    Qf  = %f' % (Qf)
+      print '@@    Uf  = %f kcal/mol (%f au)' % (Uf/1000.0,Uf/(1000.0*23.06*27.2116))
+      print '@@    Sf  = %f cal/mol-K' % (Sf)
+   thermo['pitzer-gwinn'] = [T,Im,sym_num,Qf,Qp,Uf,Sf]
+
+   ## Direct Cannical Calculation ##
+   a = 0.5/Im
+   QQ = -1.0
+   Qp = 0.0
+   for i in range(5001):
+      em = a*i*i*627.51*1000.0   ## convert to calories
+      QQ += 2.0*exp(-em/(R*T))
+      Qp += em*exp(-em/(R*T))
+   Qp = 2.0/(R*T*T)*Qp
+   SS = R*log(QQ)  + (R*T/QQ)*Qp - R*log(sym_num)
+   Uf = (R*T*T)*Qp/QQ
+   if (oprint):
+      print '@@'
+      print '@@ Cannonical Formula, 5001 eigenvalues used:'
+      print '@@    T      = %18.3f K' % (T)
+      print '@@    sigma  = %18.6f' % (sym_num)
+      print '@@    Im     = %18.6f' % (Im)
+      print '@@    Qf     = %18.6f' % (QQ)
+      print '@@    dQf/dT = %18.6f 1/K' % (Qp)
+      print '@@    Uf     = %18.6f kcal/mol (%18.6f au)' % (Uf/1000.0,Uf/(1000.0*23.06*27.2116))
+      print '@@    Sf     = %18.6f cal/mol-K' % (SS)
+      print '@@'
+      print '@@ IA  = %f (%e Kg-m2)' % (IA,IA*CONVERT_SI*0.529177*0.529177/1822.89)
+      print '@@ IB  = %f (%e Kg-m2)' % (IB,IB*CONVERT_SI*0.529177*0.529177/1822.89)
+      print '@@ IC  = %f (%e Kg-m2)' % (IC,IC*CONVERT_SI*0.529177*0.529177/1822.89)
+   thermo['direct'] = [T,Im,sym_num,QQ,Qp,Uf,SS]
+
+   return thermo
+
+
+
+def generate_rotor_pes(jobtheory,rbond1,rgroup1,xyzfile):
+   #
+   nphi = 72
+  
+   oprint = (1==1)
+   symbol = makesymbols(xyzfile)
+   rion   = makerion(xyzfile)
+   rion2  = makerion(xyzfile)
+   masses = makemasses(xyzfile)
+
+   rbond2  = rbond1.split()
+   rbond = []
+   for i in range(len(rbond2)):
+      rbond.append(eval(rbond2[i]))
+
+   rgroup2 = rgroup1.split()
+   rgroup = []
+   for i in range(len(rgroup2)):
+      rgroup.append(eval(rgroup2[i]))
+
+   ## calculate the rotor potential ##
+   tstr = '\n'
+   if (nphi > 0):
+      tstr += '\n'
+      ia1=3*(rbond[0]-1)
+      ib1=ia1+3
+      x1 = rion[ia1:ib1]
+      ia1=3*(rbond[1]-1)
+      ib1=ia1+3
+      x2 = rion[ia1:ib1]
+      dphi = (2*pi/nphi)
+      for i in range(nphi):
+         phi = i*dphi
+         for ii in range(len(rion)): rion2[ii] = rion[ii]
+         for ii in rgroup:
+            ii1 = 3*(ii-1)
+            ii2 = ii1 + 3
+            rion2[ii1:ii2] = rotate_about_axis(phi,x1,x2,rion2[ii1:ii2])
+         tstr += 'geometry units angstroms print xyz noautosym\n'
+         for ii in range(len(rion2)/3):
+            tstr += '%s   %f %f %f\n' % (symbol[ii],rion2[3*ii],rion2[3*ii+1],rion2[3*ii+2])
+         tstr += 'end\n'
+         tstr += 'task ' + jobtheory + ' energy\n\n'
+   return tstr
+
+
+
+def maketasks(file,jobtype,jobtheory,radii,rbond,rgroup,mbond1,mbond2,xyzfile,zcoords,solvation_type,job):
+   #
+   eoln = "\n"
+   file.write(eoln); 
+   for i in range(len(jobtype)):
+      tstr = ''
+      ### Energy calculation ###
+      if (jobtype[i]=='e'): tstr = "task %s energy ignore" % jobtheory
+
+      ### Gradient calculation ###
+      if (jobtype[i]=='g'): tstr = "task %s gradient" % jobtheory
+
+      ### Geometry optimization calculation ###
+      if (jobtype[i]=='o'): 
+        if (job['diagonal_hessian']):
+           tstr = "driver; diagonal_hessian; maxiter %d; clear; end\n" % (geom_maxiter)
+        else:
+           tstr = "driver; maxiter %d; clear; end\n" % (geom_maxiter)
+        tstr += "task %s optimize ignore" % jobtheory
+
+      ### vibrational calculation ###
+      if (jobtype[i]=='v'): tstr = "task %s freq numerical" % jobtheory
+      if (jobtype[i]=='w'): tstr = "task %s freq" % jobtheory
+
+      ### COSMO calculation ###
+      if (jobtype[i]=='c'): 
+         if solvation_type=='COSMO-SMD':
+            tstr += "cosmo\n"
+            tstr += "   do_cosmo_smd .true.\n"
+            tstr += "   solvent water\n"
+            tstr += "\nend\n"
+            tstr += "task %s energy ignore" % jobtheory
+         elif (solvation_type=='COSMO'):
+            tstr = "unset dft:converged\n"
+            tstr = "unset scf:converged\n"
+            tstr += "cosmo\n"
+            tstr += "   do_gasphase .true.\n"
+            #tstr += "   rsolv  0.5\n"
+            tstr += "   rsolv  0.0\n"
+            tstr += "   ifscrn 2\n"
+            tstr += "   minbem 3\n"
+            tstr += "   maxbem 3\n"
+            tstr += "   radius "
+            for j in range(len(radii)):
+               tstr += "%f " % radii[j]
+            tstr += "\nend\n"
+            tstr += "task %s energy ignore" % jobtheory
+
+#      ### COSMO SMD calculation ###
+#      if (jobtype[i]=='d'): 
+#         tstr += "cosmo\n"
+#         tstr += "   do_cosmo_smd .true.\n"
+#         tstr += "   solvent water\n"
+#         tstr += "\nend\n"
+#         tstr += "task %s energy ignore" % jobtheory
+
+
+      if (jobtype[i]=='r'): 
+         tstr = generate_rotor_pes(jobtheory,rbond,rgroup,xyzfile)
+      if (jobtype[i]=='m'): 
+         m1  = mbond1.split();
+         m2  = mbond2.split();
+         s1 = "[%s,%s]" % (m1[0],m1[1])
+         s2 = "[%s,%s]" % (m2[0],m2[1])
+         tstr  = "python\n"
+         ofile = open(nwpythonlib,'r')
+         tstr  += ofile.read()
+         ofile.close()
+         tstr += "result = nwgeom_2springoptimize(\'%s\',\'geometry\',101,%s,%s,0.25)\n" % (jobtheory,s1,s2)
+         tstr += "end\n"
+         tstr += "task python\n"
+
+      ### NMR calculation ###
+      if (jobtype[i]=='n'): 
+         jobxc = ''
+         if (job['theory_property']=='pspw' or job['theory_property']=='dft'):
+            jobxc = job['xc_property']
+       
+         maketheory(file,job['theory_property'],jobxc,job['mult'],job['property_pspw4'],job['property_paw'],job['basis_property'],job['basisHZ_property'],job)
+         tstr += "property\n"
+         tstr += "   shielding\n"
+         tstr += "\nend\n"
+         tstr += "task %s property" % job['theory_property']
+
+      if (jobtype[i]=='z'): 
+        tstr  = zcoords[i]
+        #tstr += "driver; maxiter 50; clear; end\n"
+        #tstr += "task %s optimize ignore" % jobtheory
+
+      ### COSMO intrinsic calculation ###
+      if (jobtype[i]=='y'): 
+         if (solvation_type=='COSMO-SMD'):
+            tstr += "cosmo\n"
+            tstr += "   do_cosmo_smd .true.\n"
+            tstr += "   solvent water\n"
+            tstr += "\nend\n"
+         else:
+            tstr += "cosmo\n"
+            tstr += "   do_gasphase .false.\n"
+            tstr += "   rsolv  0.5\n"
+            tstr += "   minbem 3\n"
+            tstr += "   maxbem 3\n"
+            tstr += "   radius "
+            for j in range(len(radii)):
+               tstr += "%f " % radii[j]
+            tstr += "\nend\n"
+
+      #### COSMO-SMD intrinsic calculation ###
+      #if (jobtype[i]=='f'):
+      #   tstr += "cosmo\n"
+      #   tstr += "   do_cosmo_smd .true.\n"
+      #   tstr += "   solvent water\n"
+      #   tstr += "\nend\n"
+
+      ### Saddle calculation ###
+      if (jobtype[i]=='s'): 
+        tstr += "task %s saddle ignore" % jobtheory
+
+      if (jobtype[i]=='a'): 
+         tstr = "neb\n"
+         tstr += "   impose\n"
+         tstr += "   algorithm 0\n"
+         tstr += "   maxiter 10\n"
+         tstr += "   nbeads 10\n"
+         tstr += "   stepsize 1.0\n"
+         tstr += "   kbeads 0.001\n"
+         tstr += "end\n"
+         tstr += "task %s neb ignore" % jobtheory
+         tstr += "neb\n"
+         tstr += "   kbeads 0.01\n"
+         tstr += "end\n"
+         tstr += "task %s neb ignore" % jobtheory
+         tstr += "neb\n"
+         tstr += "   kbeads 0.1\n"
+         tstr += "end\n"
+         tstr += "task %s neb ignore" % jobtheory
+         tstr += "cosmo\n"
+         tstr += "   lineq 0\n"
+         tstr += "   rsolve 0.5\n"
+         tstr += "   minbem 3\n"
+         tstr += "   maxbem 3\n"
+         tstr += "   radius "
+         for j in range(len(radii)):
+            tstr += "%f " % radii[j]
+         tstr += "\nend\n"
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000001:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000002:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000003:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000004:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000005:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000006:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000007:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000008:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000009:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+         tstr += "unset dft:converged\n"
+         tstr += "unset scf:converged\n"
+         tstr += "set geometry neb_bead_000010:geom\n"
+         tstr += "task %s energy ignore" % jobtheory
+
+      ### equilibrium aimd calculation ###
+      if (jobtype[i]=='q'):
+         temp   = job['equilibrium_temperature']
+         nouter = int((job['equilibrium_time']*1.e-12/2.41889e-17)/50.0)+1
+         tstr =  "nwpw\n"
+         tstr += "   initial_velocities %f %d\n" % (temp,job['seed'])
+         tstr += "   car-parrinello\n"
+         tstr += "      temperature %f start\n" %  temp
+         tstr += "      time_step 5.0\n"
+         tstr += "      fake_mass 750.0\n"
+         tstr += "      loop 10 %d\n" % nouter
+         tstr += "      xyz_filename        tequil-%d.xyz\n" % job['queue_number']
+         tstr += "      ion_motion_filename tequil-%d.ion_motion\n" % job['queue_number']
+         tstr += "      emotion_filename    tequil-%d.emotion\n" % job['queue_number']
+         tstr += "      fei                 tequil-%d.fei\n" % job['queue_number']
+         tstr += "   end\n"
+         #tstr += "   cpmd_properties on\n"
+         tstr += "end\n"
+         tstr += "task pspw car-parrinello\n\n"
+
+
+      ### sampling aimd calculation ###
+      if (jobtype[i]=='d'):
+         temp   = job['sampling_temperature']
+         nouter = int((job['sampling_time']*1.e-12/2.41889e-17)/50.0)+1
+         tstr =  "nwpw\n"
+         tstr += "   car-parrinello\n"
+         tstr += "      temperature %f\n" %  temp
+         tstr += "      time_step 5.0\n"
+         tstr += "      fake_mass 750.0\n"
+         tstr += "      loop 10 %d\n" % nouter
+         tstr += "      xyz_filename        tsample-%d.xyz\n" % job['queue_number']
+         tstr += "      ion_motion_filename tsample-%d.ion_motion\n" % job['queue_number']
+         tstr += "      emotion_filename    tsample-%d.emotion\n" % job['queue_number']
+         tstr += "      fei                 tsample-%d.fei\n" % job['queue_number']
+         tstr += "   end\n"
+         tstr += "   cpmd_properties on\n"
+         tstr += "end\n"
+         tstr += "task pspw car-parrinello\n\n"
+
+      ### Gaussian cube calculation ###
+      if (jobtype[i]=='b'):
+         if (job['theory']=='pspw') and (job['mult']==1):
+            tstr =  "\n\n### Generating HOMO and LUMO Gaussian cube files ###\n"
+            tstr +=  "nwpw\n"
+            tstr += "   virtual 8\n"
+            tstr += "   dplot\n"
+            tstr += "      orbital 1 homo-restricted.cube\n"
+            tstr += "   end\n"
+            tstr += "end\n"
+            tstr += "task pspw energy ignore\n"
+            tstr += "task pspw pspw_dplot\n\n"
+            tstr +=  "nwpw\n"
+            tstr += "   dplot\n"
+            tstr += "      vectors %s.emovecs\n" % job['name']
+            tstr += "      orbital 1 lumo-restricted.cube\n"
+            tstr += "   end\n"
+            tstr += "end\n"
+            tstr += "task pspw pspw_dplot\n\n"
+         if (job['theory']=='pspw') and (job['mult']>1):
+            tstr =  "\n\n### Generating HOMO and LUMO Gaussian cube files ###\n"
+            tstr +=  "nwpw\n"
+            tstr += "   virtual 8\n"
+            tstr += "   dplot\n"
+            tstr += "      orbital 1         homo-alpha.cube\n"
+            tstr += "      orbital 123456789 homo-beta.cube\n"
+            tstr += "   end\n"
+            tstr += "end\n"
+            tstr += "task pspw energy ignore\n"
+            tstr += "task pspw pspw_dplot\n\n"
+            tstr +=  "nwpw\n"
+            tstr += "   dplot\n"
+            tstr += "      vectors %s.emovecs\n" % job['name']
+            tstr += "      orbital 1 lumo-alpha.cube\n"
+            tstr += "      orbital 123456789 lumo-beta.cube\n"
+            tstr += "   end\n"
+            tstr += "end\n"
+            tstr += "task pspw pspw_dplot\n\n"
+
+         if ((job['theory']=='dft') or (job['theory']=='hf')) and (job['mult']==1):
+            ncharge = xyz2ncharge(job['xyzfile'],job['charge'])
+            nup = ncharge/2
+            tstr =  "\n\n### Generating HOMO and LUMO Gaussian cube files ###\n"
+            tstr += "dplot\n"
+            tstr += "   TITLE HOMO_Orbital\n"
+            tstr += "   vectors %s.movecs\n" % job['name']
+            tstr += "   LimitXYZ\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   spin total\n"
+            tstr += "   orbitals view\n"
+            tstr += "   1\n"
+            tstr += "   %d\n" % nup
+            tstr += "   gaussian\n"
+            tstr += "   output homo-restricted.cube\n"
+            tstr += "end\n"
+            tstr += "task dplot\n"
+            tstr += "dplot\n"
+            tstr += "   TITLE LUMO_Orbital\n"
+            tstr += "   vectors %s.movecs\n" % job['name']
+            tstr += "   LimitXYZ\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   spin total\n"
+            tstr += "   orbitals view\n"
+            tstr += "   1\n"
+            tstr += "   %d\n" % (nup+1)
+            tstr += "   gaussian\n"
+            tstr += "   output lumo-restricted.cube\n"
+            tstr += "end\n"
+            tstr += "task dplot\n"
+
+         if ((job['theory']=='dft') or (job['theory']=='hf')) and (job['mult']>1):
+            ncharge = xyz2ncharge(job['xyzfile'],job['charge'])
+            ndn = (ncharge-mult+1)/2
+            nup = ndn + mult - 1
+            tstr =  "\n\n### Generating HOMO and LUMO Gaussian cube files ###\n"
+            tstr += "dplot\n"
+            tstr += "   TITLE HOMO_Alpha_Orbital\n"
+            tstr += "   vectors %s.movecs\n" % job['name']
+            tstr += "   LimitXYZ\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   spin alpha\n"
+            tstr += "   orbitals view\n"
+            tstr += "   1\n"
+            tstr += "   %d\n" % nup
+            tstr += "   gaussian\n"
+            tstr += "   output homo-alpha.cube\n"
+            tstr += "end\n"
+            tstr += "task dplot\n"
+            tstr += "dplot\n"
+            tstr += "   TITLE LUMO_Alpha_Orbital\n"
+            tstr += "   vectors %s.movecs\n" % job['name']
+            tstr += "   LimitXYZ\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   spin alpha\n"
+            tstr += "   orbitals view\n"
+            tstr += "   1\n"
+            tstr += "   %d\n" % (nup+1)
+            tstr += "   gaussian\n"
+            tstr += "   output lumo-alpha.cube\n"
+            tstr += "end\n"
+            tstr += "task dplot\n"
+            tstr += "dplot\n"
+            tstr += "   TITLE HOMO_Beta_Orbital\n"
+            tstr += "   vectors %s.movecs\n" % job['name']
+            tstr += "   LimitXYZ\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   spin beta\n"
+            tstr += "   orbitals view\n"
+            tstr += "   1\n"
+            tstr += "   %d\n" % ndn
+            tstr += "   gaussian\n"
+            tstr += "   output homo-beta.cube\n"
+            tstr += "end\n"
+            tstr += "task dplot\n"
+            tstr += "dplot\n"
+            tstr += "   TITLE LUMO_Beta_Orbital\n"
+            tstr += "   vectors %s.movecs\n" % job['name']
+            tstr += "   LimitXYZ\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   -15.0 15.0 96\n"
+            tstr += "   spin beta\n"
+            tstr += "   orbitals view\n"
+            tstr += "   1\n"
+            tstr += "   %d\n" % (ndn+1)
+            tstr += "   gaussian\n"
+            tstr += "   output lumo-beta.cube\n"
+            tstr += "end\n"
+            tstr += "task dplot\n"
+
+         #if (job['theory_property']=='dft'):
+         #tstr = "task %s energy ignore" % jobtheory
+
+
+
+
+      file.write(tstr); file.write(eoln);
+
+
+
+def xyz_molecular_formula(xyzfilename):
+   #
+   fdict = {}
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline().strip()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+   xyzfile.close()
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+
+
+def make_jobname(job):
+   #
+   dash = "-"
+   mformula = xyz_molecular_formula(job['xyzfile'])
+   if (job['theory']=='pspw' or job['theory']=='dft'):
+      jobxc = job['xc']
+   else:
+      jobxc = 'xxx'
+   jtheory = job['theory'].replace('(','').replace(')','').replace('[','').replace(']','').replace('{','').replace('}','')
+
+   jobname = jtheory+dash+jobxc+dash+mformula+dash+"%d" % job['queue_number']
+   jobname = ''.join(jobname.split())
+   jobname = jobname.replace(" ","")
+   return jobname
+   
+
+
+def make_nwinputdeck(job):
+   #
+
+   mformula = xyz_molecular_formula(job['xyzfile'])
+   jobxc = ''
+   if (job['theory']=='pspw' or job['theory']=='dft'): jobxc = job['xc']
+
+   nwfile = open(job['nwchem_input_submit'],'w')
+
+   ## appendfile ##
+   if job.has_key('appendfile'):
+      for line in job['appendfile'].split("\n"): nwfile.write("#"+line+"\n")
+
+   ## header ##
+   makeheader(nwfile,job['name'],job['theory'],jobxc,job['type'],mformula,job['charge'],job['mult'],job['vtag'],job['machine'],job['permdir'],job['mem'])
+
+   ## geometry ##
+   if (job['type'].find('a') != -1):
+      makegeom_neb(nwfile,job['xyzfile'],job['xyzfile2'])
+   else:
+      vv = job['diagonal_hessian'] or (job['solvation_type']=='aimdmm')
+      makegeom(nwfile,job['xyzfile'],vv)
+
+   ## theory ##
+   maketheory(nwfile,job['theory'],jobxc,job['mult'],job['pspw4'],job['paw'],job['basis'],job['basisHZ'],job)
+
+   ## tasks ##
+   maketasks(nwfile,job['type'],taskjobtheory(job['theory'],job['mult']),makecosmoradii(job['xyzfile']),job['rbond'],job['rgroup'],job['mbond1'],job['mbond2'],job['xyzfile'],job['zcoords'],job['solvation_type'],job)
+
+   nwfile.close()
+
+
+
+
+def make_nwchemjob(job):
+   #
+   eoln = "\n"
+   nwfile = open(job['nwchemjob_submit'],'w')
+   nwfile.write("nwchem_input  %s\n" % job['nwchem_input'])
+   nwfile.write("nwchem_output %s\n" % job['nwchem_output'])
+   nwfile.write("nwchem_done   %s\n" % job['nwchem_done'])
+   nwfile.write(eoln)
+   nwfile.write("transfer_files *.xyz *.ion_motion *.emotion *.fei *.cif *.hist *.gr *.dat *.meta_gaussians *.cube PAIR_DISTRIBUTION VEL_CORRELATION POWER_SPECTRUM\n")
+   nwfile.write(eoln)
+   nwfile.write("permdir %s\n" % job['permdir'])
+   nwfile.write("deletescratch yes\n")
+   nwfile.write("queuesave no\n")
+   nwfile.write("addtochemdb yes\n")
+   nwfile.write(eoln)
+   
+   if ('medium_' in job['machine']):
+      machine = job['machine'].lstrip('medium_')
+      nwfile.write("machine %s\n" % machine)
+      nwfile.write("cputime 16:00:00\n")
+      nwfile.write("ncpus 32\n")
+   elif ('large_' in job['machine']):
+      machine = job['machine'].lstrip('large_')
+      nwfile.write("machine %s\n" % machine)
+      nwfile.write("cputime 24:00:00\n")
+      nwfile.write("ncpus 64\n")
+   elif ('small_' in job['machine']):
+      machine = job['machine'].lstrip('small_')
+      nwfile.write("machine %s\n" % machine)
+      nwfile.write("cputime 12:00:00\n")
+      nwfile.write("ncpus 8\n")
+   elif ('tiny_' in job['machine']):
+      machine = job['machine'].lstrip('tiny_')
+      nwfile.write("machine %s\n" % machine)
+      nwfile.write("cputime 12:00:00\n")
+      nwfile.write("ncpus 2\n")
+   elif ('serial_' in job['machine']):
+      machine = job['machine'].lstrip('serial_')
+      nwfile.write("machine %s\n" % machine)
+      nwfile.write("cputime 12:00:00\n")
+      nwfile.write("ncpus 1\n")
+   else:
+      theory  = job['theory']
+      machine = job['machine']
+      nwfile.write("machine %s\n" % machine)
+      if (machine=='olympus'):
+         nwfile.write("cputime 48:00:00\n")
+         nwfile.write("ncpus 16\n")
+      elif (machine=='constance'):
+         nwfile.write("cputime 48:00:00\n")
+         if theory=="ccsd(t)":
+            nwfile.write("ncpus 240\n")
+         else:
+            nwfile.write("ncpus 24\n")
+      elif (machine=='cascade'):
+         if theory=="ccsd(t)":
+            nwfile.write("ncpus 256\n")
+            nwfile.write("cputime 40:00:00\n")
+         else:
+            nwfile.write("ncpus 32\n")
+            nwfile.write("cputime 24:00:00\n")
+      else:
+         nwfile.write("cputime 24:00:00\n")
+         if (machine=='hopper'):
+            nwfile.write("ncpus 48\n")
+         elif (machine=='hdevelop'):
+            nwfile.write("ncpus 48\n")
+         else:
+            nwfile.write("ncpus 32\n")
+   if (machine=='magellan'):
+      nwfile.write("queue magellan\n")
+   else:
+      nwfile.write("queue regular\n")
+
+   if job.has_key('priority'):     nwfile.write("priority " + job['priority']     + eoln)
+   if job.has_key('emailresults'): nwfile.write("email "    + job['emailresults'] + eoln)
+
+   nwfile.write("\n")
+   #nwfile.write("@remote_directory /Users/bylaska/Projects/TNTQ/%d\n" % ddrand)
+   nwfile.write("@remote_directory " + submitdir + "\n")
+   if (remote_computer!=None):
+      #nwfile.write("@remote_computer  we24397.emsl.pnl.gov\n")
+      nwfile.write("@remote_computer " + remote_computer + "\n")
+   nwfile.close()
+
+
+def make_checkerjob():
+   eoln = "\n"
+   nwfile = open(submitdir+"/checker.job",'w')
+   nwfile.write("\n")
+   nwfile.write("@remote_directory /Users/bylaska/Projects/TNTQ\n")
+   if (remote_computer!=None):
+      #nwfile.write("@remote_computer  we24397.emsl.pnl.gov\n")
+      nwfile.write("@remote_computer " + remote_computer + "\n")
+   nwfile.close()
+
+
+##################################### main program ##########################################
+usage = \
+"""
+Generates an nwchem job for a molecule
+
+  Usage: tnt_submit -v tag:value -e email -m machine -t theory -b basis -c calculation_type -x exchange-correlation -y solvation -q charge -s multiplicity -g maxiter -r -h   xyz file / cml file / esmiles string
+
+  -m machine
+  -t theory
+  -b basis
+  -z basisHZ
+  -p property
+  -k theory_property
+  -l xc_property
+  -o basis_property
+  -n basisHZ_property
+  -c calculation_type, e.g. ovc or owc
+  -x exchange_correlation
+  -y solvation
+  -q charge of molecule
+  -s multiplicity of molecule
+  -p property
+  -r rotate the rotamers
+  -g number of geometry optimization iterations
+  -i check the queue
+  -f returns number of finished jobs
+  -d deletes the job files 
+  -w use diagonal hessian
+  -e email results
+  -v qtag:qvalue
+  -u priority
+  -a append file to input
+
+  -h prints this message
+
+"""
+
+print 'TNT NWChem Submission Program\n'
+tt   = time.localtime()
+gt   = time.gmtime()
+dd   = "-%d-%d-%d-%d:%d" % (tt[0],tt[1],tt[2],tt[3],tt[4])
+ddlt = time.asctime(tt)
+job  = {}
+job['submit_time'] = pickle.dumps(tt)
+job['submit_gm_time'] = pickle.dumps(gt)
+print 'TNT NWChem Submission Program - The current time is ' + ddlt + '\n'
+
+
+emailresults = ''
+machine  = ''
+theory   = ''
+basis    = ''
+basisHZ  = ''
+xc       = ''
+property = ''
+theory_property   = ''
+basis_property    = ''
+basisHZ_property  = ''
+xc_property       = ''
+calctype = ''
+xyzdata  = ''
+solvation_type = ''
+solvent_type = ''
+molarity = ''
+equilibrium_time = ''
+equilibrium_temperature = ''
+sampling_time    = ''
+sampling_temperature    = ''
+constraint_string = ''
+constraint_value  = ''
+unitcell = ''
+seed     = -1
+q        = 0
+mult     = 1
+vtag     = ''
+notmultset   = True
+notchargeset = True
+rotamer      = False
+diagonal_hessian = False
+jobname  = "tntjob"
+opts, args = getopt.getopt(sys.argv[1:], "a:e:u:v:m:t:b:n:z:p:c:x:y:q:g:s:j:k:l:o:idfrwh") 
+for o, a in opts:
+  if '-a' in o:
+     with open(a,'r') as ff: job['appendfile'] = ff.read()
+  if '-e' in o:
+     emailresults = a
+  if '-v' in o:
+     vtag = a
+     print " - adding tag " + vtag + " to input deck.\n" 
+  if '-m' in o:
+     machine = a
+  if '-t' in o:
+     theory = a
+  if '-b' in o:
+     basis = a
+  if '-z' in o:
+     basisHZ = a
+  if '-p' in o:
+     property = a
+  if '-k' in o:
+     theory_property = a
+  if '-l' in o:
+     xc_property = a
+  if '-o' in o:
+     basis_property = a
+  if '-n' in o:
+     basisHZ_property = a
+  if '-c' in o:
+     calctype = a
+  if '-x' in o:
+     xc = a
+  if '-y' in o:
+     solvation_type = a
+  if '-q' in o:
+     q = eval(a)
+     notchargeset = False
+  if '-g' in o:
+     geom_maxiter = eval(a)
+  if '-s' in o:
+     mult = eval(a)
+     notmultset = False
+  if '-j' in o:
+     jobname = a
+  if '-u' in o:
+     job['priority'] = a
+  if '-i' in o:
+    make_checkerjob()
+    cmd = remote_nwchem + " -s -r " + submitdir + " "+ submitdir + "/checker.job"
+    #os.system(cmd)
+    result1 = subprocess.check_output(cmd,shell=True)
+    print "cmd="+cmd
+    print result1
+    exit()
+  if '-r' in o:
+     rotamer = True
+  if '-w' in o:
+     diagonal_hessian = True
+  if '-d' in o:
+    make_checkerjob()
+    cmd = remote_nwchem + " -w -r " + submitdir + " "+ submitdir + "/checker.job"
+    cmd3 = "rm " + submitdir + "/*.out"
+    cmd4 = "rm " + submitdir + "/*.job"
+    cmd5 = "rm " + submitdir + "/*.nw"
+    cmd6 = "rm " + submitdir + "/*.done"
+    #os.system(cmd)
+    #os.system(cmd3)
+    #os.system(cmd4)
+    #os.system(cmd5)
+    #os.system(cmd6)
+    result1 = subprocess.check_output(cmd,shell=True)
+    print "cmd= ", result1
+    result3 = subprocess.check_output(cmd3,shell=True)
+    print "cmd3= ", result3
+    result4 = subprocess.check_output(cmd4,shell=True)
+    print "cmd4= ", result4
+    result5 = subprocess.check_output(cmd5,shell=True)
+    print "cmd5= ", result5
+    result6 = subprocess.check_output(cmd6,shell=True)
+    print "cmd6= ", result6
+    os.system("rm -rf " + submitdir)
+    exit()
+  if '-f' in o:
+    cmd1 = "fgrep 'maximum total M-bytes' " + submitdir + "/*.out"
+    cmd2 = "ls " + submitdir + "/*.out"
+    result1 = subprocess.check_output(cmd1,shell=True)
+    result2 = subprocess.check_output(cmd2,shell=True)
+    finishedfiles = result1.split("\n")
+    outfiles      = result2.split("\n")
+    msg = "There are %d finished jobs and %d outfiles in " % (len(finishedfiles),len(outfiles))
+    msg += submitdir + ".\n"
+    print msg
+    exit()
+  if o in ("-h","--help"):
+    print usage
+    os.system("rmdir " + submitdir)
+    exit()
+
+
+if (len(args)<1):
+   print "\nEnter xyz file / cml file / esmiles string:"
+   xyzsmiles  = sys.stdin.readline()[:-1]
+else:
+   xyzsmiles  = args[0]
+
+if (os.path.isfile(xyzsmiles)):
+   if (xyzsmiles.find('.cml') != -1):
+      job['cmlfile'] = xyzsmiles
+      job['smiles']  = cml2smiles(xyzsmiles)
+      job['xyzfile'] = wrkdir + "/" + tmpjob + ".xyz"
+      cml2xyz(xyzsmiles,job['xyzfile'])
+   else:
+      job['xyzfile'] = xyzsmiles
+      job['smiles']  = xyz2smiles(xyzsmiles)
+      job['cmlfile'] = wrkdir + "/" + tmpjob + ".cml"
+      xyz2cml(xyzsmiles,job['cmlfile'])
+else:
+   esmiles = addspaces_esmiles(xyzsmiles.strip())
+   print "tnt_submit esmiles = " + esmiles
+   xyzsmiles = esmiles.split()[0]
+   if xyzdata==''  and 'xyzdata' in esmiles: xyzdata = esmiles.split('xyzdata{')[1].split('}')[0]
+   if theory==''   and 'theory' in esmiles: theory   = esmiles.split('theory{')[1].split('}')[0]
+   if xc==''       and 'xc' in esmiles:     xc       = esmiles.split('xc{')[1].split('}')[0]
+   if theory_property==''   and 'theory_property' in esmiles: theory_property   = esmiles.split('theory_property{')[1].split('}')[0]
+   if xc_property==''       and 'xc_property' in esmiles:     xc_property       = esmiles.split('xc_property{')[1].split('}')[0]
+   if calctype=='' and 'calculation_type' in esmiles: calctype = esmiles.split('calculation_type{')[1].split('}')[0]
+   if solvation_type=='' and 'solvation_type' in esmiles: solvation_type = esmiles.split('solvation_type{')[1].split('}')[0]
+   if solvent_type=='' and 'solvent_type' in esmiles: solvent_type = esmiles.split('solvent_type{')[1].split('}')[0]
+   if molarity=='' and 'molarity' in esmiles: molarity = esmiles.split('molarity{')[1].split('}')[0]
+   if equilibrium_time=='' and 'equilibrium_time' in esmiles: equilibrium_time = esmiles.split('equilibrium_time{')[1].split('}')[0]
+   if equilibrium_temperature=='' and 'equilibrium_temperature' in esmiles: equilibrium_temperature = esmiles.split('equilibrium_temperature{')[1].split('}')[0]
+   if sampling_time=='' and 'sampling_time' in esmiles: sampling_time = esmiles.split('sampling_time{')[1].split('}')[0]
+   if sampling_temperature=='' and 'sampling_temperature' in esmiles: sampling_temperature = esmiles.split('sampling_temperature{')[1].split('}')[0]
+
+   if constraint_string=='' and 'constraint_string{' in esmiles: constraint_string = esmiles.split('constraint_string{')[1].split('}')[0].strip()
+   if constraint_value==''  and 'constraint_value{'  in esmiles: constraint_value  = esmiles.split('constraint_value{')[1].split('}')[0].strip()
+
+
+   if property=='' and 'property{' in esmiles: property = esmiles.split('property{')[1].split('}')[0]
+   if basis==''    and 'basis' in esmiles:
+      basis  = esmiles.split('basis{')[1].split('}')[0]
+      if 'ry' in basis.lower():
+        xb = eval(basis.strip().split()[0])*0.5
+        basis = '%f' % xb
+      if 'hartree' in basis.lower():
+        xb = eval(basis.strip().split()[0])*1.0
+        basis = '%f' % xb
+   if basis_property==''    and 'basis_property' in esmiles:
+      basis_property  = esmiles.split('basis_property{')[1].split('}')[0]
+      if 'ry' in basis_property.lower():
+        xb = eval(basis_property.strip().split()[0])*0.5
+        basis_property = '%f' % xb
+      if 'hartree' in basis_property.lower():
+        xb = eval(basis_property.strip().split()[0])*1.0
+        basis_property = '%f' % xb
+   if basisHZ==''    and 'basisHZ' in esmiles:
+      basisHZ = esmiles.split('basisHZ{')[1].split('}')[0]
+      if 'ry' in basisHZ.lower():
+        xb = eval(basisHZ.strip().split()[0])*0.5
+        basisHZ = '%f' % xb
+      if 'hartree' in basisHZ.lower():
+        xb = eval(basisHZ.strip().split()[0])*1.0
+        basisHZ = '%f' % xb
+   if basisHZ_property==''    and 'basisHZ_property' in esmiles:
+      basisHZ_property = esmiles.split('basisHZ_property{')[1].split('}')[0]
+      if 'ry' in basisHZ_property.lower():
+        xb = eval(basisHZ_property.strip().split()[0])*0.5
+        basisHZ_property = '%f' % xb
+      if 'hartree' in basisHZ_property.lower():
+        xb = eval(basisHZ_property.strip().split()[0])*1.0
+        basisHZ_property = '%f' % xb
+
+   if 'priority' in esmiles: 
+      job['priority'] = esmiles.split('priority{')[1].split('}')[0]
+   if 'emailresults' in esmiles: 
+      emailresults = esmiles.split('email{')[1].split('}')[0]
+   if 'geometry_generation' in esmiles: 
+      job['geometry_generation'] = esmiles.split('geometry_generation{')[1].split('}')[0]
+      if "cactus"  in job['geometry_generation']: reset_use_cactus_geom()
+      if "norotat" in job['geometry_generation']: rotamer = False
+
+   if 'seed' in esmiles:
+      seed = eval(esmiles.split('seed{')[1].split('}')[0])
+   if 'mult' in esmiles: 
+      mult = eval(esmiles.split('mult{')[1].split('}')[0])
+      notmultset = False
+   if '^' in esmiles:
+      q = eval(esmiles.split('^{')[1].split('}')[0])
+      notchargeset = False
+   job['smiles']   = xyzsmiles
+   job['xyzfile']  = wrkdir + "/" + tmpjob + ".xyz"
+   if (xyzdata==''):
+      if (solvation_type=='aimdmm'):
+         job['solutejob'] = smilespmf2xyz(esmiles,job['xyzfile'])
+      elif job.has_key('appendfile'):
+         print "Generating xyz data from appendfile."
+         datafile_xyzfile(job['appendfile'],job['xyzfile'])
+         if (theory=="mp2") or (theory=="ccsd(t)"): 
+            rotamer = False
+      else:
+         smiles2xyz(xyzsmiles,job['xyzfile'])
+   else:
+      if xyzdata.strip().split()[0].isalpha():
+          nion = len(xyzdata.strip().split("|"))
+          with open(job['xyzfile'],'w') as f:
+             f.write("%d\n\n" % nion)
+             f.write(xyzdata.replace('|','\n').strip())
+      else:
+          with open(job['xyzfile'],'w') as f: f.write(xyzdata.replace('|','\n').strip())
+   job['cmlfile']  = wrkdir + "/" + tmpjob + ".cml"
+   #smiles2cml(xyzsmiles,job['cmlfile'])
+   xyz2cml(job['xyzfile'],job['cmlfile'])
+
+
+### define kindatoms ###
+kindatoms = []
+with  open(job['xyzfile'],"r") as ff:
+   natoms =  eval(ff.readline())
+   ff.readline()
+   for i in range(natoms):
+      line = ff.readline().split()
+      found = False
+      for ka in kindatoms:
+         if (ka==line[0]):
+            found = True
+      if (not found):
+         kindatoms.append(line[0])
+job['kindatoms'] = kindatoms
+
+
+## set queue number ##
+job['queue_number']  = queue_number00
+
+## set seed number ##
+if (seed>0):
+   job['seed'] = seed
+else:
+   job['seed']  = qnumber_collection.find_one({'queue':'seed'})['count']
+   qqq = qnumber_collection.update({'queue':'seed'},{'$inc':{'count':1}},upsert=False,multi=False)
+
+
+
+
+if (rotamer):
+   jkj = xyzrotamer(job['xyzfile'])
+   print "Rotating single bonds in " + job['xyzfile'] + "." + jkj
+
+
+#if (machine ==''): machine= 'constance'
+if (machine ==''): machine = theorysmiles2machine(theory,job['smiles'])
+if (theory == ''): theory ='dft'
+if (basis==''):    basis  ='default'
+if (basisHZ==''):  basisHZ  ='default'
+if (calctype=='' and solvation_type=='COSMO'):     calctype='ovcb'
+if (calctype=='' and solvation_type=='COSMO-SMD'): calctype='ovcb'
+if (calctype=='' and solvation_type=='aimdmm'):    calctype='eqd'
+if (calctype=='' and solvation_type=='None'):      calctype='ovb'
+if (calctype=='' and theory=='pspw'):    calctype='ovb'
+if (calctype=='' and theory=='paw'):     calctype='ov'
+if (calctype=='' and theory=='pspw4'):   calctype='ovb'
+if (calctype=='' and theory=='paw4'):    calctype='ov'
+if (calctype=='' and theory=='ccsd(t)'): calctype='e'
+if (calctype=='' and theory=='mp2'):     calctype='e'
+if (calctype=='' and (theory=='dft' or theory=='hf' or theory=='uhf' or theory=='am1' or theory=='pm3' or theory=='mndo' or theory=='mindo3')):
+      solvation_type = 'COSMO'
+      calctype='ovcb'
+
+if ('nmr' in property): calctype += 'n'
+
+if (xc==''):
+   if ((theory=='pspw') or (theory=='pspw4') or (theory=='paw') or (theory=='paw4')):
+       xc='pbe'
+   else:
+       xc='b3lyp'
+if (theory_property == ''):  theory_property  = theory
+if (basis_property  == ''):  basis_property   = basis
+if (basisHZ_property == ''): basisHZ_property = basisHZ
+if (xc_property == ''):      xc_property      = xc
+
+if (solvent_type=='' and solvation_type=='aimdmm'): solvent_type = 'spcwater'
+if (unitcell==''): unitcell = 'SC'
+
+if (equilibrium_time=='' and solvation_type=='aimdmm'):        equilibrium_time = "1.0"
+if (equilibrium_temperature=='' and solvation_type=='aimdmm'): equilibrium_temperature = "300.0"
+if (sampling_time=='' and solvation_type=='aimdmm'):        sampling_time = "10.0"
+if (sampling_temperature=='' and solvation_type=='aimdmm'): sampling_temperature = "300.0"
+
+
+job['emailresults'] = emailresults
+job['machine'] = machine
+job['basis']   = basis
+job['basisHZ'] = basisHZ
+job['basis_property']   = basis_property
+job['basisHZ_property'] = basisHZ_property
+job['type']    = calctype
+job['xc']      = xc
+job['xc_property']  = xc_property
+job['charge']  = q
+job['mult']    = mult
+job['vtag']    = vtag
+job['solvation_type'] = solvation_type
+job['solvent_type']   = solvent_type
+
+if (molarity==''): job['molarity']   = 1.0
+
+if (equilibrium_time!=''):        job['equilibrium_time'] = eval(equilibrium_time)
+if (equilibrium_temperature!=''): job['equilibrium_temperature'] = eval(equilibrium_temperature)
+
+if (sampling_time!=''):        job['sampling_time'] = eval(sampling_time)
+if (sampling_temperature!=''): job['sampling_temperature'] = eval(sampling_temperature)
+
+
+if 'bonddiff' in constraint_string:
+   if (constraint_value == ''):
+      constraint_value1 = 2.0
+      constraint_value2 = 2.0
+   else:
+      print "constraint_value=",constraint_value
+      constraint_value1 = eval(constraint_value.split(',')[0])
+      constraint_value2 = eval(constraint_value.split(',')[1])
+   job['constraint_value1'] = constraint_value1
+   job['constraint_value2'] = constraint_value2
+   a = constraint_value1/0.529177
+   b = constraint_value2/0.529177
+   constraint_value = a*a - b*b
+elif 'bond' in constraint_string:
+   if (constraint_value == ''):
+      constraint_value = 2.0
+   else:
+      constraint_value = eval(constraint_value)
+
+else:
+   constraint_string = ''
+   constraint_value = 0.0
+
+job['constraint_string'] = constraint_string
+job['constraint_value']  = constraint_value
+
+
+
+job['theory'] = theory
+if (job['theory']=='pspw4'):
+   job['theory'] = 'pspw'
+   job['pspw4']  = True
+   job['paw']    = False
+elif (job['theory']=='paw'):
+   job['theory'] = 'pspw'
+   job['pspw4']  = False
+   job['paw']    = True
+elif (job['theory']=='paw4'):
+   job['theory'] = 'pspw'
+   job['pspw4']  = True
+   job['paw']    = True
+else:
+   job['pspw4'] = False
+   job['paw']   = False
+
+job['theory_property'] = theory_property
+if (job['theory_property']=='pspw4'):
+   job['theory_property'] = 'pspw'
+   job['property_pspw4']  = True
+   job['property_paw']    = False
+elif (job['theory_property']=='paw'):
+   job['theory_property'] = 'pspw'
+   job['property_pspw4']  = False
+   job['property_paw']    = True
+elif (job['theory_property']=='paw4'):
+   job['theory_property'] = 'pspw'
+   job['property_pspw4']  = True
+   job['property_paw']    = True
+else:
+   job['property_pspw4'] = False
+   job['property_paw']   = False
+
+if ((machine!='cascade')  and \
+   (machine!='we29676')   and \
+   (machine!='constance') and \
+   (machine!='gorgon')    and \
+   (machine!='we13550')   and \
+   (machine!='we18535')   and \
+   (machine!='we19993')   and \
+   (machine!='we16124')   and \
+   (machine!='wd37710')   and \
+   (machine!='we25447')   and \
+   (machine!='arrows')   and \
+   (machine!='seattle-1') and \
+   (machine!='edison')    and \
+   (machine!='emslcs00')  and \
+   (machine!='emslcs01')  and \
+   (machine!='emslcs02')  and \
+   (machine!='arrow1')  and \
+   (machine!='felectron')  and \
+   (machine!='we22258')  and \
+   (machine!='coheed')  and \
+   (machine!='orbital')  and \
+   (machine!='we20961')): diagonal_hessian = False
+job['diagonal_hessian'] = diagonal_hessian
+
+job['rbond'] = " "
+job['rgroup']= " "
+job['mbond1'] = " "
+job['mbond2'] = " "
+job['zcoords'] = []
+
+job['jobname'] = jobname
+job['permdir'] = jobname + "_%d" % job['queue_number']
+job['curdir']  = curdir
+job['deletetmpfiles']  = True
+
+job['csmiles'] = cannonicalsmiles(job['smiles'])
+
+if (notchargeset):
+   job['charge'] = smiles2charge(job['smiles'])
+
+if (notmultset):
+   mult_test  = xyz2mult(job['xyzfile'],job['charge'])
+   if (((mult_test+mult)%2)==1): 
+      mult = mult_test
+      job['mult'] = mult
+
+job['pubchem_cid']       = pubchem_smiles2cid(job['smiles'])
+job['pubchem_iupac']     = pubchem_smiles2iupac(job['smiles'])
+job['pubchem_synonyms']  = pubchem_smiles2synonyms(job['smiles'])
+job['pubchem_synonym0']  = pubchem_smiles2synonym0(job['smiles'])
+job['pubchem_smiles']    = pubchem_cid2smiles(job['pubchem_cid'])
+job['InChI']             = smiles2InChI(job['smiles'])
+job['InChIKey']          = smiles2InChIKey(job['smiles'])
+job['twirl']             = smiles2twirl(job['smiles'])
+job['image']             = smiles2image(job['smiles'])
+job['chemical_structure_asciiart']  = smiles2ascii(job['smiles'])
+
+job['mformula'] = xyz_molecular_formula(job['xyzfile'])
+job['cosmoradii'] = makecosmoradii(job['xyzfile'])
+
+#print "\nEnter memory:"
+#job['mem']=sys.stdin.readline()[:-1]
+job['mem']="1900 mb"
+
+job['name']          = make_jobname(job)
+job['nwchem_input']  = job['name'] + ".nw"
+job['nwchem_output'] = job['name'] + ".out"
+job['nwchem_done']   = job['name'] + ".done"
+
+job['submitdir']           = submitdir
+job['nwchem_input_submit'] = submitdir + "/" + job['name'] + ".nw"
+job['nwchemjob_submit']    = submitdir + "/nwchem-%d.job" % job['queue_number']
+
+
+make_nwinputdeck(job)
+make_nwchemjob(job)
+
+
+print " "
+print "  - pubchem_synonyms = ",job['pubchem_synonyms']
+print " "
+print "  - queue_number     = ",job['queue_number']
+print "  - mformula         = ",job['mformula']
+print "  - smiles           = ",job['smiles']
+print "  - csmiles          = ",job['csmiles']
+print "  - InChI            = ",job['InChI']
+print "  - InChIKey         = ",job['InChIKey']
+print "  - pubchem_cid      = ",job['pubchem_cid']
+print "  - pubchem_smiles   = ",job['pubchem_smiles']
+print "  - pubchem_iupac    = ",job['pubchem_iupac']
+print "  - pubchem_synonym0 = ",job['pubchem_synonym0']
+print "  - theory           = ",job['theory']
+print "  - pspw4            = ",job['pspw4']
+print "  - paw              = ",job['paw']
+if (job['theory']=='dft' or job['theory']=='pspw'):
+   print "  - xc               =",job['xc']
+print "  - basis            = ",job['basis']
+print "  - basisHZ          = ",job['basisHZ']
+print "  - theory_property       = ",job['theory_property']
+print "  - property_pspw4        = ",job['property_pspw4']
+print "  - property_paw          = ",job['property_paw']
+if (job['theory_property']=='dft' or job['theory_property']=='pspw'):
+   print "  - xc_property      =",job['xc_property']
+print "  - basis_property   = ",job['basis_property']
+print "  - basisHZ_property = ",job['basisHZ_property']
+print "  - type             = ",job['type']
+print "  - solvation_type   = ",job['solvation_type']
+print "  - charge           = ",job['charge']
+print "  - mult             = ",job['mult']
+print "  - babel gen. xyz   = ", (not bad_smiles2xyz_geom)
+print "  - cactus gen. xyz  = ", use_cactus_geom
+print "  - bonds rotated    = ", rotamer
+print "  - machine          = ",job['machine']
+print "  - emailresults     = ",job['emailresults']
+print " "
+print "  - twirl webpage    = ",job['twirl']
+print "  - image webpage    = ",job['image']
+print " "
+print job['chemical_structure_asciiart']
+print " "
+
+#copy input to queue directory and call submit_nwchem
+inputfile  = submitdir   + "/" + job['nwchem_input']
+donefile   = submitdir   + "/" + job['nwchem_done']
+
+#cmd_submit = remote_nwchem + " -r " + submitdir + " " + job['nwchemjob_submit']
+cmd_submit = "cd " + submitdir + "; " + remote_nwchem + " " +  job['nwchemjob_submit']
+result1 = subprocess.check_output(cmd_submit,shell=True)
+print "cmd_submit= ", result1
+
+job['status']  = "submitted"
+
+##### put job on queue ####
+qq = tnt_collection.insert(job)
+print "tnt_collection.insert=", qq
+
+
+#### removing tmp files ####
+try:
+   os.unlink(wrkdir + "/" + tmpsmi1)
+except:
+   print "tnt_submit failed unlinking " + wrkdir + "/" + tmpsmi1
+
+try:
+   os.unlink(wrkdir + "/" + tmpsmi2)
+except:
+   print "tnt_submit failed unlinking " + wrkdir + "/" + tmpsmi2
+
+try:
+   os.unlink(wrkdir + "/" + tmpsdf1)
+except:
+   print "tnt_submit failed unlinking " + wrkdir + "/" + tmpsdf1
+
+try:
+   os.unlink(wrkdir + "/" + tmpsdf2)
+except:
+   print "tnt_submit failed unlinking " + wrkdir + "/" + tmpsdf2
+
+try:
+   os.unlink(wrkdir + "/" + tmpjunk)
+except:
+   print "tnt_submit failed unlinking " + wrkdir + "/" + tmpjunk
+
+try:
+   os.unlink(wrkdir + "/" + tmpjob + ".xyz")
+except:
+   print "tnt_submit failed unlinking " + wrkdir + "/" + tmpjob+ ".xyz"
+
+try:
+   os.unlink(wrkdir + "/" + tmpjob + ".cml")
+except:
+   print "tnt_submit failed unlinking " + wrkdir + "/" + tmpjob+ ".cml"
+
+

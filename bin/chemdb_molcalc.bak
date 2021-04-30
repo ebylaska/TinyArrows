@@ -1,0 +1,155 @@
+#!/usr/bin/python2.7
+import os,sys,getopt,math,copy,random,subprocess,time,urllib2
+
+
+tnt_submit = "/srv/arrows/bin/tnt_submit5 -f "
+uff_path   = "/srv/arrows/bin/uff-path9 -s 9101 "
+wrkdir     = "/srv/arrows/Work"
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+#############################################
+#                                           #
+#             addspaces_reaction            #
+#                                           #
+#############################################
+def addspaces_reaction(reaction):
+   tags = ['^','mult','theory','xc','solvation_type','basis','calculation_type','property','priority','geometry_generation']
+   reaction2 = reaction[:]
+   if (reaction2.find(">")!=-1):
+      reaction2 = reaction2.replace(">","")
+   if (reaction2.find("-->")==-1):
+      reaction2 = reaction2.replace("--","-->")
+   for tag1 in tags: reaction2 = reaction2.replace(tag1," " + tag1)
+   return reaction2
+
+
+#############################################
+#                                           #
+#             parsetosmiles                 #
+#                                           #
+#############################################
+#### parsetosmiles function ####
+def parsetosmiles(str):
+   ss = str.split()
+   str2 = ''
+   for s in ss:
+      if 'kegg=' in s.lower():
+         kegg = s.split('=')[1]
+         mol = geturlresult("http://rest.kegg.jp/get/%s/mol" % kegg)
+         smiles = mol2smiles(mol)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('cid=' in s.lower()) or ('pubchem=' in s.lower()) :
+         cid = s.split('=')[1]
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/property/CanonicalSMILES/TXT" % cid)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('csid=' in s.lower()) or ('chemspider=' in s.lower()):
+         csid = s.split('=')[1]
+         rdfdata = geturlresult("http://rdf.chemspider.com/%s" % csid)
+         if rdfdata=='':
+            smiles='C'
+         else:
+            rdfdata2 = rdfdata.split('<chemdomain:SMILES')[1].split('</chemdomain:SMILES>')[0]
+            smiles   = rdfdata2.split('<chemdomain:hasValue>')[1].split('</chemdomain:hasValue>')[0].strip()
+         str2 += ' '
+         str2 += smiles
+      elif 'cas=' in s.lower():
+         cas = s.split('=')[1]
+         smiles = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/smiles" % cas)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'inchi=' in s.lower():
+         smiles = InChI2smiles("InChI=" + s.split('=')[1])
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      else:
+         str2 += ' '
+         str2 += s
+   str2 = str2.strip()
+
+   return str2
+
+
+
+############################# main program ###################################
+usage = \
+"""
+chemdb_molcalc
+
+  Usage: chemdb_molcalc inputfile
+
+
+"""
+
+print
+appending = False
+maxiter = 55001
+includemid = False
+
+opts, args = getopt.getopt(sys.argv[1:], "hams:")
+for o, a in opts:
+  if o in ("-a"): 
+     appending = True
+  if o in ("-m"): 
+     includemid = True
+  if o in ("-s"): 
+     maxiter = eval(a)
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<1):
+   print usage
+   exit()
+
+molfilename  = args[0]
+print "molfilename = "+molfilename
+
+try:
+   with open(molfilename,'r') as ff:
+      inputdata= ff.read().strip()
+
+   calculation = "tnt_submit"
+   if (("calculation:" in inputdata) and (":calculation" in inputdata)):
+      calculation = inputdata.split("calculation:")[1].split(":calculation")[0].strip()
+
+   print "calculation=",calculation
+   if ("uff-path" in calculation):
+      xyzfilename  = wrkdir + "/uffinput.xyz"
+      with open(xyzfilename,'w') as ff:
+         ff.write(inputdata.split("input.xyz:")[1].split(":input.xyz")[0].strip() + "\n")
+      bstring = inputdata.split("bstring:")[1].split(":bstring")[0].strip()
+      cmd7 = uff_path + xyzfilename + " " + bstring + " 0 "
+
+   else:
+      print "inputdata=",inputdata
+      inputdata = inputdata.replace("\"",'')
+      inputdata = inputdata.replace("\'",'')
+      inputdata = inputdata.replace("%2F",'/')
+      inputdata = addspaces_reaction(inputdata.strip())
+      inputdata = parsetosmiles(inputdata)
+      cmd7 = tnt_submit + '\"' + inputdata + '\"'
+
+   data = subprocess.check_output(cmd7,shell=True)
+
+except:
+   data = "molecular_calculation failed!"
+
+print data
+
+
+

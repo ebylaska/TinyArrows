@@ -1,0 +1,546 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,random
+from math import *
+#import image
+#from PIL import Image
+#from PIL import ImageFont
+#from PIL import ImageDraw
+
+############## machine parameters #########################
+obabel         = "/usr/bin/obabel "
+babel          = "/usr/bin/babel "
+esmiles2xyz    = "/srv/arrows/bin/esmiles2xyz "
+wrkdir         = "/srv/arrows/Projects/Work"
+ddrand = random.randint(0,999999)
+tmpxyz         = "jkjk-%d.xyz" % ddrand
+tmpsmi1        = "jkj1-%d.xyz" % ddrand
+tmpsmi2        = "jkj2-%d.xyz" % ddrand
+############## machine parameters #########################
+
+
+periodic_table_mass = {
+    'H'  : 1.008,
+    'He' : 4.0026,
+    'Li' : 7.016,
+    'Be' : 9.01218,
+    'B'  : 11.00931,
+    'C'  : 12.0,
+    'N'  : 14.00307,
+    'O'  : 15.99491,
+    'F'  : 18.9984,
+    'Ne' : 19.99244,
+    'Na' : 22.9898,
+    'Mg' : 23.98504,
+    'Al' : 26.98154,
+    'Si' : 27.97693,
+    'P'  : 30.97376,
+    'S'  : 31.97207,
+    'Cl' : 34.96885,
+    'Ar' : 39.9624,
+    'K'  : 38.96371,
+    'Ca' : 39.96259,
+    'Sc' : 44.95592,
+    'Ti' : 45.948,
+    'V'  : 50.9440,
+    'Cr' : 51.9405,
+    'Mn' : 54.9381,
+    'Fe' : 55.9349,
+    'Co' : 58.9332,
+    'Ni' : 57.9353,
+    'Cu' : 62.9298,
+    'Zn' : 63.9291,
+    'Ga' : 68.9257,
+    'Ge' : 73.9219,
+    'As' : 74.9216,
+    'Se' : 78.9183,
+    'Br' : 79.9165,
+    'Kr' : 83.912,
+    'Rb' : 84.9117,
+    'Sr' : 87.9056,
+    'Y'  : 88.9054,
+    'Zr' : 89.9043,
+    'Nb' : 92.9060,
+    'Mo' : 97.9055,
+    'Tc' : 97.9072,
+    'Ru' : 101.9037,
+    'Rh' : 102.9048,
+    'Pd' : 105.9032,
+    'Ag' : 106.90509,
+    'Cd' : 113.9036,
+    'In' : 114.9041,
+    'Sn' : 117.9018,
+    'Sb' : 120.9038,
+    'Te' : 129.9067,
+    'I'  : 126.9004,
+    'Xe' : 131.9042,
+    'Cs' : 132.9051,
+    'Ba' : 137.9050,
+    'La' : 138.9061,
+    'Ce' : 139.9053,
+    'Pr' : 140.9074,
+    'Nd' : 143.9099,
+    'Pm' : 144.9128,
+    'Sm' : 151.9195,
+    'Eu' : 152.920,
+    'Gd' : 157.9241,
+    'Tb' : 159.9250,
+    'Dy' : 163.9288,
+    'Ho' : 164.9303,
+    'Er' : 165.930,
+    'Tm' : 168.9344,
+    'Yb' : 173.9390,
+    'Lu' : 174.9409,
+    'Hf' : 179.9468,
+    'Ta' : 180.948,
+    'W'  : 183.9510,
+    'Re' : 186.9560,
+    'Os' : 189.9586,
+    'Ir' : 192.9633,
+    'Pt' : 194.9648,
+    'Au' : 196.9666,
+    'Hg' : 201.9706,
+    'Tl' : 204.9745,
+    'Pb' : 207.9766,
+    'Bi' : 208.9804,
+    'Po' : 209.9829,
+    'At' : 210.9875,
+    'Rn' : 222.0175,
+    'Fr' : 223.0198,
+    'Ra' : 226.0254,
+    'Ac' : 227.0278,
+    'Th' : 232.0382,
+    'Pa' : 231.0359,
+    'U'  : 238.0508,
+    'Np' : 237.0482,
+    'Pu' : 244.0642,
+    'Am' : 243.0614,
+    'Cm' : 247.0704,
+    'Bk' : 247.0703,
+    'Cf' : 251.0796,
+    'Es' : 252.0829,
+    'Fm' : 257.0950,
+    'Md' : 258.0986,
+    'No' : 259.1009,
+    'Lr' : 262.1100,
+    'Rf' : 261.1087,
+    'Ha' : 262.1138,
+    'Sg' : 266.1219,
+    'Bh' : 262.1229,
+    'Hs' : 267.1318,
+    'Mt' : 268.1388
+}
+
+def inertia_rotate(mass,xyz0):
+   #import numpy
+   #nion = len(mass)
+   #mall = 0.0
+   #Inertia = [0.0]*9
+   #for ii in range(nion):
+   #   m = mass[ii]
+   #   mall += m
+   #   x = xyz0[3*ii]
+   #   y = xyz0[3*ii+1]
+   #   z = xyz0[3*ii+2]
+   #   Inertia[0] += (y*y + z*z)*m
+   #   Inertia[1] -= (x*y)*m
+   #   Inertia[2] -= (x*z)*m
+   #   Inertia[3] -= (y*x)*m
+   #   Inertia[4] += (z*z + x*x)*m
+   #   Inertia[5] -= (y*z)*m
+   #   Inertia[6] -= (z*x)*m
+   #   Inertia[7] -= (z*y)*m
+   #   Inertia[8] += (x*x + y*y )*m
+   #for ii in range(9):
+   #   Inertia[ii] = Inertia[ii]/mall
+
+   #a = numpy.matrix([[Inertia[0], Inertia[1],Inertia[2]],[Inertia[3], Inertia[4], Inertia[5]],[Inertia[6], Inertia[7], Inertia[8]]])
+   #eigs, vv = numpy.linalg.eig(a)
+   #idx0 = eigs.argsort()[::+1]
+   #idx = numpy.array([0]*3)
+   #idx[0] = idx0[0]
+   #idx[1] = idx0[1]
+   #idx[2] = idx0[2]
+   #eigs = eigs[idx]
+   #vv = vv[:,idx]
+
+   smallr = False
+   nion = len(mass)
+   v0 = [1.0,0.0,0.0]
+   v1 = [0.0,1.0,0.0]
+   v2 = [0.0,0.0,1.0]
+   #### find v1 ####
+   rmax = 0.0
+   for ii in range(nion):
+      x = xyz0[3*ii]
+      y = xyz0[3*ii+1]
+      z = xyz0[3*ii+2]
+      r = sqrt(x*x + y*y + z*z)
+      if (r>rmax):
+         rmax = r
+         v1   = [x,y,z]
+   if (rmax>1.0e-2):
+      v1[0] = v1[0]/rmax
+      v1[1] = v1[1]/rmax
+      v1[2] = v1[2]/rmax
+   else:
+      v1 = [0.0,1.0,0.0]
+      smallr = True
+
+   #### find v0 ####
+   rmax = 0.0
+   for ii in range(nion):
+      x = xyz0[3*ii]
+      y = xyz0[3*ii+1]
+      z = xyz0[3*ii+2]
+      proj = x*v1[0] + y*v1[1] + z*v1[2]
+      r = sqrt(x*x + y*y + z*z) - abs(proj)
+      if (r>rmax):
+         rmax = r
+         v0   = [x,y,z]
+   proj  = v0[0]*v1[0] + v0[1]*v1[1] + v0[2]*v1[2]
+   v0[0] = v0[0] - proj*v1[0]
+   v0[1] = v0[1] - proj*v1[1]
+   v0[2] = v0[2] - proj*v1[2]
+   r = sqrt(v0[0]*v0[0] + v0[1]*v0[1] + v0[2]*v0[2])
+   if (r>1.0e-2) and (not smallr):
+      v0[0] = v0[0]/r
+      v0[1] = v0[1]/r
+      v0[2] = v0[2]/r
+   else:
+      v0 = [1.0,0.0,0.0]
+      smallr = True
+
+   ### find v2 = v0xv1 ###
+   v2[0] = v0[1]*v1[2] - v0[2]*v1[1]
+   v2[1] = v0[2]*v1[0] - v0[0]*v1[2]
+   v2[2] = v0[0]*v1[1] - v0[1]*v1[0]
+   r = sqrt(v2[0]*v2[0] + v2[1]*v2[1] + v2[2]*v2[2])
+   if (r>1.0e-6): 
+      v2[0] = v2[0]/r
+      v2[1] = v2[1]/r
+      v2[2] = v2[2]/r
+
+      #print "v0v0=",v0[0]*v0[0]+v0[1]*v0[1]+v0[2]*v0[2]
+      #print "v1v1=",v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2]
+      #print "v2v2=",v2[0]*v2[0]+v2[1]*v2[1]+v2[2]*v2[2]
+      #print "v0v1=",v0[0]*v1[0] + v0[1]*v1[1] + v0[2]*v1[2]
+      #print "v0v2=",v0[0]*v2[0]+v0[1]*v2[1]+v0[2]*v2[2]
+      #print "v1v2=",v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2]
+
+      xyz = [0.0]*3*nion
+      for ii in range(nion):
+         x = xyz0[3*ii]
+         y = xyz0[3*ii+1]
+         z = xyz0[3*ii+2]
+         xyz[3*ii]   = v0[0]*x + v1[0]*y + v2[0]*z
+         xyz[3*ii+1] = v0[1]*x + v1[1]*y + v2[1]*z
+         xyz[3*ii+2] = v0[2]*x + v1[2]*y + v2[2]*z
+   else:
+      xyz = xyz0
+
+   return xyz
+
+
+def shift_to_center_mass(mass,xyz0):
+   xyz = [0.0]*len(xyz0)
+   nion = len(mass)
+   mall = 0.0
+   cm = [0.0]*3
+   for ii in range(nion):
+      m = mass[ii]
+      mall += m
+      x = xyz0[3*ii]
+      y = xyz0[3*ii+1]
+      z = xyz0[3*ii+2]
+      cm[0] += m*x
+      cm[1] += m*y
+      cm[2] += m*z
+
+   for ii in range(3):
+      cm[ii] = cm[ii]/mall
+
+   for ii in range(nion):
+      xyz[3*ii]   = xyz0[3*ii]   - cm[0]
+      xyz[3*ii+1] = xyz0[3*ii+1] - cm[1]
+      xyz[3*ii+2] = xyz0[3*ii+2] - cm[2]
+
+   return xyz
+
+
+##############################################
+#                                            #
+#              alignxyzdat                   #
+#                                            #
+##############################################
+def alignxyzdat(xyzdat):
+   nion   = eval(xyzdat.split('\n')[0])
+   xyz0   = []
+   symbol = []
+   mass = []
+   for line in xyzdat.strip().split('\n')[2:]:
+      ss = line.split()
+      symbol.append(ss[0])
+      xyz0.append(eval(ss[1]))
+      xyz0.append(eval(ss[2]))
+      xyz0.append(eval(ss[3]))
+      if ss[0] in periodic_table_mass:
+         mass.append(periodic_table_mass[ss[0]])
+      else:
+         mass.append(0.0)
+
+   xyz1 = shift_to_center_mass(mass,xyz0)
+   xyz2 = inertia_rotate(mass,xyz0)
+
+   xyzdat2 = '%d\n\n' % nion
+   for ii in range(nion):
+      xyzdat2 += "%s %f %f %f\n" % (symbol[ii],xyz2[3*ii],xyz2[3*ii+1],xyz2[3*ii+2])
+
+   return xyzdat2
+
+def xyzdat2mol(xyzdat):
+   mol = ''
+   try:
+      molfile = wrkdir + "/"+tmpsmi2
+      xyzfile = wrkdir + "/"+tmpsmi1
+      with open(xyzfile,'w') as ff:
+         ff.write(xyzdat)
+      cmd6 = babel + " -ixyz " + xyzfile + " -omol " + molfile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      with open(molfile,'r') as ff:
+         mol0 = ff.read()
+      mol = '\n'
+      for ll in mol0.strip().split("\n")[1:]:
+         if "M  RAD" not in ll:
+            mol += ll + "\n"
+   except:
+      mol = ''
+   return mol
+
+
+############################# main program ###################################
+usage = \
+"""
+Remote chemdb_reaction_kekule program - version 1.0
+
+  Usage: chemdb_reaction_kekule esmiles_reaction
+
+  -h prints this message
+
+"""
+
+#Database defaults
+
+print "chemdb_reaction_kekule - version 1.0"
+tt      = time.localtime()
+
+opts, args = getopt.getopt(sys.argv[1:], "h")
+for o, a in opts:
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<1): 
+   print usage
+   exit()
+
+tags = []
+#mtags = []
+k_id = 0
+kekule = ""
+kekule = "</pre>\n"
+#kekule += '<script type=\"text/javascript\" src=\"{{url_for(\'static\', filename=\'kekule/kekule.min.js\')}}\"></script>\n\n'
+
+
+reaction   = args[0]
+sslist = reaction.split("-->")
+left  = sslist[0].strip()
+left = left.replace("\t"," ")
+left = left.replace("\n"," ")
+left = left.replace('\xc2', ' ')
+left = left.replace('\xa0', ' ')
+esmiles_reactants  = left.split(' + ')
+number_reactants = len(esmiles_reactants)
+
+right = sslist[1].strip()
+right= right.replace("\t"," ")
+right= right.replace("\n"," ")
+right= right.replace('\xc2', ' ')
+right= right.replace('\xa0', ' ')
+esmiles_products  = right.split(' + ')
+number_products = len(esmiles_products)
+
+
+print "esmiles_reactants       = ", esmiles_reactants
+print "esmiles_products        = ", esmiles_products
+
+reactants = []
+for esmiles in esmiles_reactants:
+   try:
+      x = float(esmiles.split(None,1)[0])
+      esmiles2 = esmiles.split(None,1)[1]
+   except:
+      esmiles2 = esmiles
+      x = 1.0
+   reactants.append((x,esmiles2))
+
+products = []
+for esmiles in esmiles_products:
+   try:
+      x = float(esmiles.split(None,1)[0])
+      esmiles2 = esmiles.split(None,1)[1]
+   except:
+      esmiles2 = esmiles
+      x = 1.0
+   products.append((x,esmiles2))
+
+
+
+print "reactants = ", reactants
+print "products  = ", products
+
+count = 0
+centerarrow = False
+for rr in (reactants,products):
+
+   rcount = 0
+   for r in rr:
+      esmiles = r[1]
+      num     = r[0]
+      label  = ''
+      centerplus = False
+      
+      if (count>0):
+         count = 0
+         label = '&nbsp; --> &nbsp;'
+         if (num<0.0): 
+            label = " -"
+      else:
+         if (num<0.0): 
+            label = "-"
+         elif (rcount>0):
+            label = "+"
+      if isinstance(num,(int,long)):
+         if (abs(num)!=1): 
+            label += " %3d"   % int(abs(num))
+         else:
+            centerplus = True
+      else:
+         if (abs(num-1.0)>1.0e-3):
+            label += " %3.1f" % (abs(num))
+         else:
+            centerplus = True
+
+      rcount += 1
+      ### fetch data ###
+      mformula = ""
+      if ("SHE" not in esmiles):
+         cmd9 = esmiles2xyz + "\"" + esmiles + "\" " + wrkdir + "/" + tmpxyz
+         try:
+            result9 = subprocess.check_output(cmd9,shell=True)
+         except:
+            print "chemdb_reaction_draw: Failed in esmiles2xyz"
+            exit()
+
+         #with open(wrkdir + "/" + tmpxyz) as ff:
+         #   xyzdat = ff.read()
+         mformula = result9.split("mformula =")[1].split('\n')[0].strip()
+
+         smiles = result9.split("smiles   =")[1].split('\n')[0].strip()
+         if ("^{" in esmiles):
+            charge = eval(esmiles.split("^{")[1].split('}')[0].strip())
+         else:
+            charge = eval(result9.split("charge_entered =")[1].split('\n')[0].strip())
+
+         if ("mult{" in esmiles):
+            mult   = eval(esmiles.split("mult{")[1].split('}')[0].strip())
+         else:
+            mult   = eval(result9.split("mult_entered   =")[1].split('\n')[0].strip())
+      else:
+         charge = -1
+         mult   = 2
+  
+
+      ### generate chargelabel
+      chargelabel = ''
+      if (charge!=0):
+         if (charge<0):
+            chargelabel = '^{%d-} &nbsp;' % abs(charge)
+         else:
+            chargelabel = '^{%d+} &nbsp;' % abs(charge)
+      if (mult>1):
+            chargelabel += ' mult{%d} &nbsp;' % mult
+
+      #print "xyzdat=",alignxyzdat(xyzdat) 
+      ### generate image ###
+      if ("SHE" in esmiles):
+         tags.append(["SHE",label,chargelabel,100])
+         #mtags.append(["SHE",label,chargelabel,100])
+      else:
+         try:
+            if (mformula.replace("H","").isdigit()):
+               cmd6k = obabel + "--gen2d -:\"" +  smiles + "\" -omol"
+            else:
+               cmd6k = obabel + "--gen2d -d -:\"" +  smiles + "\" -omol"
+            result1k = subprocess.check_output(cmd6k,shell=True)
+            natom = int(result1k.split("V2000")[0].split("\n")[-1].split()[0])
+            sz = int(math.sqrt(natom)*50)
+            if (sz<150): sz = 150
+            moleculename = "kekule%d-%d" % (ddrand,k_id)
+            kekule += "<script id=\"%s\" type=\"chemical/x-mdl-molfile\">\n" % moleculename
+            for ln in result1k.split("\n"):
+               if ("WARNING:" not in ln):
+                  kekule += ln + "\n"
+            #kekule += xyzdat2mol(alignxyzdat(xyzdat))
+            kekule += "</script>\n\n"
+            k_id += 1
+            tags.append([moleculename,label,chargelabel,sz])
+            #mtags.append([mformula,label,chargelabel,sz])
+         except:
+            print "chemdb_reaction_kekule Failed to create mol"
+            tags.append(["FAILED",label,chargelabel,100])
+            #mtags.append(["FAILED",label,chargelabel,100])
+
+   count += 1
+
+
+kekule += '<font size="+2"> <center> <table> <tr>\n'
+for tag in tags:
+   moleculename = tag[0]
+   label = tag[1]
+   chargelabel = tag[2]
+   sz = tag[3]
+   if (label!=''): kekule += "   <td>" + label + "</td>\n"
+   if ("kekule" in moleculename):
+      kekule += '   <td> <span style="display:block; width:%dpx;height:%dpx" data-widget="Kekule.ChemWidget.Viewer2D" ' % (sz,sz)
+      kekule += ' data-chem-obj="url(#%s)" data-predefined-setting="static" data-autofit="true" > </span> </td> \n' % moleculename
+   else:
+      kekule += "   <td>" + moleculename + "</td>\n"
+   if (chargelabel!=''): kekule += "   <td>" + chargelabel + "</td>\n"
+
+kekule += "</tr> </table> </center> </font>\n"
+kekule += "<pre style=\"font-size:1.0em;color:black\">\n"
+print "KEKULE:: "+ kekule + " ::KEKULE"
+
+#mrxn = ""
+#for tag in mtags:
+#   moleculename = tag[0]
+#   label = tag[1]
+#   chargelabel = tag[2]
+#   sz = tag[3]
+#   if (label!=''): mrxn += " " + label  
+#   mrxn += " " + moleculename 
+#   if (chargelabel!=''): mrxn += " " + chargelabel 
+#print "MFORMULA_RXN:: "+ mrxn.replace("&nbsp;","") + " ::MFORMULA_RXN"
+
+### remove temporary images ###
+try:
+   os.unlink(wrkdir + "/" + tmpxyz)
+except:
+   print "chemdb_reaction_kekule Failed to remove " + wrkdir + "/" + tmpxyz
+
+
+
+
+

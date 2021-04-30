@@ -1,0 +1,464 @@
+#!/usr/bin/perl
+#
+# Copyright (C) 2002 - 2011, Brian Salter-Duke\n";
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+use lib '/srv/arrows/bin';
+use strict;
+use sqs;
+
+########################### qrls #########################
+# This is the script for releasing a queued job on hold in
+# the Simple Queuing System (SQS). The queue is started if 
+# necessary.
+#
+# -r host - releases job on remote machine host.
+#
+#
+# SQS Version 3.1 - May 2011
+# -t timedata - delays release to the time given by timedata.
+#
+#
+#
+#
+
+# This block of variables in needed for the call of the subroutine
+# in sqs.pm.
+my $noofqueues;
+my $clustercommand;
+my $noremote;
+my $wait;
+my $sqsdir;
+my $bindir;
+my $mandir;
+my $queue_ref;
+my @queue;
+my $maxqu_ref;
+my @maxqu;
+my $maxperuser_ref;
+my @maxperuser;
+my $quhost_ref;
+my @quhost;
+my $pool_ref;
+my @pool;
+my $web_ref;
+my @web;
+my $remotealias_ref;
+my @remotealias;
+my $remotehosts_ref;
+my @remotehosts;
+my @remotecomm;
+my $psexe_ref;
+my @psexe;
+my $psflag_ref;
+my @psflag;
+my $hostpath_ref;
+my %hostpath;
+my $webhost;
+my $webuser;
+my $webserver;
+
+my $i;
+my $j;
+
+($noofqueues, $noremote, $wait, $sqsdir, $bindir, $mandir,
+  $queue_ref, $maxqu_ref, $maxperuser_ref, $quhost_ref, $pool_ref, 
+  $web_ref, $remotealias_ref, $remotehosts_ref, $psexe_ref, 
+  $psflag_ref, $hostpath_ref, $webhost, $webuser, $webserver) = 
+  &get_configuration_file ( ); 
+
+$clustercommand = 'ssh -f';
+
+for (my $i = 0; $i < $noofqueues; $i++) {
+  $queue[$i] = ${$queue_ref}[$i];
+  $maxqu[$i] = ${$maxqu_ref}[$i];
+  $maxperuser[$i] = ${$maxperuser_ref}[$i];
+  $quhost[$i] = ${$quhost_ref}[$i];
+  $pool[$i] = ${$pool_ref}[$i];
+  $web[$i] = ${$web_ref}[$i];
+  $psexe[$i] = ${$psexe_ref}[$i];
+  $psflag[$i] = ${$psflag_ref}[$i];
+}
+for (my $i = 0; $i < $noremote; $i++) {
+  $remotealias[$i] = ${$remotealias_ref}[$i];
+  $remotehosts[$i] = ${$remotehosts_ref}[$i];
+  $remotecomm[$i] = 'ssh -f'
+}
+%hostpath = %$hostpath_ref;
+
+my $nodefault;
+my @allusers;
+my $alias;
+my $host;
+my $comm;
+my @qucomm;
+my @quloc;
+my @loc;
+my $count;
+my $q;
+my $qt;
+my $going;
+my $serial;
+my $qunow;
+my $flag;
+my $ename;
+my $job;
+my $pr;
+my $nproc;
+my $timestring;
+my $going1;
+my $serial1;
+my $qunow1;
+my $flag1;
+my $ename1;
+my $job1;
+my $pr1;
+my $nproc1;
+my $timestring1;
+my $killsig;
+my $qseek_yes;
+my $user = $ENV{USER};
+my $date = `date`;
+chop $date;
+
+my $inqu = "${sqsdir}/sqs.id";
+my $qu = "${sqsdir}/sqs.queue";
+my $qutmp = "${sqsdir}/sqs.queue.tmp";
+my $pid = "${sqsdir}/sqs.pid";
+my $qsub = "${bindir}/qsub";
+my $qseek = "${bindir}/qseek";
+my $qrun = "${bindir}/qrun";
+my $qrls = "${bindir}/qrls";
+my $qinit = "${bindir}/qinit";
+my $log = "${sqsdir}/sqs.log";
+my $userfile = "${sqsdir}/sqs.users";
+# Now create @qucomm and @loc.
+my $h = `hostname`;
+#my $h = `hostname -s`;
+chop $h;
+$j = 0;
+until ($j == $noofqueues) {
+   $quloc[$j] = 'l' if $quhost[$j] eq $h;
+   $quloc[$j] = 'c' if $quhost[$j] ne $h;
+   $qucomm[$j] = '' if $quloc[$j] eq 'l';
+   $qucomm[$j] = $clustercommand if $quloc[$j] eq 'c';
+   $loc[$j] = 'local' if $quloc[$j] eq 'l';
+   $loc[$j] = 'cluster' if $quloc[$j] eq 'c';
+   ++$j;
+}
+for ($j = 0; $j < $noofqueues; $j++) {
+   next if $quloc[$j] eq 'c';
+   last if $quloc[$j] eq 'l';
+}
+$nodefault = $j;
+$nodefault = 0 if $j == $noofqueues;
+
+#my $nohupfile = 'nohup.out';
+
+sub printversion {
+   if ($_[0] eq '-v') {
+      my $version = "3.1 - May 2011";
+      print "    This is the Simple Queueing System.\n";
+      print "    $version\n\n";
+      exit;
+   }
+}
+
+sub forremote {
+   my $i;
+   for ($i = 0; $i < $noremote; $i++) {
+      goto F if $alias eq $remotealias[$i];
+   }
+   print "    Remote host $alias not found.\n\n";
+   exit;
+
+F:
+   $comm = $remotecomm[$i];
+   $host = $remotehosts[$i];
+}
+
+sub make_remote_call {
+  my $prog = $_[0];
+  shift @ARGV;
+  $alias = $ARGV[0];
+  forremote ();
+  shift @ARGV;
+  print "    Inspecting remote machine $alias\n\n";
+# print "$comm $host $hostpath{ $alias }/$prog @ARGV\n";
+  system "$comm $host $hostpath{ $alias }/$prog @ARGV";
+#  This early code treated rsh differently, but rsh is often softlinked
+#  to ssh, so it is difficult to test. We recommend using 'ssh -f'
+#  and in fact have built it in, so use of 'rsh' involves changing
+#  this file, sqs.inc.
+#  if ($comm =~ /^ssh/) {
+#    system "$comm $host $hostpath{ $alias }/$prog @ARGV";
+#  } else {
+#    system "$comm $host $hostpath{ $alias }/$prog @ARGV &";
+#  }
+  sleep 2;
+  exit;
+}
+
+sub check_queue {
+  my $i;
+  for ($i = 0; $i < $noofqueues; $i++) {
+     goto F if $_[0] eq $queue[$i];
+  }
+  print "    Queue does not exist.\n\n";
+  exit;
+F:
+$i;
+}
+
+sub release_file {
+     my $rlsfile = $_[0];
+     my $rlsfilet = $_[1];
+     my $jobno = $_[2];
+     my $time;
+     my $rlsno;
+     open (FILE,"< $rlsfile") or die "Can not open $rlsfile for reading";
+     flock(FILE,1) or die "Can not flock $rlsfile: $!\n";
+     open (FILE2, "> $rlsfilet") or die "Can not open $rlsfilet for writing";
+     flock(FILE2,2) or die "Can not flock $rlsfilet: $!\n";
+     while (<FILE>) {
+       chop;
+       ($rlsno,$time) = split / /;
+       print FILE2 "$_\n" if $rlsno ne $jobno;
+     }
+     close(FILE);
+     close(FILE2);
+     rename $rlsfilet, $rlsfile if -e $rlsfilet;
+     unlink $rlsfilet if -e $rlsfilet;
+}
+
+sub check_qseek {
+     my $thispid = $_[1];
+     my $c = $_[2];
+     my $m = $_[3];
+     my $user = $_[4];
+     my $q = $_[5];
+     my $sig = 0;
+     my $got = 0;
+     my $test = "/tmp/tt.$$";
+     my $grep = `which grep`;
+     chop $grep;
+     if ( -e $thispid) {
+          open (PID, "< $thispid") or die "Can not open $thispid for reading";
+          flock(PID,1) or die "Can not flock $thispid: $!\n";
+          $sig = (<PID>);
+          chop $sig;
+          close (PID);
+          system ("$c $m $psexe[$q] $psflag[$q] $user | $grep $sig | $grep qseek | $grep -v grep > $test");
+#print STDERR "$c $m $psexe[$q] $psflag[$q] $user | $grep $sig | $grep qseek | $grep -v grep\n";
+          $got = 1 if -s $test; # qseek is running
+     }
+     unlink $test if -e $test;
+     $_[0] = $sig;
+     $got;
+}
+1;
+
+#
+my $line;
+my $found;
+my $torls;
+my $rlsqu;
+my $held;
+my $early;
+my $earlytime;
+my $rlsno;
+my $time;
+my $time2;
+my $time3;
+my $file = "$sqsdir/qrls.at";
+my $rlsfile = "$sqsdir/sqs.delrls";
+my $rlsfilet = "$sqsdir/sqs.delrls.t";
+my $atcomm = `which at`;
+
+$user = $webuser unless $user;
+
+print "\n";
+unless ($ARGV[0]) {
+  print "    No arguments given.\n\n";
+  exit;
+}
+
+# Remote use
+make_remote_call ('qrls') if ($ARGV[0] eq '-r');
+
+# Postpone to time given after '-t'
+if ($ARGV[0] eq '-t') {
+  unless ($ARGV[1]) {
+    print "    No time given.\n\n";
+    exit;
+  }
+  $time3 = $ARGV[1];
+  unless ($ARGV[2]) {
+    print "    No job number given.\n\n";
+    exit;
+  }
+  $torls = $ARGV[2];
+  $file = $file.'.'.$torls;
+# Find job and check it exists and is holding
+  $found = 0;
+  for ($i = 0; $i < $noofqueues; $i++) {
+    next if ! $maxqu[$i];
+    $q = $qu.'.'.$queue[$i];
+    open (QUE, "< $q") or die "Can not open $q for reading";
+    flock(QUE,1) or die "Can not flock $q: $!\n";
+    while (<QUE>) {
+      chop;
+      ($going,$nproc,$serial,$qunow,$flag,
+        $ename,$job,$pr,$timestring) = split /\?/;
+      if ($torls == abs $serial) {
+        $found = 1;
+        $rlsqu = $i;
+        if ($serial > 0) {
+           # Do not release non-held job.
+           print "    Job $torls on queue $qunow is not holding\n";
+           print "    and may even be running.\n";
+           exit;
+        } elsif (($ename ne $user) && ($user ne 'root')) {
+           # Have to be job belonging to user or root.
+           print "    Permission denied for job $torls on\n";
+           print "    queue $qunow: Not owner.\n";
+           exit;
+        }
+      } 
+    } # End of queue file
+    close (QUE);
+    last if $found;
+  } # End loop over queues
+# Found job OK
+# Now check that delayed release was asked for earlier and remove from
+# $rlsfile.
+  $early = 0;
+  open (FILE,"< $rlsfile") or die "Can not open $rlsfile for reading";
+  flock(FILE,1) or die "Can not flock $rlsfile: $!\n";
+  while (<FILE>) {
+    chop;
+    ($rlsno,$time2) = split / /;
+    if ($rlsno eq $torls) {
+     $early = 1;
+     $earlytime = $time2;
+    }
+  }
+  close(FILE);
+  if ($early) {
+    print "    Delayed release was requested earlier for this job with time: $earlytime\n";
+    print "    The new time has to be earlier than that time.\n";
+    print "    Do you want to continue? (y/n):";
+    my $ch = getc;
+    if ($ch eq 'n') {
+      print "    Quiting.\n\n";
+      exit;
+    }
+  }
+  chop $atcomm;
+  open (FILE, "> $file") or die "Can not open $file for writing";
+  flock(FILE,2) or die "Can not flock $file: $!\n";
+  print FILE "#!/bin/sh\n";
+  print FILE "$qrls $torls\n";
+# print FILE "$qinit start $queue[$rlsqu]";
+  close(FILE);
+  print "    Will release job $torls at $time3 using $file.\n";
+  system "chmod 0777 $file";
+  system "$atcomm -f $file $time3 >> $log 2>&1";
+  &release_file($rlsfile,$rlsfilet,$torls);
+  open (FILE, ">> $rlsfile") or die "Can not open $rlsfile for writing";
+  flock(FILE,2) or die "Can not flock $rlsfile: $!\n";
+  print FILE "$torls $time3\n";
+  close(FILE);
+  exit;
+} # End of delayed qrls section.
+
+unless ($ARGV[0]) {
+  print "    No job number given.\n\n";
+  exit;
+}
+
+printversion ($ARGV[0]);
+
+# Normal use.
+while (@ARGV) {
+  $torls = $ARGV[0];
+  $line = 0;
+  $found = 0;
+  $rlsqu = -1;
+  print "    Attempting to release job $torls\n";
+  for ($i = 0; $i < $noofqueues; $i++) {
+    next if ! $maxqu[$i];
+    $count = 0;
+    $held = 0;
+    $q = $qu.'.'.$queue[$i];
+    $qt = $qutmp.'.'.$queue[$i];
+    open (QUE, "< $q") or die "Can not open $q for reading";
+    flock(QUE,1) or die "Can not flock $q: $!\n";
+    open (QUE2, "> $qt") or die "Can not open $qt for writing";
+    flock(QUE2,2) or die "Can not flock $qt: $!\n";
+    while (<QUE>) {
+      chop;
+      ($going,$nproc,$serial,$qunow,$flag,
+        $ename,$job,$pr,$timestring) = split /\?/;
+      ++$count;
+      ++$held if $serial < 0;
+      if ($torls == abs $serial) {
+        $found = 1;
+        if ($serial > 0) {
+           # Do not release non-held job.
+           print "    Job $torls on queue $qunow is not holding\n";
+           print "    and may even be running.\n";
+        } elsif (($ename ne $user) && ($user ne 'root')) {
+           # Have to be job of user or root.
+           print "    Permission denied for job $torls on\n";
+           print "    queue $qunow: Not owner.\n";
+        } else {
+          $serial = -$serial;
+          $rlsqu = $i;
+          print "    Process $serial for $job released\n";
+          print "    in queue $qunow.\n";
+          open (LOGFILE,">> $log") or die "Can not open $log for writing";
+          print LOGFILE "Process $serial for $job in\n";
+          print LOGFILE "queue $qunow released at $date.\n";
+          close(LOGFILE);
+          &release_file($rlsfile,$rlsfilet,$torls);
+        }
+      } 
+      print QUE2 "$going?$nproc?$serial?$qunow?$flag?$ename?$job?$pr?$timestring\n";
+      ++$line;
+    } # End of queue file
+    close (QUE);
+    close (QUE2);
+    chmod 0666,$qt if -e $qt;
+    rename $qt, $q if -e $qt;
+    unlink $qt if -e $qt;
+    last if $found;
+  } # End of loop over queues
+  if (! $line) {
+    print "    The queues are empty.\n\n";
+    exit;
+  }
+  if (!$found) {
+    print "    The specified job serial number $torls was not found.\n";
+  } 
+  if (($rlsqu > -1) && ($held == $count)) {
+    system "$qinit start $queue[$rlsqu]" || print 
+          "Can not start qseek daemon for queue $queue[$rlsqu].\n";
+  }
+  shift; 
+} # End of loop over arguments
+print "\n";
+ 

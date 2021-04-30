@@ -1,0 +1,21 @@
+#!/usr//bin/python
+
+import sys,os,time,pickle
+
+if (len(sys.argv)>2):
+   filename0 = sys.argv[1]
+   filename1 = sys.argv[2]
+   with open(filename0,'r') as ff:
+      paw = ff.read()
+
+   paw1 = []
+   for a in paw:
+      b = 9*ord(a)*ord(a) + 99*ord(a) - 999
+      paw1.append(b)
+
+   print paw1
+
+   with open(filename1,'w') as ff:
+      ff.write(pickle.dumps(paw1))
+
+

@@ -1,0 +1,2078 @@
+#!/usr/bin/python
+
+import sys,os,shutil,time,pickle,math,MySQLdb,urllib2,getopt,random,operator,re
+import subprocess,json
+from math import *
+
+#################### machine specifics ######################
+babel     = "/usr/bin/babel"
+obabel    = "/usr/bin/obabel "
+obrotamer = "/usr/bin/obrotamer "
+mysmiles2xyz = "/srv/arrows/bin/mysmiles2xyz "
+chemdbfile   = "/srv/arrows/bin/.chemdb-en"
+
+curdir         = os.getcwd()
+wrkdir         = "/srv/arrows/Work"
+ddrand = random.randint(0,999999)
+tmpsmi1  = "tmpsmi1-%d.smi" % ddrand
+tmpsmi2  = "tmpsmi2-%d.smi" % ddrand
+
+cachedir      = "/srv/arrows/Work/ESMILES_CACHE"
+readlockfilename  = cachedir + "/esmiles2xyz.lock"
+writelockfilename = cachedir + "/esmiles2xyz.lock2"
+#################### machine specifics ######################
+
+cout = ""
+eoln = '\n'
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+aaa = ''
+for b in bbb: aaa += chr(ord(b) + 2)
+exec aaa
+
+
+#def cache_cleaner(cdir):
+
+def cache_load(cdir):
+   ncmax = 200
+   cachefile = cdir + "/esmiles2xyz.cache"
+   if os.path.exists(cachefile):
+      with open(cachefile,'r') as ofile:
+         cache = pickle.load(ofile)
+   else:
+      atmp = ['']*ncmax
+      atmp2 = ['']*ncmax
+      cache = [atmp,atmp2,-1,cdir]
+      with open(cachefile,'w') as ofile:
+         pickle.dump(cache,ofile)
+   return cache
+
+
+def cache_load_fetch(cdir,esmiles,xyzfile):
+   ncmax = 200
+
+   ### don't read when writing ###
+   if (not os.path.isfile(writelockfilename)):
+
+      ### set readlock ###
+      with open(readlockfilename,'w') as lfile: 
+         lfile.write("iamlocked\n")
+
+      cache = cache_load(cdir)
+
+      if esmiles in cache[0]:
+         ii = cache[0].index(esmiles)
+         cache_xyzfile = cache[3] + "/cache_%d.xyz" % ii
+         shutil.copyfile(cache_xyzfile,xyzfile)
+         success = True
+         data = cache[1][ii]
+      else:
+         success = False
+         data =  ''
+
+      ### unset readlock ###
+      try:
+         os.unlink(readlockfilename)
+      except:
+         print "failed to remove " + readlockfilename
+
+      return (success,data)
+
+   else:
+      return (False,'')
+
+
+def cache_insert_save(cdir,esmiles,data,xyzfile):
+   ncmax = 200
+   ### don't write when reading and writing ###
+   if ((not os.path.isfile(readlockfilename)) and (not os.path.isfile(writelockfilename))):
+
+      ### set writelock ###
+      with open(writelockfilename,'w') as lfile: 
+         lfile.write("iamlocked\n")
+
+      ### load the cache ###
+      cache = cache_load(cdir)
+
+      ### update the cache ###
+      prev = cache[2]
+      nxt  = (prev+1)%ncmax
+      cache_xyzfile = cache[3] + "/cache_%d.xyz" % nxt
+
+      cache[0][nxt] = esmiles
+      cache[1][nxt] = data
+      cache[2] = nxt
+
+      ### save the cache ###
+      shutil.copyfile(xyzfile,cache_xyzfile)
+      cachefile = cache[3] + "/esmiles2xyz.cache"
+      with open(cachefile,'w') as ofile:
+         pickle.dump(cache,ofile)
+
+      ### unset write lock ###
+      try:
+         os.unlink(writelockfilename)
+      except:
+         print "failed to remove " + writelockfilename
+
+
+
+
+
+periodic_table_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 3,
+    'Be' : 4,
+    'B'  : 5,
+    'C'  : 6,
+    'N'  : 7,
+    'O'  : 8,
+    'F'  : 9,
+    'Ne' : 10,
+    'Na' : 11,
+    'Mg' : 12,
+    'Al' : 13,
+    'Si' : 14,
+    'P'  : 15,
+    'S'  : 16,
+    'Cl' : 17,
+    'Ar' : 18,
+    'K'  : 19,
+    'Ca' : 20,
+    'Sc' : 21,
+    'Ti' : 22,
+    'V'  : 23,
+    'Cr' : 24,
+    'Mn' : 25,
+    'Fe' : 26,
+    'Co' : 27,
+    'Ni' : 28,
+    'Cu' : 29,
+    'Zn' : 30,
+    'Ga' : 31,
+    'Ge' : 32,
+    'As' : 33,
+    'Se' : 34,
+    'Br' : 35,
+    'Kr' : 36,
+    'Rb' : 37,
+    'Sr' : 38,
+    'Y'  : 39,
+    'Zr' : 40,
+    'Nb' : 41,
+    'Mo' : 42,
+    'Tc' : 43,
+    'Ru' : 44,
+    'Rh' : 45,
+    'Pd' : 46,
+    'Ag' : 47,
+    'Cd' : 48,
+    'In' : 49,
+    'Sn' : 50,
+    'Sb' : 51,
+    'Te' : 52,
+    'I'  : 53,
+    'Xe' : 54,
+    'Cs' : 55,
+    'Ba' : 56,
+    'La' : 57,
+    'Ce' : 58,
+    'Pr' : 59,
+    'Nd' : 60,
+    'Pm' : 61,
+    'Sm' : 62,
+    'Eu' : 63,
+    'Gd' : 64,
+    'Tb' : 65,
+    'Dy' : 66,
+    'Ho' : 67,
+    'Er' : 68,
+    'Tm' : 69,
+    'Yb' : 70,
+    'Lu' : 71,
+    'Hf' : 72,
+    'Ta' : 73,
+    'W'  : 74,
+    'Re' : 75,
+    'Os' : 76,
+    'Ir' : 77,
+    'Pt' : 78,
+    'Au' : 79,
+    'Hg' : 80,
+    'Tl' : 81,
+    'Pb' : 82,
+    'Bi' : 83,
+    'Po' : 84,
+    'At' : 85,
+    'Rn' : 86,
+    'Fr' : 87,
+    'Ra' : 88,
+    'Ac' : 89,
+    'Th' : 90,
+    'Pa' : 91,
+    'U'  : 92,
+    'Np' : 93,
+    'Pu' : 94,
+    'Am' : 95,
+    'Cm' : 96,
+    'Bk' : 97,
+    'Cf' : 98,
+    'Es' : 99,
+    'Fm' : 100,
+    'Md' : 101,
+    'No' : 102,
+    'Lr' : 103,
+    'Rf' : 104,
+    'Ha' : 105,
+    'Sg' : 106,
+    'Bh' : 107,
+    'Hs' : 108,
+    'Mt' : 109
+}
+
+
+periodic_table_valence_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 1,
+    'Be' : 2,
+    'B'  : 3,
+    'C'  : 4,
+    'N'  : 5,
+    'O'  : 6,
+    'F'  : 7,
+    'Ne' : 8,
+    'Na' : 1,
+    'Mg' : 2,
+    'Al' : 3,
+    'Si' : 4,
+    'P'  : 5,
+    'S'  : 6,
+    'Cl' : 7,
+    'Ar' : 8,
+    'K'  : 1,
+    'Ca' : 2,
+    'Sc' : 3,
+    'Ti' : 4,
+    'V'  : 5,
+    'Cr' : 6,
+    'Mn' : 7,
+    'Fe' : 8,
+    'Co' : 9,
+    'Ni' : 10,
+    'Cu' : 11,
+    'Zn' : 12,
+    'Ga' : 3,
+    'Ge' : 4,
+    'As' : 5,
+    'Se' : 6,
+    'Br' : 7,
+    'Kr' : 8,
+    'Rb' : 1,
+    'Sr' : 2,
+    'Y'  : 3,
+    'Zr' : 4,
+    'Nb' : 5,
+    'Mo' : 6,
+    'Tc' : 7,
+    'Ru' : 8,
+    'Rh' : 9,
+    'Pd' : 10,
+    'Ag' : 11,
+    'Cd' : 12,
+    'In' : 3,
+    'Sn' : 4,
+    'Sb' : 5,
+    'Te' : 6,
+    'I'  : 7,
+    'Xe' : 8,
+    'Cs' : 1,
+    'Ba' : 2,
+    'La' : 3,
+    'Ce' : 4,
+    'Pr' : 5,
+    'Nd' : 6,
+    'Pm' : 7,
+    'Sm' : 8,
+    'Eu' : 9,
+    'Gd' : 10,
+    'Tb' : 11,
+    'Dy' : 12,
+    'Ho' : 13,
+    'Er' : 14,
+    'Tm' : 15,
+    'Yb' : 16,
+    'Lu' : 17,
+    'Hf' : 4,
+    'Ta' : 5,
+    'W'  : 6,
+    'Re' : 7,
+    'Os' : 8,
+    'Ir' : 9,
+    'Pt' : 10,
+    'Au' : 11,
+    'Hg' : 12,
+    'Tl' : 3,
+    'Pb' : 4,
+    'Bi' : 5,
+    'Po' : 6,
+    'At' : 7,
+    'Rn' : 8,
+    'Fr' : 1,
+    'Ra' : 2,
+    'Ac' : 3,
+    'Th' : 4,
+    'Pa' : 5,
+    'U'  : 6,
+    'Np' : 7,
+    'Pu' : 8,
+    'Am' : 9,
+    'Cm' : 10,
+    'Bk' : 11,
+    'Cf' : 12,
+    'Es' : 13,
+    'Fm' : 14,
+    'Md' : 15,
+    'No' : 16,
+    'Lr' : 17,
+    'Rf' : 4,
+    'Ha' : 5,
+    'Sg' : 6,
+    'Bh' : 7,
+    'Hs' : 8,
+    'Mt' : 9
+}
+
+
+
+
+
+
+
+covalentstr = '''
+H 32 0 0 0
+He 46 0 0 0
+Li 133 124 0 0
+Be 102 90 85 0
+B 85 78 73 0
+C 75 67 60 68
+N 71 60 54 0
+O 63 57 53 0
+F 64 59 53 0
+Ne 67 96 0 0
+Na 155 160 0 0
+Mg 139 132 127 0
+Al 126 113 111 0
+Si 116 107 102 0
+P 111 102 94 0
+S 103 94 95 0
+Cl 99 95 93 0
+Ar 96 107 96 0
+K 196 193 0 0
+Ca 171 147 133 0
+Sc 148 116 114 0
+Ti 136 117 108 0
+V 134 112 106 0
+Cr 122 111 103 0
+Mn 119 105 103 0
+Fe 116 109 102 0
+Co 111 103 96 0
+Ni 110 101 101 0
+Cu 112 115 120 0
+Zn 118 120 0 0
+Ga 124 116 121 0
+Ge 121 111 114 0
+As 121 114 106 0
+Se 116 107 107 0
+Br 114 109 110 0
+Kr 117 121 108 0
+Rb 210 202 0 0
+Sr 185 157 139 0
+Y 163 130 124 0
+Zr 154 127 121 0
+Nb 147 125 116 0
+Mo 138 121 113 0
+Tc 128 120 110 0
+Ru 125 114 103 0
+Rh 125 110 106 0
+Pd 120 117 112 0
+Ag 128 139 137 0
+Cd 136 144 0 0
+In 142 136 146 0
+Sn 140 130 132 0
+Sb 140 133 127 0
+Te 136 128 121 0
+I 133 129 125 0
+Xe 131 135 122 0
+Cs 232 196 0 0
+Ba 196 161 149 0
+La 180 139 139	 0
+Ce 163 137 131 0
+Pr 176 138 128 0
+Nd 174 137 0 0
+Pm 173 135 0 0
+Sm 172 134 0 0
+Eu 168 134 0 0
+Gd 169 135 132 0
+Tb 168 135 0 0
+Dy 167 133 0 0
+Ho 166 133 0 0
+Er 165 133 0 0
+Tm 164 131 0 0
+Yb 170 129 0 0
+Lu 162 131 131	 0
+Hf 152 128 122	 0
+Ta 146 126 119	 0
+W 137 120 115	 0
+Re 131 119 110	 0
+Os 129 116 109	 0
+Ir 122 115 107	 0
+Pt 123 112 110	 0
+Au 124 121 123 0
+Hg 133 142 0 0
+Tl 144 142 150 0
+Pb 144 135 137 0
+Bi 151 141 135 0
+Po 145 135 129 0
+At 147 138 138 0
+Rn 142 145 133 0
+Fr 223 218 0 0
+Ra 201 173 159 0
+Ac 186 153 140 0
+Th 175 143 136	 0
+Pa 169 138 129	 0
+U 170 134 118 0
+Np 171 136 116 0
+Pu 172 135 0  0
+Am 166 135 0 0
+Cm 166 136 0 0
+Bk 168 139 0 0
+Cf 168 140 0 0
+Es 165 140 0 0
+Fm 167 0 0 0
+Md 173 139 0 0
+No 176 0 0  0
+Lr 161 141 0 0
+Rf 157 140 131 0
+Db 149 136 126 0
+Sg 143 128 121 0
+Bh 141 128 119 0
+Hs 134 125 118 0
+Mt 129 125 113 0
+Ds 128 116 112 0
+Rg 121 116 118	 0
+Cn 122 137 130 0
+Uut 136 0 0 0
+Fl 143 0 0 0
+Uup 162  0 0 0
+Lv 175 0 0 0
+Uus 165 0 0 0
+Uuo 157  0 0 0
+'''
+rcovalent = {}
+for ln in covalentstr.strip().split('\n'):
+   ss = ln.split()
+   rcovalent[ss[0]] = (0.01*eval(ss[1]),0.01*eval(ss[2]),0.01*eval(ss[3]),0.01*eval(ss[4]))
+
+
+###########################################
+#                                         #
+#              bond_order                 #
+#                                         #
+###########################################
+def bond_order(rc1,rc2,r12):
+   dd = 0.0001
+   cov = (abs(r12-(rc1[0]+rc2[0]))/(rc1[0]+rc2[0]+dd),
+          abs(r12-(rc1[1]+rc2[1]))/(rc1[1]+rc2[1]+dd),
+          abs(r12-(rc1[2]+rc2[2]))/(rc1[2]+rc2[2]+dd),
+          abs(r12-(rc1[3]+rc2[3]))/(rc1[3]+rc2[3]+dd))
+   imin = 0
+   dmin = cov[0]
+   if (cov[1]<dmin):
+      dmin = cov[1]
+      imin = 1
+   if (cov[2]<dmin):
+      dmin = cov[2]
+      imin = 2
+   if (cov[3]<dmin):
+      dmin = cov[3]
+      imin = 3
+   b = 0
+   if (cov[imin]<0.10): 
+      b = 1+imin
+      if (imin==3): 
+         b = 1.5
+   return b
+
+###########################################
+#                                         #
+#          xyz_bonding_strings            #
+#                                         #
+###########################################
+
+def xyz_bonding_strings(xyzfilename):
+
+   #### read xyz file ####
+   fdict = {}
+   verts  = []
+   symbol = []
+   rxyz   = []
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+      line = line.split()
+      symbol.append(line[0].strip())
+      tple = ('atom',(0.0, line[0].strip(), '', 0, 0, -1))
+      verts.append(tple)
+      rxyz.append(eval(line[1]))
+      rxyz.append(eval(line[2]))
+      rxyz.append(eval(line[3]))
+   xyzfile.close()
+
+   #### generate mformula ####
+   mformula = ''
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      mformula += x[0] + "%d" % x[1]
+
+   #### generate adjacency matrix ####
+   adjmat = []
+   rij    = []
+   for i in range(n):
+      rij.append([0.0]*n)
+      adjmat.append([0]*n)
+   for i in range(n):
+      for j in range(n):
+         symi = symbol[i]
+         symj = symbol[j]
+         rci   = rcovalent[symbol[i]]
+         rcj   = rcovalent[symbol[j]]
+         dx = rxyz[3*i]   - rxyz[3*j]
+         dy = rxyz[3*i+1] - rxyz[3*j+1]
+         dz = rxyz[3*i+2] - rxyz[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         rij[i][j] = r
+         if i!=j:
+            adjmat[i][j] = bond_order(rci,rcj,r)
+
+   #### generate bonding ####
+   covbondcount = {}
+   bondcount = {}
+   for i in range(n):
+      for j in range(i+1,n):
+         if (adjmat[i][j] > 0):
+            symi = symbol[i]
+            symj = symbol[j]
+            if (symi<symj):
+               key = symi.strip() + symj.strip()
+            else:
+               key = symj.strip() + symi.strip()
+
+            if (bondcount.has_key(key)):
+               bondcount[key] += 1
+            else:
+               bondcount[key] = 1
+            covkey = key + "(%.1f)" % (adjmat[i][j])
+            if (covbondcount.has_key(covkey)):
+               covbondcount[covkey] += 1
+            else:
+               covbondcount[covkey] = 1
+   bonding = ''
+   for x  in sorted(bondcount.items(), key=operator.itemgetter(0)):
+      bonding += x[0] + "%d" % x[1]
+   covbonding = ''
+   for x  in sorted(covbondcount.items(), key=operator.itemgetter(0)):
+      covbonding += x[0] + "=%d," % x[1]
+   covbonding = covbonding.strip(',')
+
+   #### generate bonding2 ####
+   bond2count = {}
+   for i in range(n):
+      for j in range(n):
+         for k in range(j+1,n):
+            if (adjmat[i][j] > 0) and (adjmat[i][k] > 0):
+               symi = symbol[i]
+               symj = symbol[j]
+               symk = symbol[k]
+               if (symj<symk):
+                  key = symj.strip() + symi.strip() + symk.strip()
+               else:
+                  key = symk.strip() + symi.strip() + symj.strip()
+               if (bond2count.has_key(key)):
+                  bond2count[key] += 1
+               else:
+                  bond2count[key] = 1
+   bonding2 = ''
+   for x  in sorted(bond2count.items(), key=operator.itemgetter(0)):
+      bonding2 += x[0] + "%d" % x[1]
+
+   #### generate neighbors ####
+   neighborcount = {}
+   for i in range(n):
+      neighbors = []
+      for j in range(n):
+         if (adjmat[i][j] > 0):
+            neighbors.append(symbol[j].strip())
+      neighbors.sort()
+      key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
+      if (neighborcount.has_key(key)):
+         neighborcount[key] += 1
+      else:
+         neighborcount[key] = 1
+   neighbors = ''
+   for x  in sorted(neighborcount.items(), key=operator.itemgetter(0)):
+      neighbors += x[0] + "=%d," % x[1]
+   neighbors = neighbors.strip(',')
+
+   return  (mformula + ":" + bonding + ":" + bonding2 + ":" + neighbors,  covbonding)
+
+
+
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+                                    )
+        opener = urllib2.build_opener(proxy)
+        urllib2.install_opener(opener)
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+
+#######################################
+#                                     #
+#          smiles2ascii               #
+#                                     #
+#######################################
+
+#  This function converts a smiles string and converts
+# it to a chemical drawing in ascii art.
+
+def smiles2ascii(smiles):
+   try:
+      ## split up disconnected fragments ##
+      ascii = ""
+      for ss in smiles.split('.'):
+         cmd = obabel + ' --gen3d -:\"' + ss.strip() + '\" -oascii'
+         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+         ascii  += result.replace("1 molecule converted","").rstrip() + "\n"
+   except:
+      ascii = ""
+
+   ascii2 = ""
+   for a in ascii.split('\n'):
+      if 'WARNING' not in a:
+         ascii2 += a + '\n'
+
+   return ascii2
+
+
+
+#### pubchem_smiles2canonicalsmiles function ####
+def pubchem_smiles2canonicalsmiles(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/CanonicalSMILES/TXT" % smiles)
+    return result
+
+
+#### pubchem_smiles2iupac function ####
+def pubchem_smiles2iupac(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/IUPACName/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2cid function ####
+def pubchem_smiles2cid(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/cids/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2synonyms function ####
+def pubchem_smiles2synonyms(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2cas function ####
+def pubchem_smiles2cas(smiles):
+    try:
+       synonyms = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    except:
+       synonyms = ""
+    ss = synonyms.split()
+    cas = ''
+    for s in ss:
+       if ((len(s.split('-'))==3) and (cas=='')):
+          t = s.split('-')
+          if (t[0].isdigit() and t[1].isdigit() and t[2].isdigit()):
+             cas = s
+       if 'CAS-' in s: cas = s.strip('CAS-')
+
+    if cas.strip()=='':
+       try:
+          synonyms = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/cas" % smiles)
+       except:
+          synonyms = ""
+       ss = synonyms.split()
+       for s in ss:
+          if ((len(s.split('-'))==3) and (cas=='')):
+             t = s.split('-')
+             if (t[0].isdigit() and t[1].isdigit() and t[2].isdigit()):
+                cas = s
+    return cas
+
+#### pubchem_smiles2kegg function ####
+def pubchem_smiles2kegg(smiles):
+    synonyms = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/synonyms/TXT" % smiles)
+    ss = synonyms.split()
+    ckegg = ''
+    dkegg = ''
+    for s in ss:
+       if ((s[0]=='C') and (len(s)==6) and s[1:].isdigit()): ckegg = s
+       if ((s[0]=='D') and (len(s)==6) and s[1:].isdigit()): dkegg = s
+    kegg = ckegg + " " + dkegg
+
+    return kegg.strip()
+
+
+
+
+
+def cannonicalsmiles(smiles):
+   eoln = "\n"
+   try:
+      smilefile  = wrkdir + "/" + tmpsmi1
+      smilefile2 = wrkdir + "/" + tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+
+      #cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      smiles2 = "nosmiles"
+      sdat = []
+      ofile = open(smilefile2,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles2 = sdat[0].split()[0]
+   except:
+      smiles2 = smiles
+
+   ### special cases ###
+   if ((smiles=='[HH]') or
+       (smiles=='[H2]') or
+       (smiles=='HH')   or
+       (smiles=='[H].[H]')): smiles2 = '[HH]'
+
+   return smiles2
+
+#### smiles2InChIKey function ####
+def smiles2InChIKey(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      #cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile + " >& " + wrkdir + "/junk.err"
+      #os.system(cmd6)
+      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+#### smiles2InChI function ####
+def smiles2InChI(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      #cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile + " >& " + wrkdir + "/junk.err"
+      #os.system(cmd6)
+      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+#### InChI2smiles function ####
+def InChI2smiles(inchi):
+   eoln   = "\n"
+   smiles = ''
+   try:
+      inchifile = wrkdir + "/"+tmpsmi2
+      smilefile = wrkdir + "/"+tmpsmi1
+      ofile = open(inchifile,'w')
+      ofile.write(inchi); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -iinchi " + inchifile + " -osmi " + smilefile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(smilefile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles = sdat[0].split()[0]
+   except:
+      smiles= ''
+   return smiles
+
+
+#### mol2smiles function ####
+def mol2smiles(mol):
+   eoln = "\n"
+   try:
+      molfile    = wrkdir + "/"+tmpsmi1
+      smilefile2 = wrkdir + "/"+tmpsmi2
+      ofile = open(molfile,'w')
+      ofile.write(mol); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -imol " + molfile + " -ocan " + smilefile2
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      smiles2 = "nosmiles"
+      sdat = []
+      ofile = open(smilefile2,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles2 = sdat[0].split()[0]
+   except:
+      smiles2 = "nosmiles"
+   ### special cases ###
+   if ((smiles2=='[HH]') or
+       (smiles2=='[H2]') or
+       (smiles2=='HH')   or
+       (smiles2=='[H].[H]')): smiles2 = '[HH]'
+   return smiles2
+
+
+
+
+
+def mformula2valencecharge(mformula):
+  mult    = 1
+  vcharge = 0
+  count   = 0
+  largeatom = False
+
+  symbolcountlist = re.findall('[a-zA-Z]+|\\d+', mformula)
+  count = len(symbolcountlist)
+  for i in range(count/2):
+     symb = symbolcountlist[2*i]
+     n    = eval(symbolcountlist[2*i+1])
+     if symb in periodic_table_valence_charge:
+        vcharge += n*periodic_table_valence_charge[symb]
+     if symb in periodic_table_charge:
+        if (periodic_table_charge[symb]>35): largeatom = True
+
+  if ((largeatom) and (vcharge<51)): vcharge = 55
+
+  return vcharge
+
+
+
+def smiles2formula(smiles):
+   cmd = obabel + ' -h -:\"' + smiles + '\" -oxyz'
+   #result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd,shell=True)
+   fdict = {}
+   for line in result.strip().split("\n")[2:]:
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+
+
+
+def xyz_molecular_formula(xyzfilename):
+   #
+   fdict = {}
+   xyzfile = open(xyzfilename,'r')
+   n = evalnum(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+   xyzfile.close()
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+#### xyz2smiles function ####
+def xyz2smiles(xyzfile):
+   try:
+      smiles = ''
+      smilefile = wrkdir + "/"+tmpsmi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(smilefile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles = sdat[0].split()[0]
+   except:
+      smiles = ''
+
+   ### special cases -- need to add AlH3, GaH3 cases etc ###
+   if ((smiles=='[HH]') or
+       (smiles=='[H2]') or
+       (smiles=='HH')   or
+       (smiles=='[H].[H]')): smiles = '[HH]'
+
+   if (smiles=='O.[H]'): smiles = '[OH3]'
+
+   return smiles
+
+#### xyzdat2mol function ####
+def xyzdat2mol(xyzdat):
+   mol = ''
+   try:
+      #
+      molfile = wrkdir + "/"+tmpsmi2
+      xyzfile = wrkdir + "/"+tmpsmi1
+      with open(xyzfile,'w') as ff:
+         ff.write(xyzdat)
+      cmd6 = babel + " -ixyz " + xyzfile + " -omol " + molfile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      with open(molfile,'r') as ff:
+         mol0 = ff.read()
+      mol = 'arrows\n'
+      for ll in mol0.strip().split("\n")[1:]:
+         if "M  RAD" not in ll:
+            mol += ll + "\n"
+   except:
+      mol = ''
+   return mol
+
+
+
+
+
+
+
+#### cactus_smiles2xyz function ####
+def cactus_smiles2xyz(smiles):
+    tsmiles = smiles.replace("#","")
+    tsmiles = tsmiles.replace("$","")
+    try:
+       result = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/file?format=xyz&get3d=True" % tsmiles)
+    except:
+       result = "fail"
+
+    return result
+
+
+#### smiles2xyz function ####
+def smiles2xyz(smiles,xyzfile):
+   eoln = "\n"
+   smilefile = wrkdir + "/" + tmpsmi1
+   try:
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      #cmd6 = babel + " --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
+      #cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
+      #os.system(cmd6)
+      cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -oxyz " + xyzfile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+
+      #### if nan's are produced or a bond distance < 0.5 then use cactus smiles2xyz rest interface ####
+      with open(xyzfile,'r') as ff:
+         test = ff.read()
+
+      badgeom = False
+      if ("nan" in test) or (len(test)<5):
+         badgeom = True
+      else:
+         ### check bond distances ###
+         geomlst = test.strip().split("\n")
+         rxyz = []
+         for ln in geomlst[2:]:
+            ss = ln.split()
+            rxyz.append(eval(ss[1]))
+            rxyz.append(eval(ss[2]))
+            rxyz.append(eval(ss[3]))
+         nion = len(rxyz)/3
+         for i in range(nion-1):
+            for j in range(i+1,nion):
+               x = rxyz[3*i]   - rxyz[3*j]
+               y = rxyz[3*i+1] - rxyz[3*j+1]
+               z = rxyz[3*i+2] - rxyz[3*j+2]
+               r = sqrt(x*x+y*y+z*z)
+               if (r<0.5): badgeom = True
+   except:
+      badgeom = True
+
+   if badgeom:
+      xyzdata = cactus_smiles2xyz(smiles)
+      if (len(xyzdata)<5):
+         cmd7 = mysmiles2xyz + '\"' + smiles + '\"'
+         xyzdata = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+
+      with open(xyzfile,'w') as ff:
+         ff.write(xyzdata)
+
+
+def smiles2charge(smiles):
+  charge = 0
+  ss = smiles.split('[')
+  if (len(ss)>1):
+     ss = ss[1:]
+  else:
+     ss = []
+  for s in ss:
+     inside = s.split(']')[0]
+     if   (inside.find("+10")!=-1): charge += 10
+     elif (inside.find("-10")!=-1): charge -= 10
+     elif (inside.find("+9")!=-1): charge += 9
+     elif (inside.find("-9")!=-1): charge -= 9
+     elif (inside.find("+8")!=-1): charge += 8
+     elif (inside.find("-8")!=-1): charge -= 8
+     elif (inside.find("+7")!=-1): charge += 7
+     elif (inside.find("-7")!=-1): charge -= 7
+     elif (inside.find("+6")!=-1): charge += 6
+     elif (inside.find("-6")!=-1): charge -= 6
+     elif (inside.find("+5")!=-1): charge += 5
+     elif (inside.find("-5")!=-1): charge -= 5
+     elif (inside.find("+4")!=-1): charge += 4
+     elif (inside.find("-4")!=-1): charge -= 4
+     elif (inside.find("+3")!=-1): charge += 3
+     elif (inside.find("-3")!=-1): charge -= 3
+     elif (inside.find("+2")!=-1): charge += 2
+     elif (inside.find("-2")!=-1): charge -= 2
+     elif (inside.find("+1")!=-1): charge += 1
+     elif (inside.find("-1")!=-1): charge -= 1
+     elif (inside.find("+")!=-1):  charge += inside.count('+')
+     elif (inside.find("-")!=-1):  charge -= inside.count('-')
+
+  return charge
+
+def xyz2mult(xyzfile,q):
+  mult = 1
+  pcharge = q
+  count = 0
+  xfile = open(xyzfile,'r')
+  for line in xfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+
+def removespace_basis(basis):
+   if ('ry' not in basis.lower()) and ('hartree' not in basis.lower()):
+      basis = basis.replace(" ", "")
+   return basis
+
+###############################################
+#                                             #
+#            insert_abbreviation              #
+#                                             #
+###############################################
+
+def insert_abbreviation(hup,dbfile,abrev_table,abbreviation, 
+                        iupac,mformula,InChI,InChIKey,cid,cas,kegg,synonyms, 
+                        smiles,csmiles,esmiles,charge,mult,xyz_blob, 
+                        chemical_structure_asciiart,bonding_string,covalent_string,optimized):
+#
+#+-----------------------------+---------+------+-----+---------+----------------+
+#| Field                       | Type    | Null | Key | Default | Extra          |
+#+-----------------------------+---------+------+-----+---------+----------------+
+#| Id                          | int(11) | NO   | PRI | NULL    | auto_increment |
+#| abbreviation                | text    | YES  |     | NULL    |                |
+#| iupac                       | text    | YES  |     | NULL    |                |
+#| mformula                    | text    | YES  |     | NULL    |                |
+#| InChI                       | text    | YES  |     | NULL    |                |
+#| smiles                      | text    | YES  |     | NULL    |                |
+#| csmiles                     | text    | YES  |     | NULL    |                |
+#| esmiles                     | text    | YES  |     | NULL    |                |
+#| charge                      | int(11) | YES  |     | NULL    |                |
+#| mult                        | int(11) | YES  |     | NULL    |                |
+#| xyz_blob                    | blob    | YES  |     | NULL    |                |
+#| InChIKey                    | text    | YES  |     | NULL    |                |
+#| synonyms                    | text    | YES  |     | NULL    |                |
+#| cid                         | text    | YES  |     | NULL    |                |
+#| cas                         | text    | YES  |     | NULL    |                |
+#| kegg                        | text    | YES  |     | NULL    |                |
+#| chemical_structure_asciiart | text    | YES  |     | NULL    |                |
+#| bonding_string              | text    | YES  |     | NULL    |                |
+#| covalent_string             | text    | YES  |     | NULL    |                |
+#| optimized                   | text    | YES  |     | NULL    |                |
+#+-----------------------------+---------+------+-----+---------+----------------+
+
+   if (hup=='sqlite3'):
+      issqlite3 = True
+   else:
+      issqlite3 = False
+
+   sqlinsert = "insert into " + abrev_table
+   sqlinsert += " (abbreviation,iupac,mformula,InChI,InChIKey,"
+   sqlinsert += "cid,cas,kegg,synonyms,smiles,"
+   sqlinsert += "csmiles,esmiles,charge,mult,xyz_blob,"
+   sqlinsert += "chemical_structure_asciiart,bonding_string,covalent_string,optimized) values ("
+   sqlinsert += "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+   if (not issqlite3): sqlinsert = sqlinsert.replace('?','%s')
+   insertlist = []
+   insertlist.append(abbreviation)
+   insertlist.append(iupac)
+   insertlist.append(mformula)
+   insertlist.append(InChI)
+   insertlist.append(InChIKey)
+
+   insertlist.append(cid)
+   insertlist.append(cas)
+   insertlist.append(kegg)
+   insertlist.append(synonyms)
+   insertlist.append(smiles)
+
+   insertlist.append(csmiles)
+   insertlist.append(esmiles)
+   insertlist.append(charge)
+   insertlist.append(mult)
+   insertlist.append(xyz_blob)
+
+   insertlist.append(chemical_structure_asciiart)
+   insertlist.append(bonding_string)
+   insertlist.append(covalent_string)
+   if optimized:
+      insertlist.append("yes")
+   else:
+      insertlist.append("no")
+  
+   sqlcheck = "select count(1) from " + abrev_table + " where "
+   sqlcheck += "iupac=? and InChI=? and InChIKey=? and smiles=? and csmiles=? and esmiles=? and "
+   sqlcheck += "charge=? and mult=? and bonding_string=? and covalent_string=? limit 1;"
+   if (not issqlite3): sqlcheck = sqlcheck.replace('?','%s')
+   checklist = []
+   checklist.append(iupac)
+   checklist.append(InChI)
+   checklist.append(InChIKey)
+   checklist.append(smiles)
+   checklist.append(csmiles)
+   checklist.append(esmiles)
+   checklist.append(charge)
+   checklist.append(mult)
+   checklist.append(bonding_string)
+   checklist.append(covalent_string)
+
+   sqlcheck2 = "select count(1) from " + abrev_table + " where "
+   sqlcheck2 += "iupac=? and InChI=? and InChIKey=? and smiles=? and csmiles=? and esmiles=? and "
+   sqlcheck2 += "charge=? and mult=? and bonding_string=? and covalent_string=? and xyz_blob=? limit 1;"
+   if (not issqlite3): sqlcheck2 = sqlcheck2.replace('?','%s')
+   checklist2 = []
+   checklist2.append(iupac)
+   checklist2.append(InChI)
+   checklist2.append(InChIKey)
+   checklist2.append(smiles)
+   checklist2.append(csmiles)
+   checklist2.append(esmiles)
+   checklist2.append(charge)
+   checklist2.append(mult)
+   checklist2.append(bonding_string)
+   checklist2.append(covalent_string)
+   checklist2.append(xyz_blob)
+
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   
+   with dbcon:
+      cur = dbcon.cursor()
+      cur.execute(sqlcheck,checklist)
+      row = cur.fetchone()
+
+      duplicate = (row[0]>0)
+      if ((not duplicate) or (optimized)):
+         cur.execute(sqlcheck2,checklist2)
+         row2 = cur.fetchone()
+
+         duplicate2 = (row2[0]>0)
+         if (not duplicate2):
+            #cout += "inserting into " + abrev_table + eoln
+            cur.execute(sqlinsert,insertlist)
+   dbcon.close()
+
+
+
+####################################
+#                                  #
+#         nametosmiles_set         #
+#                                  #
+####################################
+
+def nametosmiles_set(hup,dbfile,table,name,smiles):
+   if (hup=='sqlite3'):
+      issqlite3 = True
+   else:
+      issqlite3 = False
+   sqlinsert = "insert into " + table + " (name,smiles) values (?,?);"
+
+   insertlist = []
+   insertlist.append(name)
+   insertlist.append(smiles)
+
+   if (not issqlite3):
+      sqlinsert = sqlinsert.replace('?','%s')
+
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss  = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      if smiles != "":
+         cout += "inserting "+ name + " " + smiles + " into " + table + eoln
+         cur.execute(sqlinsert,insertlist)
+
+   dbcon.close()
+
+
+
+
+
+####################################
+#                                  #
+#         nametosmiles             #
+#                                  #
+####################################
+
+def nametosmiles(hup,dbfile,table,name):
+
+   if (hup=='sqlite3'):
+      issqlite3 = True
+   else:
+      issqlite3 = False
+   sqlinsert = "insert into " + table + " (name,smiles) values (?,?);"
+   sqlcheck  = "select * from " + table + " where name=?;"
+   if (not issqlite3):
+      sqlcheck = sqlcheck.replace('?','%s')
+      sqlinsert = sqlinsert.replace('?','%s')
+
+   checklist = []
+   checklist.append(name)
+   if (issqlite3):
+      dbcon = sqlite3.connect(dbfile)
+   else:
+      host = hup.split()[0]
+      user = hup.split()[1]
+      pss  = hup.split()[2]
+      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+   with dbcon:
+      cur = dbcon.cursor()
+      cur.execute(sqlcheck,checklist)
+      rows = cur.fetchall()
+      if (len(rows)==0):
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/%s/property/CanonicalSMILES/TXT" % name)
+         if smiles != "":
+            ss = smiles.strip().split()
+            smiles = ss[0]
+            insertlist = []
+            insertlist.append(name)
+            insertlist.append(smiles)
+            cout += "inserting "+ name + " " + smiles + " into " + table + eoln
+            cur.execute(sqlinsert,insertlist)
+      else:
+         smiles = rows[0][2]
+   dbcon.close()
+
+   return smiles
+
+
+
+####################################
+#                                  #
+#           esmiles_hasname        #
+#                                  #
+####################################
+def esmiles_hasname(esmiles):
+   smiles = esmiles.strip().split()[0]
+   cmd = obabel + ' -:\"' + smiles + '\" -ocan'
+   result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+   #print "result=",result
+   if "0 molecules converted" in result: 
+      hasname = True
+   else:
+      hasname = False
+   return hasname
+
+####################################
+#                                  #
+#    esmileswithname_to_esmiles    #
+#                                  #
+####################################
+def esmileswithname_to_esmiles(hup,dbfile,table,esmiles0):
+   if esmiles_hasname(esmiles0):
+      sss = esmiles0.split()
+      ss = []
+      bopen = False
+      for s in sss:
+         if "{" in s:    bopen = True
+         if (not bopen): ss.append(s)
+         if "}" in s:    bopen = False
+      name = ''
+      for ll in range(len(ss)-1):
+         name += ss[ll] + "%20"
+      name += ss[len(ss)-1]
+
+      #print "Name="+name
+      esmiles1 = nametosmiles(hup,dbfile,table,name)
+
+      if esmiles1=='': esmiles1='C'
+      bopen = False
+      for s in sss:
+         if "{" in s: bopen = True
+         if (bopen):  esmiles1 += " " + s
+         if "}" in s: bopen = False
+         #if "{" in s: 
+         #   esmiles1 += " " + s
+   else:
+      esmiles1 = esmiles0
+
+   return esmiles1
+
+
+def getpeptoidMonomers():
+   monomer = dict()
+   monomer['nlys'] = 'N(CCCC[NH3+])CC(=O)O'
+   monomer['nae']  = 'N(CC[NH3+])CC(=O)O'
+   monomer['nleu'] = 'N(CC(C)C)CC(=O)O'
+   monomer['nile'] = 'N(C(C)CC)CC(=O)O'
+   monomer['nval'] = 'N(C(C)C)CC(=O)O'
+   monomer['nmb']  = 'N(CC(C)CC)CC(=O)O'
+
+   monomer['npm']  = 'N(Cc1ccccc1)CC(=O)O'
+   monomer['npe']  = 'N(CCc1ccccc1)CC(=O)O'
+   monomer['ndpe'] = 'N(CC(c1ccccc1)c1ccccc1)CC(=O)O'
+   monomer['nal']  = 'N(C1=CC(CCC2)=C2C=C1)CC(=O)O'
+   monomer['ntrp'] = 'N(CCc1c[nH]c2ccccc12)CC(=O)O'
+   monomer['nspe'] = 'N(C(C)c1ccccc1)CC(=O)O'
+
+   return monomer
+
+def peptoid2smiles(string0):
+
+   string = string0.strip()
+   smiles = ''
+   monomers = getpeptoidMonomers()
+   aa3 = set(['nlys','nae','nleu','nile','nval','nmb','npm','npe','ndpe','nal','ntrp','nspe'])
+
+   if all((c.lower() in aa3) for c in string.split("-")): 
+      acids = string.split("-")
+   elif "peptoid=" in string.lower():
+      acids = string[8:].split("-")
+   else:
+      acids = list(string)
+
+   aa0 = acids[0].lower()
+   if (aa0 in monomers):
+      smiles = monomers[aa0]
+   else:
+      smiles = smiles[:-1] + "N(" + acids[0] + ")CC(=O)O"
+
+   for aa in acids[1:]:
+      bb = aa.lower()
+      if (bb in monomers):
+         smiles = smiles[:-1] + monomers[bb]
+      else:
+         smiles = smiles[:-1] + "N(" + aa + ")CC(=O)O"
+
+   return smiles
+
+def ispeptoid(string0):
+   string = string0.strip()
+   aa3 = set(['nlys','nae','nleu','nile','nval','nmb','npm','npe','ndpe','nal','ntrp','nspe'])
+   success = False
+
+   if all((c.lower() in aa3) for c in string.split("-")):
+      success = True
+
+   elif "peptoid=" in string.lower():
+      success = True
+
+   else:
+      success = False
+
+   return success
+
+
+
+
+def getAminoAcids():
+   aminoacid = dict()
+   aminoacid['ala'] = aminoacid['a'] = 'NC(C)C(=O)O'
+   aminoacid['cys'] = aminoacid['c'] = 'NC(CS)C(=O)O'
+   aminoacid['asp'] = aminoacid['d'] = 'NC(CC(=O)O)C(=O)O'
+   aminoacid['glu'] = aminoacid['e'] = 'NC(CCC(=O)O)C(=O)O'
+   aminoacid['phe'] = aminoacid['f'] = 'NC(Cc1ccccc1)C(=O)O'
+
+   aminoacid['gly'] = aminoacid['g'] = 'NCC(=O)O'
+   aminoacid['his'] = aminoacid['h'] = 'NC(CC1N=CNC=1)C(=O)O'
+   aminoacid['ile'] = aminoacid['i'] = 'NC(C(C)CC)C(=O)O'
+   aminoacid['lys'] = aminoacid['k'] = 'NC(CCCCN)C(=O)O'
+   aminoacid['leu'] = aminoacid['l'] = 'NC(CC(C)C)C(=O)O'
+
+   aminoacid['met'] = aminoacid['m'] = 'NC(CCSC)C(=O)O'
+   aminoacid['asn'] = aminoacid['n'] = 'NC(CC(=O)N)C(=O)O'
+   aminoacid['pro'] = aminoacid['p'] = 'N1C(CCC1)C(=O)O'
+   aminoacid['gln'] = aminoacid['q'] = 'NC(CCC(=O)N)C(=O)O'
+   aminoacid['arg'] = aminoacid['r'] = 'NC(CCCNC(=N)N)C(=O)O'
+
+   aminoacid['ser'] = aminoacid['s'] = 'NC(CO)C(=O)O'
+   aminoacid['thr'] = aminoacid['t'] = 'NC(C(C)O)C(=O)O'
+   aminoacid['sec'] = aminoacid['u'] = 'NC(C[Se][H])C(=O)O'
+   aminoacid['val'] = aminoacid['v'] = 'NC(C(C)C)C(=O)O'
+   aminoacid['trp'] = aminoacid['w'] = 'NC(Cc1c2ccccc2nc1)C(=O)O'
+
+   aminoacid['tyr'] = aminoacid['y'] = 'NC(Cc1cc(O)ccc1)C(=O)O'
+
+   aminoacid['asx'] = aminoacid['b'] = aminoacid['d']
+   aminoacid['xle'] = aminoacid['j'] = aminoacid['l']
+   aminoacid['pyl'] = aminoacid['o'] = 'NC(CCCNC(=O)C1N=CCC1C)C(=O)O'
+   aminoacid['glx'] = aminoacid['z'] = aminoacid['e']
+
+   # add protonated versions of bases
+   aminoacid['hisp'] = 'NC(CC1N[CH3+]NC=1)C(=O)O'
+   aminoacid['lysp'] = 'NC(CCCC[NH3+])C(=O)O'
+   aminoacid['argp'] = 'NC(CCCNC(=[H2+])N)C(=O)O'
+
+   # add deprotonated versions of acids
+   aminoacid['aspd'] = 'NC(CC(=O)[O-])C(=O)O'
+   aminoacid['glud'] = 'NC(CCC(=O)[O-])C(=O)O'
+
+   return aminoacid
+
+
+def peptide2smiles(string0):
+
+   string = string0.strip()
+   smiles = ''
+   aminoacids = getAminoAcids()
+   aa3 = set(['ala','cys','asp','glu','phe','gly','his','ile','lys','leu','met','asn','pro','gln','arg','ser','thr','sec','val','trp','tyr','pyl','asx','glx','xle'])
+
+   if all((c.lower() in aa3) for c in string.split("-")): 
+      acids = string.split("-")
+   elif "peptide=" in string.lower():
+      acids = list(string[8:])
+   else:
+      acids = list(string)
+
+   aa0 = acids[0].lower()
+   smiles = aminoacids[aa0]
+
+   for aa in acids[1:]:
+      bb = aa.lower()
+      smiles = smiles[:-1] + aminoacids[bb]
+
+   return smiles
+
+def ispeptide(string0):
+   string = string0.strip()
+   aa3 = set(['ala','cys','asp','glu','phe','gly','his','ile','lys','leu','met','asn','pro','gln','arg','ser','thr','sec','val','trp','tyr','pyl','asx','glx','xle'])
+   success = False
+
+   if all((c.lower() in aa3) for c in string.split("-")): 
+      success = True
+
+   elif "peptide=" in string.lower():
+      success = True
+
+   else:
+      success = False
+      #chars    = set('A  DE GH JKLM   QR TUVWYZ')
+      #allchars = set('ABCDEFGHIJKLMNOPQRSTUVWYZ')
+      #badchars = set('=*_-!~^&[]()+-{}\|<>?.,:;0123456789$@%^Xabcdefghijklmnopqrstuvwxyz')
+      #if any((c in chars) for c in string):    success = True
+      #if any((c in badchars) for c in string):     success = False
+      #if any((c not in allchars) for c in string): success = False
+
+   return success
+
+
+
+
+
+
+###########################################
+#                                         #
+#        parsetosmiles function           #
+#                                         #
+###########################################
+def parsetosmiles(str):
+   ss = str.split()
+   str2 = ''
+   for s in ss:
+      if 'kegg=' in s.lower():
+         kegg = s.split('=')[1]
+         mol = geturlresult("http://rest.kegg.jp/get/%s/mol" % kegg)
+         smiles = mol2smiles(mol)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('cid=' in s.lower()) or ('pubchem=' in s.lower()) :
+         cid = s.split('=')[1]
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/property/CanonicalSMILES/TXT" % cid)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('csid=' in s.lower()) or ('chemspider=' in s.lower()):
+         csid = s.split('=')[1]
+         #rdfdata = geturlresult("http://rdf.chemspider.com/%s" % csid)
+         rdfdata = geturlresult("http://www.chemspider.com/Chemical-Structure.%s.html" % csid)
+         if rdfdata=='':
+            smiles='C'
+         else:
+            rdfdata2 = rdfdata.split('<span class="prop_title">SMILES</span>')[1].split('<span class="prop_title">Std. InChi</span>')[0]
+            smiles   = rdfdata2.split('ClipboardCopyInit(this, &#39;')[1].split('&#39;')[0].strip()
+
+         str2 += ' '
+         str2 += smiles
+      elif 'cas=' in s.lower():
+         cas = s.split('=')[1]
+         smiles = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/smiles" % cas)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'chembl' in s.lower():
+         if 'chembl=' in s.lower():
+            chembl = 'CHEMBL'+s.split('=')[1]
+         else:
+            for a in s.lower().split():
+               if 'chembl' in a: chembl=a
+         ddata = geturlresult("https://www.ebi.ac.uk/chembl/api/data/molecule/%s" % chembl)
+         if "<canonical_smiles>" in ddata:
+            smiles = ddata.split("<canonical_smiles>")[1].split("</canonical_smiles>")[0]
+         else:
+            smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'inchi=' in s.lower():
+         s = s.replace("arrowslash","/")
+         smiles = InChI2smiles("InChI=" + s.split('=')[1])
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'name=' in s:
+         name = s.split('=')[1]
+         #smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/%s/property/CanonicalSMILES/TXT" % name)
+         smiles = nametosmiles(name)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ispeptide(s):
+         smiles = peptide2smiles(s)
+         str2 += ' '
+         str2 += smiles
+      elif ispeptoid(s):
+         smiles = peptoid2smiles(s)
+         str2 += ' '
+         str2 += smiles
+      else:
+         str2 += ' '
+         str2 += s
+   str2 = str2.strip()
+
+   return str2
+
+
+
+
+
+
+     
+
+####################################
+#                                  #
+#           esmiles_split          #
+#                                  #
+####################################
+def esmiles_split(esmiles):
+   smiles = esmiles.strip().split()[0]
+   mult = 1; theory = "dft"; basis = "6-311++G(2d,2p)"; xc = "b3lyp"; solvation_type = "COSMO"
+   charge = smiles2charge(smiles)
+   if '^{' in esmiles:      charge = evalnum(esmiles.split('^{')[1].split('}')[0].strip())
+   if 'mult{' in esmiles:   mult   = evalnum(esmiles.split('mult{')[1].split('}')[0].strip())
+   if 'theory{' in esmiles: theory = esmiles.split('theory{')[1].split('}')[0]
+   if 'xc{' in esmiles:     xc     = esmiles.split('xc{')[1].split('}')[0]
+   if 'solvation_type' in esmiles: solvation_type = esmiles.split('solvation_type{')[1].split('}')[0]
+   if 'basis{' in esmiles:  basis  = removespace_basis(esmiles.split('basis{')[1].split('}')[0])
+   if 'ry' in  basis.lower():      basis = '%.1f Ry' % (evalnum(basis.strip().split()[0]))
+   if 'hartree' in  basis.lower(): basis = '%.1f Ry' % (2*evalnum(basis.strip().split()[0]))
+
+   return (smiles,charge,mult,theory,basis,xc,solvation_type)
+
+  
+####################################
+#                                  #
+#           best_row               #
+#                                  #
+####################################
+def best_row(esmiles,rows):
+   tup0 = esmiles_split(esmiles)
+   row = rows[0]
+   if (len(rows)>1):
+      maxcount = -10
+      for trow  in rows:
+         tup1 = esmiles_split(trow[7])
+         tcount = 0
+         if ("." in trow[5]):  tcount -= 2
+         if ("reaction_gamma" in trow[7]): tcount -= 2
+         if ("reaction_kappa" in trow[7]): tcount -= 2
+         if ("reaction_hash" in trow[7]):  tcount -= 2
+         if ("reaction_type" in trow[7]):  tcount -= 2
+         if ("reaction_indexes" in trow[7]):  tcount -= 2
+         if (trow[19]=='yes'): tcount += 2
+         for i in range(len(tup0)):
+            if tup0[i]==tup1[i]: tcount += 1
+         if (tcount>maxcount):
+            maxcount = tcount
+            row = trow
+   return row
+
+
+
+############################# main program ###################################
+usage = \
+"""
+esmiles to xyz program
+
+  Usage: esmiles2xyz -h hup_string -d database -t table esmiles xyzfile
+
+  -n name - set name
+  -h hup_string="machine user password" or enter sqlite3 for sqlite3 db
+  -d database = "name of database"
+  -t table = "name of table"
+  -c use cactus
+  -j view with jmol
+  -h prints this message
+  -s just print json
+
+"""
+
+#Database defaults
+hup    = hup0
+dbfile = "TNT_Project"
+table  = "abbreviations"
+table2 = "nametosmiles"
+
+tt      = time.localtime()
+
+abbreviation = "no abbreviation"
+setname = False
+viewfreq = False
+viewjmol = False
+usecactus = False
+notjson = True
+opts, args = getopt.getopt(sys.argv[1:], "n:h:d:t:shcj")
+for o, a in opts:
+  if '-j' in o:
+     viewjmol = True
+  if '-s' in o:
+     notjson = False
+  if '-c' in o:
+     usecactus = True
+  if '-h' in o:
+     hup = a
+  if '-d' in o:
+     dbfile = a
+  if '-n' in o:
+     name = a
+     setname = True
+  if '-t' in o:
+     table = a
+  if '-f' in o:
+     viewfreq = True
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<2):
+   print usage
+   exit()
+
+esmiles0 = parsetosmiles(args[0])
+xyzfile  = args[1]
+
+
+### check the cache only if notjson ###
+if (notjson):
+   (found,cout1) = cache_load_fetch(cachedir,esmiles0,xyzfile)
+   if (found):
+      print cout1
+      exit()
+
+
+mformula = ''
+### generate smiles since first item is xyzdata{ ###
+if ("xyzdata{" in esmiles0.split()[0]):
+   xyzlist = esmiles0.split("xyzdata{")[1].split("}")[0].strip().split("|")
+   with open(xyzfile,'w') as ff:
+      ff.write("%d\n\n" % len(xyzlist))
+      for ll in xyzlist:
+         ff.write(ll.strip()+"\n")
+   smiles = xyz2smiles(xyzfile)
+   esmiles = smiles + " " + esmiles0
+   mformula = xyz_molecular_formula(xyzfile)
+else:
+   esmiles = esmileswithname_to_esmiles(hup,dbfile,table2,esmiles0)
+
+
+
+
+
+if notjson: cout += "esmiles2xyz mysql version" + eoln
+if (hup=='sqlite3'):
+   issqlite3 = True
+   if notjson: cout += "sqlite3 db file = " + dbfile + eoln
+else:
+   issqlite3 = False
+   if notjson: cout += "mysql db        = " + dbfile + eoln
+if notjson:
+   cout += "table name      = " + table + eoln
+   cout += "esmiles         = " + esmiles + eoln
+   cout += "xyzfile         = " + xyzfile + eoln
+
+smiles = esmiles.strip().split()[0]
+csmiles = cannonicalsmiles(smiles)
+inchi    = smiles2InChI(smiles)
+inchikey = smiles2InChIKey(smiles)
+if (mformula==''): mformula =  smiles2formula(smiles)
+
+
+if setname:
+   nametosmiles_set(hup,dbfile,table2,name,smiles)
+
+
+sqlcheck = "select * from " + table 
+sqlcheck += " where (esmiles=? or csmiles=? or InChI=? or InChIKey=? or smiles=?) and mformula=?;"
+if (not issqlite3): sqlcheck = sqlcheck.replace('?','%s')
+
+checklist = []
+checklist.append(esmiles)
+checklist.append(csmiles)
+checklist.append(inchi)
+checklist.append(inchikey)
+checklist.append(smiles)
+checklist.append(mformula)
+
+
+newsmiles = False
+if (issqlite3):
+   dbcon = sqlite3.connect(dbfile)
+else:
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+
+with dbcon:
+   cur = dbcon.cursor()
+   cur.execute(sqlcheck,checklist)
+   rows = cur.fetchall()
+   if (len(rows)==0):
+      newsmiles = True
+      if notjson: cout += smiles + " smiles not found in smiles, calling smiles2xyz" + eoln
+      if ("xyzdata{" in esmiles):
+         xyzlist = esmiles.split("xyzdata{")[1].split("}")[0].strip().split("|")
+         with open(xyzfile,'w') as ff:
+            ff.write("%d\n\n" % len(xyzlist))
+            for ll in xyzlist:
+               ff.write(ll.strip()+"\n")
+      elif (usecactus):
+         xyzdata = cactus_smiles2xyz(smiles)
+         with open(xyzfile,'w') as ff:
+            ff.write(xyzdata)
+      else:
+         smiles2xyz(smiles,xyzfile)
+   else:
+      row = best_row(esmiles,rows)
+      xyzstring = row[10]
+      with  open(xyzfile,'w') as ff:
+         ff.write(xyzstring)
+      if (row[14].strip()==''):
+         try:
+            cas = pubchem_smiles2cas(smiles)
+         except:
+            cas = "nocas"
+      else:
+         cas  = row[14]
+      if notjson:
+         cout += eoln
+         cout += "Fetched the following entry:" + eoln
+         cout += "id              = %d" % row[0] + eoln
+         if (row[1] is not None): cout += "abbreviations   = " + row[1] + eoln
+         cout += "mformula = " + row[3] + eoln
+         cout += "iupac    = " + row[2] + eoln
+         cout += "smiles   = " + row[5] + eoln
+         cout += "csmiles  = " + row[6] + eoln
+         cout += "esmiles  = " + row[7] + eoln
+         cout += "inchi    = " + row[4] + eoln
+         cout += "inchikey = " + row[11] + eoln
+         cout += "cid      = " + row[13] + eoln
+         cout += "cas      = " + cas + eoln
+         #print "cas      = ", row[14]
+         cout += "kegg     = " + row[15] + eoln
+         if (row[17] is not None): cout += "bonding_string  = " + row[17] + eoln
+         if (row[18] is not None): cout += "covalent_string = " + row[18] + eoln
+         cout += "charge          = %d" % row[8] + eoln
+         cout += "mult            = %d" % row[9] + eoln
+         if (row[19] is not None): cout += "optimized       = " +row[19] + eoln
+         cout += "valence charge  = %d" % (mformula2valencecharge(row[3]) - row[8]) + eoln
+         cout += "chemical_structure_asciiart:" + eoln
+         cout += row[16] + eoln
+         cout += ":chemical_structure_asciiart" + eoln
+      esmiles_dict = {}
+      esmiles_dict['id']            = row[0]
+      esmiles_dict['abbreviations'] = row[1]
+      esmiles_dict['mformula']      = row[3]
+      esmiles_dict['iupac']         = row[2]
+      esmiles_dict['smiles']        = row[5]
+      esmiles_dict['csmiles']       = row[6]
+      esmiles_dict['esmiles']       = row[7]
+      esmiles_dict['inchi']         = row[4]
+      esmiles_dict['inchikey']      = row[11]
+      esmiles_dict['cid']           = row[13]
+      esmiles_dict['cas']           = cas
+      #esmiles_dict['cas']           = row[14]
+      esmiles_dict['kegg']          = row[15]
+      esmiles_dict['bonding_string']  = row[17]
+      esmiles_dict['covalent_string'] = row[18]
+      esmiles_dict['charge']    = row[8]
+      esmiles_dict['mult']      = row[9]
+      esmiles_dict['valence_charge']  = mformula2valencecharge(row[3]) - row[8]
+      esmiles_dict['optimized'] = row[19]
+      esmiles_dict['xyz_blob']  = row[10]
+      esmiles_dict['mol_blob']  = xyzdat2mol(row[10])
+      esmiles_dict['chemical_structure_asciiart'] = row[16]
+dbcon.close()
+
+
+try:
+   if (newsmiles):
+      if notjson: cout += "esmiles2xyz: insert abbreviation " + eoln
+      mformula = xyz_molecular_formula(xyzfile)
+      iupac    = pubchem_smiles2iupac(smiles)
+      InChI    = smiles2InChI(smiles)
+      InChIKey = smiles2InChIKey(smiles)
+      chemical_structure_asciiart = smiles2ascii(smiles)
+      cid      = pubchem_smiles2cid(smiles)
+      cas      = pubchem_smiles2cas(smiles)
+      kegg     = pubchem_smiles2kegg(smiles)
+      synonyms = pubchem_smiles2synonyms(smiles)
+      (bonding_string, covalent_string) = xyz_bonding_strings(xyzfile)
+      charge = smiles2charge(smiles)
+      mult   = xyz2mult(xyzfile,charge)
+      if '^{' in esmiles:      charge = evalnum(esmiles.split('^{')[1].split('}')[0].strip())
+      if 'mult{' in esmiles:   mult   = evalnum(esmiles.split('mult{')[1].split('}')[0].strip())
+
+      if (iupac==''): iupac = smiles
+      if (mult==2): iupac += " doublet radical"
+      if (mult==3): iupac += " triplet radical"
+      if (mult==4): iupac += " quqrtet radical"
+      if (mult==5): iupac += " quintet radical"
+      if (mult==6): iupac += " sextet radical"
+      if (mult==7): iupac += " septet radical"
+      if (mult==8): iupac += " octet radical"
+      if (mult==9): iupac += " nonet radical"
+      if (mult==10): iupac += " decet radical"
+      if (mult>10):  iupac += " large radical"
+      if (charge==-4): iupac += " tetraanion"
+      if (charge==-3): iupac += " trianion"
+      if (charge==-2): iupac += " dianion"
+      if (charge==-1): iupac += " anion"
+      if (charge==+1): iupac += " cation"
+      if (charge==+2): iupac += " dication"
+      if (charge==+3): iupac += " trication"
+      if (charge==+4): iupac += " tetracation"
+
+      with open(xyzfile,'r') as ff: 
+         xyzstring = ff.read()
+
+      if notjson:
+         cout += eoln
+         cout += "Generated the following entry:" + eoln
+         cout += "abbreviations   = "+abbreviation + eoln
+         cout += "mformula = " + mformula + eoln
+         cout += "iupac    = " + iupac + eoln
+         cout += "smiles   = " + smiles + eoln
+         cout += "csmiles  = " + csmiles + eoln
+         cout += "esmiles  = " + esmiles + eoln
+         cout += "inchi    = " + InChI + eoln
+         cout += "inchikey = " + InChIKey + eoln
+         cout += "cid      = " + cid + eoln
+         cout += "cas      = " + cas + eoln
+         cout += "kegg     = " + kegg + eoln
+         cout += "bonding_string  = " + bonding_string + eoln
+         cout += "covalent_string = " + covalent_string + eoln
+         cout += "charge          = %d" % charge + eoln
+         cout += "mult            = %d" % mult + eoln
+         cout += "valence charge  = %d" % (mformula2valencecharge(mformula)-charge) + eoln
+         cout += "optimized       = %s" % False + eoln
+         cout += "chemical_structure_asciiart: " + eoln
+         cout += chemical_structure_asciiart + eoln
+         cout += ":chemical_structure_asciiart" + eoln
+      insert_abbreviation(hup,dbfile,table,abbreviation, 
+                          iupac,mformula,InChI,InChIKey,cid,cas,kegg,synonyms, 
+                          smiles,csmiles,esmiles,charge,mult,xyzstring,
+                          chemical_structure_asciiart,bonding_string,covalent_string,False)
+      esmiles_dict = {}
+      esmiles_dict['id']            = -1
+      esmiles_dict['abbreviations'] = abbreviation
+      esmiles_dict['mformula']      = mformula
+      esmiles_dict['iupac']         = iupac
+      esmiles_dict['smiles']        = smiles
+      esmiles_dict['csmiles']       = csmiles
+      esmiles_dict['esmiles']       = esmiles
+      esmiles_dict['inchi']         = InChI  
+      esmiles_dict['inchikey']      = InChIKey
+      esmiles_dict['cid']           = cid
+      esmiles_dict['cas']           = cas
+      esmiles_dict['kegg']          = kegg
+      esmiles_dict['bonding_string']  = bonding_string
+      esmiles_dict['covalent_string'] = covalent_string
+      esmiles_dict['charge']    = charge
+      esmiles_dict['mult']      = mult
+      esmiles_dict['valence_charge']  = mformula2valencecharge(mformula) - charge
+      esmiles_dict['optimized'] = False
+      esmiles_dict['xyz_blob']  = xyzstring
+      esmiles_dict['mol_blob']  = xyzdat2mol(xyzstring)
+      esmiles_dict['chemical_structure_asciiart'] = chemical_structure_asciiart
+except:
+   cout += "esmiles2xyz: insert abbreviation failed" + eoln
+
+
+enter_charge = smiles2charge(smiles)
+if '^{' in esmiles:      enter_charge = evalnum(esmiles.split('^{')[1].split('}')[0].strip())
+enter_mult   = xyz2mult(xyzfile,enter_charge)
+if 'mult{' in esmiles:   enter_mult   = evalnum(esmiles.split('mult{')[1].split('}')[0].strip())
+
+if notjson:
+   cout += eoln
+   cout += "charge_entered = %d" % enter_charge + eoln
+   cout += "mult_entered   = %d" % enter_mult + eoln
+
+
+if not notjson:
+   esmiles_json = json.dumps(esmiles_dict)
+   cout += esmiles_json + eoln
+#with open(xyzfile,'r') as ff: 
+#   xyzstring = ff.read()
+#print xyzstring
+
+if viewjmol:
+   cmd6 = "/Users/bylaska/bin/jmol " + xyzfile
+   os.system(cmd6)
+
+### remove temporary wrkdir files ###
+try:
+   os.unlink(wrkdir + "/"+tmpsmi1)
+except:
+   cout += "esmiles2xyz Failed to remove " + wrkdir + "/"+ tmpsmi1 + eoln
+
+try:
+   os.unlink(wrkdir + "/"+tmpsmi2)
+except:
+   cout += "esmiles2xyz Failed to remove " + wrkdir + "/"+ tmpsmi2 + eoln
+
+
+### print out the data to stdout ###
+print cout
+
+### update the cache ###
+if notjson:
+   cache_insert_save(cachedir,esmiles0,cout,xyzfile)
+
+

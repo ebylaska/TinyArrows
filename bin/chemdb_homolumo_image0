@@ -1,0 +1,316 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect
+from math import *
+#import image
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
+
+############## machine parameters #########################
+jmol      = "/srv/arrows/bin/jmol-homolumo "
+wrkdir    = "/srv/arrows/Projects/Work"
+chemdbfile = "/srv/arrows/bin/.chemdb-en"
+############## machine parameters #########################
+
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          print "either received key or connection timeout"
+          pass
+      print p.before # print out the result
+      return p.before
+
+
+aaa = ''
+for b in bbb: aaa += chr(ord(b) + 2)
+exec aaa
+
+############################# main program ###################################
+usage = \
+"""
+Remote chemdb_homolumo_image0 program
+
+  Usage: chemdb_homolumo_image0 -h hup_string -d database -t table rowId 
+
+  -h hup_string="machine user password" or enter sqlite3 for sqlite3 db
+  -d database = "name of database"
+  -t table = "name of table"
+  -b generate large image
+  -h prints this message
+
+"""
+
+#Database defaults
+hup         = hup0
+dbfile      = "TNT_Project"
+table       = "calculations"
+image_table = "images"
+
+print "chemdb_image0 mysql version"
+tt      = time.localtime()
+
+largeimage = False
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:bh")
+for o, a in opts:
+  if '-h' in o:
+     hup = a
+  if '-d' in o:
+     dbfile = a
+  if '-t' in o:
+     table = a
+  if '-b' in o:
+     largeimage = True
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<1): 
+   print usage
+   exit()
+
+arrows_id   = args[0]
+molecule_id = eval(arrows_id)
+a = molecule_id%10
+b = (molecule_id/10)%10
+c = (molecule_id/100)%10
+d = (molecule_id/1000)%10
+e = (molecule_id/10000)%10
+imagedir = archivemachine+"/chemdb_homolumo/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
+myfilename  = "%d-homolumo.png" % molecule_id
+
+if (hup=='sqlite3'):
+   issqlite3 = True
+   print "sqlite3 db file =",dbfile
+else:
+   issqlite3 = False
+   print "mysql db        =",dbfile
+print "table name      =",table
+print "molecule_id     =",molecule_id
+
+if (issqlite3):
+   sqlcheck = "select mult,theory,data_filenames from " + table + " where Id=?;"
+else:
+   sqlcheck = "select mult,theory,data_filenames from " + table + " where Id=%s;"
+checklist = [molecule_id]
+
+if (issqlite3):
+   dbcon = sqlite3.connect(dbfile)
+else:
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+with dbcon:
+   cur = dbcon.cursor()
+   cur.execute(sqlcheck,checklist)
+   row  = cur.fetchone()
+   mult   = row[0]
+   theory = row[1]
+   data_filenames = row[2]
+dbcon.close()
+
+
+print "mult,theory=",mult,theory
+print "data_filenames=",data_filenames
+if (data_filenames==None):
+   print "chemdb_homolumo_image0: No cube files found."
+   print "chemdb_homolumo_image0: image generation not successful"
+   exit()
+
+foundcubefiles = False
+if (mult==1) and ('homo-restricted.cube' in data_filenames) and ('lumo-restricted.cube' in data_filenames):
+   foundcubefiles = True
+
+if ((mult>1) and ('homo-alpha.cube' in data_filenames) and ('lumo-alpha.cube' in data_filenames) and
+    ('homo-beta.cube' in data_filenames) and ('lumo-beta.cube' in data_filenames)):
+   foundcubefiles = True
+
+if (not foundcubefiles):
+   print "chemdb_homolumo_image0: No cube files found."
+   print "chemdb_homolumo_image0: image generation not successful"
+   exit()
+
+
+notfound = [True,True,True,True,True,True]
+cubefiles = []
+for s in data_filenames.split():
+   if notfound[0] and ('homo-restricted.cube' in s):
+      cubefile0 = s
+      cubefile1  = "%d-homo-restricted.cube" % molecule_id
+      imagefile1 = "%d-homo-restricted.png"  % molecule_id
+      cubefiles.append((cubefile0,wrkdir+"/"+cubefile1,wrkdir+"/"+imagefile1))
+      notfound[0] = False
+
+   if notfound[1] and ('lumo-restricted.cube' in s):
+      cubefile0 = s
+      cubefile1  = "%d-lumo-restricted.cube" % molecule_id
+      imagefile1 = "%d-lumo-restricted.png"  % molecule_id
+      cubefiles.append((cubefile0,wrkdir+"/"+cubefile1,wrkdir+"/"+imagefile1))
+      notfound[1] = False
+
+   if notfound[2] and ('homo-alpha.cube' in s):
+      cubefile0  = s
+      cubefile1  = "%d-homo-alpha.cube" % molecule_id
+      imagefile1 = "%d-homo-alpha.png"  % molecule_id
+      cubefiles.append((cubefile0,wrkdir+"/"+cubefile1,wrkdir+"/"+imagefile1))
+      notfound[2] = False
+
+   if notfound[3] and ('lumo-alpha.cube' in s):
+      cubefile0  = s
+      cubefile1  = "%d-lumo-alpha.cube" % molecule_id
+      imagefile1 = "%d-lumo-alpha.png"  % molecule_id
+      cubefiles.append((cubefile0,wrkdir+"/"+cubefile1,wrkdir+"/"+imagefile1))
+      notfound[3] = False
+
+   if notfound[4] and ('homo-beta.cube' in s):
+      cubefile0  = s
+      cubefile1  = "%d-homo-beta.cube" % molecule_id
+      imagefile1 = "%d-homo-beta.png"  % molecule_id
+      cubefiles.append((cubefile0,wrkdir+"/"+cubefile1,wrkdir+"/"+imagefile1))
+      notfound[4] = False
+
+   if notfound[5] and ('lumo-beta.cube' in s):
+      cubefile0  = s
+      cubefile1  = "%d-lumo-beta.cube" % molecule_id
+      imagefile1 = "%d-lumo-beta.png"  % molecule_id
+      cubefiles.append((cubefile0,wrkdir+"/"+cubefile1,wrkdir+"/"+imagefile1))
+      notfound[5] = False
+
+print "cubefiles=",cubefiles
+
+sfilename = wrkdir+"/tmpjmolscript.spt"
+foundfiles = True
+try:
+   for aa in cubefiles:
+      cmd0   = "scp " + aa[0] + " " + aa[1]
+      print "cmd0=",cmd0
+      result = pexpect_command(cmd0,archivepassword)
+      foundfile = os.path.isfile(aa[1])
+      foundfiles = foundfiles and foundfile
+
+      if foundfile:
+         print "hello I found a cubefile"
+         #ttt = 'load %s; isosurface posname 0.05 "%s" translucent;  isosurface negname -0.05 "%s" translucent;\n' % (aa[1],aa[1],aa[1])
+         #ttt = 'load %s; isosurface sign "%s" translucent;\n' % (aa[1],aa[1])
+         ttt = 'load %s; isosurface sign cutoff 0.05 "%s" translucent;\n' % (aa[1],aa[1])
+         ttt += 'color background white\n'
+         ttt += 'center\n'
+         ttt += 'rotate best\n'
+         print ttt
+         with open(sfilename,"w") as ff: ff.write(ttt)
+         cmd6 = jmol + sfilename + " " + aa[2]
+         print "HELLO=",cmd6
+         try:
+            result1 = subprocess.check_output("/usr/bin/timeout 20 " + cmd6,shell=True)
+         except:
+            print "Attempt 1 failed, trying 40 second timeout"
+            try:
+               result2 = subprocess.check_output("/usr/bin/timeout 40 " + cmd6,shell=True)
+            except:
+               print "Attempt 2 failed, trying 80 second timeout"
+               try:
+                  result3 = subprocess.check_output("/usr/bin/timeout 80 " + cmd6,shell=True)
+               except:
+                  print "Attempt 3 failed, trying 160 second timeout"
+                  try:
+                     result4 = subprocess.check_output("/usr/bin/timeout 160 " + cmd6,shell=True)
+                  except:
+                     print "JMOL Failed to create PNG"
+                     print "chemdb_homolumo_image0: image generation not successful"
+                     exit()
+except:
+   foundfiles = False
+
+
+
+image_data = []
+mhall      = []
+if (mult==1):
+   result = Image.new("RGBA", (350, 720), (350,300,350))
+else:
+   result = Image.new("RGBA", (700, 720), (350,300,350))
+draw   = ImageDraw.Draw(result)
+font   = ImageFont.truetype(wrkdir+"/arial.ttf",20)
+
+### paste images ###
+for aa in cubefiles:
+   im = map(Image.open, [aa[2]])[0]
+   if ('lumo-restricted' in aa[2]): result.paste(im, (0,10))
+   if ('homo-restricted' in aa[2]): result.paste(im, (0,370))
+   if ('lumo-alpha' in aa[2]):      result.paste(im, (0,10))
+   if ('homo-alpha' in aa[2]):      result.paste(im, (0,370))
+   if ('lumo-beta'  in aa[2]):      result.paste(im, (360,10))
+   if ('homo-beta'  in aa[2]):      result.paste(im, (360,370))
+
+if (mult==1):
+   txt0 = "restricted LUMO"
+   txt1 = "restricted HOMO"
+   draw.text((100,0),  txt0,(0,0,0),font=font)
+   draw.text((100,360),txt1,(0,0,0),font=font)
+else:
+   txt0 = "     alpha LUMO"
+   txt1 = "     alpha HOMO"
+   draw.text((100,0),  txt0,(0,0,0),font=font)
+   draw.text((100,360),txt1,(0,0,0),font=font)
+   txt0 = "      beta LUMO"
+   txt1 = "      beta HOMO"
+   draw.text((450,0),  txt0,(0,0,0),font=font)
+   draw.text((450,360),txt1,(0,0,0),font=font)
+result.save(wrkdir + "/" + myfilename)
+
+cmd1   = "scp " + wrkdir + "/" + myfilename + " " + imagedir + myfilename
+print "cmd1=",cmd1
+result = pexpect_command(cmd1,archivepassword)
+
+
+if (foundfiles):
+   print "chemdb_homolumo_image0: all image generation successful"
+else:
+   print "chemdb_homolumo_image0: image generation not successful"
+
+
+exit()
+
+### remove temporary images ###
+try:
+   os.unlink(wrkdir + "/" + myfilename)
+except:
+   print "chemdb_homolumo_image0 Failed to remove " + wrkdir + "/" + myfilename
+
+for aa in cubefiles:
+   try:
+      os.unlink(aa[1])
+   except:
+      print "chemdb_homolumo_image0 Failed to remove " + aa[1]
+   try:
+      os.unlink(aa[2])
+   except:
+      print "chemdb_homolumo_image0 Failed to remove " + aa[2]
+
+
+
+
+
+
+
+

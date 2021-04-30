@@ -1,0 +1,1059 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+import datetime,re
+from bson.objectid import ObjectId
+from math import *
+
+####################### mongoDB #############################
+#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+mongo_client                        = pymongo.MongoClient(uri)
+arrows_db                           = mongo_client.Arrows
+chemdb_reaction_collection          = arrows_db.chemdb_reaction_collection2
+chemdb_finished_reaction_collection = arrows_db.chemdb_finished_reaction_collection2
+chemdb_noreaction_collection  = arrows_db.chemdb_noreaction_collection2
+chemdb_predict_collection           = arrows_db.chemdb_predict_collection2
+chemdb_predict_collection_email     = arrows_db.chemdb_predict_collection2_email
+qnumber_collection                  = arrows_db.queue_number
+####################### mongoDB #############################
+
+############## machine parameters #########################
+#chemdb_balance_reaction = "/srv/arrows/bin/chemdb_balance_reaction8 "
+chemdb_balance_reaction = "/srv/arrows/bin/chemdb_balance_reaction9f "
+chemdb_reaction_draw    = "/srv/arrows/bin/chemdb_reaction_draw "
+chemdb_reaction_kekule  = "/srv/arrows/bin/chemdb_reaction_kekule "
+chemdb_fetch_reactions  = "/srv/arrows/bin/chemdb_fetch_reactions4 "
+esmiles2xyz             = "/srv/arrows/bin/esmiles2xyz "
+wrkdir           = "/srv/arrows/Work"
+curdir           = os.getcwd()
+lockfilename     = "/srv/arrows/Work/chemdbpredict.lockfile"
+lockfilename2    = "/srv/arrows/Work/chemdbpredict2.lockfile"
+lockfilename3    = "/srv/arrows/Work/chemdbpredict3.lockfile"
+############## machine parameters #########################
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+
+def predict_hash(reaction):
+  
+   ### parse reaction for reactants ###
+   sslist = reaction.split("-->")
+   left  = sslist[0].strip()
+   label0 = ''
+   if "~" in left: 
+      label0 = left.split("~")[1].strip()
+      left   = left.split("~")[0].strip()
+   left = left.replace("\t"," ")
+   left = left.replace("\n"," ")
+   #left = left.decode('ascii', 'replace')
+   #left = left.replace('\xc2', ' ')
+   #left = left.replace("\xa0", " ")
+   esmiles_reactants2  = left.split(' + ')
+   number_reactants2 = len(esmiles_reactants2)
+
+   esmiles_reactants = []
+   for esmiles in esmiles_reactants2:
+      try:
+         xcoef = int(esmiles.split(None,1)[0])
+         esmiles2 = esmiles.split(None,1)[1]
+      except:
+         xcoef = 1
+         esmiles2 = esmiles
+      if (xcoef<1): xcoef = 1
+      for i in range(xcoef): esmiles_reactants.append(esmiles2)
+
+   number_reactants = len(esmiles_reactants)
+
+   ehashes = []
+   for esmiles in esmiles_reactants:
+      charge = "0"
+      mult   = "1"
+      label = "nolabel"
+      if "^{"    in esmiles: charge = esmiles.split("^{")[1].split("}")[0].strip()
+      if "mult{" in esmiles: mult   = esmiles.split("mult{")[1].split("}")[0].strip()
+      label += label0
+      if "label{" in esmiles: label = esmiles.split("label{")[1].split("}")[0].strip()
+      cmd9 = esmiles2xyz + "\"" + esmiles + "\" " + wrkdir +"/predict99.xyz"
+      try:
+         print "cmd9=",cmd9
+         result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+         ehash = result9.split("bonding_string  =")[1].split("\n")[0].strip()
+      except:
+         print "Call to esmiles2xyzailed!"
+         ehash = "nohashavailable"
+      ehash += ":"+charge+":"+mult+":"+label
+      ehashes.append(ehash)
+   ehashes.sort()
+   phash = "predict_hash-"+"-".join(ehashes)
+   return phash
+
+
+def products_predict_reaction(aa):
+   products = []
+   for l in aa.split("\n"):
+      if "Predicted_Reaction:" in l:
+         link = l.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0].strip()
+         plink = link.split("-->")[1].strip()
+         products.append(plink)
+
+   return products
+
+def products_predict_TotalRXN(aa):
+   products = []
+   for l in aa.split("\n"):
+      if "Predicted_TotalRXN:" in l:
+         link = l.split("Predicted_TotalRXN:")[1].split(":TotalRXN_Predicted")[0].strip()
+         plink = link.split("-->")[1].strip()
+         products.append(plink)
+   return products
+
+
+
+def filter_predict_reaction(aa,gen_image):
+   reactions = []
+   energies = []
+   for l in aa.split("\n"):
+      if "Predicted_Reaction:" in l:
+         reactions.append(l)
+      if "energy_estimates:" in l:
+         ss = l.split("energy_estimates:")[1].split(":energy_estimates")[0].split()
+         energies.append((eval(ss[0]),eval(ss[1]), eval(ss[2]), eval(ss[3]), eval(ss[4])))
+
+   reactions2 = []
+   energies2  = []
+   for i in range(len(reactions)):
+      r = reactions[i]
+      e = energies[i]
+      if r not in reactions2:
+         reactions2.append(r)
+         energies2.append([e])
+      else:
+         j = reactions2.index(r)
+         energies2[j].append(e)
+
+
+   energies3 = []
+   for i in range(len(energies2)):
+      energies2[i] = list(set(energies2[i]))
+      eall = [0.0]*5
+      eall2 = [0.0]*5
+      n = len(energies2[i])
+      if (n==1):
+         energies3.append([energies2[i][0],eall2])
+      else:
+         for e in energies2[i]:
+            for j in range(5):
+               eall[j] += e[j]
+               eall2[j] += e[j]*e[j]
+         for j in range(5):
+            eall[j]  /= n
+            eall2[j] /= n
+         for j in range(5):
+            eall2[j] -= eall[j]*eall[j]
+            eall2[j] *= (n/(n-1))
+            eall2[j] = math.sqrt(eall2[j])
+
+         energies3.append([eall,eall2])
+
+   bb = ''
+   for i in range(len(reactions2)):
+      bb += reactions2[i] + "\n"
+      ee = energies3[i][0]
+      vv = energies3[i][1]
+      bb += "predicted_energies:  %15.3f %15.3f %15.3f %15.3f %15.3f :predicted_energies\n"  % (ee[0],ee[1],ee[2],ee[3],ee[4])
+      bb += "predicted_variances: %15.3f %15.3f %15.3f %15.3f %15.3f :predicted_variances\n" % (vv[0],vv[1],vv[2],vv[3],vv[4])
+
+      ### gen kekule ###
+      cmd5k = ""
+      try:
+         rstring =  reactions2[i].split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] 
+         rstring = rstring.split("~")[0].strip()
+         cmd5k = chemdb_reaction_kekule +"\"" + rstring + "\" "
+         result5k = subprocess.check_output(cmd5k,shell=True,stderr=subprocess.STDOUT)
+         kekule = result5k.split("KEKULE::")[1].split("::KEKULE")[0]
+         bb += "predicted_kekule: %s :predicted_kekule\n" % (kekule)
+      except:
+         bb += "chem_reaction_kekule failed!\n"
+         bb += "cmd5k="+cmd5k
+
+      ### gen png ###
+      if (gen_image):
+         try:
+            ddrand = random.randint(0,999999)
+            filename = wrkdir + "/" + "rdraw-%d.png" % ddrand
+            pngname  = "rimage-%d" % (ddrand)
+            #cmd5 = chemdb_reaction_draw +"\"" + reactions2[i].split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] + "\" "+filename
+            rstring =  reactions2[i].split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] 
+            rstring = rstring.split("~")[0].strip()
+            cmd5 = chemdb_reaction_draw +"\"" + rstring + "\" "+filename
+            result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT)
+            bb += "predicted_image: %s %s :predicted_image\n" % (filename,pngname)
+         except:
+            bb += "chem_reaction_draw failed!\n"
+            bb += "cmd5="+cmd5
+
+      bb += "\n\n"
+
+   return bb
+
+############################
+#                          #
+#      remove_xyzdata      #
+#                          #
+############################
+def remove_xyzdata(esmiles):
+   toolong = False
+   toolongcount = 0
+   maxtoolongcount = 50
+   while ("xyzdata{" in esmiles) and (not toolong):
+      msg = esmiles.split("xyzdata{")[1].split("}")[0]
+      esmiles = esmiles.replace("xyzdata{"+msg+"}","")
+      toolongcount += 1
+      toolong = (toolongcount>maxtoolongcount)
+
+   return esmiles
+
+   
+
+############################# main program ###################################
+usage = \
+"""
+chemdb_predict_reaction program - version 1.0
+
+  Usage: chemdb_predict_reaction -e energy reaction
+
+  -f predict reactions 
+  -l list reaction entries
+  -k list finished reaction entries
+  -s submit reactions to chemdb_balance_reaction
+  -a add reaction
+  -n add noreaction
+  -m check noreactions
+  -d delete queue_entry
+  -c delete queue2_entry
+
+  -e energy of reaction in kcal/mol
+  -r enthalpy of reaction in kcal/mol
+  -g free energy of reaction in kcal/mol
+  -q solvation energy of reaction in kcal/mol
+  -u aqueous free energy of reaction in kcal/mol
+
+  -i include images
+  -j run queue of predict reactions
+  -v email
+
+"""
+
+
+tt      = time.localtime()
+
+includeimages = False
+submitqueue2 = False
+listqueues = True
+listqueues2= False
+listqueues3= False
+addreaction= False
+addnoreaction= False
+checknoreaction= False
+delqueue   = False
+delqueue2  = False
+runqueue   = False
+predictreaction = False
+email = False
+energy = 0.0
+enthalpy = 0.0
+free_energy = 0.0
+solvation_energy = 0.0
+aq_free_energy = 0.0
+reaction = ''
+noreaction = ''
+opts, args = getopt.getopt(sys.argv[1:], "a:n:d:c:e:r:g:q:u:f:lmskhijv")
+for o, a in opts:
+  if '-i' in o:
+     includeimages = True
+  if '-l' in o:
+     listqueues = True
+  if '-k' in o:
+     listqueues2 = True
+     listqueues3 = True
+  if '-s' in o:
+     submitqueue2 = True
+     listqueues   = False
+  if '-a' in o:
+     reaction = a
+     listqueues = False
+     addreaction = True
+  if '-n' in o:
+     noreaction = a
+     listqueues = False
+     addnoreaction = True
+  if '-m' in o:
+     listqueues = False
+     checknoreaction = True
+  if '-f' in o:
+     reaction = a
+     listqueues = False
+     predictreaction = True
+  if '-j' in o:
+     runqueue   = True
+     listqueues = False
+  if '-v' in o:
+     email = True
+  if '-d' in o:
+     try:
+        delete_queue_number = evalnum(a)
+        listqueues = False
+        delqueue   = True
+     except:
+        listqueues = True
+        delqueue   = False
+  if '-c' in o:
+     try:
+        delete_queue_number2 = evalnum(a)
+        listqueues = False
+        delqueue2   = True
+     except:
+        listqueues2 = True
+        listqueues3 = True
+        delqueue2   = False
+
+  if '-e' in o:
+     try:
+        energy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+  if '-r' in o:
+     try:
+        enthalpy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+  if '-g' in o:
+     try:
+        free_energy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+  if '-q' in o:
+     try:
+        solvation_energy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+  if '-u' in o:
+     try:
+        aq_free_energy = evalnum(a)
+        listqueues = False
+     except:
+        listqueues = True
+
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+
+if (listqueues):
+   check = {}
+   queue = chemdb_predict_collection.find(check)
+   print "</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> refresh reaction queue </a> <pre style=\"font-size:1.0em;color:black\">"
+   print 
+   print "Predicted Reactions:"
+   #print "status                      reactants"
+   ff = '</pre>'
+   ff +=  "status "
+   for i in range(50): ff +=  "&nbsp;"
+   ff += " reactants <br>"
+   for entry in queue:
+      link = entry['reactants'].split("~")[0]
+      link += " --> "
+      if "~" in entry['reactants']: link += " ~ " + entry['reactants'].split("~")[1]
+      aa = " <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\">%s</a> " % (link.replace('#','%23'),entry['reactants'])
+
+      try:
+         #stime = ((time.time() - entry['start_time']) >  31104000.0)  # approximately 1 year
+         #stime = ((time.time() - entry['start_time']) >  2592000.0)  # approximately 30 days
+         stime = ((time.time() - entry['start_time']) >  90000.0)  # approximately 1.04 days
+      except:
+         stime = True
+
+      if (stime):
+         if "~" in entry['reactants']:
+            bb = " <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\">(remove)</a> " % (link.replace('#','%23') + " remove")
+         else:
+            bb = " <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\">(remove)</a> " % (link.replace('#','%23') + " ~ remove")
+      else:
+         bb = "(remove)"
+
+      if ('predicted_reactions' in entry):
+         #print "prediction finished     " + aa
+         ff += "prediction finished " + bb + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " + aa + "<br>"
+      else:
+         #print "prediction not finished " + entry['reactants']
+         ff += "prediction not finished &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + entry['reactants'] + "<br>"
+   ff += '<pre style=\"font-size:1.0em;color:black\">'
+   print ff
+   
+
+   check = {}
+   queue = chemdb_reaction_collection.find(check).sort("queue_number", -1)
+   print 
+   print "Reactions to be Added:"
+   print 
+   print "queue_entry    Erxn(gas)    Hrxn(gas)    Grxn(gas)   delta_Solv     Grxn(aq)  Reaction"
+   for entry in queue:
+      print "%11d %12.3f %12.3f %12.3f %12.3f %12.3f  \"%s\"" % (entry['queue_number'],entry['energy'],entry['enthalpy'],entry['free_energy'], entry['solvation_energy'],entry['aq_free_energy'],entry['reaction'])
+
+   cmd9 = chemdb_balance_reaction 
+   cmd9 += " -g"
+   try:
+      result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+      print result9
+   except:
+      print "Call to chemdb_balance_reaction failed!"
+
+   check = {}
+   queue = chemdb_noreaction_collection.find(check).sort("queue_number",1)
+   print
+   print "reactions that are waiting:"
+   print
+   print "queue_entry fetched  Waiting Reaction"
+   for entry in queue:
+      #print "%11d %7d  \"%s\"" % (entry['queue_number'],entry['fetched'],entry['reaction'])
+      ll = "%d" % entry['queue_number']
+      sp = ''
+      for i in range(11-len(ll)):  sp += ' '
+      rink = "<a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\'>%d</a>" % (entry['reaction'].replace('#','%23'),entry['queue_number'])
+      print sp + "%s %7d  %s" % (rink,entry['fetched'],entry['reaction'])
+
+
+if (listqueues2):
+   check = {}
+   queue = chemdb_finished_reaction_collection.find(check)
+   print 
+   print "reactions that have been added:"
+   print 
+   #print "queue_entry       energy  reaction"
+   print "queue_entry    Erxn(gas)    Hrxn(gas)    Grxn(gas)   delta_Solv     Grxn(aq)  Reaction"
+   for entry in queue:
+      print "%11d %12.3f %12.3f %12.3f %12.3f %12.3f  \"%s\"" % (entry['queue_number'],entry['energy'],entry['enthalpy'],entry['free_energy'], entry['solvation_energy'],entry['aq_free_energy'],entry['reaction'])
+      #print "%11d %12.3f  \"%s\"" % (entry['queue_number'],entry['energy'],entry['reaction'])
+
+if (listqueues3):
+   check = {}
+   queue = chemdb_waiting_reaction_collection.find(check)
+   print
+   print "reactions that are waiting:"
+   print
+   print "queue_entry  fetched  Waiting Reaction"
+   for entry in queue:
+      #print "%11d 8d  \"%s\"" % (entry['queue_number'],entry['fetched'],entry['reaction'])
+      ll = "%d" % entry['queue_number']
+      sp = ''
+      for i in range(11-len(ll)):  sp += ' '
+      rink = "<a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\'>%d</a>" % (entry['reaction'].replace('#','%23'),entry['queue_number'])
+      print sp + "%s %8d  %s" % (rink,entry['fetched'],entry['reaction'])
+
+
+
+### do not add semiempirical methods ###
+hassemiempirical = ('pm3' in reaction) or ('am1' in reaction) or ('mindo' in reaction) or ('mindo3' in reaction)
+
+if (addreaction) and (not hassemiempirical):
+   entry = {}
+   entry['reaction']         = remove_xyzdata(reaction)
+   entry['energy']           = energy
+   entry['enthalpy']         = enthalpy
+   entry['free_energy']      = free_energy
+   entry['solvation_energy'] = solvation_energy
+   entry['aq_free_energy']   = aq_free_energy
+   duplicatecount = chemdb_reaction_collection.find(entry).count()
+   print "duplicatecount=", duplicatecount
+   if (duplicatecount==0): 
+      ### set queue number  ##
+      entry['queue_number'] = qnumber_collection.find_one({'queue':'chemdb_reaction_queue'})['count']
+      qqq = qnumber_collection.update({'queue':'chemdb_reaction_queue'},{'$inc':{'count':1}},upsert=False,multi=False)
+
+      qq = chemdb_reaction_collection.insert(entry)
+      print "Added " + entry['reaction'] + " to chemdb_reaction_queue. queue_entry=",entry['queue_number']
+   else:
+      print "Did not add " + entry['reaction'] + " to chemdb_reaction_queue, because it already exists."
+
+
+if (addnoreaction) and (not hassemiempirical):
+   entry = {}
+   entry['reaction'] = remove_xyzdata(noreaction)
+   entry['fetched']  = 0
+   duplicatecount = chemdb_noreaction_collection.find(entry).count()
+   print "duplicatecount=", duplicatecount
+   if (duplicatecount==0):
+      ### set queue number  ##
+      entry['queue_number'] = qnumber_collection.find_one({'queue':'chemdb_noreaction_queue'})['count']
+      qqq = qnumber_collection.update({'queue':'chemdb_noreaction_queue'},{'$inc':{'count':1}},upsert=False,multi=False)
+
+      qq = chemdb_noreaction_collection.insert(entry)
+      print "Added " + entry['reaction'] + " to chemdb_noreaction_queue. queue_entry=",entry['queue_number']
+   else:
+      print "Did not add " + entry['reaction'] + " to chemdb_noreaction_queue, because it already exists."
+
+
+
+if (checknoreaction):
+   check = {}
+   queue = chemdb_noreaction_collection.find(check,no_cursor_timeout=True)
+   print
+   print "running reactions that are waiting:"
+   print
+   print "queue_entry fetched  Waiting Reaction"
+   #"All requests to Arrows were successful"
+   inpfile   = wrkdir + "/checknoreaction9.txt" 
+   outfile   = wrkdir + "/checknoreaction9.plain"
+   for entry in queue.batch_size(2):
+      print "%11d %7d  \"%s\"" % (entry['queue_number'],entry['fetched'],entry['reaction'])
+      with open(inpfile,'w') as ff: ff.write("reaction: " + entry['reaction'] + " :reaction\n")
+      cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile 
+      result = subprocess.check_output(cmd7,shell=True)
+      print "result=" + result
+      if ("All requests to Arrows were successful" in result) or (entry['fetched']>100):
+         qqq = chemdb_noreaction_collection.remove(entry)
+      else:
+         qqq = chemdb_noreaction_collection.update(entry,{'$inc':{'fetched':1}},upsert=False,multi=False)
+
+
+
+
+if (delqueue):
+   delentry = {'queue_number' : delete_queue_number}
+   print "delentry=",delentry
+   queue = chemdb_reaction_collection.remove(delentry)
+
+if (delqueue2):
+   delentry2 = {'queue_number' : delete2_queue_number}
+   print "delentry2=",delentry2
+   queue = chemdb_finished_reaction_collection.remove(delentry2)
+
+if (submitqueue2):
+   ### lockfile ###
+   if os.path.isfile(lockfilename):
+      print "currently locked by " + lockfilename
+      exit()
+   with open(lockfilename,'w') as lfile: lfile.write("iamlocked\n")
+   qt = {}
+   reaction_q = chemdb_reaction_collection.find(qt)
+   try:
+      for entry in reaction_q:
+         try:
+            print "Adding " + entry['reaction'] + " to sql reaction database. queue_entry=",entry['queue_number']
+            cmd9 = chemdb_balance_reaction 
+            cmd9 += "-a \" %12.3f %12.3f %12.3f %12.3f %12.3f  %s\"" % (entry['energy'],entry['enthalpy'],entry['free_energy'], entry['solvation_energy'],entry['aq_free_energy'],entry['reaction'])
+            print "cmd9=",cmd9
+            result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+            print "result9=",result9
+            qq1 = chemdb_finished_reaction_collection.insert(entry)
+            print "added to finished reactions=",qq1
+            qq2 = chemdb_reaction_collection.remove(entry)
+            print "deleted from reaction queue=",qq2
+         except:
+            print "Call to chemdb_balance_reaction failed!"
+            try:
+               qq2 = chemdb_reaction_collection.remove(entry)
+               print "Forcing delete from reaction queue=",qq2
+            except:
+               print "Forcing delete failed!"
+   except:
+      print "mongo for loop failed, exiting early"
+   ### remove lockfilename ###
+   try:
+      os.unlink(lockfilename)
+   except:
+      print "chemdb_predict_reaction: failed to remove " + lockfilename
+
+
+
+
+if (runqueue) and (not email):
+   ### lockfile ###
+   if os.path.isfile(lockfilename2):
+      print "currently locked by " + lockfilename2
+      exit()
+   with open(lockfilename2,'w') as lfile: lfile.write("iamlocked\n")
+
+   qt = {}
+   predict_q = chemdb_predict_collection.find(qt)
+   for entry in predict_q:
+      if ('predicted_reactions' not in entry):
+         try:
+            ff = ''
+            ncycles = 1
+            if ("ncycles{" in entry['reactants']):
+               ncycles = evalnum(entry['reactants'].split("ncycles{")[1].split("}")[0].strip())
+            if (ncycles>4): ncycles = 4
+            noimages = (ncycles>1)
+            if ("include_images" in entry['reactants']): noimages = False
+            if ("no_images" in entry['reactants']):      noimages = True
+
+            ### generate predictions w/o images and w/o new prediction jobs ###
+            if noimages:
+               newreactants = [entry['reactants']]
+               allproducts = []
+               ff = ''
+               ggall = []
+               for it in range(ncycles):
+                  a = set(allproducts)
+                  b = set(newreactants)
+                  products = list( b ^ (a&b) )
+                  allproducts += newreactants
+                  newreactants = []
+                  for p in products:
+                     cmd7 = chemdb_balance_reaction 
+                     cmd7 += " -f \"" + p + "\""
+                     print "noimages cmd7=",cmd7
+                     result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+                     print "noimages cmd7 finished !"
+                     if "maxlevel=" in result7:
+                        maxlevel = result7.split("maxlevel=")[1].split("\n")[0].strip()
+                     else:
+                        maxlevel = "3"
+                     newreactants += products_predict_TotalRXN(result7)
+                     gg = filter_predict_reaction(result7,False)
+                     ff += "\nmaxlevel: %s\n" % (maxlevel)
+                     ff += "\nPrediction Cycle: %d\n\n" % (it+1)
+                     #ff += gg
+                     for g in gg.split("\n\n\n"):
+                        if (g not in ggall):
+                           ff += g + "\n\n\n"
+                     ggall += gg.split("\n\n\n")
+
+               print "Updating queue"
+               qqq = chemdb_predict_collection.update(entry,{'$set':{'predicted_reactions':ff}},upsert=False,multi=False)
+               print "updated queue=",qqq
+
+            ### generate predictions w/ images and new prediction jobs ###
+            else:
+               ff = ''
+               ncycles -= 1
+               label = ''
+               if ("label{" in entry['reactants']):
+                  label = entry['reactants'].split("label{")[1].split("}")[0].strip()
+
+               #products = [entry['reactants']]
+               #for it in range(ncycles):
+               print "Running cycle #",ncycles+1
+               #for p in products:
+               cmd7 = chemdb_balance_reaction 
+               cmd7 += " -f \"" + entry['reactants'] + "\""
+               print "cmd7=",cmd7
+               result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+               print "cmd7 finished !"
+               if "maxlevel=" in result7:
+                  maxlevel = result7.split("maxlevel=")[1].split("\n")[0].strip()
+               else:
+                  maxlevel = "3"
+               newreactants = products_predict_TotalRXN(result7)
+               gg = filter_predict_reaction(result7,True)
+               products = products_predict_reaction(gg)
+               ff += "\nmaxlevel: %s\n" % (maxlevel)
+               ff += "\nPrediction Cycle: %d\n\n" % (ncycles+1)
+               ff += gg
+
+               print "Updating queue"
+               qqq = chemdb_predict_collection.update(entry,{'$set':{'predicted_reactions':ff}},upsert=False,multi=False)
+               print "updated queue=",qqq
+               if (ncycles>0):
+                  for reaction in list(set(newreactants)):
+                     if ("-->" in reaction):
+                        reaction = reaction.split('-->')[1]
+                     reaction = reaction.strip() 
+                     reaction += " ~ include_images"
+                     if (ncycles>1): 
+                        if " ~ " not in reaction: 
+                           reaction += " ~"
+                        reaction += " ncycles{%d}" % ncycles
+                     if (label!=''):
+                        if " ~ " not in reaction: 
+                           reaction += " ~"
+                        reaction += " label{" + label + "} " 
+                     phash = predict_hash(reaction)
+                     check = {}
+                     check['phash'] = phash
+                     entry0 = chemdb_predict_collection.find_one(check)
+                     if (entry0 is None):
+                        entry0 = {}
+                        entry0['phash']     = phash
+                        entry0['reactants'] = reaction
+                        qq1 = chemdb_predict_collection.insert(entry0)
+                        print
+                        print "new reactants=",reaction
+                        print "new phash    =",phash
+                        print "new prediction request submitted=",qq1
+                        print "check back in ~10 minutes"
+         except:
+            qq = chemdb_predict_collection.remove(entry)
+            print "bad entry, removed from queue = ",qq
+            print
+
+   ### remove lockfilename ###
+   try:
+      os.unlink(lockfilename2)
+   except:
+      print "chemdb_predict_reaction: failed to remove " + lockfilename2
+   
+
+
+
+if (predictreaction) and (not email):
+   hasremove = ("remove" in reaction)
+   if ("-->" in reaction):
+      reaction = reaction.split('-->')[0]
+   reaction = reaction.strip()
+   phash = predict_hash(reaction.replace("remove","").strip())
+   print
+   print "+--------------------------------------------------+" 
+   print "|               Reaction Prediction                |"
+   print "+--------------------------------------------------+"
+   print "</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">"
+   print
+   print "reactants = " + reaction 
+   print "phash     = " + phash
+   check = {}
+   check['phash'] = phash
+   entry = chemdb_predict_collection.find_one(check)
+   if (entry is None):
+      entry = {}
+      entry['phash']     = phash
+      entry['reactants'] = reaction
+      entry['start_time'] = time.time()
+      qq1 = chemdb_predict_collection.insert(entry)
+      print
+      print "prediction request submitted=",qq1
+      print "check back in ~10 minutes"
+      #print "</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">"
+   elif ('predicted_reactions' not in entry):
+      print
+      print "prediction request not finished=",entry
+      print "check back in ~10 minutes"
+      #print "</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">"
+   else:
+      if hasremove:
+         qq = chemdb_predict_collection.remove(entry)
+         print "removed from queue = ",qq
+         print
+      method = ''
+      compounds = []
+      preactionlist = []
+      penergylist = []
+      pvariancelist = []
+      pimagelist    = []
+      pcyclelist    = []
+      pcycle = 0
+      maxlevel = 3
+      for line in entry['predicted_reactions'].split('\n'):
+         if "Predicted_Reaction:" in line: 
+            preactionlist.append(line)
+            pcyclelist.append(pcycle)
+            rxn = line.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0]
+            if "~" in rxn:   
+               method = rxn.split("~")[1].strip()
+            rxn = rxn.split("~")[0]
+            left  = rxn.split("-->")[0].strip()
+            right = rxn.split("-->")[1].strip()
+            for esmiles in left.split(" + "):
+               if ("SHE" not in esmiles):
+                  try:
+                     x = float(esmiles.split(None,1)[0])
+                     esmiles2 = esmiles.split(None,1)[1]
+                  except:
+                     x = 1.0
+                     esmiles2 = esmiles
+                  compounds.append(esmiles2.strip())
+            for esmiles in right.split(" + "):
+               if ("SHE" not in esmiles):
+                  try:
+                     x = float(esmiles.split(None,1)[0])
+                     esmiles2 = esmiles.split(None,1)[1]
+                  except:
+                     x = 1.0
+                     esmiles2 = esmiles
+                  compounds.append(esmiles2)
+
+         if "predicted_energies:" in line: 
+            ss = line.split("predicted_energies:")[1].split(":predicted_energies")[0].split()
+            ee = [eval(s) for s in ss]
+            penergylist.append(ee)
+         if "predicted_variances:" in line: 
+            ss = line.split("predicted_variances:")[1].split(":predicted_variances")[0].split()
+            vv = [eval(s) for s in ss]
+            pvariancelist.append(vv)
+         if "predicted_image:" in line: 
+            pimagelist.append(line)
+         if "Prediction Cycle:" in line: 
+            pcycle = evalnum(line.split("Prediction Cycle:")[1].split("\n")[0])
+         if "maxlevel:" in line: 
+            maxlevel = evalnum(line.split("maxlevel:")[1].split("\n")[0])
+
+
+      kekulelist    = []
+      if (("predicted_kekule:" in entry['predicted_reactions']) and (":predicted_kekule" in entry['predicted_reactions'])):
+         for blob in entry['predicted_reactions'].split('predicted_kekule:')[1:]:
+            kekulelist.append(blob.split(":predicted_kekule")[0])
+
+      print "%d reactions predicted, maxlevel=%d out of 6" % (len(preactionlist),maxlevel)
+      print
+      print "Unique Compounds (%d):" % len(list(set(compounds)))
+      for c in list(set(compounds)):
+         cc = "<a href=\'https://arrows.emsl.pnnl.gov/api/molecule/\"%s\"\' style=\"font-size:1.0em\">%s</a>" % (c+" "+method,c+" "+method)
+         print cc
+      print
+      print
+      print "Predicted Reactions (%d):" % (len(preactionlist))
+      print
+      imagelist = []
+      pcycle = 0
+      for i in range(len(preactionlist)):
+         preaction = preactionlist[i]
+         ee = penergylist[i]
+         vv = pvariancelist[i]
+         if (pcyclelist[i]>pcycle):
+            pcycle = pcyclelist[i]
+            print "\nPrediction Cycle: %d\n\n" % (pcycle)
+         
+         link = preaction.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0].strip()
+         plink = link.split("-->")[1].strip()
+         plink += " -->"
+         link2 = preaction.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0].strip().replace('#','%23')
+         plink2 = link2.split("-->")[1].strip()
+         plink2 += " -->"
+         aa = '''</pre> Predicted_Reaction: &nbsp;
+                  <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\"> %s </a>
+                  &nbsp; :Reaction_Predicted
+                  <pre style=\"font-size:1.0em;color:black\">
+              ''' % (link2,link)
+         bb = '''</pre>
+                  <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:0.6em\"> Prediction of Products (%s) </a>
+                  <pre style=\"font-size:1.0em;color:black\">
+              ''' % (plink2,plink)
+         print aa
+         print " -                         Erxn(gas)       Hrxn(gas)       Grxn(gas) Delta_Solvation        Grxn(aq)"
+         print " - energy_estimates: %15.3f %15.3f %15.3f %15.3f %15.3f -- in kcal/mol :energy_estimates" % (ee[0],ee[1],ee[2],ee[3],ee[4])
+         print " -       deviations: %15.3f %15.3f %15.3f %15.3f %15.3f -- in kcal/mol :deviations" % (vv[0],vv[1],vv[2],vv[3],vv[4])
+         #print bb
+         #if includeimages:
+         #   ddrand = random.randint(0,999999)
+         #   filename = wrkdir + "/" + "rdraw-%d.png" % ddrand
+         #   pngname     = "rimage-%d" % (ddrand)
+         #   imagelist += [(filename,pngname)]
+         #   cmd5 = chemdb_reaction_draw +"\"" + preaction.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] + "\" "+filename
+         #   result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT)
+         if (len(kekulelist)>i):
+            if (i==0):
+               print "</pre>\n"
+               print '<script type=\"text/javascript\" src=\"{{url_for(\'static\', filename=\'kekule/kekule.min.js\')}}\"></script>\n\n'
+               print "<pre style=\"font-size:1.0em;color:black\">"
+            print kekulelist[i]
+
+         if (len(pimagelist)>i):
+            iimges = pimagelist[i].split("predicted_image:")[1].split(":predicted_image")[0].strip()
+            filename = iimges.split()[0]
+            pngname  = iimges.split()[0]
+            imagelist += [(filename,pngname)]
+            print "</pre>"
+            print '<br><center><img src="cid:%s" align="middle"></center><br>' % pngname
+            print "<pre style=\"font-size:1.0em;color:black\">"
+         print
+         print
+
+      #### report imagefiles ####
+      #if includeimages:
+      if (len(imagelist)>0):
+         eoln = '\n'
+         msg = "imagelist: "
+         for image in imagelist:
+            msg += "%s %s " % (image[0],image[1])
+         msg += ":imagelist"
+         print eoln+msg+eoln
+
+
+
+
+if (runqueue) and (email):
+   ### lockfile ###
+   if os.path.isfile(lockfilename3):
+      print "currently locked by " + lockfilename3
+      exit()
+   with open(lockfilename3,'w') as lfile: lfile.write("iamlocked\n")
+
+   qt = {}
+   predict_q = chemdb_predict_collection_email.find(qt)
+   for entry in predict_q:
+      if ('predicted_reactions' not in entry):
+         try:
+            ff = ''
+            ncycles = 1
+            if ("ncycles{" in entry['reactants']):
+               ncycles = evalnum(entry['reactants'].split("ncycles{")[1].split("}")[0].strip())
+
+            products = [entry['reactants']]
+            for it in range(ncycles):
+               print "Running cycle #",it
+               for p in products:
+                  cmd7 = chemdb_balance_reaction
+                  cmd7 += " -f \"" + p + "\""
+                  print "cmd7=",cmd7
+                  result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+                  if "maxlevel=" in result7:
+                     maxlevel = result7.split("maxlevel=")[1].split("\n")[0].strip()
+                  else:
+                     maxlevel = "3"
+                  gg = filter_predict_reaction(result7,True)
+                  products = products_predict_reaction(gg)
+                  ff += "\nmaxlevel: %s\n" % (maxlevel)
+                  ff += "\nPrediction Cycle: %d\n\n" % (it+1)
+                  ff += gg
+
+            qqq = chemdb_predict_collection_email.update(entry,{'$set':{'predicted_reactions':ff}},upsert=False,multi=False)
+            print "updated queue=",qqq
+         except:
+            qq = chemdb_predict_collection_email.remove(entry)
+            print "bad entry, removed from queue = ",qq
+            print
+
+
+   ### remove lockfilename ###
+   try:
+      os.unlink(lockfilename3)
+   except:
+      print "chemdb_predict_reaction: failed to remove " + lockfilename3
+
+
+
+if (predictreaction) and (email):
+   if ("-->" in reaction):
+      reaction = reaction.split('-->')[0]
+   reaction = reaction.strip()
+   phash = predict_hash(reaction)
+   print
+   print "+--------------------------------------------------+"
+   print "|               Reaction Prediction                |"
+   print "+--------------------------------------------------+"
+   print
+   print "reactants = " + reaction
+   print "phash     = " + phash
+   check = {}
+   check['phash'] = phash
+   entry = chemdb_predict_collection_email.find_one(check)
+   if (entry is None):
+      entry = {}
+      entry['phash']     = phash
+      entry['reactants'] = reaction
+      qq1 = chemdb_predict_collection_email.insert(entry)
+      print
+      print "prediction request submitted=",qq1
+      print "check back in ~10 minutes"
+      print "</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">"
+   elif ('predicted_reactions' not in entry):
+      print
+      print "prediction request not finished=",entry
+      print "check back in ~10 minutes"
+      print "</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">"
+   else:
+      qq = chemdb_predict_collection_email.remove(entry)
+      print "removed from queue = ",qq
+      print
+      preactionlist = []
+      penergylist = []
+      pvariancelist = []
+      pimagelist    = []
+      pcyclelist    = []
+      pcycle = 0
+      maxlevel = 3
+      for line in entry['predicted_reactions'].split('\n'):
+         if "Predicted_Reaction:" in line:
+            preactionlist.append(line)
+            pcyclelist.append(pcycle)
+         if "predicted_energies:" in line:
+            ss = line.split("predicted_energies:")[1].split(":predicted_energies")[0].split()
+            ee = [eval(s) for s in ss]
+            penergylist.append(ee)
+         if "predicted_variances:" in line:
+            ss = line.split("predicted_variances:")[1].split(":predicted_variances")[0].split()
+            vv = [eval(s) for s in ss]
+            pvariancelist.append(vv)
+         if "predicted_image:" in line:
+            pimagelist.append(line)
+         if "Prediction Cycle:" in line:
+            pcycle = evalnum(line.split("Prediction Cycle:")[1].split("\n")[0])
+         if "maxlevel:" in line:
+            maxlevel = evalnum(line.split("maxlevel:")[1].split("\n")[0])
+
+      print "%d reactions predicted, maxlevel=%d out of 6" % (len(preactionlist),maxlevel)
+      print
+      imagelist = []
+      pcycle = 0
+      for i in range(len(preactionlist)):
+         preaction = preactionlist[i]
+         ee = penergylist[i]
+         vv = pvariancelist[i]
+         if (pcyclelist[i]>pcycle):
+            pcycle = pcyclelist[i]
+            print "\nPrediction Cycle: %d\n\n" % (pcycle)
+
+         link = preaction.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0].strip()
+         plink = link.split("-->")[1].strip()
+         plink += " -->"
+         link2 = preaction.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0].strip().replace('#','%23')
+         plink2 = link2.split("-->")[1].strip()
+         plink2 += " -->"
+         aa = '''</pre> Predicted_Reaction: &nbsp;
+                  <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\"> %s </a>
+                  &nbsp; :Reaction_Predicted
+                  <pre style=\"font-size:1.0em;color:black\">
+              ''' % (link2,link)
+         bb = '''</pre>
+                  <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:0.6em\"> Prediction of Products (%s) </a>
+                  <pre style=\"font-size:1.0em;color:black\">
+              ''' % (plink2,plink)
+         print aa
+         print " -                         Erxn(gas)       Hrxn(gas)       Grxn(gas) Delta_Solvation        Grxn(aq)"
+         print " - energy_estimates: %15.3f %15.3f %15.3f %15.3f %15.3f -- in kcal/mol :energy_estimates" % (ee[0],ee[1],ee[2],ee[3],ee[4])
+         print " -       deviations: %15.3f %15.3f %15.3f %15.3f %15.3f -- in kcal/mol :deviations" % (vv[0],vv[1],vv[2],vv[3],vv[4])
+         #print bb
+         #if includeimages:
+         #   ddrand = random.randint(0,999999)
+         #   filename = wrkdir + "/" + "rdraw-%d.png" % ddrand
+         #   pngname     = "rimage-%d" % (ddrand)
+         #   imagelist += [(filename,pngname)]
+         #   cmd5 = chemdb_reaction_draw +"\"" + preaction.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] + "\" "+filename
+         #   result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT)
+
+         iimges = pimagelist[i].split("predicted_image:")[1].split(":predicted_image")[0].strip()
+         filename = iimges.split()[0]
+         pngname  = iimges.split()[0]
+         imagelist += [(filename,pngname)]
+         print "</pre>"
+         print '<br><center><img src="cid:%s" align="middle"></center><br>' % pngname
+         print "<pre style=\"font-size:1.0em;color:black\">"
+         print
+         print
+
+      #### report imagefiles ####
+      #if includeimages:
+      if (len(imagelist)>0):
+         eoln = '\n'
+         msg = "imagelist: "
+         for image in imagelist:
+            msg += "%s %s " % (image[0],image[1])
+         msg += ":imagelist"
+         print eoln+msg+eoln
+
+
+
+
+
+
+

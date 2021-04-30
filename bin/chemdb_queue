@@ -1,0 +1,1249 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+import datetime,re
+from bson.objectid import ObjectId
+from math import *
+
+####################### mongoDB #############################
+#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+mongo_client                     = pymongo.MongoClient(uri)
+arrows_db                        = mongo_client.Arrows
+chemdb_queue_collection0         = arrows_db.chemdb_queue_collection0
+chemdb_queue_collection          = arrows_db.chemdb_queue_collection
+chemdb_finished_queue_collection = arrows_db.chemdb_finished_queue_collection
+qnumber_collection               = arrows_db.queue_number
+####################### mongoDB #############################
+
+############## machine parameters #########################
+babel            = "/usr//bin/babel"
+obabel           = "/usr/bin/obabel "
+esmiles2xyz      = "/srv/arrows/bin/esmiles2xyz "
+tnt_submit       = "/srv/arrows/bin/tnt_submit5 -f "
+chemdb_add_nwout = "/srv/arrows/bin/chemdb_add_nwout7 "
+
+wrkdir           = "/srv/arrows/Work"
+tmpxyz1          = "chemdb_queue.xyz" 
+tmpinchi1        = "chemdb_queue.inchi" 
+curdir           = os.getcwd()
+lockfilename     = "/srv/arrows/Work/chemdbqueue1.lockfile"
+############## machine parameters #########################
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+                                    )
+        opener = urllib2.build_opener(proxy)
+        urllib2.install_opener(opener)
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+
+
+
+periodic_table_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 3,
+    'Be' : 4,
+    'B'  : 5,
+    'C'  : 6,
+    'N'  : 7,
+    'O'  : 8,
+    'F'  : 9,
+    'Ne' : 10,
+    'Na' : 11,
+    'Mg' : 12,
+    'Al' : 13,
+    'Si' : 14,
+    'P'  : 15,
+    'S'  : 16,
+    'Cl' : 17,
+    'Ar' : 18,
+    'K'  : 19,
+    'Ca' : 20,
+    'Sc' : 21,
+    'Ti' : 22,
+    'V'  : 23,
+    'Cr' : 24,
+    'Mn' : 25,
+    'Fe' : 26,
+    'Co' : 27,
+    'Ni' : 28,
+    'Cu' : 29,
+    'Zn' : 30,
+    'Ga' : 31,
+    'Ge' : 32,
+    'As' : 33,
+    'Se' : 34,
+    'Br' : 35,
+    'Kr' : 36,
+    'Rb' : 37,
+    'Sr' : 38,
+    'Y'  : 39,
+    'Zr' : 40,
+    'Nb' : 41,
+    'Mo' : 42,
+    'Tc' : 43,
+    'Ru' : 44,
+    'Rh' : 45,
+    'Pd' : 46,
+    'Ag' : 47,
+    'Cd' : 48,
+    'In' : 49,
+    'Sn' : 50,
+    'Sb' : 51,
+    'Te' : 52,
+    'I'  : 53,
+    'Xe' : 54,
+    'Cs' : 55,
+    'Ba' : 56,
+    'La' : 57,
+    'Ce' : 58,
+    'Pr' : 59,
+    'Nd' : 60,
+    'Pm' : 61,
+    'Sm' : 62,
+    'Eu' : 63,
+    'Gd' : 64,
+    'Tb' : 65,
+    'Dy' : 66,
+    'Ho' : 67,
+    'Er' : 68,
+    'Tm' : 69,
+    'Yb' : 70,
+    'Lu' : 71,
+    'Hf' : 72,
+    'Ta' : 73,
+    'W'  : 74,
+    'Re' : 75,
+    'Os' : 76,
+    'Ir' : 77,
+    'Pt' : 78,
+    'Au' : 79,
+    'Hg' : 80,
+    'Tl' : 81,
+    'Pb' : 82,
+    'Bi' : 83,
+    'Po' : 84,
+    'At' : 85,
+    'Rn' : 86,
+    'Fr' : 87,
+    'Ra' : 88,
+    'Ac' : 89,
+    'Th' : 90,
+    'Pa' : 91,
+    'U'  : 92,
+    'Np' : 93,
+    'Pu' : 94,
+    'Am' : 95,
+    'Cm' : 96,
+    'Bk' : 97,
+    'Cf' : 98,
+    'Es' : 99,
+    'Fm' : 100,
+    'Md' : 101,
+    'No' : 102,
+    'Lr' : 103,
+    'Rf' : 104,
+    'Ha' : 105,
+    'Sg' : 106,
+    'Bh' : 107,
+    'Hs' : 108,
+    'Mt' : 109
+}
+
+
+periodic_table_valence_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 1,
+    'Be' : 2,
+    'B'  : 3,
+    'C'  : 4,
+    'N'  : 5,
+    'O'  : 6,
+    'F'  : 7,
+    'Ne' : 8,
+    'Na' : 1,
+    'Mg' : 2,
+    'Al' : 3,
+    'Si' : 4,
+    'P'  : 5,
+    'S'  : 6,
+    'Cl' : 7,
+    'Ar' : 8,
+    'K'  : 1,
+    'Ca' : 2,
+    'Sc' : 3,
+    'Ti' : 4,
+    'V'  : 5,
+    'Cr' : 6,
+    'Mn' : 7,
+    'Fe' : 8,
+    'Co' : 9,
+    'Ni' : 10,
+    'Cu' : 11,
+    'Zn' : 12,
+    'Ga' : 3,
+    'Ge' : 4,
+    'As' : 5,
+    'Se' : 6,
+    'Br' : 7,
+    'Kr' : 8,
+    'Rb' : 1,
+    'Sr' : 2,
+    'Y'  : 3,
+    'Zr' : 4,
+    'Nb' : 5,
+    'Mo' : 6,
+    'Tc' : 7,
+    'Ru' : 8,
+    'Rh' : 9,
+    'Pd' : 10,
+    'Ag' : 11,
+    'Cd' : 12,
+    'In' : 3,
+    'Sn' : 4,
+    'Sb' : 5,
+    'Te' : 6,
+    'I'  : 7,
+    'Xe' : 8,
+    'Cs' : 1,
+    'Ba' : 2,
+    'La' : 3,
+    'Ce' : 4,
+    'Pr' : 5,
+    'Nd' : 6,
+    'Pm' : 7,
+    'Sm' : 8,
+    'Eu' : 9,
+    'Gd' : 10,
+    'Tb' : 11,
+    'Dy' : 12,
+    'Ho' : 13,
+    'Er' : 14,
+    'Tm' : 15,
+    'Yb' : 16,
+    'Lu' : 17,
+    'Hf' : 4,
+    'Ta' : 5,
+    'W'  : 6,
+    'Re' : 7,
+    'Os' : 8,
+    'Ir' : 9,
+    'Pt' : 10,
+    'Au' : 11,
+    'Hg' : 12,
+    'Tl' : 3,
+    'Pb' : 4,
+    'Bi' : 5,
+    'Po' : 6,
+    'At' : 7,
+    'Rn' : 8,
+    'Fr' : 1,
+    'Ra' : 2,
+    'Ac' : 3,
+    'Th' : 4,
+    'Pa' : 5,
+    'U'  : 6,
+    'Np' : 7,
+    'Pu' : 8,
+    'Am' : 9,
+    'Cm' : 10,
+    'Bk' : 11,
+    'Cf' : 12,
+    'Es' : 13,
+    'Fm' : 14,
+    'Md' : 15,
+    'No' : 16,
+    'Lr' : 17,
+    'Rf' : 4,
+    'Ha' : 5,
+    'Sg' : 6,
+    'Bh' : 7,
+    'Hs' : 8,
+    'Mt' : 9
+}
+
+
+
+
+
+
+def inchionlyHZ(inchi):
+   try:
+      onlyHZ = True
+      for a in re.findall('[A-Z][^A-Z]*', inchi.split("/")[1]):
+         aa = re.sub("[^a-zA-Z]","", a)
+         if (periodic_table_charge[aa]<21): onlyHZ = False
+   except:
+      onlyHZ = False
+
+   return onlyHZ
+
+def inchihasHZ(inchi):
+   try:
+      hasHZ = False
+      #for aa in re.findall('[^\d^. ]+',inchi.split("/")[1]):
+      for a in re.findall('[A-Z][^A-Z]*', inchi.split("/")[1]):
+         aa = re.sub("[^a-zA-Z]","", a)
+         if (periodic_table_charge[aa]>=21): hasHZ = True
+   except:
+      hasHZ = False
+
+   return hasHZ
+
+def xyz_molecular_formula(xyzfilename):
+   #
+   fdict = {}
+   xyzfile = open(xyzfilename,'r')
+   n = evalnum(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+   xyzfile.close()
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+def xyz2mult(xyzfilename,q):
+  mult = 1
+  pcharge = q
+  count = 0
+  xyzfile = open(xyzfilename,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+#### xyz2smiles function ####
+def xyz2smiles(xyzfile):
+   try:
+      smiles = ''
+      smilefile = wrkdir + "/"+tmpinchi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(smilefile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles = sdat[0].split()[0]
+   except:
+      smiles = ''
+   return smiles
+
+
+#### xyz2InChI function ####
+def xyz2InChI(xyzfile):
+   inchi = ''
+   try:
+      inchifile = wrkdir + "/"+ tmpinchi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+#### xyz2InChIKey function ####
+def xyz2InChIKey(xyzfile):
+   inchi = ''
+   try:
+      inchifile = wrkdir + "/"+tmpinchi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+def removespace_basis(basis):
+   if ('ry' not in basis.lower()) and ('hartree' not in basis.lower()):
+      basis = basis.replace(" ", "")
+   return basis
+
+#############################################
+#                                           #
+#             addspaces_reaction            #
+#                                           #
+#############################################
+def addspaces_reaction(reaction):
+   tags = ['^','mult','theory','xc','solvation_type','basis','calculation_type','rgroup','rbond','rsym_num','vtag','property','priority','geometry_generation','reaction_genhash','reaction_hash','reaction_kappa','reaction_gamma']
+   reaction2 = reaction[:]
+   if (reaction2.find(">")!=-1):
+      reaction2 = reaction2.replace(">","")
+   if (reaction2.find("-->")==-1):
+      reaction2 = reaction2.replace("--","-->")
+   for tag1 in tags: reaction2 = reaction2.replace(tag1," " + tag1)
+   return reaction2
+
+
+#############################################
+#                                           #
+#            parsetosmiles                  #
+#                                           #
+#############################################
+def parsetosmiles(str):
+   global xyzdata
+   ss = str.split()
+   str2 = ''
+   for s in ss:
+      if 'kegg=' in s.lower():
+         kegg = s.split('=')[1]
+         mol = geturlresult("http://rest.kegg.jp/get/%s/mol" % kegg)
+         smiles = mol2smiles(mol)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('cid=' in s.lower()) or ('pubchem=' in s.lower()) :
+         cid = s.split('=')[1]
+         smiles = geturlresult("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/property/CanonicalSMILES/TXT" % cid)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif ('csid=' in s.lower()) or ('chemspider=' in s.lower()):
+         csid = s.split('=')[1]
+         #rdfdata = geturlresult("http://rdf.chemspider.com/%s" % csid)
+         #if rdfdata=='':
+         #   smiles='C'
+         #else:
+         #   rdfdata2 = rdfdata.split('<chemdomain:SMILES')[1].split('</chemdomain:SMILES>')[0]
+         #   smiles   = rdfdata2.split('<chemdomain:hasValue>')[1].split('</chemdomain:hasValue>')[0].strip()
+         rdfdata = geturlresult("http://www.chemspider.com/Chemical-Structure.%s.html" % csid)
+         if rdfdata=='':
+            smiles='C'
+         else:
+            rdfdata2 = rdfdata.split('<span class="prop_title">SMILES</span>')[1].split('<span class="prop_title">Std. InChi</span>')[0]
+            smiles   = rdfdata2.split('ClipboardCopyInit(this, &#39;')[1].split('&#39;')[0].strip()
+         str2 += ' '
+         str2 += smiles
+      elif 'cas=' in s.lower():
+         cas = s.split('=')[1]
+         smiles = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/smiles" % cas)
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      elif 'inchi=' in s.lower():
+         smiles = InChI2smiles("InChI=" + s.split('=')[1])
+         if smiles=='': smiles='C'
+         str2 += ' '
+         str2 += smiles
+      else:
+         str2 += ' '
+         str2 += s
+   str2 = str2.strip()
+
+   return str2
+
+
+def mformula2valencecharge(mformula):
+  mult    = 1
+  vcharge = 0
+  count   = 0
+  largeatom = False
+
+  symbolcountlist = re.findall('[a-zA-Z]+|\\d+', mformula) 
+  count = len(symbolcountlist)
+  for i in range(count/2):
+     symb = symbolcountlist[2*i]
+     n    = evalnum(symbolcountlist[2*i+1])
+     if symb in periodic_table_valence_charge:
+        vcharge += n*periodic_table_valence_charge[symb]
+     if symb in periodic_table_charge:
+        if (periodic_table_charge[symb]>35): largeatom = True
+
+  #if ((largeatom) and (vcharge<51)): vcharge = 55
+
+  return vcharge
+
+#############################################
+#                                           #
+#        theorymformula2machinetype         #
+#                                           #
+#############################################
+
+def theorysmiles2machinetype(theory,mformula):
+   vachinetype = "toobig"
+   hasmopac    = False
+   vcharge = mformula2valencecharge(mformula)
+   print "mformula,vcharge=",mformula,vcharge
+   if ('am1' in theory) or ('pm3' in theory) or ('mndo' in theory) or ('mindo3' in theory):
+      vachinetype = 'mopac'
+   elif ('qsharp_chem' in theory):
+      if vcharge<50:
+         vachinetype = 'qsharp'
+   elif ('ccsd(t)' in theory) or ('ccsd' in theory):
+      if vcharge<50:
+         vachinetype = 'large'
+   elif ('mp2' in theory):
+      if vcharge<80:
+         vachinetype = 'large'
+   elif ('pspw4' in theory):
+      if vcharge<50:
+         vachinetype = 'small'
+      elif vcharge<150:
+         vachinetype = 'medium'
+      elif vcharge<300:
+         vachinetype = 'large'
+   else:
+      if vcharge<30:
+         vachinetype = 'tiny'
+      elif vcharge<50:
+         vachinetype = 'small'
+      elif vcharge<100:
+         vachinetype = 'medium'
+      elif vcharge<200:
+         vachinetype = 'large'
+
+
+   return vachinetype
+
+
+
+
+
+
+#############################################
+#                                           #
+#            esmiles2entry                  #
+#                                           #
+#############################################
+
+
+def esmiles2entry(esmiles,vtag0):
+   #
+   entry = {}
+   entry['esmiles'] = esmiles
+
+   theory = ''
+   theory_base = ''
+   xc          = ''
+   xc_base     = ''
+   basis       = ''
+   basis_base  = ''
+   basisHZ       = ''
+   basisHZ_base  = ''
+   solvation_type = ''
+   calculation_type = ''
+   rbond = ''
+   rgroup = ''
+   reaction_hash = ''
+   reaction_gamma = ''
+   reaction_kappa = ''
+   reaction_genhash = ''
+   xyzdata0 = ''
+   if 'qsharp_chem' in esmiles:
+      theory='qsharp_chem';xc='unknown';basis='sto-3g';solvation_type='COSMO';calculation_type='ovc'
+      theory_base='dft';xc_base='b3lyp';basis_base='6-311++G(2d,2p)'
+      basisHZ  = 'sto-3g'
+      basisHZ1 = 'sto-3g'
+   elif 'ccsd(t)' in esmiles:
+      theory='ccsd(t)';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';calculation_type='ovc'
+      theory_base='dft';xc_base='b3lyp';basis_base='6-311++G(2d,2p)'
+      basisHZ  = 'aug-cc-pVTZ'
+      basisHZ1 = 'crenbl_ecp'
+   elif 'ccsd' in esmiles:
+      theory='ccsd';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';calculation_type='ovc'
+      theory_base='dft';xc_base='b3lyp';basis_base='6-311++G(2d,2p)'
+      basisHZ  = 'aug-cc-pVTZ'
+      basisHZ1 = 'crenbl_ecp'
+   elif 'mp2' in esmiles:
+      theory='mp2';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';calculation_type='ovc'
+      theory_base='dft';xc_base='b3lyp';basis_base='6-311++G(2d,2p)'
+      basisHZ  = 'aug-cc-pVTZ'
+      basisHZ1 = 'crenbl_ecp'
+   elif 'pspw4' in esmiles:
+      theory='pspw4';xc='pbe';basis='100.0 Ry';solvation_type='None';calculation_type='ov'
+   elif 'pspw' in esmiles:
+      theory='pspw';xc='pbe';basis='100.0 Ry';solvation_type='None';calculation_type='ov'
+   elif 'paw4' in esmiles:
+      theory='paw4';xc='pbe';basis='100.0 Ry';solvation_type='None';calculation_type='ov'
+   elif 'paw' in esmiles:
+      theory='paw';xc='pbe';basis='100.0 Ry';solvation_type='None';calculation_type='ov'
+   elif 'am1' in esmiles:
+      theory='am1';xc='unknown';basis='semiempirical';solvation_type='COSMO';calculation_type='ovc'
+   elif 'pm3' in esmiles:
+      theory='pm3';xc='unknown';basis='semiempirical';solvation_type='COSMO';calculation_type='ovc'
+   elif 'mndo' in esmiles:
+      theory='mndo';xc='unknown';basis='semiempirical';solvation_type='COSMO';calculation_type='ovc'
+   elif 'mindo3' in esmiles:
+      theory='mindo3';xc='unknown';basis='semiempirical';solvation_type='COSMO';calculation_type='ovc'
+   elif 'dft' in esmiles:
+      theory='dft';xc='b3lyp';basis='6-311++G(2d,2p)';solvation_type='COSMO';calculation_type='ovc'
+      basisHZ  = 'aug-cc-pVTZ'
+      basisHZ1 = 'crenbl_ecp'
+   elif 'uhf' in esmiles:
+      theory='uhf';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';calculation_type='ovc'
+      basisHZ  = 'aug-cc-pVTZ'
+      basisHZ1 = 'crenbl_ecp'
+   elif 'hf' in esmiles:
+      theory='hf';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';calculation_type='ovc'
+      basisHZ  = 'aug-cc-pVTZ'
+      basisHZ1 = 'crenbl_ecp'
+   else:
+      theory='dft';xc='b3lyp';basis='6-311++G(2d,2p)';solvation_type='COSMO';calculation_type='ovc'
+      basisHZ  = 'aug-cc-pVTZ'
+      basisHZ1 = 'crenbl_ecp'
+
+   if (os.path.isfile(esmiles.split()[0])):
+      xyzfile = esmiles.split()[0]
+      smiles  = xyz2smiles(xyzfile)
+      csmiles = smiles
+      mformula = xyz_molecular_formula(xyzfile)
+      inchi     = xyz2InChI(xyzfile)    #does not include charge
+      inchikey  = xyz2InChIKey(xyzfile) #does not include charge
+      charge = 0
+
+   else:
+      xyzfile = wrkdir + "/" + tmpxyz1
+
+      cmd1   = esmiles2xyz + "\"" + esmiles + "\"" + " " + xyzfile
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+
+      charge   = evalnum(result.split("charge          =")[1].split("\n")[0])
+      mult     = evalnum(result.split("mult            =")[1].split("\n")[0])
+      smiles   = result.split("smiles   =")[1].split("\n")[0].strip()
+      csmiles  = result.split("csmiles  =")[1].split("\n")[0].strip()
+      mformula = result.split("mformula =")[1].split("\n")[0].strip()
+      inchi    = result.split("inchi    =")[1].split("\n")[0].strip()
+      inchikey = result.split("inchikey =")[1].split("\n")[0].strip()
+
+   if '^{' in esmiles:      charge = evalnum(esmiles.split('^{')[1].split('}')[0].strip())
+   mult = xyz2mult(xyzfile,charge)
+   if 'mult{' in esmiles:   mult   = evalnum(esmiles.split('mult{')[1].split('}')[0].strip())
+
+   inchi2    = xyz2InChI(xyzfile)    #inchi2 does not include charge
+   inchikey2 = xyz2InChIKey(xyzfile) #inchikey2 does not include charge
+
+   if 'theory{' in esmiles: theory = esmiles.split('theory{')[1].split('}')[0]
+   if 'xc{' in esmiles:     xc     = esmiles.split('xc{')[1].split('}')[0]
+   if 'basis{' in esmiles:  basis  = removespace_basis(esmiles.split('basis{')[1].split('}')[0])
+   if 'basisHZ{' in esmiles:  basisHZ  = removespace_basis(esmiles.split('basisHZ{')[1].split('}')[0])
+   if 'theory_base{' in esmiles: theory_base = esmiles.split('theory_base{')[1].split('}')[0]
+   if 'xc_base{' in esmiles:     xc_base     = esmiles.split('xc_base{')[1].split('}')[0]
+   if 'basis_base{' in esmiles:  basis_base  = removespace_basis(esmiles.split('basis_base{')[1].split('}')[0])
+   if 'basisHZ_base{' in esmiles:  basisHZ_base  = removespace_basis(esmiles.split('basisHZ_base{')[1].split('}')[0])
+   if 'solvation_type{' in esmiles: solvation_type = esmiles.split('solvation_type{')[1].split('}')[0]
+   if 'calculation_type{' in esmiles: calculation_type = esmiles.split('calculation_type{')[1].split('}')[0]
+   if 'rbond{' in esmiles: rbond = esmiles.split('rbond{')[1].split('}')[0]
+   if 'rgroup{' in esmiles: rgroup = esmiles.split('rgroup{')[1].split('}')[0]
+
+   if 'ry' in  basis.lower():      basis = '%.1f Ry' % (evalnum(basis.strip().split()[0]))
+   if 'hartree' in  basis.lower(): basis = '%.1f Ry' % (2*evalnum(basis.strip().split()[0]))
+   if 'ry' in  basis_base.lower():      basis_base = '%.1f Ry' % (evalnum(basis_base.strip().split()[0]))
+   if 'hartree' in  basis_base.lower(): basis_base = '%.1f Ry' % (2*evalnum(basis_base.strip().split()[0]))
+
+   if 'reaction_hash{' in esmiles:  reaction_hash  = esmiles.split('reaction_hash{')[1].split('}')[0].strip()
+   if 'reaction_gamma{' in esmiles: reaction_gamma = evalnum(esmiles.split('reaction_gamma{')[1].split('}')[0].strip())
+   if 'reaction_kappa{' in esmiles: reaction_kappa = evalnum(esmiles.split('reaction_kappa{')[1].split('}')[0].strip())
+   if 'reaction_genhash{' in esmiles:  
+      #reaction_genhash  = esmiles.split('reaction_genhash{')[1].split('}')[0].strip()
+      reaction_genhash = ''
+      jjj = esmiles.split('reaction_genhash{')[1]
+      nj = len(jjj)
+      i = 0
+      pc = 0
+      done = False
+      while (not done):
+         cc = jjj[i]
+         if ((cc == '}') and (pc<1)) or (i>(nj-2)):
+            done = True
+         else:
+            if (cc == '{'): pc += 1
+            if (cc == '}'): pc -= 1
+            reaction_genhash += cc
+            i += 1
+
+   if 'xyzdata{' in esmiles: xyzdata0 = esmiles.split('xyzdata{')[1].split('}')[0].strip()
+
+   hasHZ = inchihasHZ(inchi2) and (basis!="semiempirical") and (theory!='pspw') and (theory!='pspw4') and (theory!='paw')
+   notonlyHZ = (not inchionlyHZ(inchi2)) or (basis=="semiempirical") or (theory=='pspw') or (theory=='pspw4') or (theory=='paw')
+
+   entry['smiles']   = smiles
+   entry['csmiles']  = csmiles
+   entry['mformula'] = mformula
+   entry['inchi']    = inchi
+   entry['inchikey'] = inchikey
+   entry['inchi2']    = inchi2
+   entry['inchikey2'] = inchikey2
+   entry['charge'] = charge
+   entry['mult']   = mult
+
+   entry['theory']       = theory
+   entry['theory_base']  = theory_base
+   entry['xc']           = xc
+   entry['xc_base']      = xc_base
+   entry['basis']        = basis
+   entry['basis_base']   = basis_base
+   entry['basisHZ']      = basisHZ
+   entry['basisHZ_base'] = basisHZ_base
+   entry['hasHZ']        = hasHZ
+   entry['notonlyHZ']    = notonlyHZ
+
+   entry['solvation_type']   = solvation_type
+   entry['calculation_type'] = calculation_type
+   entry['rbond']  = rbond
+   entry['rgroup'] = rgroup
+
+   entry['machine_type']    = theorysmiles2machinetype(theory,mformula)
+   if 'machine_type{' in esmiles: 
+      entry['machine_type'] = esmiles.split('machine_type{')[1].split('}')[0]
+
+   entry['reaction_hash']   = reaction_hash
+   entry['reaction_gamma']  = reaction_gamma
+   entry['reaction_kappa']  = reaction_kappa
+   entry['reaction_genhash']  = reaction_genhash
+   if (xyzdata0!=''): entry['xyzdata']  = xyzdata0
+
+   ### set queue number  ###
+   #queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue'})['count']
+   #qqq = qnumber_collection.update({'queue':'chemdb_queue'},{'$inc':{'count':1}},upsert=False,multi=False)
+
+
+
+   esmiles0 = esmiles .replace("\"",'')
+   esmiles0 = esmiles0.replace("\'",'')
+   esmiles0 = addspaces_reaction(esmiles0.strip())
+   esmiles0 = parsetosmiles(esmiles0)
+
+   cmd7 = tnt_submit 
+
+   ### use diagonal_hessian if this is a restart ###
+   if "resubmitjob:" in vtag0: cmd7 += "-w "
+
+   #add original smiles string to vtag
+   #osmiles = smiles + " " + " ".join(esmiles.split()[1:])
+   osmiles = smiles 
+   vtag = vtag0
+   if 'osmiles:' not in vtag:
+      vtag += ' osmiles:'+ osmiles.strip() + ':osmiles'
+   cmd7 += ' -v ' + '\"' + vtag.strip() + '\" '
+
+   cmd7 +=  '\"' + esmiles0 + '\"'
+   data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+   if len(data) == 0: data=esmiles0 + " not generated\n"
+
+
+   ## set queue number  ##
+   try:
+      queue_number = evalnum(data.split("queue_number     =")[1].split("\n")[0])
+   except:
+      queue_number = -1
+
+   entry['queue_number'] = queue_number
+   entry['fetched']      = 0
+
+   #data1 =  "#########################  START NWCHEM INPUT DECK - NWJOB %d ########################\n" % queue_number
+   #data1 += "#NWChemJobId:",queue_number
+   #data1 += "\n"
+   #data1 +=  data + "\n"
+   #data1 += "#########################  END   NWCHEM INPUT DECK - NWJOB %d ########################\n" % queue_number
+
+   entry['nwchem_input_deck']   = data
+
+   ### add client entry based on nwchem input ceck ###
+   client = ""
+   if (("client:" in data) and (":client" in data)):
+      client =  data.split("client:")[1].split(":client")[0] 
+   entry['client'] = client
+
+
+   return entry
+
+
+#############################################
+#                                           #
+#            checkentry                     #
+#                                           #
+#############################################
+def checkentry(entry):
+
+   check = {}
+   #check['csmiles']    =    entry['csmiles']
+   check['mformula']  = entry['mformula']
+   #check['inchi']     = entry['inchi']
+   #check['inchikey']  = entry['inchikey']
+   check['inchi2']    = entry['inchi2']
+   check['inchikey2'] = entry['inchikey2']
+   check['charge']    = entry['charge']
+   check['mult']      = entry['mult']
+
+   check['theory']       = entry['theory']
+   check['theory_base']  = entry['theory_base']
+   check['xc']           = entry['xc']
+   check['xc_base']      = entry['xc_base']
+   check['basis']        = entry['basis']
+   check['basis_base']   = entry['basis_base']
+   check['basisHZ']      = entry['basisHZ']
+   check['basisHZ_base'] = entry['basisHZ_base']
+   check['hasHZ']        = entry['hasHZ']
+   check['notonlyHZ']    = entry['notonlyHZ']
+
+   check['solvation_type']   = entry['solvation_type']
+   check['calculation_type'] = entry['calculation_type']
+   check['rbond'] = entry['rbond']
+   check['rgroup'] = entry['rgroup']
+   check['reaction_hash']  = entry['reaction_hash']
+   check['reaction_gamma'] = entry['reaction_gamma']
+   check['reaction_kappa'] = entry['reaction_kappa']
+   check['reaction_genhash']  = entry['reaction_genhash']
+   if ("xyzdata" in entry): check['xyzdata']  = entry['xyzdata']
+
+   return check
+
+
+
+############################# main program ###################################
+usage = \
+"""
+chemdb_queue program
+
+  Usage: chemdb_queue -a esmiles -d queue_entry -f queue_entry -w nwout -z string_of_datafiles  -l
+
+  -l list entries
+  -k list finished nwchem entries
+  -s submit finished nwchem entries to chemdb_add_nwout
+  -a add esmiles
+  -d delete queue_entry
+  -e delete finished nwchem queue_entry
+  -f fetch nwchem input deck
+  -q fetch nwchem input deck on queue
+  -w add nwchemoutput
+  -z string of extra_datafiles only works when used with -w option
+  -r reset queue entry
+  -m change queue of queue entry
+
+"""
+
+
+print
+print "#chemdb_queue - version 1.0"
+print
+tt      = time.localtime()
+
+submitqueue2 = False
+listqueues = True
+listqueues2= False
+addqueue   = False
+addqueue0  = False
+addqueue1  = False
+delqueue   = False
+delqueue2  = False
+runqueue   = False
+getqueue   = False
+resetqueue = False
+changequeue = False
+newqueue    = 'first'
+extra_datafiles = ''
+nwfile          = ''
+vtag            = ''
+opts, args = getopt.getopt(sys.argv[1:], "a:b:d:e:f:q:w:z:v:r:m:lskhc")
+for o, a in opts:
+  if '-l' in o:
+     listqueues = True
+  if '-k' in o:
+     listqueues2 = True
+  if '-s' in o:
+     submitqueue2 = True
+     listqueues   = False
+  if '-a' in o:
+     addesmiles = a
+     listqueues = False
+     addqueue   = True
+  if '-b' in o:
+     addesmiles = a
+     listqueues = False
+     addqueue0  = True
+  if '-c' in o:
+     listqueues = False
+     addqueue1  = True
+  if '-r' in o:
+     try:
+        reset_queue_number = evalnum(a)
+        listqueues = False
+        resetqueue = True
+     except:
+        listqueues = True
+        resetqueue = False
+  if '-m' in o:
+     try:
+        if ("M" in a):
+           reset_queue_number = evalnum(a.split("M")[0].strip())
+           newqueue           = a.split("M")[1].strip()
+        else:
+           reset_queue_number = evalnum(a)
+        listqueues = False
+        changequeue = True
+     except:
+        listqueues = True
+        changequeue = False
+
+  if '-d' in o:
+     try:
+        delete_queue_number = evalnum(a)
+        listqueues = False
+        delqueue   = True
+     except:
+        listqueues = True
+        delqueue   = False
+  if '-e' in o:
+     try:
+        delete2_queue_number = evalnum(a)
+        listqueues = False
+        delqueue2   = True
+     except:
+        listqueues2 = True
+        delqueue2   = False
+  if '-f' in o:
+     try:
+        run_queue_number = evalnum(a)
+        listqueues = False
+        runqueue   = True
+     except:
+        listqueues = True
+        runqueue   = False
+  if '-q' in o:
+     try:
+        run_queue_number = evalnum(a)
+        listqueues = False
+        getqueue   = True
+     except:
+        listqueues = True
+        getqueue   = False
+  if '-w' in o:
+     nwfile = a
+     listqueues = False
+  if '-z' in o:
+     extra_datafiles = a
+  if '-v' in o:
+     vtag = a
+     print "# - adding tag " + vtag + " to input deck.\n"
+
+     
+
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (listqueues):
+   check = {}
+   echeck = {}
+   echeck['queue_number'] = 1
+   echeck['machine_type'] = 1
+   echeck['fetched'] = 1
+   echeck['esmiles'] = 1
+   echeck['csmiles'] = 1
+   echeck['client'] = 1
+   queue = chemdb_queue_collection.find(check,echeck)
+   print "queue_entry   machine_type  fetched    esmiles"
+   ss = []
+   for entry in queue:
+      #print "%11d %14s %8d    \"%s\"" % (entry['queue_number'],entry['machine_type'],entry['fetched'],entry['esmiles'])
+      client = ""
+      if 'client' in entry:
+         if (len(entry['client']) > 0):
+            client = " client{"+entry['client']+"}"
+      if ("chemdb99" in entry['esmiles']):
+         ss.append("%11d %14s %8d    \"%s canon_smiles{%s}%s\"" % (entry['queue_number'],entry['machine_type'],entry['fetched'],entry['esmiles'],entry['csmiles'],client))
+      else:
+         ss.append("%11d %14s %8d    \"%s\"" % (entry['queue_number'],entry['machine_type'],entry['fetched'],entry['esmiles']))
+   ss.sort()
+   for entry in ss:
+      print entry
+
+if (listqueues2):
+   check = {}
+   echeck = {}
+   echeck['queue_number'] = 1
+   echeck['smiles'] = 1
+   echeck['theory'] = 1
+   echeck['basis'] = 1
+   echeck['nwchem_output'] = 1
+   echeck['extra_datafiles'] = 1
+   queue2 = chemdb_finished_queue_collection.find(check,echeck)
+   print 
+   print "Finsihed Jobs Queue:"
+   for entry in queue2:
+      print "queue_entry=%d smiles=%s theory=%s basis=%s nwchem_output=%s extra_datafiles=%s" % (entry['queue_number'],entry['smiles'],entry['theory'],entry['basis'],entry['nwchem_output'],entry['extra_datafiles'])
+
+if (submitqueue2):
+   check = {}
+   queue2 = chemdb_finished_queue_collection.find(check)
+   print
+   print "Adding Finsihed Jobs Queue to Arrows:"
+   delete_queue2 = []
+   for entry in queue2:
+
+      ### remove queue entry ###
+      delete_queue2.append({'queue_number' : entry['queue_number']})
+
+      if entry['nwchem_output']!='':
+         print " - Adding queue_entry=%d smiles=%s theory=%s basis=%s nwchem_output=%s extra_datafiles=%s" % (entry['queue_number'],entry['smiles'],entry['theory'],entry['basis'],entry['nwchem_output'],entry['extra_datafiles'])
+         cmd2 = chemdb_add_nwout
+         if entry['extra_datafiles']!='':
+            cmd2 += '-z \"'+ entry['extra_datafiles'] + '\" '
+         cmd2 += entry['nwchem_output']
+         try:
+            print " - running: " + cmd2
+            result = subprocess.check_output(cmd2,shell=True,stderr=subprocess.STDOUT)
+            print result
+         except:
+            print "failed:  " + cmd2
+         print
+
+         ### remove datafiles ###
+         allfiles = entry['nwchem_output'] + " " + entry['extra_datafiles']
+         for filename in allfiles.strip().split():
+            try:
+               if os.path.isfile(filename):
+                  os.unlink(filename)
+            except Exception as e:
+               print(e)
+
+   ### remove entries from queue2 ###
+   for delentry2 in delete_queue2:
+      q = chemdb_finished_queue_collection.remove(delentry2)
+
+if (addqueue0):
+   entry = {}
+   entry['addesmiles'] = addesmiles
+   qq = chemdb_queue_collection0.insert(entry)
+   print "Added " + addesmiles + " to chemdb_queue0."
+
+
+
+if (addqueue1):
+   ### lockfile ###
+   if os.path.isfile(lockfilename):
+      print "currently locked by " + lockfilename
+      exit()
+   with open(lockfilename,'w') as lfile: lfile.write("iamlocked\n")
+
+   try:
+      qt = {}
+      adding_q = chemdb_queue_collection0.find(qt)
+      for eq0 in adding_q:
+         addesmiles = eq0['addesmiles']
+         try:
+            entry = esmiles2entry(addesmiles,vtag)
+            centry = checkentry(entry)
+            duplicatecount = chemdb_queue_collection.find(centry).count()
+            print "duplicatecount=", duplicatecount
+            if (duplicatecount==0):
+               qq = chemdb_queue_collection.insert(entry)
+               print "Added " + addesmiles + " to chemdb_queue. queue_entry=",entry['queue_number']
+            else:
+               print "Did not add " + addesmiles + " to chemdb_queue, because it already exists."
+               #dupentry = chemdb_queue_collection.find(centry)[0]
+               #print "dupentry=",dupentry
+         except:
+            print "Adding " + addesmiles + " to chemdb_queue failed."
+         qq2 = chemdb_queue_collection0.remove(eq0)
+         print "deleted from queue0=",qq2
+   except:
+      print "chemdb_queue: for eq0 failed"
+
+   ### remove lockfilename ###
+   try:
+      os.unlink(lockfilename)
+   except:
+      print "chemdb_queue: failed to remove " + lockfilename
+
+
+
+if (addqueue):
+   entry = esmiles2entry(addesmiles,vtag)
+   centry = checkentry(entry)
+   duplicatecount = chemdb_queue_collection.find(centry).count()
+   print "duplicatecount=", duplicatecount
+   if (duplicatecount==0): 
+      qq = chemdb_queue_collection.insert(entry)
+      print "Added " + addesmiles + " to chemdb_queue. queue_entry=",entry['queue_number']
+   else:
+      print "Did not add " + addesmiles + " to chemdb_queue, because it already exists."
+      #dupentry = chemdb_queue_collection.find(centry)[0]
+      #print "dupentry=",dupentry
+
+if (delqueue):
+   delentry = {'queue_number' : delete_queue_number}
+   print "delentry=",delentry
+   queue = chemdb_queue_collection.remove(delentry)
+
+if (delqueue2):
+   delentry2 = {'queue_number' : delete2_queue_number}
+   print "delentry2=",delentry2
+   queue = chemdb_finished_queue_collection.remove(delentry2)
+
+if (resetqueue):
+   resetentry = {'queue_number' : reset_queue_number}
+   print "resetentry=",resetentry
+   qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'fetched':0}},upsert=False,multi=False)
+
+if (changequeue):
+   resetentry = {'queue_number' : reset_queue_number}
+   print "changeentry=",resetentry
+   qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'machine_type':newqueue}},upsert=False,multi=False)
+
+
+if (runqueue):
+   runentry = {'queue_number' : run_queue_number}
+   qqq      = chemdb_queue_collection.update(runentry,{'$inc':{'fetched':1}},upsert=False,multi=False)
+   entry    = chemdb_queue_collection.find_one(runentry)
+   data1 =  "#########################  START NWCHEM INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
+   data1 += "#\n"
+   data1 += "# NWChemJobId: %s" % entry['_id']
+   data1 += "\n"
+   data1 += "#\n"
+   data1 +=  entry['nwchem_input_deck'] + "\n"
+   data1 += "#########################  END   NWCHEM INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
+   print data1
+
+if (getqueue):
+   runentry = {'queue_number' : run_queue_number}
+   entry    = chemdb_queue_collection.find_one(runentry)
+   data1 =  "#########################  START NWCHEM INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
+   data1 += "#\n"
+   data1 += "# NWChemJobId: %s" % entry['_id']
+   data1 += "\n"
+   data1 += "#\n"
+   data1 +=  entry['nwchem_input_deck'] + "\n"
+   data1 += "#########################  END   NWCHEM INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
+   print data1
+
+if (nwfile!=''):
+
+   if ("/" not in nwfile): nwfile = curdir +"/" + nwfile
+   nwfileexist = os.path.exists(nwfile)
+   if (nwfileexist):
+      ### fetch nwchem output for parsing ###
+      with open(nwfile,'r') as ff: 
+         nwchemoutput = ff.read()
+
+      extra_datafiles2 = ''
+      for bb in extra_datafiles.strip().split():
+         dfile = bb
+         if ("/" not in dfile): dfile = curdir +"/" + dfile
+         extra_datafiles2 += dfile + " "
+      extra_datafiles = extra_datafiles2.strip()
+
+      #### fetch extra datafiles ###
+      #datafiles = []
+      #for dfile in extra_datafiles.strip().split():
+      #   with open(dfile,'r') as ff: 
+      #      data = ff.read()
+      #   datafiles.append((dfile,data))
+
+      if "# NWChemJobId:" in nwchemoutput:
+         id = ObjectId(nwchemoutput.split('NWChemJobId:')[1].split('\n')[0].strip())
+         delentry = {}
+         delentry['_id']  = id
+         print "deleting entry=",delentry
+         queue = chemdb_queue_collection.remove(delentry)
+
+      ### set some properties
+      try:
+         smiles   = nwchemoutput.split('- smiles           =')[1].split('\n')[0].strip()
+         iupac    = nwchemoutput.split('- pubchem_iupac    =')[1].split('\n')[0].strip()
+         inchi    = nwchemoutput.split('- InChI            =')[1].split('\n')[0].strip()
+         inchikey = nwchemoutput.split('- InChIKey         =')[1].split('\n')[0].strip()
+         mformula = nwchemoutput.split('- mformula         =')[1].split('\n')[0].strip()
+         theory   = nwchemoutput.split('- theory           =')[1].split('\n')[0].strip()
+         xc       = nwchemoutput.split('- xc               =')[1].split('\n')[0].strip()
+         basis    = nwchemoutput.split('- basis            =')[1].split('\n')[0].strip()
+         basisHZ  = nwchemoutput.split('- basisHZ          =')[1].split('\n')[0].strip()
+         charge   = evalnum(nwchemoutput.split('- charge           =')[1].split('\n')[0].strip())
+         mult     = evalnum(nwchemoutput.split('- charge           =')[1].split('\n')[0].strip())
+         solvation_type   = nwchemoutput.split('- solvation_type   =')[1].split('\n')[0].strip()
+         calculation_type = nwchemoutput.split('- type             =')[1].split('\n')[0].strip()
+      except:
+         smiles   = "UNKNOWN"
+         iupac    = "UNKNOWN"
+         inchi    = "UNKNOWN"
+         inchikey = "UNKNOWN"
+         mformula = "UNKNOWN"
+         theory   = "UNKNOWN"
+         xc       = "UNKNOWN"
+         basis    = "UNKNOWN"
+         basisHZ  = "UNKNOWN"
+         charge   = 0
+         mult     = 1
+         solvation_type   = "UNKNOWN"
+         calculation_type = "UNKNOWN"
+
+      ### set queue number  ##
+      queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue'})['count']
+      qqq = qnumber_collection.update({'queue':'chemdb_queue'},{'$inc':{'count':1}},upsert=False,multi=False)
+
+      newentry = {}
+      newentry['queue_number']     = queue_number00
+      newentry['nwchem_output']    = nwfile
+      newentry['extra_datafiles']  = extra_datafiles
+      newentry['iupac']    = iupac
+      newentry['smiles']   = smiles
+      newentry['mformula'] = mformula
+      newentry['theory']   = theory
+      newentry['xc']       = xc
+      newentry['basis']    = basis
+      newentry['basisHZ']  = basisHZ
+      newentry['charge']   = charge
+      newentry['mult']     = mult
+      newentry['solvation_type']   = solvation_type
+      newentry['calculation_type'] = calculation_type
+ 
+      qq = chemdb_finished_queue_collection.insert(newentry)
+      
+

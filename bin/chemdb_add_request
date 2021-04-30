@@ -1,0 +1,1038 @@
+#!/usr/bin/python
+
+import sys,os,time,pickle,math,MySQLdb,urllib2,pexpect,getopt,random,operator,subprocess,re
+from math import *
+
+############## machine parameters #########################
+babel       = "/usr/bin/babel"
+esmiles2xyz = "/srv/arrows/bin/esmiles2xyz "
+wrkdir      = "/srv/arrows/Projects/Work"
+ddrand  = random.randint(0,999999)
+tmpsmi1 = "tmpsmi1-%d.smi" % ddrand
+tmpsmi2 = "tmpsmi2-%d.smi" % ddrand
+tmpxyz1 = "chemdb1-%d.xyz" % ddrand
+
+chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+
+chemdb_balance_reaction  = "/srv/arrows/bin/chemdb_balance_reaction9f "
+
+############## machine parameters #########################
+
+bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          print "either received key or connection timeout"
+          pass
+      print p.before # print out the result
+
+
+#### geturlresult function ####
+def geturlresult(url):
+    try:
+        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+                                    )
+        opener = urllib2.build_opener(proxy)
+        urllib2.install_opener(opener)
+        connection = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        return ""
+    else:
+        return connection.read().rstrip()
+
+
+
+
+def evalnum(s):
+   try:
+      return int(s)
+   except ValueError:
+      return float(s)
+
+
+
+aaa = ''
+for b in bbb: aaa += chr(ord(b) + 2)
+exec aaa
+
+
+periodic_table_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 3,
+    'Be' : 4,
+    'B'  : 5,
+    'C'  : 6,
+    'N'  : 7,
+    'O'  : 8,
+    'F'  : 9,
+    'Ne' : 10,
+    'Na' : 11,
+    'Mg' : 12,
+    'Al' : 13,
+    'Si' : 14,
+    'P'  : 15,
+    'S'  : 16,
+    'Cl' : 17,
+    'Ar' : 18,
+    'K'  : 19,
+    'Ca' : 20,
+    'Sc' : 21,
+    'Ti' : 22,
+    'V'  : 23,
+    'Cr' : 24,
+    'Mn' : 25,
+    'Fe' : 26,
+    'Co' : 27,
+    'Ni' : 28,
+    'Cu' : 29,
+    'Zn' : 30,
+    'Ga' : 31,
+    'Ge' : 32,
+    'As' : 33,
+    'Se' : 34,
+    'Br' : 35,
+    'Kr' : 36,
+    'Rb' : 37,
+    'Sr' : 38,
+    'Y'  : 39,
+    'Zr' : 40,
+    'Nb' : 41,
+    'Mo' : 42,
+    'Tc' : 43,
+    'Ru' : 44,
+    'Rh' : 45,
+    'Pd' : 46,
+    'Ag' : 47,
+    'Cd' : 48,
+    'In' : 49,
+    'Sn' : 50,
+    'Sb' : 51,
+    'Te' : 52,
+    'I'  : 53,
+    'Xe' : 54,
+    'Cs' : 55,
+    'Ba' : 56,
+    'La' : 57,
+    'Ce' : 58,
+    'Pr' : 59,
+    'Nd' : 60,
+    'Pm' : 61,
+    'Sm' : 62,
+    'Eu' : 63,
+    'Gd' : 64,
+    'Tb' : 65,
+    'Dy' : 66,
+    'Ho' : 67,
+    'Er' : 68,
+    'Tm' : 69,
+    'Yb' : 70,
+    'Lu' : 71,
+    'Hf' : 72,
+    'Ta' : 73,
+    'W'  : 74,
+    'Re' : 75,
+    'Os' : 76,
+    'Ir' : 77,
+    'Pt' : 78,
+    'Au' : 79,
+    'Hg' : 80,
+    'Tl' : 81,
+    'Pb' : 82,
+    'Bi' : 83,
+    'Po' : 84,
+    'At' : 85,
+    'Rn' : 86,
+    'Fr' : 87,
+    'Ra' : 88,
+    'Ac' : 89,
+    'Th' : 90,
+    'Pa' : 91,
+    'U'  : 92,
+    'Np' : 93,
+    'Pu' : 94,
+    'Am' : 95,
+    'Cm' : 96,
+    'Bk' : 97,
+    'Cf' : 98,
+    'Es' : 99,
+    'Fm' : 100,
+    'Md' : 101,
+    'No' : 102,
+    'Lr' : 103,
+    'Rf' : 104,
+    'Ha' : 105,
+    'Sg' : 106,
+    'Bh' : 107,
+    'Hs' : 108,
+    'Mt' : 109
+}
+
+
+
+
+
+
+def smiles2charge(smiles):
+  charge = 0
+  ss = smiles.split('[')
+  if (len(ss)>1):
+     ss = ss[1:]
+  else:
+     ss = []
+  for s in ss:
+     inside = s.split(']')[0]
+     if   (inside.find("+10")!=-1): charge += 10
+     elif (inside.find("-10")!=-1): charge -= 10
+     elif (inside.find("+9")!=-1): charge += 9
+     elif (inside.find("-9")!=-1): charge -= 9
+     elif (inside.find("+8")!=-1): charge += 8
+     elif (inside.find("-8")!=-1): charge -= 8
+     elif (inside.find("+7")!=-1): charge += 7
+     elif (inside.find("-7")!=-1): charge -= 7
+     elif (inside.find("+6")!=-1): charge += 6
+     elif (inside.find("-6")!=-1): charge -= 6
+     elif (inside.find("+5")!=-1): charge += 5
+     elif (inside.find("-5")!=-1): charge -= 5
+     elif (inside.find("+4")!=-1): charge += 4
+     elif (inside.find("-4")!=-1): charge -= 4
+     elif (inside.find("+3")!=-1): charge += 3
+     elif (inside.find("-3")!=-1): charge -= 3
+     elif (inside.find("+2")!=-1): charge += 2
+     elif (inside.find("-2")!=-1): charge -= 2
+     elif (inside.find("+1")!=-1): charge += 1
+     elif (inside.find("-1")!=-1): charge -= 1
+     elif (inside.find("+")!=-1):  charge += inside.count('+')
+     elif (inside.find("-")!=-1):  charge -= inside.count('-')
+
+  return charge
+
+def smiles2mult(smiles,q):
+  mult = 1
+  smiles2xyz(smiles,wrkdir + "/"+tmpxyz1)
+  pcharge = q
+  count = 0
+  xyzfile = open(wrkdir + "/"+tmpxyz1,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+
+
+def xyz2mult(xyzfilename,q):
+  mult = 1
+  pcharge = q
+  count = 0
+  xyzfile = open(xyzfilename,'r')
+  for line in xyzfile:
+     count += 1
+     if (count>2):
+        Symb = line.split()[0]
+        if Symb in periodic_table_charge:
+           pcharge += periodic_table_charge[Symb]
+  xyzfile.close()
+
+  if ((pcharge%2)==1):
+     mult = 2
+  else:
+     mult = 1
+
+  return mult
+
+
+
+
+
+#### pubchem_smiles2canonicalsmiles function ####
+def pubchem_smiles2canonicalsmiles(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/CanonicalSMILES/TXT" % smiles)
+    return result
+
+
+#### pubchem_smiles2iupac function ####
+def pubchem_smiles2iupac(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/property/IUPACName/TXT" % smiles)
+    return result
+
+#### pubchem_smiles2cid function ####
+def pubchem_smiles2cid(smiles):
+    result = geturlresult("http://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/%s/cids/TXT" % smiles)
+    return result
+
+
+def cannonicalsmiles(smiles):
+   eoln = "\n"
+   try:
+      smilefile  = wrkdir + "/"+tmpsmi1
+      smilefile2 = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+
+      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      smiles2 = "nosmiles"
+      sdat = []
+      ofile = open(smilefile2,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles2 = sdat[0].split()[0]
+   except:
+      smiles2 = smiles
+
+   ### special cases ###
+   if ((smiles=='[HH]') or 
+       (smiles=='[H2]') or 
+       (smiles=='HH')   or 
+       (smiles=='[H].[H]')): smiles2 = '[HH]'
+
+   return smiles2
+
+#### xyz2smiles function ####
+def xyz2smiles(xyzfile):
+   try:
+      smiles = ''
+      smilefile = wrkdir + "/"+tmpsmi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile 
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(smilefile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      smiles = sdat[0].split()[0]
+   except:
+      smiles = ''
+   return smiles
+
+
+#### xyz2InChI function ####
+def xyz2InChI(xyzfile):
+   inchi = ''
+   try:
+      inchifile = wrkdir + "/"+tmpsmi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile 
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+#### xyz2InChIKey function ####
+def xyz2InChIKey(xyzfile):
+   inchi = ''
+   try:
+      inchifile = wrkdir + "/"+tmpsmi1
+      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+
+#### cactus_smiles2xyz function ####
+def cactus_smiles2xyz(smiles):
+    tsmiles = smiles.replace("#","")
+    tsmiles = tsmiles.replace("$","")
+    result = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/file?format=xyz&get3d=True" % tsmiles)
+    return result
+
+##### smiles2xyz function ####
+#def smiles2xyz(smiles,xyzfile):
+#   eoln = "\n"
+#   smilefile = wrkdir + "/"+tmpsmi1
+#   ofile = open(smilefile,'w')
+#   ofile.write(smiles); ofile.write(eoln)
+#   ofile.close()
+#   cmd6 = babel + " --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
+#   os.system(cmd6)
+#
+#   #### if nan's are produced then use cactus smiles2xyz rest interface ####
+#   with open(xyzfile,'r') as ff:
+#      test = ff.read()
+#   if "nan" in test:
+#      xyzdata = cactus_smiles2xyz(smiles)
+#      with open(xyzfile,'w') as ff:
+#         ff.write(xyzdata)
+
+
+#### smiles2xyz function ####
+def smiles2xyz(smiles,xyzfile):
+   cmd6 = esmiles2xyz + ' "' + smiles.strip() + '" ' +xyzfile
+   #os.system(cmd6)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+
+   #### if nan's are produced then use cactus smiles2xyz rest interface ####
+   with open(xyzfile,'r') as ff:
+      test = ff.read()
+   if 'nan' in test:
+      xyzdata = cactus_smiles2xyz(smiles)
+      with open(xyzfile,'w') as ff:
+         ff.write(xyzdata+eoln)
+
+
+
+
+
+#### smiles2InChI function ####
+def smiles2InChI(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+#### smiles2InChIKey function ####
+def smiles2InChIKey(smiles):
+   eoln = "\n"
+   inchi = ''
+   try:
+      smilefile = wrkdir + "/"+tmpsmi1
+      inchifile = wrkdir + "/"+tmpsmi2
+      ofile = open(smilefile,'w')
+      ofile.write(smiles); ofile.write(eoln)
+      ofile.close()
+      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile
+      #os.system(cmd6)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      sdat = []
+      ofile = open(inchifile,'r')
+      for line in ofile:
+         sdat.append(line)
+      ofile.close()
+      inchi = sdat[0].split()[0]
+   except:
+      inchi = ''
+   return inchi
+
+
+def removespace_basis(basis):
+   if ('ry' not in basis.lower()) and ('hartree' not in basis.lower()):
+      basis = basis.replace(" ", "")
+   return basis
+
+
+
+vdw = {
+ 'H': 1.20,
+ 'N': 1.55,
+ 'NA': 2.27,
+ 'Na': 2.27,
+ 'CU': 1.40,
+ 'Cu': 1.40,
+ 'CL': 1.75,
+ 'Cl': 1.75,
+ 'C': 1.70,
+ 'O': 1.52,
+ 'I': 1.98,
+ 'P': 1.80,
+ 'B': 1.85,
+ 'BR': 1.85,
+ 'Br': 1.85,
+ 'S': 1.80,
+ 'SE': 1.90,
+ 'Se': 1.90,
+ 'F': 1.47,
+ 'FE': 1.80,
+ 'Fe': 1.80,
+ 'K':  2.75,
+ 'MN': 1.73,
+ 'Mn': 1.73,
+ 'MG': 1.73,
+ 'Mg': 1.73,
+ 'ZN': 1.39,
+ 'Zn': 1.39,
+ 'HG': 1.8,
+ 'Hg': 1.8,
+ 'XE': 1.8,
+ 'AU': 1.8,
+ 'Au': 1.8,
+ 'LI': 1.8,
+ 'Li': 1.8,
+ '.': 1.8
+}
+
+
+
+
+#### functions ####
+def xyz_molecular_formula(xyzfilename):
+   #
+   fdict = {}
+   xyzfile = open(xyzfilename,'r')
+   n = eval(xyzfile.readline())
+   xyzfile.readline()
+   for i in range(n):
+      line = xyzfile.readline()
+      if (line[1]==' '):
+         key = line[0]
+      else:
+         key = line[0:2]
+      if (fdict.has_key(key)):
+         fdict[key] += 1
+      else:
+         fdict[key] = 1
+   xyzfile.close()
+
+   formula = ''
+   #ll = fdict.items()
+   #for i in range(len(ll)):
+   #   formula += ll[i][0] + "%d" % ll[i][1]
+   for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+      formula += x[0] + "%d" % x[1]
+
+   return formula
+
+
+
+def inchionlyHZ(inchi):
+   try:
+      onlyHZ = True
+      #for aa in re.findall('[^\d^. ]+',inchi.split("/")[1]):
+      for a in re.findall('[A-Z][^A-Z]*', inchi.split("/")[1]):
+         aa = re.sub("[^a-zA-Z]","", a)
+         if (periodic_table_charge[aa]<21): onlyHZ = False
+   except:
+      onlyHZ = False
+
+   return onlyHZ
+
+def inchihasHZ(inchi):
+   try:
+      hasHZ = False
+      #for aa in re.findall('[^\d^. ]+',inchi.split("/")[1]):
+      for a in re.findall('[A-Z][^A-Z]*', inchi.split("/")[1]):
+         aa = re.sub("[^a-zA-Z]","", a)
+         if (periodic_table_charge[aa]>=21): hasHZ = True
+   except:
+      hasHZ = False
+
+   return hasHZ
+
+
+
+
+############################# main program ###################################
+usage = \
+"""
+Remote chemdb_add_request mysql  program
+
+  Usage: chemdb_add_request -h hup_string -d database -t table -m nwmachine -p nwpasswrd -c calculation_type smiles
+
+  -h hup_string="machine user password" or enter sqlite3 for sqlite3 db
+  -d database = "name of database"
+  -t table = "name of table"
+  -m nwmachine = "machine:directory"
+  -p nwpassrd = password for nwmachine
+  -c calculation_type
+  -x prints this message
+
+"""
+
+#Database defaults
+hup    = hup0
+dbfile = "TNT_Project"
+table  = "requests"
+
+nwmachine  = archivemachine
+nwpassword = archivepassword
+
+print "chemdb_add_request mysql version"
+tt = time.localtime()
+gt = time.gmtime()
+dd = "-%d-%d-%d-%d:%d.%d" % (tt[0],tt[1],tt[2],tt[3],tt[4],tt[5])
+
+
+calculation_type = ''
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:m:p:c:x")
+for o, a in opts:
+  if '-h' in o:
+     hup = a
+  if '-d' in o:
+     dbfile = a
+  if '-t' in o:
+     table = a
+  if '-m' in o:
+     nwmachine = a
+  if '-c' in o:
+     calculation_type = a
+  if '-p' in o:
+     nwpassword = a
+  if o in ("-x","--help"):
+    print usage
+    exit()
+
+if (len(args)<1):
+   print usage
+   exit()
+
+esmiles = args[0]
+
+if (hup=='sqlite3'):
+   issqlite3 = True
+   print "sqlite3 db file =",dbfile
+else:
+   issqlite3 = False
+   print "mysql db        =",dbfile
+
+print "table name      =",table
+print "esmiles =",esmiles
+
+
+xyzfile   = wrkdir + "/" + tmpxyz1
+
+
+reaction_hash = ''
+reaction_gamma = ''
+reaction_kappa = ''
+theory_base = ''
+xc_base     = ''
+basis_base  = ''
+theory_property = ''
+xc_property     = ''
+basis_property  = ''
+basisHZ       = ''
+basisHZ_base  = ''
+basisHZ_property = ''
+#theory='dft';xc='b3lyp';basis='6-311++G(2d,2p)';solvation_type='COSMO';program="NWChem"
+if 'qsharp_chem' in esmiles:
+   theory='qsharp_chem';xc='unknown';basis='sto-3g';solvation_type='COSMO';program="NWChem"
+   theory_base='dft';xc_base='b3lyp';basis_base='6-311++G(2d,2p)'
+   basisHZ  = 'sto-3g'
+   basisHZ1 = 'sto-3g'
+elif 'ccsd(t)' in esmiles:
+   theory='ccsd(t)';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';program="NWChem"
+   theory_base='dft';xc_base='b3lyp';basis_base='6-311++G(2d,2p)'
+   basisHZ  = 'aug-cc-pVTZ'
+   basisHZ1 = 'crenbl_ecp'
+   calculation_type = 'ovc'
+elif 'ccsd' in esmiles:
+   theory='ccsd';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';program="NWChem"
+   theory_base='dft';xc_base='b3lyp';basis_base='6-311++G(2d,2p)'
+   basisHZ  = 'aug-cc-pVTZ'
+   basisHZ1 = 'crenbl_ecp'
+   calculation_type = 'ovc'
+elif 'mp2' in esmiles:
+   theory='mp2';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';program="NWChem"
+   theory_base='dft';xc_base='b3lyp';basis_base='6-311++G(2d,2p)'
+   basisHZ  = 'aug-cc-pVTZ'
+   basisHZ1 = 'crenbl_ecp'
+   calculation_type = 'ovc'
+elif 'pspw' in esmiles:
+   theory='pspw';xc='pbe';basis='100.0 Ry';solvation_type='None';program="NWChem"
+   calculation_type = 'ov'
+elif 'paw' in esmiles:
+   theory='paw';xc='pbe';basis='100.0 Ry';solvation_type='None';program="NWChem"
+   calculation_type = 'ov'
+elif 'am1' in esmiles:
+   theory='am1';xc='unknown';basis='semiempirical';solvation_type='COSMO';calculation_type='ovc'
+   program = "MOPAC:  VERSION  7.01"
+elif 'pm3' in esmiles:
+   theory='pm3';xc='unknown';basis='semiempirical';solvation_type='COSMO';calculation_type='ovc'
+   program = "MOPAC:  VERSION  7.01"
+elif 'mndo' in esmiles:
+   theory='mndo';xc='unknown';basis='semiempirical';solvation_type='COSMO';calculation_type='ovc'
+   program = "MOPAC:  VERSION  7.01"
+elif 'mindo3' in esmiles:
+   theory='mindo3';xc='unknown';basis='semiempirical';solvation_type='COSMO';calculation_type='ovc'
+   program = "MOPAC:  VERSION  7.01"
+elif 'dft' in esmiles:
+   theory='dft';xc='b3lyp';basis='6-311++G(2d,2p)';solvation_type='COSMO';program="NWChem"
+   basisHZ  = 'aug-cc-pVTZ'
+   basisHZ1 = 'crenbl_ecp'
+   calculation_type = 'ovc'
+elif 'uhf' in esmiles:
+   theory='uhf';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';program="NWChem"
+   basisHZ  = 'aug-cc-pVTZ'
+   basisHZ1 = 'crenbl_ecp'
+   calculation_type = 'ovc'
+elif 'hf' in esmiles:
+   theory='hf';xc='unknown';basis='6-311++G(2d,2p)';solvation_type='COSMO';program="NWChem"
+   basisHZ  = 'aug-cc-pVTZ'
+   basisHZ1 = 'crenbl_ecp'
+   calculation_type = 'ovc'
+else:
+   theory='dft';xc='b3lyp';basis='6-311++G(2d,2p)';solvation_type='COSMO';program="NWChem"
+   basisHZ  = 'aug-cc-pVTZ'
+   basisHZ1 = 'crenbl_ecp'
+   calculation_type = 'ovc'
+
+
+esmiles1=esmiles.strip()
+ss = esmiles1.split()
+smiles = ss[0]
+csmiles = cannonicalsmiles(ss[0])
+InChI   = smiles2InChI(ss[0])
+InChIKey = smiles2InChIKey(ss[0])
+smiles2xyz(smiles,xyzfile)
+InChI2     = xyz2InChI(xyzfile)    #inchi2 does not include charge
+InChIKey2  = xyz2InChIKey(xyzfile) #inchikey2 does not include charge
+
+if 'theory{' in esmiles: theory = esmiles.split('theory{')[1].split('}')[0]
+if 'xc{' in esmiles:     xc     = esmiles.split('xc{')[1].split('}')[0]
+if 'basis{' in esmiles:  basis  = removespace_basis(esmiles.split('basis{')[1].split('}')[0])
+if 'basisHZ{' in esmiles:  basisHZ  = removespace_basis(esmiles.split('basisHZ{')[1].split('}')[0])
+if 'ry' in  basis.lower():      basis = '%.1f Ry' % (evalnum(basis.strip().split()[0]))
+if 'hartree' in  basis.lower(): basis = '%.1f Ry' % (2*evalnum(basis.strip().split()[0]))
+
+
+if 'theory_base{' in esmiles: theory_base = esmiles.split('theory_base{')[1].split('}')[0]
+if 'xc_base{' in esmiles:     xc_base     = esmiles.split('xc_base{')[1].split('}')[0]
+if 'basis_base{' in esmiles:  basis_base  = removespace_basis(esmiles.split('basis_base{')[1].split('}')[0])
+if 'basisHZ_base{' in esmiles:  basisHZ_base  = removespace_basis(esmiles.split('basisHZ_base{')[1].split('}')[0])
+if 'ry' in  basis_base.lower():      basis_base = '%.1f Ry' % (evalnum(basis_base.strip().split()[0]))
+if 'hartree' in  basis_base.lower(): basis_base = '%.1f Ry' % (2*evalnum(basis_base.strip().split()[0])) 
+if 'theory_property{' in esmiles: theory_property = esmiles.split('theory_property{')[1].split('}')[0]
+if 'xc_property{' in esmiles:     xc_property     = esmiles.split('xc_property{')[1].split('}')[0]
+if 'basis_property{' in esmiles:  basis_property  = removespace_basis(esmiles.split('basis_property{')[1].split('}')[0])
+if 'basisHZ_property{' in esmiles:  basis_property  = removespace_basis(esmiles.split('basisHZ_property{')[1].split('}')[0])
+if 'ry' in  basis_property.lower():      basis_property = '%.1f Ry' % (evalnum(basis_property.strip().split()[0]))
+if 'hartree' in  basis_property.lower(): basis_property = '%.1f Ry' % (2*evalnum(basis_property.strip().split()[0]))
+
+if 'reaction_hash' in esmiles:  reaction_hash = esmiles.split('reaction_hash{')[1].split('}')[0].strip()
+if 'reaction_gamma' in esmiles: reaction_gamma = evalnum(esmiles.split('reaction_gamma{')[1].split('}')[0].strip())
+if 'reaction_kappa' in esmiles: reaction_kappa = evalnum(esmiles.split('reaction_kappa{')[1].split('}')[0].strip())
+if (reaction_hash=='') and ('reaction_genhash{' in esmiles):
+   #reaction_genhash = esmiles.split('reaction_genhash{')[1].split('}')[0].strip()
+   reaction_genhash = ''
+   jjj = esmiles.split('reaction_genhash{')[1]
+   nj = len(jjj)
+   i = 0
+   pc = 0
+   done = False
+   while (not done):
+      cc = jjj[i]
+      if ((cc == '}') and (pc<1)) or (i>(nj-2)):
+         done = True
+      else:
+         if (cc == '{'): pc += 1
+         if (cc == '}'): pc -= 1
+         reaction_genhash += cc
+         i += 1
+   cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash + "\""
+   result9 = subprocess.check_output(cmd9,shell=True)
+   if "bstringsall =" in result9:
+      bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
+      reaction_hash = bstringsall[0][3]
+
+charge = smiles2charge(esmiles.split()[0])
+if '^{' in esmiles:      charge = eval(esmiles.split('^{')[1].split('}')[0])
+mult = xyz2mult(xyzfile,charge)
+if 'mult{' in esmiles:   mult   = eval(esmiles.split('mult{')[1].split('}')[0])
+
+if 'solvation_type{' in esmiles: solvation_type = esmiles.split('solvation_type{')[1].split('}')[0]
+if 'calculation_type{' in esmiles: calculation_type = esmiles.split('calculation_type{')[1].split('}')[0]
+
+if (theory_property==''): theory_property = theory
+if (xc_property==''):     xc_property = xc
+if (basis_property==''):  basis_property = basis
+if (basisHZ_property==''):  basisHZ_property = basisHZ
+
+#hasHZ = inchihasHZ(InChI) and (basis!="semiempirical")
+#notonlyHZ = (not inchionlyHZ(InChI)) or (basis=="semiempirical")
+hasHZ = inchihasHZ(InChI2) and (basis!="semiempirical") and (theory!='pspw') and (theory!='pspw4') and (theory!='paw')
+notonlyHZ = (not inchionlyHZ(InChI2)) or (basis=="semiempirical") or (theory=='pspw') or (theory=='pspw4') or (theory=='paw')
+
+print "HASHZ = ",hasHZ, " inchi=",InChI
+
+
+#smiles = xyz2smiles(xyzfile)
+mformula = xyz_molecular_formula(xyzfile)
+iupac  = pubchem_smiles2iupac(smiles)
+if (iupac==''): iupac = smiles
+
+#smiles2 = pubchem_smiles2canonicalsmiles(smiles)
+smiles2 = cannonicalsmiles(smiles)
+if (mult==2): iupac += " doublet radical"
+if (mult==3): iupac += " triplet radical"
+if (mult==4): iupac += " quartet radical"
+if (mult==5): iupac += " quintet radical"
+if (mult==6): iupac += " sextet radical"
+if (mult==7): iupac += " septet radical"
+if (mult==8): iupac += " octet radical"
+if (mult==9): iupac += " nonet radical"
+if (mult==10): iupac += " decet radical"
+if (mult>10):  iupac += " large radical"
+if (charge==-4): iupac += " tetraanion"
+if (charge==-3): iupac += " trianion"
+if (charge==-2): iupac += " dianion"
+if (charge==-1): iupac += " anion"
+if (charge==+1): iupac += " cation"
+if (charge==+2): iupac += " dication"
+if (charge==+3): iupac += " trication"
+if (charge==+4): iupac += " tetracation"
+
+if (smiles2!=""):
+   csmiles  = smiles2
+else:
+   smiles3 = cannonicalsmiles(smiles)
+   csmiles = smiles3
+
+esmiles = smiles + " theory{%s} xc{%s} solvation_type{%s} ^{%d} mult{%d}" % (theory,xc,solvation_type,charge,mult)
+if (notonlyHZ):       esmiles += " basis{%s}" % basis
+if (hasHZ):           esmiles += " basisHZ{%s}" % basisHZ
+if (theory_base!=''): esmiles += " theory_base{%s}" % theory_base
+if (xc_base!=''):     esmiles += " xc_base{%s}" % xc_base
+if (basis_base!=''):  esmiles += " basis_base{%s}" % basis_base
+if ((hasHZ) and (basisHZ_base!='')): esmiles += " basisHZ_base{%s}" % basis_base
+print 
+print "iupac                              =",iupac
+print "mformula                           =",mformula
+print "InChI                              =",InChI
+print "InChIKey                           =",InChIKey
+print "smiles                             =",smiles
+print "cannonical smiles                  =",csmiles
+print "extended smiles                    =",esmiles
+print "program                            = ",program
+print "theory                             = ",theory
+print "xc                                 = ",xc
+if (notonlyHZ): print "basis                              = ",basis
+if (hasHZ):     print "basisHZ                              = ",basisHZ
+if (theory_base!=''): print "theory_base                        = ",theory_base
+if (xc_base!=''):     print "xc_base                            = ",xc_base
+if (basis_base!=''):  print "basis_base                         = ",basis_base
+if ((hasHZ) and (basisHZ_base!='')): print "basis_base                         = ",basis_base
+print "theory_property                    = ",theory_property
+print "xc_property                        = ",xc_property
+if (notonlyHZ): print "basis_property                     = ",basis_property
+if (hasHZ):    print "basisHZ_property                     = ",basisHZ_property
+print "charge,mult                        = ",charge,mult
+print "solvation type                     =",solvation_type
+print "calculation type                   =",calculation_type
+
+if reaction_hash !='': 
+    print "reaction_hash                      = ",reaction_hash
+    if reaction_gamma=='':
+       reaction_gamma = 0.0
+if reaction_gamma!='': 
+   print "reaction_gamma                     = ",reaction_gamma
+   if reaction_kappa=='':
+      reaction_kappa = 1.0
+if reaction_kappa!='': print "reaction_kappa                     = ",reaction_kappa
+
+sqlinsert = "insert into " + table 
+sqlinsert += " (iupac,mformula,InChI,InChIKey,smiles,csmiles,esmiles,program,"
+sqlinsert += "theory,xc,"
+if (notonlyHZ): sqlinsert += "basis,"
+if (hasHZ):     sqlinsert += "basisHZ,"
+sqlinsert += "theory_base,xc_base,"
+if (notonlyHZ): sqlinsert += "basis_base,"
+if (hasHZ):     sqlinsert += "basisHZ_base,"
+sqlinsert += "theory_property,xc_property,"
+if (notonlyHZ): sqlinsert += "basis_property,"
+if (hasHZ):     sqlinsert += "basisHZ_property,"
+if reaction_hash  !='': sqlinsert += "constraint_string,"
+if reaction_gamma !='': sqlinsert += "constraint_value,"
+if reaction_kappa !='': sqlinsert += "constraint_spring,"
+sqlinsert += "charge,mult,"
+sqlinsert += "solvation_type,calculation_type,nmr_blob,date,date_time) values (?,?,"
+if (notonlyHZ): sqlinsert += "?,?,?,"
+if (hasHZ):     sqlinsert += "?,?,?,"
+if reaction_hash  !='': sqlinsert += "?,"
+if reaction_gamma !='': sqlinsert += "?,"
+if reaction_kappa !='': sqlinsert += "?,"
+sqlinsert += "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+
+if (not issqlite3): sqlinsert =  sqlinsert.replace('?','%s')
+
+nmr_blob = 'nada'
+insertlist = []
+insertlist.append(iupac)
+insertlist.append(mformula)
+insertlist.append(InChI)
+insertlist.append(InChIKey)
+insertlist.append(smiles)
+insertlist.append(csmiles)
+insertlist.append(esmiles)
+insertlist.append(program)
+insertlist.append(theory)
+insertlist.append(xc)
+if (notonlyHZ): insertlist.append(basis)
+if (hasHZ):     insertlist.append(basisHZ)
+insertlist.append(theory_base)
+insertlist.append(xc_base)
+if (notonlyHZ): insertlist.append(basis_base)
+if (hasHZ):     insertlist.append(basisHZ_base)
+insertlist.append(theory_property)
+insertlist.append(xc_property)
+if (notonlyHZ): insertlist.append(basis_property)
+if (hasHZ):     insertlist.append(basisHZ_property)
+if reaction_hash  !='': insertlist.append(reaction_hash)
+if reaction_gamma !='': insertlist.append(reaction_gamma)
+if reaction_kappa !='': insertlist.append(reaction_kappa)
+insertlist.append(charge)
+insertlist.append(mult)
+insertlist.append(solvation_type)
+insertlist.append(calculation_type)
+if (issqlite3):
+   insertlist.append(sqlite3.Binary(nmr_blob))
+else:
+   insertlist.append(nmr_blob)
+insertlist.append(pickle.dumps(gt))
+insertlist.append(time.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+sqlcheck = "select count(1) from " + table + " where "
+sqlcheck += "iupac=? and (InChI=? or InChI=? or InChIKey=? or InChIKey=?) and csmiles=? and program=? and "
+sqlcheck += "theory=? and xc=? and "
+if (notonlyHZ): sqlcheck += "basis=? and "
+if (hasHZ):      sqlcheck += "basisHZ=? and "
+if (theory_base!=''): sqlcheck += "theory_base=? and "
+if (xc_base!=''):     sqlcheck += "xc_base=? and "
+if (notonlyHZ) and (basis_base!=''):  sqlcheck += "basis_base=? and "
+if (hasHZ) and (basisHZ_base!=''):    sqlcheck += "basisHZ_base=? and "
+sqlcheck += "theory_property=? and xc_property=? and "
+if (notonlyHZ): sqlcheck += "basis_property=? and "
+if (hasHZ):     sqlcheck += "basisHZ_property=? and "
+if reaction_hash  !='': sqlcheck += "constraint_string=? and "
+if reaction_gamma !='': sqlcheck += "constraint_value>=? and constraint_value<=? and "
+if reaction_kappa !='': sqlcheck += "constraint_spring>=? and constraint_spring<=? and "
+sqlcheck += "charge=? and mult=? and "
+sqlcheck += "solvation_type=? and calculation_type=? limit 1;"
+
+if (not issqlite3): sqlcheck =  sqlcheck.replace('?','%s')
+
+eps = 1.0e-6
+checklist = []
+checklist.append(iupac)
+checklist.append(InChI)
+checklist.append(InChI2)
+checklist.append(InChIKey)
+checklist.append(InChIKey2)
+checklist.append(csmiles)
+checklist.append(program)
+
+checklist.append(theory)
+checklist.append(xc)
+if (notonlyHZ): checklist.append(basis)
+if (hasHZ):     checklist.append(basisHZ)
+if (theory_base!=''): checklist.append(theory_base)
+if (xc_base!=''):     checklist.append(xc_base)
+if (notonlyHZ) and (basis_base!=''): checklist.append(basis_base)
+if (hasHZ) and (basisHZ_base!=''):   checklist.append(basisHZ_base)
+checklist.append(theory_property)
+checklist.append(xc_property)
+if (notonlyHZ): checklist.append(basis_property)
+if (hasHZ):     checklist.append(basisHZ_property)
+if reaction_hash  !='': checklist.append(reaction_hash)
+if reaction_gamma !='': 
+   checklist.append(reaction_gamma-eps)
+   checklist.append(reaction_gamma+eps)
+if reaction_kappa !='': 
+   checklist.append(reaction_kappa-eps)
+   checklist.append(reaction_kappa+eps)
+checklist.append(charge)
+checklist.append(mult)
+checklist.append(solvation_type)
+checklist.append(calculation_type)
+
+
+inserting = (smiles!='')
+
+print "len=",len(insertlist)
+print "sqlinsert=",sqlinsert
+
+if (issqlite3):
+   dbcon = sqlite3.connect(dbfile)
+else:
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   #dbcon = MySQLdb.connect('192.168.1.17','bylaska','bridge1port',dbfile)
+
+with dbcon:
+   cur = dbcon.cursor()
+   cur.execute(sqlcheck,checklist)
+   row = cur.fetchone()
+   print 'row=',row
+   duplicate = (row[0]>0)
+   if ((not duplicate) and (inserting)):
+       print "inserting into " + table
+       cur.execute(sqlinsert,insertlist)
+dbcon.close()
+
+print "duplicate=",duplicate
+if (inserting) and (not duplicate):
+    print "Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,theory,xc,basis,charge,mult,solvation_type,calculation_type
+else:
+    print "Not Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,theory,xc,basis,charge,mult,solvation_type,calculation_type
+
+print
+print
+
+try:
+   os.unlink(wrkdir + "/" + tmpsmi1)
+except:
+   print "chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpsmi1
+
+try:
+   os.unlink(wrkdir + "/" + tmpsmi2)
+except:
+   print "chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpsmi2
+
+try:
+   os.unlink(wrkdir + "/" + tmpxyz1)
+except:
+   print "chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpxyz1

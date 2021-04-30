@@ -1,0 +1,696 @@
+#!/usr/bin/perl
+#
+# Copyright (C) 2002 - 2011, Brian Salter-Duke\n";
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+
+use lib '/srv/arrows/bin';
+use strict;
+use sqs;
+
+######################## qinit ##################################
+# This is the script for starting, stopping and showing the status of qseek 
+# and the queues in the Simple Queuing System (SQS). It is called directly, 
+# also indirectly by qsub, qrls and qmove and directly to start qseek. 
+#
+#      qinit start (or stop) [queue] - starts (or stops) the qseek daemon
+#      qinit show - prints the status of all the queues showing all jobs
+#
+# SQS Version 3.1 - May 2011
+#      qinit status - prints the status of qseek and  general queue info
+#      qinit qseeks - prints the status of qseek only
+#      qinit status-all and qinit qseeks-all are as above, but for all users 
+#      -r host - runs on remote machine host.      
+#
+
+# This block of variables in needed for the call of the subroutine
+# in sqs.pm.
+my $noofqueues;
+my $clustercommand;
+my $noremote;
+my $wait;
+my $sqsdir;
+my $bindir;
+my $mandir;
+my $queue_ref;
+my @queue;
+my $maxqu_ref;
+my @maxqu;
+my $maxperuser_ref;
+my @maxperuser;
+my $quhost_ref;
+my @quhost;
+my $pool_ref;
+my @pool;
+my $web_ref;
+my @web;
+my $remotealias_ref;
+my @remotealias;
+my $remotehosts_ref;
+my @remotehosts;
+my @remotecomm;
+my $psexe_ref;
+my @psexe;
+my $psflag_ref;
+my @psflag;
+my $hostpath_ref;
+my %hostpath;
+my $webhost;
+my $webuser;
+my $webserver;
+
+my $i;
+my $j;
+
+($noofqueues, $noremote, $wait, $sqsdir, $bindir, $mandir,
+  $queue_ref, $maxqu_ref, $maxperuser_ref, $quhost_ref, $pool_ref, 
+  $web_ref, $remotealias_ref, $remotehosts_ref, $psexe_ref, 
+  $psflag_ref, $hostpath_ref, $webhost, $webuser, $webserver) = 
+  &get_configuration_file ( ); 
+
+$clustercommand = 'ssh -f';
+
+for (my $i = 0; $i < $noofqueues; $i++) {
+  $queue[$i] = ${$queue_ref}[$i];
+  $maxqu[$i] = ${$maxqu_ref}[$i];
+  $maxperuser[$i] = ${$maxperuser_ref}[$i];
+  $quhost[$i] = ${$quhost_ref}[$i];
+  $pool[$i] = ${$pool_ref}[$i];
+  $web[$i] = ${$web_ref}[$i];
+  $psexe[$i] = ${$psexe_ref}[$i];
+  $psflag[$i] = ${$psflag_ref}[$i];
+}
+for (my $i = 0; $i < $noremote; $i++) {
+  $remotealias[$i] = ${$remotealias_ref}[$i];
+  $remotehosts[$i] = ${$remotehosts_ref}[$i];
+  $remotecomm[$i] = 'ssh -f'
+}
+%hostpath = %$hostpath_ref;
+
+my $nodefault;
+my @allusers;
+my $alias;
+my $host;
+my $comm;
+my @qucomm;
+my @quloc;
+my @loc;
+my $count;
+my $q;
+my $qt;
+my $going;
+my $serial;
+my $qunow;
+my $flag;
+my $ename;
+my $job;
+my $pr;
+my $nproc;
+my $timestring;
+my $going1;
+my $serial1;
+my $qunow1;
+my $flag1;
+my $ename1;
+my $job1;
+my $pr1;
+my $nproc1;
+my $timestring1;
+my $killsig;
+my $qseek_yes;
+my $user = $ENV{USER};
+my $date = `date`;
+chop $date;
+
+my $inqu = "${sqsdir}/sqs.id";
+my $qu = "${sqsdir}/sqs.queue";
+my $qutmp = "${sqsdir}/sqs.queue.tmp";
+my $pid = "${sqsdir}/sqs.pid";
+my $qsub = "${bindir}/qsub";
+my $qseek = "${bindir}/qseek";
+my $qrun = "${bindir}/qrun";
+my $qrls = "${bindir}/qrls";
+my $qinit = "${bindir}/qinit";
+my $log = "${sqsdir}/sqs.log";
+my $userfile = "${sqsdir}/sqs.users";
+# Now create @qucomm and @loc.
+my $h = `hostname`;
+#my $h = `hostname -s`;
+chop $h;
+$j = 0;
+until ($j == $noofqueues) {
+   $quloc[$j] = 'l' if $quhost[$j] eq $h;
+   $quloc[$j] = 'c' if $quhost[$j] ne $h;
+   $qucomm[$j] = '' if $quloc[$j] eq 'l';
+   $qucomm[$j] = $clustercommand if $quloc[$j] eq 'c';
+   $loc[$j] = 'local' if $quloc[$j] eq 'l';
+   $loc[$j] = 'cluster' if $quloc[$j] eq 'c';
+   ++$j;
+}
+for ($j = 0; $j < $noofqueues; $j++) {
+   next if $quloc[$j] eq 'c';
+   last if $quloc[$j] eq 'l';
+}
+$nodefault = $j;
+$nodefault = 0 if $j == $noofqueues;
+
+#my $nohupfile = 'nohup.out';
+
+sub printversion {
+   if ($_[0] eq '-v') {
+      my $version = "3.1 - May 2011";
+      print "    This is the Simple Queueing System.\n";
+      print "    $version\n\n";
+      exit;
+   }
+}
+
+sub forremote {
+   my $i;
+   for ($i = 0; $i < $noremote; $i++) {
+      goto F if $alias eq $remotealias[$i];
+   }
+   print "    Remote host $alias not found.\n\n";
+   exit;
+
+F:
+   $comm = $remotecomm[$i];
+   $host = $remotehosts[$i];
+}
+
+sub make_remote_call {
+  my $prog = $_[0];
+  shift @ARGV;
+  $alias = $ARGV[0];
+  forremote ();
+  shift @ARGV;
+  print "    Inspecting remote machine $alias\n\n";
+# print "$comm $host $hostpath{ $alias }/$prog @ARGV\n";
+  system "$comm $host $hostpath{ $alias }/$prog @ARGV";
+#  This early code treated rsh differently, but rsh is often softlinked
+#  to ssh, so it is difficult to test. We recommend using 'ssh -f'
+#  and in fact have built it in, so use of 'rsh' involves changing
+#  this file, sqs.inc.
+#  if ($comm =~ /^ssh/) {
+#    system "$comm $host $hostpath{ $alias }/$prog @ARGV";
+#  } else {
+#    system "$comm $host $hostpath{ $alias }/$prog @ARGV &";
+#  }
+  sleep 2;
+  exit;
+}
+
+sub check_queue {
+  my $i;
+  for ($i = 0; $i < $noofqueues; $i++) {
+     goto F if $_[0] eq $queue[$i];
+  }
+  print "    Queue does not exist.\n\n";
+  exit;
+F:
+$i;
+}
+
+sub release_file {
+     my $rlsfile = $_[0];
+     my $rlsfilet = $_[1];
+     my $jobno = $_[2];
+     my $time;
+     my $rlsno;
+     open (FILE,"< $rlsfile") or die "Can not open $rlsfile for reading";
+     flock(FILE,1) or die "Can not flock $rlsfile: $!\n";
+     open (FILE2, "> $rlsfilet") or die "Can not open $rlsfilet for writing";
+     flock(FILE2,2) or die "Can not flock $rlsfilet: $!\n";
+     while (<FILE>) {
+       chop;
+       ($rlsno,$time) = split / /;
+       print FILE2 "$_\n" if $rlsno ne $jobno;
+     }
+     close(FILE);
+     close(FILE2);
+     rename $rlsfilet, $rlsfile if -e $rlsfilet;
+     unlink $rlsfilet if -e $rlsfilet;
+}
+
+sub check_qseek {
+     my $thispid = $_[1];
+     my $c = $_[2];
+     my $m = $_[3];
+     my $user = $_[4];
+     my $q = $_[5];
+     my $sig = 0;
+     my $got = 0;
+     my $test = "/tmp/tt.$$";
+     my $grep = `which grep`;
+     chop $grep;
+     if ( -e $thispid) {
+          open (PID, "< $thispid") or die "Can not open $thispid for reading";
+          flock(PID,1) or die "Can not flock $thispid: $!\n";
+          $sig = (<PID>);
+          chop $sig;
+          close (PID);
+          system ("$c $m $psexe[$q] $psflag[$q] $user | $grep $sig | $grep qseek | $grep -v grep > $test");
+#print STDERR "$c $m $psexe[$q] $psflag[$q] $user | $grep $sig | $grep qseek | $grep -v grep\n";
+          $got = 1 if -s $test; # qseek is running
+     }
+     unlink $test if -e $test;
+     $_[0] = $sig;
+     $got;
+}
+1;
+
+#
+my $test = "/tmp/sqs.$$";
+my $arg;
+my $run;
+my $size;
+my $line;
+my $l;
+my $here;
+my $time;
+my $rlsno;
+my $other;
+my $machine = '';
+my $remote;
+my $command;
+my $char= 'n';
+my $mypid;
+my $mach_down = 0;
+my $usingweb = 0;
+my $rlsfile = "$sqsdir/sqs.delrls";
+my $grep = `which grep`;
+chop $grep;
+
+print "\n";
+   
+# For web use
+if ($user eq '') {
+  $user = $webuser;
+  $usingweb = 1;
+}
+
+unless ($ARGV[0]) {
+   $arg = 'show';
+   print "    No arguments so $arg.\n\n";
+   goto goshow;
+}
+
+printversion ($ARGV[0]);
+
+# Remote use.
+make_remote_call ('qinit') if ($ARGV[0] eq '-r');
+
+$arg = $ARGV[0];
+
+if ($ARGV[1]) {
+  $qunow = $ARGV[1];
+} else {
+  $qunow = $queue[$nodefault]
+}
+# Set qunow to default queue on local machine - if queue
+# parameter missing.
+
+# Argument status and friends.
+if (($arg eq 'status') || ($arg eq 'status-all') || ($arg eq 'qseeks') || ($arg eq 'qseeks-all'))  {
+  if (! $usingweb) {
+    $here = 'N';
+    open (USE, "< $userfile") or die "Can not open $userfile for reading";
+    flock(USE,1) or die "Can not flock $userfile: $!\n";
+    while (<USE>) {
+      chop;
+      $here = 'Y' if ($_ eq $user);
+    }
+    close (USE);
+    if ($here eq 'N') {
+      open (USE, ">> $userfile") or die "Can not open $userfile for writing";
+      flock(USE,2) or die "Can not flock $userfile: $!\n";
+      print USE "$user\n";
+      close (USE);
+    }
+    print "    Status of all SQS daemons.\n";
+    print "    --------------------------\n\n";
+    print "    If there is more than one queue on the same\n"; 
+    print "    machine only the first is mentioned.\n";
+  }
+  print "\n";
+
+
+  for ($i = 0; $i < $noofqueues; $i++) { 
+    next if (! $maxqu[$i]);
+    next if (($usingweb) && (! $web[$i]));
+    next if ($i) && ($quhost[$i] eq $quhost[$i - 1]) 
+            && (! $usingweb);
+    $host = $quhost[$i];
+    $mypid = $pid.'.'.$user.'.'.$host;
+    $remote = ($qucomm[$i] eq '') ? '' : $quhost[$i];
+    $l = $loc[$i];
+    if ($l eq 'cluster') {
+      $mach_down = system("$qucomm[$i] -q $remote sleep 1 > /dev/null");
+      if ($mach_down) {
+        print "    cluster machine $remote appears to be down -";
+        print " no information available.\n";
+      }
+    } else {
+      $mach_down = 0;
+    }
+    if (! $mach_down) {
+      $qseek_yes = &check_qseek($killsig,$mypid,$qucomm[$i],$remote,$user,$i);
+      if ($web[$i]) {
+        if ($qseek_yes) {
+          print "    qseek is running on webserver $webserver\n";
+          print "    for user $user.\n";
+        } else {
+          print "    qseek is NOT running on webserver $webserver\n";
+          print "    for user $user.\n";
+        }
+      } else {
+        if ($qseek_yes) {
+          print "    qseek is running on $l machine $quhost[$i]\n";
+          print "    (e.g. $queue[$i] queue) for user $user.\n";
+        } else {
+          print "    qseek is NOT running on $l machine $quhost[$i]\n";
+          print "    (e.g. $queue[$i] queue) for user $user.\n";
+        }
+      }
+    }
+  }
+  print "    User $user added to $userfile\n" if $here eq 'N';
+# Now give the same information for all other users listed in sqs.users
+# for non-web use.
+  if ((! $usingweb) && (($arg eq 'status-all') || ($arg eq 'qseeks-all'))) {
+     $count = 0;
+     open (USE, "< $userfile") or die "Can not open $userfile for reading";
+     flock(USE,1) or die "Can not flock $userfile: $!\n";
+     while (<USE>) {
+       chop;
+       $allusers[$count] = $_;
+       ++$count;
+     }
+     close (USE);
+     foreach $other (@allusers) {
+        next if $other eq $user;
+        print "\n";
+        for ($i = 0; $i < $noofqueues; $i++) { 
+          next if (! $maxqu[$i]);
+          next if (($usingweb) && (! $web[$i]));
+          next if ($i) && ($quhost[$i] eq $quhost[$i - 1]);
+          $host = $quhost[$i];
+          $mypid =  $pid.'.'.$other.'.'.$host;
+          $remote = ($qucomm[$i] eq '') ? '' : $quhost[$i];
+          $l = $loc[$i];
+          if ($l eq 'cluster') {
+            $mach_down = system("$qucomm[$i] -q $remote sleep 1 > /dev/null");
+            if ($mach_down) {
+              print "    cluster machine $remote appears to be down -";
+              print " no information available.\n";
+            }
+          } else {
+            $mach_down = 0;
+          }
+          if (! $mach_down) {
+            # Test whether qseek is running
+            $qseek_yes = &check_qseek($killsig,$mypid,$qucomm[$i],$remote,$other,$i);
+            if ($qseek_yes) {
+              print "    qseek is running on $l machine $quhost[$i]\n";
+              print "    (e.g. $queue[$i] queue) for user $other.\n";
+            } else {
+              print "    qseek is NOT running on $l machine $quhost[$i]\n";
+              print "    (e.g. $queue[$i] queue) for user $other.\n";
+            }
+          }
+        }
+     }
+  }
+  if (($arg eq 'status') || ($arg eq 'status-all')) {
+    for ($i = 0; $i < $noofqueues; $i++) { 
+      next if (($usingweb) && (! $web[$i]));
+      print "\n";
+      if (! $maxqu[$i]) {
+        print "    Details of SQS queue $queue[$i]\n";
+        print "    This is a general queue for distributing jobs to pool queues\n";
+        print "    Pool queues are:";
+        for ($j = 0; $j < $noofqueues; $j++) {
+        print " $queue[$j]" if $pool[$j]; 
+        }
+        print "\n";
+      } else {
+        $q = $qu.'.'.$queue[$i];
+        $size = 0;
+        $l = $loc[$i];
+        # How many items in queue?
+        open (QUE, "< $q") or die "Can not open $q for reading";
+        flock(QUE,1) or die "Can not flock $q: $!\n";
+        while (<QUE>) {
+          ++$size;
+        }
+        if ($web[$i]) {
+           print "    Details of SQS queue $queue[$i]\n";
+           print "    on webserver $webserver\n";
+        } else {
+           print "    Details of SQS queue $queue[$i]\n";
+           print "    on $l machine $quhost[$i]\n";
+        }
+        print "    This is the default queue\n" if $i == $nodefault;
+        print "    Number of jobs in queue                  = $size\n";
+        print "    Maximum number of jobs allowed to run    = $maxqu[$i]\n";
+        print "    Maximum number of jobs allowed per user  = $maxperuser[$i]\n";
+        if ($qucomm[$i]) {
+           print "    Command used to run on this $l host is '$qucomm[$i]'\n";
+        }
+        close(QUE);
+      }
+    }
+  }
+  print "\n";
+  exit;
+}
+
+# Argument show.
+goshow:
+if (($arg eq 'show')) {
+  print "\n";
+  print "    Show details of all SQS queues.\n";
+  print "    -------------------------------\n" if $user ne $webuser;
+  for ($i = 0; $i < $noofqueues; $i++) { 
+    print "\n";
+    if ($maxqu[$i]) {
+      $q = $qu.'.'.$queue[$i];
+      $size = 0;
+      $l = $loc[$i];
+      # How many items in queue?
+      open (QUE, "< $q") or die "Can not open $q for reading";
+      flock(QUE,1) or die "Can not flock $q: $!\n";
+      while (<QUE>) {
+        ++$size;
+      }
+      close(QUE);
+      if ($i == $nodefault) {
+        print "    Details of SQS queue $queue[$i] (DEFAULT) on $l machine $quhost[$i]\n";
+      } else {
+        print "    Details of SQS queue $queue[$i] on $l machine $quhost[$i]\n";
+      }
+      print "    Number of jobs in queue = $size\n";
+      if ($size > 0) {
+        print " ID     NAME            JOB           PR";
+        print "          TIME/DATE     STATUS NPROC PGID\n\n";
+        open (QUE, "< $q") or die "Can not open $q for reading";
+        flock(QUE,1) or die "Can not flock $q: $!\n";
+        while (<QUE>) {
+          chop;
+          ($going,$nproc,$serial,$qunow,$flag,
+           $user,$job,$pr,$timestring) = split /\?/;
+          $job =~ s/^.*(.{21}$)/$1/;
+          $job =~ s/^/../;
+          $timestring =~ s/^/  /;
+          if ($serial < 0) {
+            $run = " Holding ";
+            $serial = -$serial;
+          } else {
+            $run = " Queued  "; 
+          }
+          if ($going > 0) {
+            $run = " Running ";
+            printf "%3d%10s%24s%3d%23s%9s%2d%7d",
+             $serial,$user,$job,$pr,$timestring,$run,$nproc,$going;
+            $remote = ($qucomm[$i] eq '') ? '' : $quhost[$i];
+system ("$qucomm[$i] $remote $psexe[$i] $psflag[$i] $user | $grep $going | $grep qrun | $grep -v grep > $test");
+            if (! -s $test) { # qrun is not running
+print "\nThe above process is flagged as running in the queue file\n";
+print "but it does not seem to be running. This may be due to the\n";
+print "machine crashing while the job was running. You should use\n";
+print "tools such as 'ps' and 'top' to confirm this. Note that the\n";
+print "check here was only whether 'qrun' is running. 'qrun' may\n";
+print "have stopped for some other reason leaving the actual job\n";
+print "running. However when the job does finish, this message will\n";
+print "still appear. Then use 'qclear ID-no qu', where no is the\n";
+print "ID and qu is the queue, to remove this entry from the queue\n";
+print "file. You can not use 'qdel' here as it will be unable to\n";
+print "find the process number. You will then probably have to use\n";
+print "'qinit start' to start qseek. Take care if this message\n";
+print "comes up.\n";
+            }
+            unlink $test if -e $test;
+          } else {
+printf "%3d%10s%24s%3d%23s%9s%2d",$serial,$user,$job,$pr,$timestring,$run,$nproc;
+          }
+          print "\n";
+        }
+        close(QUE);
+#       print "\n";
+      }
+    }
+  }
+  open (FILE,"< $rlsfile") or die "Can not open $rlsfile for reading";
+  flock(FILE,1) or die "Can not flock $rlsfile: $!\n";
+  while (<FILE>) {
+    chop;
+    ($rlsno,$time) = split / /;
+    print "    Held job $rlsno will be released at $time.\n";
+  }
+  close(FILE);
+  print "\n";
+  exit;
+}
+
+$i = check_queue($qunow);
+
+$command = $qucomm[$i];
+$host = $quhost[$i];
+$mypid = $pid.'.'.$user.'.'.$host;
+
+$machine = $host if $command;   # Set $machine only if remote.
+
+# Argument start.
+if ($arg eq 'start') {
+  open (LOGFILE,">> $log") or die "Can not open $log for writing";
+  # If required start qseek running
+  $qseek_yes = &check_qseek($killsig,$mypid,$command,$machine,$user,$i);
+  if ($qseek_yes) {
+     # qseek is running
+     print "    qseek seems to be running for $user\n";
+     print "    on $host at $date.\n";
+     print LOGFILE "qseek seems to be running for $user on $host.\n" 
+           if $user eq $webuser;
+  } else {
+     # Start qseek running
+     if ($command) {
+        # Cluster machine
+        system "$command $machine $qseek $host";
+     } elsif ($user eq $webuser) {
+        # Web use
+        system "$qseek $host > /dev/null &";
+     } else {
+        # Local
+        system "$qseek $host > /dev/null 2>&1 &";
+#       system "nohup $qseek $host > /dev/null 2>&1 &";
+#       unlink $nohupfile if -e $nohupfile;
+     }
+     print "    Starting qseek daemon for $user\n";
+     print "    on $host at $date.\n";
+     for ($i = 0; $i < $noofqueues; $i++) {
+        next if (! $maxqu[$i]);
+        next if $host ne $quhost[$i];
+        $q = $qu.'.'.$queue[$i];
+        $qt = $qutmp.'.'.$queue[$i];
+        open (QUE, "< $q") or die "Can not open $q for reading";
+        flock(QUE,1) or die "Can not flock $q: $!\n";
+        open (QUE2, "> $qt") or die "Can not open $qt for writing";
+        flock(QUE2,2) or die "Can not flock $qt: $!\n";
+        while (<QUE>) {
+           chop;
+           ($going,$nproc,$serial,$qunow,$flag,
+            $ename,$job,$pr,$timestring) = split /\?/;
+           $pr = -$pr if ($ename eq $user) && ($pr < 0);
+           print QUE2 "$going?$nproc?$serial?$qunow?$flag?$ename?$job?$pr?$timestring\n";
+           ++$line;
+        }
+        close (QUE);
+        close (QUE2);
+        chmod 0666,$qt if -e $qt;
+        rename $qt, $q if -e $qt;
+        unlink $qt if -e $qt;
+     }
+  }
+  close(LOGFILE);
+  print "\n";
+  exit;
+}
+ 
+# Argument stop.
+if ($arg eq 'stop') {
+  open (LOGFILE,">> $log") or die "Can not open $log for writing";
+  if ( ! -e $mypid) {
+     # qseek is not running
+     print "    qseek is not running for $user on $host.\n";
+     print "    $mypid does not exist.\n";
+     print LOGFILE "qseek is not running for $user on $host.\n" 
+             if $user eq $webuser;
+     print "\n";
+     exit;
+  }
+# Even if $mypid exists, qseek might not be running.
+  $qseek_yes = &check_qseek($killsig,$mypid,$command,$machine,$user,$i);
+  if ($qseek_yes) {
+    system "$command $machine kill -s KILL $killsig"
+            || die "Can not kill qseek daemon.\n";
+    print LOGFILE "qseek killed for $user on $host at $date.\n";
+    print "    Running qseek killed for $user\n";
+    print "    on $host at $date.\n";
+    unlink $mypid if -e $mypid; 
+    for ($i = 0; $i < $noofqueues; $i++) {
+      next if (! $maxqu[$i]);
+      next if $host ne $quhost[$i];
+      $q = $qu.'.'.$queue[$i];
+      $qt = $qutmp.'.'.$queue[$i];
+      open (QUE, "< $q") or die "Can not open $q for reading";
+      flock(QUE,1) or die "Can not flock $q: $!\n";
+      open (QUE2, "> $qt") or die "Can not open $qt for writing";
+      flock(QUE2,2) or die "Can not flock $qt: $!\n";
+      while (<QUE>) {
+        chop;
+        ($going,$nproc,$serial,$qunow,$flag,
+          $ename,$job,$pr,$timestring) = split /\?/;
+        $pr = -$pr if ($ename eq $user) && ($pr > 0) 
+          && ($going == 0);
+        print QUE2 "$going?$nproc?$serial?$qunow?$flag?$ename?$job?$pr?$timestring\n";
+        ++$line;
+      }
+      close (QUE);
+      close (QUE2);
+      chmod 0666,$qt if -e $qt;
+      rename $qt, $q if -e $qt;
+      unlink $qt if -e $qt;
+    }
+  } else {
+    # qseek is not running
+    print "    qseek is not running for $user on $host,\n";
+    print "    although $mypid exists.\n";
+    print LOGFILE "qseek is not running for $user on $host.\n" 
+            if $user eq $webuser;
+  }
+  close(LOGFILE);
+} else {
+  # Not found valid argument.
+  print "    Wrong argument: Must be 'start', 'stop', 'status','status-all,\n";
+  print "                    'qseeks', 'qseeks-all' or 'show'.\n";
+  if ($user eq $webuser) {
+     open (LOGFILE,">> $log") or die "Can not open $log for writing";
+     print LOGFILE "Wrong argument: Must be 'start', 'stop', 'status','status-all',\n";
+     print LOGFILE "               'qseeks', 'qseeks-all' or 'show'.\n";
+     close(LOGFILE);
+  }
+}
+print "\n";
+ 

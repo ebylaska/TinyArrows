@@ -1,0 +1,170 @@
+#!/usr/bin/python -tt
+
+#from email.mime.text import MIMEText
+
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEText import MIMEText
+from email.MIMEImage import MIMEImage
+
+from datetime import date
+import smtplib,time
+
+#SMTP_SERVER = "emailgw.pnl.gov"
+#SMTP_SERVER = "mailhost.emsl.pnl.gov"
+#SMTP_PORT = 25
+
+#EMAIL_TO = ["eric.bylaska@pnnl.gov", "ebylaska@charter.net", "bylaska@gmail.com"]
+#EMAIL_FROM = "eric.bylaska@pnnl.gov"
+#EMAIL_SUBJECT = "Demo Email2 : "
+
+DATE_FORMAT = "%d/%m/%Y"
+EMAIL_SPACE = ", "
+
+###################################################
+#                                                 #
+#             send_email_w_images                 #
+#                                                 #
+###################################################
+
+def send_email_w_images(SMTP_SERVER,EMAIL_FROM,EMAIL_TO,EMAIL_CC,EMAIL_SUBJECT,plaincontent,hmtlcontent,images=[],attachments=[]):
+   
+    ### Create the message and fill in the from, to, cc, and subject headers ###
+    msg = MIMEMultipart('related')
+    msg['Subject'] = EMAIL_SUBJECT + " - %s" % (time.strftime('%Y-%m-%d %H:%M'))
+    msg['To'] = EMAIL_SPACE.join(EMAIL_TO)
+    if (len(EMAIL_CC)>0):
+       msg['cc'] = EMAIL_SPACE.join(EMAIL_CC)
+    msg['From'] = EMAIL_FROM
+    msg.preamble = 'This is a multi-part message in MIME format.'
+
+    ### Encapsulate the plain and HTML versions of the message body in an            ###
+    ### 'alternative' part, so message agents can decide which they want to display. ###
+    msgalternative = MIMEMultipart('alternative')
+    msg.attach(msgalternative)
+
+    plaintext = MIMEText(plaincontent,'plain')
+    htmltext  = MIMEText(hmtlcontent,'html')
+    msgalternative.attach(plaintext)
+    msgalternative.attach(htmltext)
+
+    ### AttachImages - Define the image's ID to be the filename ###
+    for image in images:
+       try:
+          with open(image[0],'rb') as ff:
+             msgimage = MIMEImage(ff.read())
+          imageid = "<"+image[1]+">"
+          msgimage.add_header('Content-ID', imageid)
+          msg.attach(msgimage)
+       except:
+          print "Failed to attach image=",image
+
+    ### Add attachments ###
+    for file in attachments:
+       part = MIMEBase('application', "octet-stream")
+       part.set_payload( open(file,"rb").read() )
+       Encoders.encode_base64(part)
+       part.add_header('Content-Disposition', 'attachment; filename="%s"' % file)
+       msg.attach(part)
+
+    mail = smtplib.SMTP(SMTP_SERVER)
+    mail.sendmail(EMAIL_FROM, EMAIL_TO+EMAIL_CC, msg.as_string())
+    mail.quit()
+
+def main():
+   import sys
+   import getopt
+
+   usage = \
+   """
+   This program uses smtp server to send an ascii datafile thru the email.
+
+   Usage: send-smtp-image -n number -m emaillist -c ccemaillist -j subject -s smtp_server -i imagefiles -a appendfiles  plainfile htmlfile
+
+  -n queue number
+  -m string containing list of email addresses
+  -c string containing list of cc email addresses
+  -j subject for email
+  -s smtp_server
+  -i imagefiles
+  -a appendfiles
+  -h prints this message
+
+
+   where emailto is a string of email addresses and datafile
+
+   """
+
+   print 'Send an email using emsl smtp server'
+   tt      = time.localtime()
+   dd = "-%d-%d-%d-%d:%d" % (tt[0],tt[1],tt[2],tt[3],tt[4])
+
+   EMAIL_TO = ["eric.bylaska@pnnl.gov", "bylaska@gmail.com"]
+   #EMAIL_FROM = "eric.bylaska@pnnl.gov"
+   EMAIL_FROM = "arrows@emsl.pnnl.gov"
+   EMAIL_SUBJECT = "NWCHEM RESULT EMAIL: -1"
+   SMTP_SERVER = "mailhost.emsl.pnl.gov:25"
+   EMAIL_CC = []
+
+   is_html = False
+   filesubject = True
+   images       = []
+   attachments = []
+   opts, args = getopt.getopt(sys.argv[1:], "n:m:c:s:j:i:a:h")
+   for o, a in opts:
+      if '-n' in o:
+         qnum = eval(a)
+         EMAIL_SUBJECT = "NWCHEM RESULT EMAIL: %d" % qnum
+      if '-m' in o:
+         EMAIL_TO = a.split()
+      if '-c' in o:
+         EMAIL_CC = a.split()
+      if '-s' in o:
+         SMTP_SERVER = a
+      if '-j' in o:
+         EMAIL_SUBJECT = a
+         filesubject = False
+      if '-i' in o:
+         images = [(a.split()[i],a.split()[i+1]) for i in range(0,len(a.split()),2)]
+      if '-a' in o:
+         attachments = a.split()
+      if o in ("-h","--help"):
+         print usage
+         exit()
+   if len(args) < 2:
+     print usage
+     return
+
+   plainfilename = args[0]
+   with open(plainfilename,'r') as ff: 
+      plaintext = ff.read()
+
+   htmlfilename  = args[1]
+   with  open(htmlfilename,'rb') as ff:
+      htmltext = ff.read()
+
+   if (filesubject):
+      EMAIL_SUBJECT += " : " + plainfilename
+
+   print
+   print "From: "+EMAIL_FROM
+   tostr = ''
+   for e in EMAIL_TO:
+      tostr += e + ' '
+   print "To: " + tostr
+   ccstr = ''
+   for e in EMAIL_CC:
+      ccstr += e + ' '
+   print "cc: " + ccstr
+   print "Subject: " + EMAIL_SUBJECT
+   
+   print "ASCII Datafile: " + plainfilename
+   print "HTML  Datafile: " + htmlfilename
+   print "images        : ", images
+   print "attachments   : ", attachments
+  
+   #send_email(DATA)
+   send_email_w_images(SMTP_SERVER,EMAIL_FROM,EMAIL_TO,EMAIL_CC,EMAIL_SUBJECT,plaintext,htmltext,images,attachments)
+
+if __name__=='__main__':
+   
+    main()

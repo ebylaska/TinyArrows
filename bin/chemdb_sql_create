@@ -1,0 +1,87 @@
+#!/usr/bin/python
+
+import MySQLdb 
+import sys,os,time,pickle,math,sqlite3
+from math import *
+
+############## machine parameters #########################
+############## machine parameters #########################
+
+
+
+############################# main program ###################################
+
+
+print "chemdb_create sqlite3/mysql version"
+tt      = time.localtime()
+
+if (len(sys.argv)==1):
+   print "\nEnter host,user,password (enter sqlite3 for sqlite3 db):"
+   hup       = sys.stdin.readline()[:-1]
+   print "\nEnter sqlite3 filename or mysql db:"
+   dbfile    = sys.stdin.readline()[:-1]
+   print "\nEnter table name:"
+   table    = sys.stdin.readline()[:-1]
+   print "\nEnter template file:"
+   template  = sys.stdin.readline()[:-1]
+else:
+   hup    = sys.argv[1]
+   if (len(sys.argv)==2):
+      print "\nEnter sqlite3 filename or mysql db:"
+      dbfile    = sys.stdin.readline()[:-1]
+      print "\nEnter table name:"
+      table    = sys.stdin.readline()[:-1]
+      print "\nEnter template file:"
+      template = sys.stdin.readline()[:-1]
+   else:
+      dbfile = sys.argv[2]
+      if (len(sys.argv)==3):
+         print "\nEnter table name:"
+         table    = sys.stdin.readline()[:-1]
+         print "\nEnter template file:"
+         template = sys.stdin.readline()[:-1]
+      else:
+         table = sys.argv[3]
+         if (len(sys.argv)==4):
+            print "\nEnter template file:"
+            template = sys.stdin.readline()[:-1]
+         else:
+            template = sys.argv[4]
+
+
+if (hup=='sqlite3'):
+   issqlite3 = True
+else:
+   issqlite3 = False
+
+tagtypes = []
+ofile = open(template,"r")
+for line in ofile:
+   if (len(line)>1):
+      tagtypes.append(" ".join(line.split()))
+ofile.close()
+
+if (issqlite3):
+   sqlcreate = "create table " + table + "(Id INTEGER PRIMARY KEY AUTOINCREMENT"
+else:
+   sqlcreate = "create table " + table + "(Id INTEGER PRIMARY KEY AUTO_INCREMENT"
+
+for tt in tagtypes:
+   sqlcreate += ", " + tt
+sqlcreate += ");"
+print "sqlcreate=",sqlcreate
+
+if (issqlite3):
+   dbcon = sqlite3.connect(dbfile)
+else:
+   print hup,hup.split()
+   host = hup.split()[0]
+   user = hup.split()[1]
+   pss = hup.split()[2]
+   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   #dbcon = MySQLdb.connect('192.168.1.17','bylaska','bridge1port',dbfile)
+with dbcon:
+   cur = dbcon.cursor()
+   cur.execute("drop table if exists " + table)
+   cur.execute(sqlcreate)
+dbcon.close()

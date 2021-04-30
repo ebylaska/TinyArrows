@@ -1,0 +1,747 @@
+#!/usr/bin/python
+
+import pymongo
+import sys,os,time,pickle,pexpect,random,operator
+from math import *
+
+
+####################### mongoDB #############################
+with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+mongo_client       = pymongo.MongoClient(uri)
+arrows_db          = mongo_client.Arrows
+nwchem_collection  = arrows_db.nwchem_queue
+qnumber_collection = arrows_db.queue_number
+machine_collection = arrows_db.nwchem_machinedata
+####################### mongoDB #############################
+
+#################### machine specifics ######################
+submit_machine = 'arrows.emsl.pnl.gov'
+lsnwcdir       = "/srv/arrows/Codes/InSilico/nwqueue"
+#queuename = "nwchem.q"
+curdir  = os.getcwd()
+ddrand = random.randint(0,999999)
+#################### machine specifics ######################
+
+def make_mopacjob(job):
+   print "make_mopacjob not implemented"
+
+
+def pexpect_command(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          print "either received key or connection timeout"
+          pass
+      print p.before # print out the result
+
+def pexpect_command2(pcmd,mypassword):
+   if (mypassword=="nopassword"):
+      os.system(pcmd)
+   else:
+      ssh_newkey = 'Are you sure you want to continue connecting'
+      # my ssh command line
+      p=pexpect.spawn(pcmd,timeout=300)
+      i=p.expect([ssh_newkey,'Password:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==0:
+          print "I say yes"
+          p.sendline('yes')
+          i=p.expect([ssh_newkey,'Password:',pexpect.EOF,pexpect.TIMEOUT])
+      if i==1:
+          print "sending password",
+          p.sendline(mypassword)
+          p.expect(pexpect.EOF)
+      elif i>=2:
+          print "either received key or connection timeout"
+          pass
+      print p.before # print out the result
+
+
+
+#### functions ####
+def nwchem_molecular_formula(nwfilename):
+   #
+   xyzdat = []
+   foundgeom = False
+   done      = False
+   foundsys  = False
+   nwfile = open(nwfilename,'r')
+   for line in nwfile:
+    if (line.find("#") == -1):
+      if (not done):
+         if (foundgeom):
+            if (foundsys):
+               if (line.find("end") != -1):
+                  foundsys = False
+            else:
+               if (line.find("system") != -1):
+                  foundsys = True
+               else:
+                  if (line.find("end") != -1):
+                     done = True
+                  else:
+                     xyzdat.append(line.strip())
+         else:
+            if (line.find("geometry") != -1):
+               foundgeom = True
+               if (line.find("#") != -1):
+                  foundgeom = False
+               if (line.find("actlist") != -1):
+                  foundgeom = False
+               if (line.find("set") != -1):
+                  foundgeom = False
+               if (line.find("unset") != -1):
+                  foundgeom = False
+               if (line.find("geometry_optimize") != -1):
+                  foundgeom = False
+
+   nwfile.close()
+   if (done):
+      fdict = {}
+      for line0 in xyzdat:
+         line = line0.strip()
+         if (len(line)>2):
+            if (line[1]==' '):
+               key = line[0]  
+            else:
+               key = line[0:2] 
+            if (fdict.has_key(key)):   
+               fdict[key] += 1  
+            else:
+               fdict[key] = 1 
+
+      formula = ''
+      #ll = fdict.items()
+      #for i in range(len(ll)):
+      #   formula += ll[i][0] + "%d" % ll[i][1]
+      for x  in sorted(fdict.items(), key=operator.itemgetter(0)):
+         formula += x[0] + "%d" % x[1]
+
+   else:
+      formula = "unknown"
+   return formula
+
+def nwchem_charge(nwfilename):
+   #
+   charge = 0
+   done = False
+   nwfile = open(nwfilename,'r')
+   for line in nwfile:
+    if (line.find("#") == -1):
+      if (not done):
+         if (line.find("charge") != -1):
+            split = line.split()
+            if (split[0] != "title"):
+               charge = eval(split[1])
+               done = True
+   nwfile.close()
+   return charge
+
+def nwchem_mult(nwfilename):
+   #
+   mult = 1
+   done = False
+   nwfile = open(nwfilename,'r')
+   for line in nwfile:
+    if (line.find("#") == -1):
+      if (not done):
+         if (line.find("mult") != -1):
+            split = line.split()
+            if (split[0] != "title"):
+               mult = eval(split[1])
+               done = True
+   nwfile.close()
+   return mult
+
+def nwchem_xc(nwfilename):
+   #
+   xc = "svwn5"
+   done = False
+   nwfile = open(nwfilename,'r')
+   for line in nwfile:
+    if (line.find("#") == -1):
+      if (not done):
+         if (line.find("xc") != -1):
+            split = line.split()
+            if (split[0] != "title"):
+               xc = split[1]
+               done = True
+   nwfile.close()
+   return xc
+
+def nwchem_theory(nwfilename):
+   #
+   theory = 'unknown'
+   done = False
+   nwfile = open(nwfilename,'r')
+   for line in nwfile:
+    if (line.find("#") == -1):
+      if (not done):
+         if (line.find("task dft") != -1):
+            theory = "dft"
+            done = True
+         if (line.find("task pspw") != -1):
+            theory = "pspw"
+            done = True
+         if (line.find("task band") != -1):
+            theory = "band"
+            done = True
+         if (line.find("task mp2") != -1):
+            theory = "mp2"
+            done = True
+         if (line.find("task tce") != -1):
+            theory = "tce"
+            done = True
+         if (line.find("task mp2") != -1):
+            theory = "mp2"
+            done = True
+         if (line.find("task direct_mp2") != -1):
+            theory = "mp2"
+            done = True
+         if (line.find("task python") != -1):
+            theory = "python"
+            done = True
+         if (line.find("mopacker") != -1):
+            theory = "mopac"
+            done = True
+   nwfile.close()
+   return theory
+
+def nwchem_memory(nwfilename):
+   #
+   memory = 'unknown'
+   done = False
+   nwfile = open(nwfilename,'r')
+   for line in nwfile:
+    if (line.find("#") == -1):
+      if (not done):
+         if (line.find("memory") != -1):
+            split = line.split()
+            memory = ''
+            i = 0
+            for l in split:
+               if (i>0): memory +=  l + " "
+               i+=1
+            done = True
+   nwfile.close()
+   return memory
+
+
+
+def nwchem_jobtype(nwfilename):
+   #
+   tasks = []
+   nwfile = open(nwfilename,'r')
+   for line in nwfile:
+    if (line.find("#") == -1):
+      if (line.find("task") != -1):
+         split = line.split()
+         if (line.find("python")!=-1):
+            tasks.append(split[1])
+         else:
+            if (len(split)>2):
+               tasks.append(split[2])
+         done = True
+   nwfile.close()
+
+   jobtype = ''
+   for l in tasks:
+      if (l.find("energy") != -1):         jobtype += "e"
+      if (l.find("gradient") != -1):       jobtype += "g"
+      if (l.find("optimize") != -1):       jobtype += "o"
+      if (l.find("freq") != -1):           jobtype += "v"
+      if (l.find("car-parrinello") != -1): jobtype += "c"
+      if (l.find("python") != -1):        jobtype += "p"
+   return jobtype
+
+
+
+def make_jobname(job):
+   #
+   dash = "-"
+   if (job['mformula_off']):
+      mformula = 'unknown'
+   else:
+      mformula = nwchem_molecular_formula(job['nwchem_input'])
+   if (job['theory']=='pspw' or job['theory']=='dft'): 
+      jobxc = job['xc']
+   else:
+      jobxc = 'xxx'
+   #jobname = job['theory'] + dash + jobxc + dash + mformula + dash + "%d" % job['queue_number']
+   jobname = job['theory'] + dash + mformula + dash + "%d" % job['queue_number']
+   jobname = jobname.replace(" ","")
+   return jobname
+
+   
+def make_nwinputdeck(job):
+   #
+   eoln = "\n"
+   #dirsstr  = "permanent_dir " + job['permdir'] + eoln + "scratch_dir  " + job['permdir']
+   dirsstr  = "permanent_dir " + job['permdir'] + eoln
+   if (job.has_key('scratch_dir')): dirsstr  += "scratch_dir " + job['scratch_dir'] + eoln
+
+   nwfile = open(job['name']+'.nw','w')
+   nwfile.write(dirsstr + eoln + eoln);
+   ofile = open(job['nwchem_input'],'r')
+   for line in ofile:
+      nwfile.write(line)
+   ofile.close()
+   nwfile.close()
+
+
+def queuewait_check(queuewait):
+   #
+   notfound = True
+
+   ## check against qnumber_max ##
+   qnumber_max  = qnumber_collection.find_one({'queue':'nwchem'})['count']
+   for qw in queuewait:
+      if (qw>=qnumber_max): notfound = False
+
+   for job in nwchem_collection.find():
+      qnumber = job['queue_number']
+      for qw in queuewait:
+         if (qnumber==qw): notfound = False
+
+
+   return notfound
+
+
+##################################### main program ##########################################
+tt   = time.localtime()
+gt   = time.gmtime()
+#dd   = "-%d-%d-%d-%d:%d" % (tt[0],tt[1],tt[2],tt[3],tt[4])
+dd   = "-%d-%d-%d-%d:%d:%d" % (gt[0],gt[1],gt[2],gt[3],gt[4],gt[5])
+ddtt  = "%d-%d-%d-%d:%d" % (tt[0],tt[1],tt[2],tt[3],tt[4])
+ddgt  = "%d-%d-%d-%d:%d" % (gt[0],gt[1],gt[2],gt[3],gt[4])
+ddlt = time.asctime(tt)
+job  = {}
+job['submit_time']    = pickle.dumps(tt)
+job['submit_gm_time'] = pickle.dumps(gt)
+job['submit_time_ascii']    = ddtt
+job['submit_gm_time_ascii'] = ddgt
+print 'NWChem Submission Program (mongoDB version) - The current time is ' + ddlt + '\n'
+
+
+
+
+if (len(sys.argv)==1):
+   print "\nEnter nwchem job file:"
+   nwchemjobfile  = sys.stdin.readline()[:-1]
+   print "\nEnter queue_number(s) wait:"
+   queuewait  = sys.stdin.readline()[:-1]
+   job['queuewait']  = []
+   for qn in queuewait.split():
+      job['queuewait'].append(eval(qn))
+else:
+   nwchemjobfile  = sys.argv[1]
+   if (len(sys.argv)>2):
+      job['queuewait'] = []
+      for i in range((len(sys.argv)-2)):
+         job['queuewait'].append(eval(sys.argv[2+i]))
+
+## get queue number ##
+job['queue_number']  = qnumber_collection.find_one({'queue':'nwchem'})['count']
+qqq = qnumber_collection.update({'queue':'nwchem'},{'$inc':{'count':1}},upsert=False,multi=False)
+
+if '/' in nwchemjobfile:
+   ss = nwchemjobfile.split('/')
+   pruned_nwchemjobfile = ss[len(ss)-1]
+else:
+   pruned_nwchemjobfile = nwchemjobfile
+job['nwchemjobfile'] = nwchemjobfile
+job['alljobfiles'] = []
+job['alljobfiles'].append(curdir+'/'+pruned_nwchemjobfile)
+
+# read nwchem_input
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("nwchem_input") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         job['nwchem_input'] = split[1]
+jfile.close()
+if (job.has_key('nwchem_input')==False): 
+   print "nwchem_input file not found!"
+   exit
+job['alljobfiles'].append(curdir+'/'+job['nwchem_input'])
+with open(job['nwchem_input'],'r') as ff:
+   aaa = ff.read()
+job['mopacjob'] =  "mopacker" in aaa
+
+# read mformula_off
+job['mformula_off'] = False
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find('mformula_off') != -1):
+      job['mformula_off'] = True
+jfile.close()
+
+job['mformula'] = nwchem_molecular_formula(job['nwchem_input'])
+job['charge']   = nwchem_charge(job['nwchem_input'])
+job['mult']     = nwchem_mult(job['nwchem_input'])
+job['mem']      = nwchem_memory(job['nwchem_input'])
+job['type']     = nwchem_jobtype(job['nwchem_input'])
+job['theory']   = nwchem_theory(job['nwchem_input'])
+if (job['theory']=='pspw' or job['theory']=='dft'):
+   job['xc'] = nwchem_xc(job['nwchem_input'])
+
+job['name']  = make_jobname(job)
+job['name2'] = job['name'] + dd
+job['curdir'] = curdir
+job['submit_machine'] = submit_machine
+
+# read nwchem_output
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("nwchem_output") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         job['nwchem_output'] = split[1]
+jfile.close()
+if (job.has_key('nwchem_output')==False): 
+   job['nwchem_output'] = job['name']
+job['alljobfiles'].append(curdir+'/'+job['nwchem_output'])
+
+# read nwchem_done
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("nwchem_done") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         job['nwchem_done'] = split[1]
+jfile.close()
+if (job.has_key('nwchem_done')==False): 
+   job['nwchem_done'] = "nwchem.done"
+job['alljobfiles'].append(curdir+'/'+job['nwchem_done'])
+
+
+# read transfer_files
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("transfer_files") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         job['transfer_files'] = split
+         job['transfer_files'].remove(split[0])
+jfile.close()
+if (job.has_key('transfer_files')):
+   for ff in job['transfer_files']:
+      job['alljobfiles'].append(curdir+'/'+ff)
+   
+
+
+# read startup_files
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("startup_files") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         job['startup_files'] = split
+         job['startup_files'].remove(split[0])
+jfile.close()
+if (job.has_key('startup_files')):
+   for ff in job['startup_files']:
+      job['alljobfiles'].append(curdir+'/'+ff)
+
+
+# write auxiliary_files
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("auxiliary_files") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         job['auxiliary_files'] = split
+         job['auxiliary_files'].remove(split[0])
+jfile.close()
+if (job.has_key('auxiliary_files')):
+   for ff in job['auxiliary_files']:
+      job['alljobfiles'].append(curdir+'/'+ff)
+
+
+# read permdir
+permdir = "eric%d" % job['queue_number']
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("permdir") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         permdir = split[1]
+jfile.close()
+print "permdir=",permdir
+
+# read deletepermdir
+job['deletepermdir'] = 'y'
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("deletescratch") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         if (split[1].find('y') != -1):
+            job['deletepermdir'] = 'y'
+         else:
+            job['deletepermdir'] = 'n'
+jfile.close()
+
+# read queuesave
+job['queuesave'] = 'y'
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("queuesave") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         if (split[1].find('y') != -1):
+            job['queuesave'] = 'y'
+         else:
+            job['queuesave'] = 'n'
+jfile.close()
+queuesave = job['queuesave']=='y'
+
+
+# read addtochemdb
+job['addtochemdb'] = 'n'
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("addtochemdb") != -1):
+      split = line.split()
+      if (len(split)>1):
+         if (split[1].find('y') != -1):
+            job['addtochemdb'] = 'y'
+         else:
+            job['addtochemdb'] = 'n'
+jfile.close()
+
+
+# read machine
+jmachine = "unknown"
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("machine") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         jmachine = split[1]
+jfile.close()
+if (jmachine=="unknown"): jmachine = "cascade"
+
+#set the machinedata
+qt = {}
+qt['machinename'] = jmachine
+machinedata = machine_collection.find_one(qt)
+#print "machinedata=",machinedata
+job['machinename']  = machinedata['machinename']
+job['machine']      = machinedata['machine']
+job['qsub']         = machinedata['qsub']
+job['nwchembinary'] = machinedata['nwchembinary']
+job['snwcdir']      = machinedata['snwcdir']
+job['permdir']      = job['snwcdir'] + "/" + permdir
+mypassword          = machinedata['passwd']
+if machinedata.has_key('scratch_dir'):
+   if (machinedata['scratch_dir']=="useperm"):
+      job['scratch_dir'] = job['permdir']
+   else:
+      job['scratch_dir'] = machinedata['scratch_dir']
+
+
+#generate make_nwchemjob function
+exec machinedata['make_nwchemjob']
+
+#generate make_mopacjob function if it exists
+if machinedata.has_key('make_mopacjob'): exec machinedata['make_mopacjob']
+if machinedata.has_key('mopacbinary'):   job['mopacbinary'] = machinedata['mopacbinary']
+
+
+# read cputime
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("cputime") != -1):
+      split = line.split()
+      if (len(split)>1): 
+         job['cputime'] = split[1]
+jfile.close()
+
+# read ncpus
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("ncpus") != -1):
+      split = line.split()
+      if (len(split)>1):
+         job['ncpus'] = split[1]
+jfile.close()
+
+# read priority
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("priority") != -1):
+      split = line.split()
+      if (len(split)>1):
+         job['priority'] = split[1]
+jfile.close()
+if job.has_key('priority'): job['qsub'] += " -p " + job['priority'] + " "
+
+# read email
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("email") != -1):
+      split = line.split()
+      if (len(split)>1):
+         job['email'] = split[1]
+jfile.close()
+
+
+# read queue
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("queue") != -1):
+      split = line.split()
+      if (len(split)>1):
+         job['queue'] = split[1]
+jfile.close()
+
+# savetempfiles
+savetempfiles = False
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("savetempfiles") != -1):
+      savetempfiles = True
+jfile.close()
+job['savetempfiles'] = savetempfiles
+
+# olympus32
+olympus32 = False
+jfile = open(nwchemjobfile,'r')
+for line in jfile:
+   if (line.find("olympus32") != -1):
+      olympus32 = True
+jfile.close()
+
+
+
+make_nwinputdeck(job)
+nwfile = open(job['name']+'.nw','r')
+job[job['name']+'^nw'] = nwfile.read()
+nwfile.close()
+
+job['pbsfile']      = 'nwchem-%d.pbs' % ddrand
+pbsinputfile        = job['curdir'] + "/"+job['pbsfile']
+job['pbsinputfile'] = pbsinputfile
+
+if job['mopacjob']:
+   make_mopacjob(job)
+else:
+   make_nwchemjob(job)
+
+#pbsfile = open('nwchem.pbs','r')
+pbsfile = open(job['pbsinputfile'],'r')
+job['nwchem^pbs'] = pbsfile.read()
+pbsfile.close()
+
+
+
+jobname = job['name'] + ".nw"
+jobout  = job['name'] + ".out"
+jobname2 = job['name'] + dd + ".nw"
+jobout2  = job['name'] + dd + ".out"
+jobdone  = job['name'] + dd + ".done"
+inputfile  = job['curdir'] + "/" + jobname
+donefile   = lsnwcdir + "/start.done"
+sinputfile = job['permdir'] + "/" + jobname2
+sinputfile2 = lsnwcdir + "/inputs/" + jobname2
+sdonefile   = job['permdir'] + "/" + jobdone
+
+cmdj = "ssh " + job['machine'] + " mkdir " + job['permdir']
+cmdi = "scp " + donefile + " " + job['machine'] + ":" + sdonefile
+cmda = "cp " + inputfile + " " + sinputfile2
+cmd0 = "scp " + inputfile    + " " + job['machine'] + ":" + sinputfile
+cmd1 = "scp " + pbsinputfile + " " + job['machine'] + ":" + job['permdir']
+cmd2 = "cp " + donefile + " " + job['curdir'] + "/" + job['nwchem_done']
+
+cmd_submit = "ssh " + job['machine'] + job['qsub'] + job['permdir'] + "/"+job['pbsfile']
+
+
+job['inputfile']    = inputfile
+
+job['cmd_os'] = []
+if (queuesave): job['cmd_os'].append(cmda)
+job['cmd_os'].append(cmd2)
+
+
+job['cmd_pexpect']  = []
+job['cmd_pexpect'].append(cmdj)
+job['cmd_pexpect'].append(cmdi)
+job['cmd_pexpect'].append(cmd0)
+job['cmd_pexpect'].append(cmd1)
+if (job.has_key('startup_files')):
+   print "transfering startup files...",job['startup_files']
+   for ff in job['startup_files']:
+      tcmd = "scp \""  + job['curdir'] + "/" + ff + "\" "
+      tcmd += job['machine'] + ":" + job['permdir'] + "/" 
+      job['cmd_pexpect'].append(tcmd)
+job['cmd_pexpect'].append(cmd_submit)
+
+
+
+###### submit the job ######
+submitjob = True
+if (job.has_key('queuewait')):
+   submitjob = queuewait_check(job['queuewait'])
+ 
+if (submitjob):
+
+   wfile = open(job['name']+'.nw','w')
+   wfile.write(job[job['name']+'^nw'])
+   wfile.close()
+
+   wfile = open(job['pbsinputfile'],'w')
+   wfile.write(job['nwchem^pbs'])
+   wfile.close()
+
+   for cmd in job['cmd_os']:
+      os.system(cmd)
+
+   for cmd in job['cmd_pexpect']:
+      pexpect_command(cmd,mypassword)
+
+   if (job['savetempfiles']==False):
+      os.system("rm " + job['pbsinputfile'] + " " + job['inputfile'])
+
+   job['status']  = "submitted"
+else:
+   job['status']  = "not submitted"
+
+
+print "nwchem_input  = ", job['nwchem_input']
+print "nwchem_output = ", job['nwchem_output']
+print "nwchem_done   = ", job['nwchem_done']
+print "permdir       = ", job['permdir']
+print "deletepermdir = ", job['deletepermdir']
+print "queuesave     = ", job['queuesave']
+print "submit_machine= ", job['submit_machine']
+print "machine       = ", job['machine']
+print "number cpus   = ", job['ncpus']
+print "queue time    = ", job['cputime']
+print "queue         = ", job['queue']
+print "status        = ", job['status']
+print "mopac job     = ", job['mopacjob']
+print "queue_number  = ", job['queue_number']
+if (job.has_key('queuewait')):
+   print "queuewait     = ", job['queuewait']
+
+
+##### put job on nwchem_queue ####
+#print "job=",job
+qq = nwchem_collection.insert(job)
+print "nwchem_collection.insert = ", qq
+   
+
