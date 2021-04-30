@@ -4,34 +4,35 @@ from flask import abort
 from werkzeug.utils import secure_filename
 import os,subprocess,urllib2,time,random,requests,zipfile,math,yaml
 
+ARROWS_HOME = '..'
 
 #UPLOAD_FOLDER = '/tmp/'
-UPLOAD_FOLDER = '/srv/arrows/Public/uploads/'
+UPLOAD_FOLDER = ARROWS_HOME + '/Public/uploads/'
 ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo', 'nw', 'eap', 'xyz', 'emotion', 'ion_motion', 'fei','eigmotion','dipole_motion','POWER_SPECTRUM','dipole_powerspectrum','VELOCITY_SPECTRUM','yaml','note','txt', 'inp', 'dat', 'mol', 'psp', 'hist', 'gr', 'cif', 'meta_gaussians','neb_epath','neb_final_epath', 'json','csv','PAIR_DISTRIBUTION'])
 
 
 tar                     = "/bin/tar -czf " 
-chemdb_fetch_esmiles5   = "/srv/arrows/bin/chemdb_fetch_esmiles5 "
-chemdb_fetch_reactions  = "/srv/arrows/bin/chemdb_fetch_reactions5 -e "
-chemdb_fetch_reactions0 = "/srv/arrows/bin/chemdb_fetch_reactions5 "
-chemdb_image0           = "/srv/arrows/bin/chemdb_image0 -f "
-chemdb_queue            = "/srv/arrows/bin/chemdb_queue "
-chemdb_eric             = "/srv/arrows/bin/chemdb_eric  "
-chemdb_osra             = "/srv/arrows/bin/chemdb_osra  "
-chemdb_queue_nwchem     = "/srv/arrows/bin/chemdb_queue_nwchem "
-chemdb_balance_reaction = "/srv/arrows/bin/chemdb_balance_reaction9f "
-tnt_submit              = "/srv/arrows/bin/tnt_submit5 -f "
-chemdb_molcalc          = "/srv/arrows/bin/chemdb_molcalc "
-queue_nwchem3           = "/srv/arrows/bin/queue_nwchem3 -s -a"
-cifocd_gennw            = "/srv/arrows/bin/cifocd_gennw "
-esmiles2xyz             = "/srv/arrows/bin/esmiles2xyz "
-wrkdir                  = "/srv/arrows/Work"
-templatedir             = "/srv/arrows/Public/templates"
-templatedir2             = "/srv/arrows/Public/templates2"
-staticdir               = "/srv/arrows/Public/static"
-reactiondir             = "/srv/arrows/Public/reaction"
-chemdbdir               = "/srv/arrows/Public/chemdb_hold"
-counterdir              = "/srv/arrows/Public/counters"
+chemdb_fetch_esmiles5   = ARROWS_HOME + "/bin/chemdb_fetch_esmiles5 "
+chemdb_fetch_reactions  = ARROWS_HOME + "/bin/chemdb_fetch_reactions5 -e "
+chemdb_fetch_reactions0 = ARROWS_HOME + "/bin/chemdb_fetch_reactions5 "
+chemdb_image0           = ARROWS_HOME + "/bin/chemdb_image0 -f "
+chemdb_queue            = ARROWS_HOME + "/bin/chemdb_queue "
+chemdb_eric             = ARROWS_HOME + "/bin/chemdb_eric  "
+chemdb_osra             = ARROWS_HOME + "/bin/chemdb_osra  "
+chemdb_queue_nwchem     = ARROWS_HOME + "/bin/chemdb_queue_nwchem "
+chemdb_balance_reaction = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
+tnt_submit              = ARROWS_HOME + "/bin/tnt_submit5 -f "
+chemdb_molcalc          = ARROWS_HOME + "/bin/chemdb_molcalc "
+queue_nwchem3           = ARROWS_HOME + "/bin/queue_nwchem3 -s -a"
+cifocd_gennw            = ARROWS_HOME + "/bin/cifocd_gennw "
+esmiles2xyz             = ARROWS_HOME + "/bin/esmiles2xyz "
+wrkdir                  = ARROWS_HOME + "/Work"
+templatedir             = ARROWS_HOME + "/Public/templates"
+templatedir2            = ARROWS_HOME + "/Public/templates2"
+staticdir               = ARROWS_HOME + "/Public/static"
+reactiondir             = ARROWS_HOME + "/Public/reaction"
+chemdbdir               = ARROWS_HOME + "/Public/chemdb_hold"
+counterdir              = ARROWS_HOME + "/Public/counters"
 namecount = 0
 esmiles2xyzblocked = 0
 
