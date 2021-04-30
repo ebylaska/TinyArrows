@@ -1,7 +1,7 @@
 # TinyArrows
 TinyArrows is a tiny version of EMSL Arrows
 
-# Running Arrows
+## Running Arrows
 cd Public
 
 python app2.py
