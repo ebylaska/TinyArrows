@@ -4,7 +4,7 @@ from flask import abort
 from werkzeug.utils import secure_filename
 import os,subprocess,urllib,time,random,requests,zipfile,math,yaml
 
-ARROWS_HOME = '..'
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
 
 #UPLOAD_FOLDER = '/tmp/'
 UPLOAD_FOLDER = ARROWS_HOME + '/Public/uploads/'
@@ -30,6 +30,7 @@ wrkdir                  = ARROWS_HOME + "/Work"
 templatedir             = "templates"
 templatedir2            = "templates2"
 staticdir               = "static"
+staticdir2              = "static2"
 reactiondir             = "reaction"
 chemdbdir               = "chemdb_hold"
 counterdir              = "counters"
@@ -471,7 +472,7 @@ _atom_site_fract_z''' % (a,b,c,alpha,beta,gamma)
 ###########################################
 
 def nwinput2jsmol(backgroundcolor,nwinput):
-   staticdir = "/srv/arrows/Public/static/"
+   staticdir = ARROWS_HOME + "/Public/static/"
    msg4 = ''
    if "geometry" not in nwinput:
       return msg4
@@ -526,9 +527,6 @@ def nwinput2jsmol(backgroundcolor,nwinput):
       with open(staticdir + xyzfilename,'w') as ff:
          ff.write(xyzdat)
 
-   #xyzfilename = "molecule-jsmol-%d.xyz" % xx
-   #with open(staticdir + xyzfilename,'w') as ff:
-   #   ff.write(xyzdat)
 
    nion = eval(xyzdat.split("\n")[0].strip())
    nframes = (len(xyzdat.split("\n")))/(nion+2)
@@ -689,9 +687,9 @@ def resolve_images(result,html):
          a1 = "cid:"+a[1]
          a2 = " {{url_for('static',filename='img-%s')}}" % (a[0].split("/")[-1])
          cmd8    = "cp " + a[0] + " " + staticdir + "/img-%s" %  (a[0].split("/")[-1])
-         #result2 = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+         #result2 = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          print("cmd8=",cmd8)
-         result2 = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+         result2 = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          os.unlink(a[0])
          html    = html.replace(a1,a2)
 
@@ -798,7 +796,7 @@ def get_esmiles2xyz(esmiles0):
        ddrand = random.randint(0,999999)
        xyzfile   = wrkdir + "/jjarrows-%d.xyz" % ddrand
        cmd7 = esmiles2xyz + "-s " + '\"' + esmiles0 + '\" ' + xyzfile
-       data = subprocess.check_output(cmd7,shell=True)
+       data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        os.unlink(xyzfile)
     except:
        data = '????'
@@ -815,8 +813,8 @@ def get_arrowid(task_id):
        #task = [task for task in tasks if task['id'] == task_id]
        esmiles = "id=%d" % task_id
        cmd7 = chemdb_fetch_esmiles5 + '\"' + esmiles + '\"'
-       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       data = subprocess.check_output(cmd7,shell=True)
+       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        if len(data) == 0: data=esmiles + " not found\n"
     except:
        data = '????'
@@ -833,8 +831,8 @@ def get_esmiles(esmiles0):
        esmiles0 = esmiles0.replace("%2F",'/')
        #print "esmiles=",esmiles0
        cmd7 = chemdb_fetch_esmiles5 + '\"' + esmiles0 + '\"'
-       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       data = subprocess.check_output(cmd7,shell=True)
+       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        if len(data) == 0: data=esmiles0 + " not found\n"
     except:
        data = '????'
@@ -848,8 +846,8 @@ def get_osra(esmiles0):
        increment_apivisited()
        #print "esmiles=",esmiles0
        cmd7 = chemdb_osra + '\"' + esmiles0 + '\"'
-       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       data = subprocess.check_output(cmd7,shell=True)
+       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        if len(data) == 0: data=esmiles0 + " not found\n"
     except:
        data = '????'
@@ -886,8 +884,8 @@ def get_smarts(smarts0):
        with open(inpfile,'w') as ff:
           ff.write("smarts: " + smarts0 + " :smarts usehtml5\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -936,8 +934,8 @@ def get_frequency(idfreq0):
           ff.write("showfreq: " + idfreq0 + " :showfreq usehtml5\n")
           #ff.write("showfreq: %d %d  :showfreq usehtml5\n" % (tid,tfnum))
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -981,8 +979,8 @@ def get_listallesmiles(nrows):
           ff.write("listallesmiles\n usehtml5\n")
           if (nrows.isdigit()): ff.write(nrows +"\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1024,8 +1022,8 @@ def get_listallreactions():
        with open(inpfile,'w') as ff:
           ff.write("listallreactions\n usehtml5\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1080,8 +1078,8 @@ def get_submitesmiles(esmiles0):
           if (machines0!=''): ff.write("submitmachines: " + machines0 + "  :submitmachines\n")
           ff.write("submitesmiles: " + esmiles0 + " :submitesmiles\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1147,9 +1145,9 @@ def get_molecule(esmiles0):
           else:
              ff.write("molecule: " + esmiles0 + " :molecule usehtml5\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
        print("CMD7=",cmd7)
-       result = subprocess.check_output(cmd7,shell=True)
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1158,7 +1156,6 @@ def get_molecule(esmiles0):
        else:
           html = resolve_images(result,html)
           with open(htmlfile1,'w') as ff: ff.write(html)
-          #print "rendering name=",name
           data =  render_template(name)
 
        try:
@@ -1206,8 +1203,8 @@ def get_nmr(esmiles0):
           if (machines0!=''): ff.write("submitmachines: " + machines0 + "  :submitmachines\n")
           ff.write("nmr: " + esmiles0 + " :nmr usehtml5\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1252,8 +1249,8 @@ def get_xyz(esmiles0):
        with open(inpfile,'w') as ff:
           ff.write("xyzfile: " + esmiles0 + " :xyzfile\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1310,8 +1307,8 @@ def get_mol(esmiles0):
        with open(inpfile,'w') as ff:
           ff.write("molfile: " + esmiles0 + " :molfile\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1367,8 +1364,8 @@ def get_nwoutput(esmiles0):
        with open(inpfile,'w') as ff:
           ff.write("nwoutput: " + esmiles0 + " :nwoutput\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1414,8 +1411,8 @@ def get_nwoutput_download(esmiles0):
        with open(inpfile,'w') as ff:
           ff.write("nwoutput: " + esmiles0 + " :nwoutput\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### fetch the input deck from htmlfile ###
        with open(htmlfile,'r') as ff: data = ff.read()
@@ -1474,8 +1471,8 @@ def get_nwinput(esmiles0):
        with open(inpfile,'w') as ff:
           ff.write("nwinput: " + esmiles0 + " :nwinput\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### fetch the input deck from htmlfile ###
        with open(htmlfile,'r') as ff: data = ff.read()
@@ -1527,8 +1524,8 @@ def get_nwdatafile(esmiles0):
        with open(inpfile,'w') as ff:
           ff.write("nwdatafile: " + esmiles0 + " :nwdatafile\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### fetch the input deck from htmlfile ###
        with open(htmlfile,'r') as ff: data = ff.read()
@@ -1579,8 +1576,8 @@ def get_nwdatafile_download(esmiles0):
        with open(inpfile,'w') as ff:
           ff.write("nwdatafile: " + esmiles0 + " :nwdatafile\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### fetch the input deck from htmlfile ###
        with open(htmlfile,'r') as ff: data = ff.read()
@@ -1668,8 +1665,8 @@ def get_reaction(esmiles0):
           else:
              ff.write("reaction: " + esmiles0 + " :reaction usehtml5\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1729,8 +1726,8 @@ def get_reactionpath(esmiles0):
           if (machines0!=''): ff.write("submitmachines: " + machines0 + "  :submitmachines\n")
           ff.write("reactionpath: " + esmiles0 + " :reactionpath usehtml5\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1779,8 +1776,8 @@ def get_predict(esmiles0):
        with open(inpfile,'w') as ff:
           ff.write("predict: " + esmiles0 + " :predict   usehtml5\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       result = subprocess.check_output(cmd7,shell=True)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
@@ -1814,8 +1811,8 @@ def get_input_deck(esmiles0):
        esmiles0 = addspaces_reaction(esmiles0.strip())
        esmiles0 = parsetosmiles(esmiles0)
        cmd7 = tnt_submit + '\"' + esmiles0 + '\"'
-       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-       data = subprocess.check_output(cmd7,shell=True)
+       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+       data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        #print "- input_deck: esmiles=",esmiles0
        if len(data) == 0: data=esmiles0 + " not generated\n"
        html = "<html>\n" 
@@ -1833,7 +1830,7 @@ def get_crystal_input_deck(ocd0):
        ocd0 = ocd0.replace("\"",'')
        ocd0 = ocd0.replace("\'",'')
        cmd7 = cifocd_gennw +  ocd0 
-       data = subprocess.check_output(cmd7,shell=True)
+       data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        if len(data) == 0: data=ocd0 + " not generated\n"
        html = "<html>\n" 
        html += ArrowsHeader
@@ -1851,8 +1848,8 @@ def get_crystal_input_deck(ocd0):
 def get_calculation():
    try:
       cmd8 = chemdb_fetch_esmiles5 + '-c'
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "calculations not found\n"
    return calcs
@@ -1865,8 +1862,8 @@ def list_queue_nwchem3():
    try:
       increment_apivisited()
       cmd8 = queue_nwchem3
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
 
@@ -1886,8 +1883,8 @@ def list_queue():
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-l'
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
 
@@ -1904,8 +1901,8 @@ def list_queue_html():
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-l'
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
 
@@ -1936,8 +1933,8 @@ def submit_queue():
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-s'
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
 
@@ -1961,8 +1958,8 @@ def add_reset(esmiles):
          cmd8 = chemdb_queue + '-m ' + '\"' +  esmiles + '\"'
       else:
          cmd8 = chemdb_queue + '-r ' + '\"' +  esmiles + '\"'
-      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      result = subprocess.check_output(cmd8,shell=True)
+      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "queue_reset = " + esmiles + " was not reset on arrows queue.\n"
    html = "<html>\n"
@@ -1982,8 +1979,8 @@ def add_delete(esmiles):
       esmiles = esmiles.replace("\'",'')
       esmiles = esmiles.replace("%2F",'/')
       cmd8 = chemdb_queue + '-d ' + '\"' +  esmiles + '\"'
-      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      result = subprocess.check_output(cmd8,shell=True)
+      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "queue_delete = " + esmiles + " was not removed from arrows queue.\n"
    html = "<html>\n"
@@ -2003,8 +2000,8 @@ def add_queue(esmiles):
       esmiles = esmiles.replace("\'",'')
       esmiles = esmiles.replace("%2F",'/')
       cmd8 = chemdb_queue + '-a ' + '\"' +  esmiles + '\"'
-      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      result = subprocess.check_output(cmd8,shell=True)
+      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "queue_add = " + esmiles + " was not added to arrows queue.\n"
    html = "<html>\n"
@@ -2022,8 +2019,8 @@ def fetch_queue(jobid):
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-f ' + jobid
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
    html = "<html>\n"
@@ -2043,8 +2040,8 @@ def view_queue(jobid):
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-q ' + jobid
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
 
@@ -2080,8 +2077,8 @@ def eric_queue(input_data):
    try:
       increment_apivisited()
       cmd8 = chemdb_eric + '\"' + input_data + '\"'
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
 
@@ -2175,7 +2172,7 @@ def submit_output_deck(datafiles):
          cmd1 +=  " -z \""+string_of_datafiles+"\""
          msg  += " with the following extra datafiles=" + string_of_datafiles0
 
-      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
    else:
       msg = "Nothing was submited"
@@ -2221,8 +2218,8 @@ def list_queue_nwchem():
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-l'
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
 
@@ -2240,8 +2237,8 @@ def list_queue_nwchem_html():
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-l'
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
 
@@ -2294,8 +2291,8 @@ def list_queue_nwchem_check(qname):
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-l'
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
 
@@ -2366,7 +2363,7 @@ def add_queue_nwchem(filename):
       msg = "Submited " + nwfilename
       cmd1 = chemdb_queue_nwchem + "-a " +  nwfilename
       print("cmd1=",cmd1)
-      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       print("result=",result)
       qqnum = result.split("QUEUE_ENTRY:")[1].split(":QUEUE_ENTRY")[0]
       msg += " - queue_entry = " + qqnum + "\n"
@@ -2385,8 +2382,8 @@ def fetch_queue_nwchem(jobid):
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-f ' + jobid
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
 
@@ -2417,8 +2414,8 @@ def view_queue_nwchemw(jobid):
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-q ' + jobid
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
 
@@ -2449,8 +2446,8 @@ def zip_queue_nwchem(jobid):
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-f ' + jobid
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
 
@@ -2509,8 +2506,8 @@ def delete_queue_nwchem(jobid):
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-d ' + jobid
-      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      calcs = subprocess.check_output(cmd8,shell=True)
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
 
@@ -2530,8 +2527,8 @@ def queue_nwchem_add_reset(esmiles):
       esmiles = esmiles.replace("\'",'')
       esmiles = esmiles.replace("%2F",'/')
       cmd8 = chemdb_queue_nwchem + '-r ' + '\"' +  esmiles + '\"'
-      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      result = subprocess.check_output(cmd8,shell=True)
+      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "queue_nwchem_reset = " + esmiles + " was not added to arrows queue.\n"
    html = "<html>\n"
@@ -2627,7 +2624,7 @@ def submit_output_nwchem_deck(datafiles):
          msg  += " with the following extra datafiles=" + string_of_datafiles0
 
       print("cmd1=",cmd1)
-      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       print("upload RESULT=",result)
 
    else:
@@ -3460,8 +3457,8 @@ def image_reset(arrows_id):
    try:
       increment_apivisited()
       cmd8 = chemdb_image0 + arrows_id
-      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
-      result = subprocess.check_output(cmd8,shell=True)
+      #result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "image_reset = " + arrows_id + " was not reset.\n"
    html = "<html>\n"
@@ -3494,7 +3491,7 @@ def genhash_reaction(filename):
          if ("reaction_genhash{" in moldata):
             reaction_genhash0 = moldata.split('reaction_genhash{')[1].split('}')[0].strip()
             cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash0.replace("==>","-->") + "\""
-            result9 = subprocess.check_output(cmd9,shell=True)
+            result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
             if "bstringsall =" in result9:
                bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
                reaction_hash = bstringsall[0][3]
@@ -3502,19 +3499,19 @@ def genhash_reaction(filename):
             reaction_type    = moldata.split('reaction_type{')[1].split('}')[0].strip()
             reaction_indexes = moldata.split('reaction_indexes{')[1].split('}')[0].strip()
             cmd9 = chemdb_balance_reaction + "-c " + " \"" + reaction_indexes + "\" \"" + reaction_type + "\""
-            result9 = subprocess.check_output(cmd9,shell=True)
+            result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
             reaction_hash = result9
          elif  ("reaction_type{" in moldata) and ("reaction_indexes{" in moldata):
             reaction_type    = moldata.split('reaction_type{')[1].split('}')[0].strip()
             reaction_indexes = moldata.split('reaction_indexes{')[1].split('}')[0].strip()
             cmd9 = chemdb_balance_reaction + "-r " + molfilename + " \"" + reaction_indexes + "\" \"" + reaction_type + "\""
-            result9 = subprocess.check_output(cmd9,shell=True)
+            result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
             #reaction_hash = result9.split("rhash =")[1].split("\n")[0].strip()
             reaction_hash = result9
          elif ("reaction_hash{" in moldata):
             reaction_hash0 = moldata.split('reaction_hash{')[1].split('}')[0].strip()
             cmd9 = chemdb_balance_reaction + "-e " + molfilename + " \"" + reaction_hash0 + "\""
-            result9 = subprocess.check_output(cmd9,shell=True)
+            result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
             reaction_type    = reaction_hash0.split(":")[1]
             reaction_indexes = result9.split("reaction regular indexes=")[1].split("\n")[0]
             reaction_hash    = reaction_type + "\n" + reaction_indexes + "\n"
@@ -3545,7 +3542,7 @@ def run_molecular_calculation(filename):
          time.sleep(0.1)
          print("Running chemdb_molcalc, molfilename=",molfilename)
          cmd7 = chemdb_molcalc + molfilename
-         data = subprocess.check_output(cmd7,shell=True)
+         data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
          if len(data) == 0: data = " chemdb_molcalc did not generate data\n"
          #html = "<html>\n"
          #html += ArrowsHeader
@@ -3605,9 +3602,9 @@ def get_broombridge(esmiles0):
           else:
              ff.write("molecule: " + esmiles0 + " :molecule usehtml5\n")
        cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile + " " + htmlfile
-       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+       #result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
        #print "CMD7=",cmd7
-       result = subprocess.check_output(cmd7,shell=True)
+       result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
        with open(htmlfile,'r') as ff: html = ff.read()
        if ("qsharp_chem.yaml" in html) and ("https://arrows.emsl.pnnl.gov/api/nwdatafile/%22id=" in html):
