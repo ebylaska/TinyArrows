@@ -1,36 +1,37 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,re,threading,shlex,urllib
+#import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,re,threading,shlex,urllib
+import sys,os,time,pickle,math,pymysql,urllib,getopt,subprocess,pexpect,random,operator,re,threading,shlex,sqlite3,urllib.parse
 from math import *
 
+
 ############## machine parameters #########################
-babel              = "/usr/bin/babel"
-obabel             = "/usr/bin/obabel "
-obgrep             = "/usr/bin/obgrep "
-esmiles2xyz        = "/srv/arrows/bin/esmiles2xyz "
-chemdb_predict_reaction  = "/srv/arrows/bin/chemdb_predict_reaction "
-chemdb_add_request = "/srv/arrows/bin/chemdb_add_request "
-chemdb_freq        = "/srv/arrows/bin/chemdb_freq -v "
-chemdb_freq0       = "/srv/arrows/bin/chemdb_freq "
-chemdb_add_Hf      = "/srv/arrows/bin/chemdb_add_Hf "
-chemdb_image0      = "/srv/arrows/bin/chemdb_image0 "
-chemdb_homolumo    = "/srv/arrows/bin/chemdb_homolumo "
-chemdb_reaction_image = "/srv/arrows/bin/chemdb_reaction_image "
-chemdb_say            = "/srv/arrows/bin/chemdb_say "
-chemdb_queue          = "/srv/arrows/bin/chemdb_queue "
-chemdb_predict_reaction = "/srv/arrows/bin/chemdb_predict_reaction "
-chemdb_balance_reaction  = "/srv/arrows/bin/chemdb_balance_reaction9f "
-#tnt_submit         = "/Users/bylaska/bin/tnt_submit "
-#tnt_submit         = "/srv/arrows/bin/tnt_submit3 "
-#tnt_submit         = "/srv/arrows/bin/tnt_submit4 "
-tnt_submit         = "/srv/arrows/bin/tnt_submit5 "
-queue_nwchem_em    = "/srv/arrows/bin/queue_nwchem_em "
-wrkdir             = "/srv/arrows/Projects/Work"
-arrowslogo         = wrkdir + "/arrowslogo2.html"
-arrowslogosvg      = wrkdir + "/arrowslogo2.svg"
-gnuplot            = "/usr/bin/gnuplot "
-#gnuplot            = "/usr/local/octave/3.8.0/bin/gnuplot "
-chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+
+#babel              = "/usr/bin/babel"
+obabel             = "/usr/local/bin/obabel "
+obgrep             = "/usr/local/bin/obgrep "
+gnuplot            = "/usr/local/bin/gnuplot "
+
+esmiles2xyz        = ARROWS_HOME + "/bin/esmiles2xyz "
+chemdb_predict_reaction  = ARROWS_HOME + "/bin/chemdb_predict_reaction "
+chemdb_add_request = ARROWS_HOME + "/bin/chemdb_add_request "
+chemdb_freq        = ARROWS_HOME + "/bin/chemdb_freq -v "
+chemdb_freq0       = ARROWS_HOME + "/bin/chemdb_freq "
+chemdb_add_Hf      = ARROWS_HOME + "/bin/chemdb_add_Hf "
+chemdb_image0      = ARROWS_HOME + "/bin/chemdb_image0 "
+chemdb_homolumo    = ARROWS_HOME + "/bin/chemdb_homolumo "
+chemdb_reaction_image = ARROWS_HOME + "/bin/chemdb_reaction_image "
+chemdb_say            = ARROWS_HOME + "/bin/chemdb_say "
+chemdb_queue          = ARROWS_HOME + "/bin/chemdb_queue "
+chemdb_predict_reaction = ARROWS_HOME + "/bin/chemdb_predict_reaction "
+chemdb_balance_reaction  = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
+tnt_submit         = ARROWS_HOME + "/bin/tnt_submit5 "
+queue_nwchem_em    = ARROWS_HOME + "/bin/queue_nwchem_em "
+wrkdir             = ARROWS_HOME + "/Work"
+#arrowslogo         = wrkdir + "/arrowslogo2.html"
+arrowslogosvg      = ARROWS_HOME + "/Public/static/arrows-static/arrowslogo2.svg"
+chemdbfile         = ARROWS_HOME + "/bin/.chemdb-en"
 #with open('/srv/arrows/bin/.chemdb','r') as f:
 #   hup0            = f.readline().strip()
 #   archivemachine  = f.readline().strip()
@@ -43,7 +44,7 @@ tmperxn = "tmperxn-%d.dat" % ddrand
 tmperxn2= "tmperxn2-%d.dat" % ddrand
 tmperxn3= "tmperxn3-%d.dat" % ddrand
 tmpnwout= "tmpnwout-%d.out" % ddrand
-calculation_counter = "/srv/arrows/Public/counters/arrowsjobsrun"
+calculation_counter = ARROWS_HOME + "/Public/counters/arrowsjobsrun"
 ############## machine parameters #########################
 
 ##### Increment calculation counter ######
@@ -52,8 +53,7 @@ tmpcounter = int(aa.strip()) + 1
 with open(calculation_counter,'w') as ff: ff.write("%d" % tmpcounter)
 ##### Increment calculation counter ######
 
-
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 #http://www.nwchem-sw.org/images/Ray.gif
 #http://www.nwchem-sw.org/images/Diamond-nvt.gif
@@ -775,7 +775,7 @@ def f_reaction(mformulas,rps,coeffs):
 def f2_reaction(mformulas,rps,coeffs):
    f = f_reaction(mformulas,rps,coeffs)
    f2 = 0
-   for key,val in f.iteritems():
+   for key,val in f.items():
       f2 += val*val
 
    return f2
@@ -937,7 +937,7 @@ def xyz_bonding_strings(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -988,12 +988,12 @@ def xyz_bonding_strings(xyzfilename):
             else:
                key = symj.strip() + symi.strip()
 
-            if (bondcount.has_key(key)):
+            if (key in bondcount):
                bondcount[key] += 1
             else:
                bondcount[key] = 1
             covkey = key + "(%.1f)" % (adjmat[i][j])
-            if (covbondcount.has_key(covkey)):
+            if (covkey in covbondcount):
                covbondcount[covkey] += 1
             else:
                covbondcount[covkey] = 1
@@ -1018,7 +1018,7 @@ def xyz_bonding_strings(xyzfilename):
                   key = symj.strip() + symi.strip() + symk.strip()
                else:
                   key = symk.strip() + symi.strip() + symj.strip()
-               if (bond2count.has_key(key)):
+               if (key in bond2count):
                   bond2count[key] += 1
                else:
                   bond2count[key] = 1
@@ -1035,7 +1035,7 @@ def xyz_bonding_strings(xyzfilename):
             neighbors.append(symbol[j].strip())
       neighbors.sort()
       key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
-      if (neighborcount.has_key(key)):
+      if (key in neighborcount):
          neighborcount[key] += 1
       else:
          neighborcount[key] = 1
@@ -1082,10 +1082,14 @@ def stripWARNINGS(str):
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
+print("hup0=",hup0)
+print("dbfile0=",dbfile0)
+print("archivemachine=",archivemachine)
+print("archivepassword=",archivepassword)
 
 #def readchemdb(filename):
-#   with open(filename,'r') as ff: paw1 = pickle.loads(ff.read())
+#   with open(filename,'rb') as ff: paw1 = pickle.loads(ff.read())
 #   paw = ''
 #   for b in paw1:
 #      a = int( (-99 + math.sqrt(99*99-4*9*(-999-b)))/(2*9) )
@@ -1096,8 +1100,9 @@ exec aaa
 #   return rrr
 #hhh = readchemdb(chemdbfile)
 #hup0            = hhh[0]
-#archivemachine  = hhh[1]
-#archivepassword = hhh[2]
+#dbfile0         = hhh[1]
+#archivemachine  = hhh[2]
+#archivepassword = hhh[3]
 #
 
 
@@ -1110,7 +1115,7 @@ def geturlresult(url):
         opener = urllib2.build_opener(proxy)
         urllib2.install_opener(opener)
         connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
+    except urllib2.HTTPError(e):
         return ""
     else:
         return connection.read().rstrip()
@@ -1124,17 +1129,17 @@ def pexpect_command(pcmd,mypassword):
       p=pexpect.spawn(pcmd,timeout=300)
       i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==0:
-          print "I say yes"
+          print("I say yes")
           p.sendline('yes')
           i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==1:
-          print "sending password",
+          print("sending password")
           p.sendline(mypassword)
           p.expect(pexpect.EOF)
       elif i>=2:
-          print "either received key or connection timeout"
+          print("either received key or connection timeout")
           pass
-      print p.before # print out the result
+      print(p.before) # print out the result
 
 
 def cleanxyzdata(foo):
@@ -1193,7 +1198,7 @@ def subprocess_Background(cmd99):
       #result99 = subprocess.check_output(self.cmd99,shell=True)
       #p = subprocess.Popen(cmd99args,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
       #os.system(cmd9)
-      result99 = subprocess.check_output(cmd99,shell=True)
+      result99 = subprocess.check_output(cmd99,shell=True).decode("utf-8")
    except:
       result99 = "\n\nsubprocess_Background Failed\n\n"
 
@@ -1230,7 +1235,7 @@ def smartsinesmiles(smarts,esmiles):
          ff.write(esmiles + "\n")
       #cmd1 = obgrep + ' -c \"' + smarts + '\" ' + fname00
       cmd1 =  obabel + ' -ismi ' + fname00 + ' -osmi -s \"' + smarts + '\"'
-      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       if ("0 molecules converted" in result):
          hassmarts = False
       else:
@@ -1333,7 +1338,8 @@ def elementssplit(bb0,tt0):
 
    ll2 = bb[len(bb)-2:]
    found2 = False
-   for e2,n2 in periodic_table_charge.iteritems():
+   #for e2,n2 in periodic_table_charge.iteritems():
+   for e2,n2 in periodic_table_charge.items():
       if ((len(e2)==2) and (e2==ll2)):
          t.append((e2,nn0))
          found2 = True
@@ -1342,7 +1348,7 @@ def elementssplit(bb0,tt0):
    if (t == []):
       ll1 = bb[len(bb)-1:]
       found1 = False
-      for e1,n1 in periodic_table_charge.iteritems():
+      for e1,n1 in periodic_table_charge.items():
          if ((len(e1)==1) and (e1==ll1)):
             t.append((e1,nn0))
             found1 = True
@@ -1350,12 +1356,12 @@ def elementssplit(bb0,tt0):
 
    if (t == []): return []
 
-   for e2,n2 in periodic_table_charge.iteritems():
+   for e2,n2 in periodic_table_charge.items():
       if ((len(e2)==2) and (e2 in bb)):
          t.append((e2,1))
          bb = bb.replace(e2,'')
 
-   for e1,n1 in periodic_table_charge.iteritems():
+   for e1,n1 in periodic_table_charge.items():
       if ((len(e1)==1) and (e1 in bb)):
          t.append((e1,1))
          bb = bb.replace(e1,'')
@@ -1422,7 +1428,7 @@ def mformula_to_smiles(hup,dbfile,table,mformula0):
       cur.execute(sqlcheck,checklist)
       rows = cur.fetchall()
       if (len(rows)==0):
-         print "do something else?"
+         print("do something else?")
          smileslist = []
       else:
          smileslist = []
@@ -1515,8 +1521,8 @@ def mol2smiles(mol):
       ofile = open(molfile,'w')
       ofile.write(mol); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -imol " + molfile + " -ocan " + smilefile2 
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -imol " + molfile + " -ocan -O" + smilefile2 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
       ofile = open(smilefile2,'r')
@@ -1544,7 +1550,7 @@ def nametosmiles(name):
  try:
    #
    hup    = hup0
-   dbfile = "TNT_Project"
+   dbfile = dbfile0
    table  = "nametosmiles"
    if (hup=='sqlite3'):
       issqlite3 = True
@@ -1586,7 +1592,7 @@ def nametosmiles(name):
             insertlist = []
             insertlist.append(name)
             insertlist.append(smiles)
-            print "inserting "+ name + " " + smiles + " into " + table
+            print("inserting "+ name + " " + smiles + " into " + table)
             cur.execute(sqlinsert,insertlist)
       else:
          smiles = rows[0][2]
@@ -1651,7 +1657,7 @@ def esmiles_hasname(esmiles):
       try:
          smiles = esmiles.strip().split()[0]
          cmd = obabel + ' -:\"' + smiles + '\" -ocan'
-         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          #print "result=",result
          if "0 molecules converted" in result:
             hasname = True
@@ -1723,8 +1729,8 @@ def isformula_check(str0):
    try:
       smiles = str0.strip()
       cmd = obabel + ' -:\"' + smiles + '\" -ocan'
-      result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
-      #print "result=",result
+      result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      print("ISFORMULA_CHECK result=",result)
       if "0 molecules converted" in result:
          isformula = True
       else:
@@ -1752,7 +1758,7 @@ def convertmformula(str0):
          val = 1
       else:
          val = evalnum(it[1])
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += val
       else:
          fdict[key] = val
@@ -1949,8 +1955,8 @@ def parsexyzdatastr(str0):
          f.write("%d\n\n" % nion)
          f.write(xyz)
       #esmiles = xyz2smiles(wrkdir+"/"+tmpxyz1)
-      print "HERA NION=",nion
-      print "xyz=",xyz
+      print("HERA NION=",nion)
+      print("xyz=",xyz)
       esmiles = xyz2esmiles(wrkdir+"/"+tmpxyz1)
       esmiles += " " + rmsg00
       rstring2 = rstring.replace(rmsg,esmiles)
@@ -1959,7 +1965,7 @@ def parsexyzdatastr(str0):
 
    rstring = rstring2.replace("xyzdata00{", "xyzdata{")
       
-   print "RSTRING=",rstring
+   print("RSTRING=",rstring)
    return rstring
 
 
@@ -1991,11 +1997,11 @@ def parsetosmiles(str):
          rkegg = s.split('=')[1]
          rdata  = geturlresult("http://rest.kegg.jp/get/%s" % rkegg)
          req = rdata.split("EQUATION")[1].split("\n")[0]
-         print "req=",req
+         print("req=",req)
          rr = req.split("<=>")[0]
          pp = req.split("<=>")[1]
-         print "rr=",rr
-         print "pp=",pp
+         print("rr=",rr)
+         print("pp=",pp)
          reaction = ''
          for r in rr.split('+'):
             sr = r.split()
@@ -2025,7 +2031,7 @@ def parsetosmiles(str):
             reaction += coef + ' ' + smiles + ' + '
          reaction = reaction.rstrip('+ ')
          reaction += " ~  "
-         print "reaction=",reaction
+         print("reaction=",reaction)
          str2 += reaction
       elif 'kegg=' in s.lower():
          kegg = s.split('=')[1]
@@ -2219,13 +2225,13 @@ def cannonicalsmiles(smiles):
    try:
       smilefile  = wrkdir + "/"+tmpsmi1
       smilefile2 = wrkdir + "/"+tmpsmi2
-      print "smilefile=",smilefile
+      print("smilefile=",smilefile)
       with open(smilefile,'w') as ofile:
          ofile.write(smiles); ofile.write(eoln)
 
-      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 
+      cmd6 = obabel + " -ismi " + smilefile + " -ocan -O" + smilefile2 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
       ofile = open(smilefile2,'r')
@@ -2249,8 +2255,8 @@ def xyz2smiles(xyzfile):
    try:
       smiles = ''
       smilefile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile 
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ixyz " + xyzfile + " -ocan -O" + smilefile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(smilefile,'r')
       for line in ofile:
@@ -2283,7 +2289,7 @@ def xyz2esmiles(xyzfile):
    esmile0 = "xyzdata{" + xyzdat0 + '}'
    cmd6 = esmiles2xyz + ' "' + esmile0.strip() + '" ' +xyzfile
    try:
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    except:
       result = "xyz2esmiles failed\n"
    smiles = result.split("smiles   =")[1].split('\n')[0]
@@ -2295,7 +2301,7 @@ def xyzdata2esmiles(esmiles0):
    xyzfile = wrkdir + "/" + tmpxyz1
    cmd6 = esmiles2xyz + ' "' + esmiles0.strip() + '" ' +xyzfile
    try:
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    except:
       result = "xyzdata2esmiles failed\n"
    smiles = result.split("smiles   =")[1].split('\n')[0]
@@ -2346,7 +2352,7 @@ def smiles2xyz(smiles,xyzfile):
 def esmiles2xyzdat(esmiles,xyzfile):
    cmd6 = esmiles2xyz + ' "' + esmiles.strip() + '" ' +xyzfile
    try:
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    except:
       result = "emsiles2xyzdat failed\n"
    return result
@@ -2358,9 +2364,9 @@ def xyz2InChI(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+ tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile 
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchi -O" + inchifile 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -2376,9 +2382,9 @@ def xyz2InChIKey(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile 
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchikey -O" + inchifile 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -2396,9 +2402,9 @@ def xyzdat2sdf(xyzdat):
       xyzfile = wrkdir + "/"+tmpsmi1
       with open(xyzfile,'w') as ff:
          ff.write(xyzdat)
-      cmd6 = babel + " -ixyz " + xyzfile + " -osdf " + sdffile
+      cmd6 = obabel + " -ixyz " + xyzfile + " -osdf -O" + sdffile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       with open(sdffile,'r') as ff: 
          sdf = ff.read()
    except:
@@ -2413,9 +2419,9 @@ def xyzdat2mol(xyzdat):
       xyzfile = wrkdir + "/"+tmpsmi1
       with open(xyzfile,'w') as ff:
          ff.write(xyzdat)
-      cmd6 = babel + " -ixyz " + xyzfile + " -omol " + molfile
+      cmd6 = obabel + " -ixyz " + xyzfile + " -omol -O" + molfile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       with open(molfile,'r') as ff:
          mol0 = ff.read()
       mol = 'arrows\n'
@@ -2438,9 +2444,9 @@ def smiles2InChI(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile 
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchi -O" + inchifile 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -2462,9 +2468,9 @@ def smiles2InChIKey(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchikey -O" + inchifile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -2485,8 +2491,8 @@ def InChI2smiles(inchi):
       ofile = open(inchifile,'w')
       ofile.write(inchi); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -iinchi " + inchifile + " -osmi " + smilefile
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -iinchi " + inchifile + " -osmi -O" + smilefile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(smilefile,'r')
       for line in ofile:
@@ -2612,7 +2618,7 @@ def xyz_molecular_formula(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -2722,7 +2728,7 @@ _atom_site_fract_z''' % (a,b,c,alpha,beta,gamma)
 ###########################################
 #color = "0x3BBC52"
 def xyzdat2jsmol(backgroundcolor,xyzdat,cell=None):
-   staticdir = "/srv/arrows/Public/static/"
+   staticdir = ARROWS_HOME + "/Public/static/"
    xx = random.randint(0,999999)
    if cell is not None:
       xyzfilename = "molecule-jsmol-%d.cif" % xx
@@ -2812,7 +2818,7 @@ def xyzdat2jsmol(backgroundcolor,xyzdat,cell=None):
 ###########################################
 def nmrdat2jsmol(xyzdat,tscript):
    #staticdir = arrows_dir + "/Public/static/"
-   staticdir = "/srv/arrows/Public/static/"
+   staticdir = ARROWS_HOME + "/Public/static/"
    xx = random.randint(0,999999)
    xyzfilename = "molecule-nmr-jsmol-%d.xyz" % xx
    with open(staticdir + xyzfilename,'w') as ff:
@@ -2865,7 +2871,7 @@ def nmrdat2jsmol(xyzdat,tscript):
 ###########################################
 #color = "0x3BBC52"
 def nwout2jsmol(backgroundcolor,datafiles,xyzdat):
-   staticdir = "/srv/arrows/Public/static/"
+   staticdir = ARROWS_HOME + "/Public/static/"
    afilename = ''
    for mm in datafiles.split():
       if "mo_orbital_" in mm: 
@@ -3158,7 +3164,7 @@ def ascii_plotter(x,y,symbols,title,xlabel,ylabel,xmin,xmax,ymin,ymax,plotzero):
       point[ascii_yscale(0.00)][shift1_ascii+9] = "0"
 
    ### set ylabel ###
-   jj = (maxrow_ascii-len(ylabel))/2
+   jj = (maxrow_ascii-len(ylabel))//2
    for j in range(len(ylabel)):
        point[jj+j][0] = ylabel[j]
 
@@ -3194,7 +3200,7 @@ def ascii_plotter(x,y,symbols,title,xlabel,ylabel,xmin,xmax,ymin,ymax,plotzero):
 
 
    msg = "\n"
-   for i in range(shift_ascii+(maxcol_ascii-len(title))/2): msg += " " 
+   for i in range(shift_ascii+(maxcol_ascii-len(title))//2): msg += " " 
    msg += title+ "\n\n"
    for row in point:
       for col in row:
@@ -3205,13 +3211,13 @@ def ascii_plotter(x,y,symbols,title,xlabel,ylabel,xmin,xmax,ymin,ymax,plotzero):
    ### set xlabels ###
    for i in range(shift_ascii-1): msg += " "
    msg += "|"
-   for i in range(shift_ascii+1,shift_ascii+(maxcol_ascii)/2): msg += "-"
+   for i in range(shift_ascii+1,shift_ascii+(maxcol_ascii)//2): msg += "-"
    msg += "|"
-   for i in range(shift_ascii+(maxcol_ascii)/2+1,(maxcol_ascii+shift_ascii)): msg += "-"
+   for i in range(shift_ascii+(maxcol_ascii)//2+1,(maxcol_ascii+shift_ascii)): msg += "-"
    msg += "|\n"
    msg += "      %10.3e                           %10.3e                            %10.3e\n" % (xmin_ascii,0.5*(xmin_ascii+xmax_ascii),xmax_ascii)
    msg += "\n"
-   for i in range(shift_ascii+(maxcol_ascii-len(xlabel))/2): msg += " "
+   for i in range(shift_ascii+(maxcol_ascii-len(xlabel))//2): msg += " "
    msg += xlabel +"\n"
       #write(lunit,900) ,XL,(XL+XR)/2.0d0,XR
       #write(lunit,MyformatX) Xlabel
@@ -3518,7 +3524,7 @@ def fetch_jobinfo(hup,dbfile,table,id):
       molecule = rows[0]
       msg  = "jobinfo: Id=%d, iupac=%s, filename=%s\n\n" % (id,molecule[1],molecule[28])
       cmd1 = "scp " + molecule[28] + " " + wrkdir +"/nwout.txt"
-      print "cmd1=",cmd1
+      print("cmd1=",cmd1)
       pexpect_command(cmd1,archivepassword)
       offile = open(wrkdir+"/nwout.txt","r")
       ttt = offile.read()
@@ -3586,11 +3592,11 @@ def fetch_nwout(hup,dbfile,table,id):
       msg += molecule[28]
       msg += "\n\n"
       cmd1 = "scp " + molecule[28] + " " + wrkdir +"/nwout.txt"
-      print "cmd1=",cmd1
+      print("cmd1=",cmd1)
       pexpect_command(cmd1,archivepassword)
       cmd2 = "cat " + wrkdir +"/nwout.txt"
-      print "cmd2=",cmd2
-      result = subprocess.check_output(cmd2,shell=True)
+      print("cmd2=",cmd2)
+      result = subprocess.check_output(cmd2,shell=True).decode("utf-8")
       msg += result
       msg += "##################### end nwoutput  #######################\n"
       #msg += "Datafile access is currently turned off.  This should be fixed by March 1st\nWe are very sorry for the inconvenience."
@@ -3666,19 +3672,19 @@ def cmd_nwdatafile(hup,dbfile,table,nwcmd):
                ## retrieve gname datafile ##
                if mycmd=="fetch":
                   cmd1 = "scp " + gname + " " + wrkdir +"/nwout.txt"
-                  print "cmd1=",cmd1
+                  print("cmd1=",cmd1)
                   if (".cube" not in gname):
                      pexpect_command(cmd1,archivepassword)
                      cmd2 = "cat " + wrkdir +"/nwout.txt"
-                     print "cmd2=",cmd2
-                     result = subprocess.check_output(cmd2,shell=True)
+                     print("cmd2=",cmd2)
+                     result = subprocess.check_output(cmd2,shell=True).decode("utf-8")
                   else:
                      result = "Datafile access to cube files is temporarilly not available. This should be fixed by March 1st.\nWe're very sorry for the inconvenience."
                ## remove gname datafile from list ##
                if mycmd=="delete":
                   dnames1 = dnames.replace(gname,"")
-                  print "old datafilenames=",dnames
-                  print "new datafilenames=",dnames1
+                  print("old datafilenames=",dnames)
+                  print("new datafilenames=",dnames1)
                   updatelist = []
                   updatelist.append(dnames1.strip())
                   updatelist.append(id)
@@ -3907,7 +3913,7 @@ def get_frequency(frequency_data,fnum):
    n = len(freqdat)
    for i in range(n):
       split = freqdat[i].split()
-      #print split[0],"  ",split[shift+1]
+      #print(split[0],"  ",split[shift+1])
       freq.append(eval(split[shift+1]))
 
    return (w,freq)
@@ -4080,32 +4086,34 @@ def dos_frequencies(plotdos,frequency_data):
    irfreqfilename     = wrkdir + "/irfreq_data-%d.dat"   % ddrand
 
 
-   if plotdos:
-      msg0 += "Writing vibrational density of states (DOS) to vdos.dat" + eoln
-      ofile = open("vdos.dat",'w')
-      for i in range(ngrid):
-         ofile.write("%f" % ww[i])
-         for k in range(len(doss)):
-            ofile.write(" %f" % doss[k][i])
-         ofile.write("\n")
-      ofile.close()
-      msg0 += "Writing model vibrational density of states (DOS_FIXED) to vdos-model.dat" + eoln + eoln
-      ofile = open("vdos-model.dat",'w')
-      for i in range(ngrid):
-         ofile.write("%f" % ww[i])
-         for k in range(len(doss_fixed)):
-            ofile.write(" %f" % doss_fixed[k][i])
-         ofile.write("\n")
-      ofile.close()
-      if (foundir):
-         msg0 += "Writing IR spectra to irdos.dat" + eoln
-         ofile = open("irdos.dat",'w')
-         for i in range(ngrid):
-            ofile.write("%f" % ww[i])
-            for k in range(len(irdoss)):
-               ofile.write(" %f" % irdoss[k][i])
-            ofile.write("\n")
-         ofile.close()
+   #if plotdos:
+   #   msg0 += "Writing vibrational density of states (DOS) to vdos.dat" + eoln
+   #   #ofile = open("vdos.dat",'w')
+   #   ofile = open(vdosfilename,'w')
+   #   for i in range(ngrid):
+   #      ofile.write("%f" % ww[i])
+   #      for k in range(len(doss)):
+   #         ofile.write(" %f" % doss[k][i])
+   #      ofile.write("\n")
+   #   ofile.close()
+   #   msg0 += "Writing model vibrational density of states (DOS_FIXED) to vdos-model.dat" + eoln + eoln
+   #   ofile = open("vdos-model.dat",'w')
+   #   for i in range(ngrid):
+   #      ofile.write("%f" % ww[i])
+   #      for k in range(len(doss_fixed)):
+   #         ofile.write(" %f" % doss_fixed[k][i])
+   #      ofile.write("\n")
+   #   ofile.close()
+   #   if (foundir):
+   #      msg0 += "Writing IR spectra to irdos.dat" + eoln
+   #      #ofile = open("irdos.dat",'w')
+   #      ofile = open(irdosfilename,'w')
+   #      for i in range(ngrid):
+   #         ofile.write("%f" % ww[i])
+   #         for k in range(len(irdoss)):
+   #            ofile.write(" %f" % irdoss[k][i])
+   #         ofile.write("\n")
+   #      ofile.close()
 
    # write tempory data files for gnuplot
    ofile = open(vdosfilename,'w')
@@ -4225,7 +4233,7 @@ def dos_frequencies(plotdos,frequency_data):
          try:
             os.system(gnuplot + gnufilename)
          except:
-            print "failed system cmd=",gnuplot+gnufilename
+            print("failed system cmd=",gnuplot+gnufilename)
          with open(dumbfilename,'r') as f:
             msg = f.read()
             pmsg1 += msg + eoln
@@ -4246,7 +4254,7 @@ def dos_frequencies(plotdos,frequency_data):
          try:
             os.system(gnuplot + gnufilename)
          except:
-            print "failed system cmd=",gnuplot+gnufilename
+            print("failed system cmd=",gnuplot+gnufilename)
 
 
       ## plot IR Spectra ##
@@ -4259,7 +4267,7 @@ def dos_frequencies(plotdos,frequency_data):
          try:
             os.system(gnuplot + gnufilename)
          except:
-            print "failed system cmd=",gnuplot+gnufilename
+            print("failed system cmd=",gnuplot+gnufilename)
          with open(dumbfilename,'r') as f:
             msg = f.read()
             pmsg1 += msg + eoln
@@ -4282,7 +4290,7 @@ def dos_frequencies(plotdos,frequency_data):
          try:
             os.system(gnuplot + gnufilename)
          except:
-            print "failed system cmd=",gnuplot+gnufilename
+            print("failed system cmd=",gnuplot+gnufilename)
 
       
       gas_enthalpy0      = energy + enthalpy
@@ -4388,7 +4396,7 @@ def dos_frequencies(plotdos,frequency_data):
          os.unlink(irdosfilename)
          os.unlink(irfreqfilename)
    except:
-      print "chemdb_freq: Failed to delete temporary gnuplot files"
+      print("chemdb_freq: Failed to delete temporary gnuplot files")
 
    pmsg = msg0 + pmsg1 + msg2
    hmsg = msg0 + hmsg1 + msg2
@@ -4414,7 +4422,7 @@ def plot_frequency(frequency_data,fnum):
    (w,freq) = get_frequency(frequency_data,fnum)
 
    xyzfile = wrkdir + "/" + "tmpxyz1-%d.xyz" % ddrand
-   print "\n\nTrajectory for freq id=",id," fnum=",fnum,"  w(cm-1)=",w," - Generating xyzfile = ",xyzfile
+   print("\n\nTrajectory for freq id=",id," fnum=",fnum,"  w(cm-1)=",w," - Generating xyzfile = ",xyzfile)
    xfile = open(xyzfile,'w')
    for k in range(-20,21):
       xfile.write("%d\n\n" % nion)
@@ -4434,11 +4442,11 @@ def plot_frequency(frequency_data,fnum):
    try:
       os.unlink(xyzfile)
    except:
-      print "chemdb_freq: Failed to remove " + xyzfile
+      print("chemdb_freq: Failed to remove " + xyzfile)
 
 
  except:
-   print "frequency %d in id=%d not found" % (fnum,id)
+   print("frequency %d in id=%d not found" % (fnum,id))
 
 #############################################
 #                                           #
@@ -4531,7 +4539,7 @@ def write_hrotors(tid,hrotors_blob):
       try:
          os.system(gnuplot + gnufilename)
       except:
-         print "failed system cmd=",gnuplot+gnufilename
+         print("failed system cmd=",gnuplot+gnufilename)
       with open(dumbfilename,'r') as f:
          msg = f.read()
          pmsg += msg + eoln
@@ -4549,7 +4557,7 @@ def write_hrotors(tid,hrotors_blob):
       try:
          os.system(gnuplot + gnufilename)
       except:
-         print "failed system cmd=",gnuplot+gnufilename
+         print("failed system cmd=",gnuplot+gnufilename)
 
 
       pmsg += rmsg + hrotor_blob.replace("#@@","") + eoln
@@ -4561,7 +4569,7 @@ def write_hrotors(tid,hrotors_blob):
       os.unlink(gnufilename)
       os.unlink(hrotorfilename)
    except:
-      print "hrotor_print: Failed to delete temporary gnuplot files"
+      print("hrotor_print: Failed to delete temporary gnuplot files")
 
    return (pmsg,hmsg,jmagelist)
 
@@ -4581,7 +4589,7 @@ def write_reactions_data(freqdata):
    if freqdata[29] is not None:
       if (len(freqdata[29])>0):
          cmd9 = chemdb_balance_reaction + "-k " + freqdata[29]
-         result9 += subprocess.check_output(cmd9,shell=True)
+         result9 += subprocess.check_output(cmd9,shell=True).decode("utf-8")
 
    return result9
 
@@ -5225,7 +5233,7 @@ def ascii_unrestricted_eig_plot(eigup,occup,eigdn,occdn):
       os.unlink(dosdatafile2)
       os.unlink(dosdatafile3)
    except:
-      print "Failed to delete temporary gnuplot files"
+      print("Failed to delete temporary gnuplot files")
 
    pngname     = "image-%d-%d" % (pdrand,pdrand2)
    imagelist = [(dospng,pngname)]
@@ -5395,7 +5403,7 @@ def ascii_restricted_eig_plot(eig,occ):
       os.unlink(dosdatafile)
       os.unlink(dosdatafile2)
    except:
-      print "Failed to delete temporary gnuplot files"
+      print("Failed to delete temporary gnuplot files")
 
    pngname     = "image-%d-%d" % (pdrand,pdrand2)
    imagelist = [(dospng,pngname)]
@@ -5410,7 +5418,7 @@ def mymedian(x):
     if len(x)%2 != 0:
         return sorted(x)[len(x)/2]
     else:
-        midavg = (sorted(x)[len(x)/2] + sorted(x)[len(x)/2-1])/2.0
+        midavg = (sorted(x)[len(x)//2] + sorted(x)[len(x)//2-1])/2.0
         return midavg
 
 #############################################
@@ -5481,7 +5489,7 @@ def fetch_eig(hup,dbfile,table,id):
       if (theory=="pspw" or theory=="pspw4" or theory=="dft" or theory=="hf" or theory=="uhf" or theory=="paw" or theory=="paw4"):
          cmd99 = chemdb_homolumo + "%d" % rows[0][0]
          try:
-            ##result99 = subprocess.check_output(cmd99,shell=True)
+            ##result99 = subprocess.check_output(cmd99,shell=True).decode("utf-8")
             result99 = "\n\nchemdb_homolumo is currently turned off.  This should be fixed by March 1st.\n\n"
          except:
             result99 = "\n\nchemdb_homolumo failed and job was not submitted\n\n"
@@ -5740,20 +5748,20 @@ def fetch_esmiles_base_datafile(hup,dbfile,table,esmiles):
       if 'ry' in  basis_base.lower():      basis_base = '%.1f Ry' % (evalnum(basis_base.strip().split()[0]))
       if 'hartree' in  basis_base.lower(): basis_base = '%.1f Ry' % (2*evalnum(basis_base.strip().split()[0]))
 
-      print
-      print "fetch_esmiles_base_datafile table  =",table
-      print "fetch_esmiles_base_datafile inchi  =",inchi
-      print "fetch_esmiles_base_datafile inchi2 =",inchi2
-      print "fetch_esmiles_base_datafile inchikey  =",inchikey
-      print "fetch_esmiles_base_datafile inchikey2 =",inchikey2
-      print "fetch_esmiles_base_datafile mformula =",mformula
-      print "fetch_esmiles_base_datafile theory=",theory_base
-      print "fetch_esmiles_base_datafile xc    =",xc_base
-      print "fetch_esmiles_base_datafile basis =",basis_base
-      print "fetch_esmiles_base_datafile charge=",charge
-      print "fetch_esmiles_base_datafile mult  =",mult
-      print "fetch_esmiles_base_datafile solvation_type=",solvation_type
-      print "fetch_esmiles_base_datafile calculation_type=",calculation_type
+      print()
+      print("fetch_esmiles_base_datafile table  =",table)
+      print("fetch_esmiles_base_datafile inchi  =",inchi)
+      print("fetch_esmiles_base_datafile inchi2 =",inchi2)
+      print("fetch_esmiles_base_datafile inchikey  =",inchikey)
+      print("fetch_esmiles_base_datafile inchikey2 =",inchikey2)
+      print("fetch_esmiles_base_datafile mformula =",mformula)
+      print("fetch_esmiles_base_datafile theory=",theory_base)
+      print("fetch_esmiles_base_datafile xc    =",xc_base)
+      print("fetch_esmiles_base_datafile basis =",basis_base)
+      print("fetch_esmiles_base_datafile charge=",charge)
+      print("fetch_esmiles_base_datafile mult  =",mult)
+      print("fetch_esmiles_base_datafile solvation_type=",solvation_type)
+      print("fetch_esmiles_base_datafile calculation_type=",calculation_type)
 
       checklist = []
       checklist.append(inchi)
@@ -5820,7 +5828,7 @@ def fetch_esmiles_base_datafile(hup,dbfile,table,esmiles):
    datafile = wrkdir + "/" + tmpnwout
    molecule = rows[0]
    cmd1 = "scp " + molecule[28] + " " + datafile
-   print "cmd1=",cmd1
+   print("cmd1=",cmd1)
    pexpect_command(cmd1,archivepassword)
    #with open(datafile,"r") as offile:
    #   datafile = offile.read()
@@ -5932,7 +5940,7 @@ def fetch_reactionpathesmiles(hup,dbfile,table,esmiles):
    #esmiles1=esmiles.strip()
    esmiles1=esmileswithname_to_esmiles(esmiles.strip())
    ss = esmiles1.split()
-   #print "ESMILES,ESMILES1=",esmiles,esmiles1
+   #print("ESMILES,ESMILES1=",esmiles,esmiles1)
 
    smiles  = clean_smiles(ss[0])
    if "id=" in smiles.lower():
@@ -6029,47 +6037,47 @@ def fetch_reactionpathesmiles(hup,dbfile,table,esmiles):
                reaction_genhash += cc
                i += 1
          cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash + "\""
-         result9 = subprocess.check_output(cmd9,shell=True)
+         result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
          if "bstringsall =" in result9:
             bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
             reaction_hash = bstringsall[0][3]
 
       hasHZ = inchihasHZ(inchi2) and (basis!="semiempirical") and (theory!='pspw') and (theory!='pspw4') and (theory!='paw')
       notonlyHZ = (not inchionlyHZ(inchi2)) or (basis=="semiempirical") or (theory=='pspw') or (theory=='pspw4') or (theory=='paw')
-      print 
-      print "fetch_reactionpathesmiles table  =",table
-      print "fetch_reactionpathesmiles inchi  =",inchi
-      print "fetch_reactionpathesmiles inchi2 =",inchi2
-      print "fetch_reactionpathesmiles inchikey  =",inchikey
-      print "fetch_reactionpathesmiles inchikey2 =",inchikey2
-      print "fetch_reactionpathesmiles mformula=",mformula
-      print "fetch_reactionpathesmiles theory=",theory
-      print "fetch_reactionpathesmiles xc    =",xc
-      if (notonlyHZ): print "fetch_reactionpathesmiles basis =",basis
-      if (hasHZ):     print "fetch_reactionpathesmiles basisHZ =",basisHZ
-      if (hasHZ):     print "fetch_reactionpathesmiles basisHZ1 =",basisHZ1
-      if (hasHZ):     print "fetch_reactionpathesmiles basisHZ2 =",basisHZ2
-      if (hasHZ):     print "fetch_reactionpathesmiles basisHZ3 =",basisHZ3
-      if (hasHZ):     print "fetch_reactionpathesmiles basisHZ3b=",basisHZ3b
-      if (theory_base!=''): print "fetch_reactionpathesmiles theory_base=",theory_base
-      if (xc_base!=''):     print "fetch_reactionpathesmiles xc_base    =",xc_base
-      if (basis_base!=''):  print "fetch_reactionpathesmiles basis_base =",basis_base
-      if (basisHZ_base!=''):  print "fetch_reactionpathesmiles basisHZ_base =",basisHZ_base
-      print "fetch_reactionpathesmiles charge=",charge
-      print "fetch_reactionpathesmiles mult  =",mult
-      print "fetch_reactionpathesmiles solvation_type=",solvation_type
+      print()
+      print("fetch_reactionpathesmiles table  =",table)
+      print("fetch_reactionpathesmiles inchi  =",inchi)
+      print("fetch_reactionpathesmiles inchi2 =",inchi2)
+      print("fetch_reactionpathesmiles inchikey  =",inchikey)
+      print("fetch_reactionpathesmiles inchikey2 =",inchikey2)
+      print("fetch_reactionpathesmiles mformula=",mformula)
+      print("fetch_reactionpathesmiles theory=",theory)
+      print("fetch_reactionpathesmiles xc    =",xc)
+      if (notonlyHZ): print("fetch_reactionpathesmiles basis =",basis)
+      if (hasHZ):     print("fetch_reactionpathesmiles basisHZ =",basisHZ)
+      if (hasHZ):     print("fetch_reactionpathesmiles basisHZ1 =",basisHZ1)
+      if (hasHZ):     print("fetch_reactionpathesmiles basisHZ2 =",basisHZ2)
+      if (hasHZ):     print("fetch_reactionpathesmiles basisHZ3 =",basisHZ3)
+      if (hasHZ):     print("fetch_reactionpathesmiles basisHZ3b=",basisHZ3b)
+      if (theory_base!=''): print("fetch_reactionpathesmiles theory_base=",theory_base)
+      if (xc_base!=''):     print("fetch_reactionpathesmiles xc_base    =",xc_base)
+      if (basis_base!=''):  print("fetch_reactionpathesmiles basis_base =",basis_base)
+      if (basisHZ_base!=''):  print("fetch_reactionpathesmiles basisHZ_base =",basisHZ_base)
+      print("fetch_reactionpathesmiles charge=",charge)
+      print("fetch_reactionpathesmiles mult  =",mult)
+      print("fetch_reactionpathesmiles solvation_type=",solvation_type)
       if (reaction_hash!=''):  
-         print "fetch_reactionpathesmiles reaction_hash =" + reaction_hash
+         print("fetch_reactionpathesmiles reaction_hash =" + reaction_hash)
          calculation_type  = "l"+calculation_type
          calculation_type2 = "l"+calculation_type2
          if reaction_gamma=='':
             reaction_gamma = 0.0
       if (reaction_gamma!=''):  
-         print "fetch_reactionpathesmiles reaction_gamma =",reaction_gamma
+         print("fetch_reactionpathesmiles reaction_gamma =",reaction_gamma)
          if reaction_kappa=='':
             reaction_kappa = 1.0
-      if (reaction_kappa!=''):  print "fetch_reactionpathesmiles reaction_kappa =",reaction_kappa
-      print "fetch_reactionpathesmiles calculation_type=",calculation_type,calculation_type2
+      if (reaction_kappa!=''):  print("fetch_reactionpathesmiles reaction_kappa =",reaction_kappa)
+      print("fetch_reactionpathesmiles calculation_type=",calculation_type,calculation_type2)
 
       eps = 1.0e-6
       checklist = []
@@ -6152,8 +6160,8 @@ def fetch_reactionpathesmiles(hup,dbfile,table,esmiles):
       pss = hup.split()[2]
       dbcon = MySQLdb.connect(host,user,pss,dbfile)
 
-   #print "sqlcheck=",sqlcheck
-   #print "checklist=",checklist
+   #print("sqlcheck=",sqlcheck)
+   #print("checklist=",checklist)
    rows2 = []
    with dbcon:
       cur = dbcon.cursor()
@@ -6464,7 +6472,7 @@ def fetch_esmiles(hup,dbfile,table,esmiles,submitrequest=True):
    #esmiles1=esmiles.strip()
    esmiles1=esmileswithname_to_esmiles(esmiles.strip())
    ss = esmiles1.split()
-   print "ESMILES,ESMILES1=",esmiles,esmiles1
+   print("ESMILES,ESMILES1=",esmiles,esmiles1)
 
    #### check for a proton ###
    sesmiles  = esmiles.split()[0]
@@ -6581,7 +6589,7 @@ def fetch_esmiles(hup,dbfile,table,esmiles,submitrequest=True):
                reaction_genhash += cc
                i += 1
          cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash + "\""
-         result9 = subprocess.check_output(cmd9,shell=True)
+         result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
          if "bstringsall =" in result9:
             bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
             reaction_hash = bstringsall[0][3]
@@ -6594,64 +6602,64 @@ def fetch_esmiles(hup,dbfile,table,esmiles,submitrequest=True):
             for ll in xyzlist:
                ff.write(ll.strip()+"\n")
          cmd9 = chemdb_balance_reaction + "-r " + xyzfile + " \"" + reaction_indexes + "\" \"" + reaction_type + "\""
-         result9 = subprocess.check_output(cmd9,shell=True)
+         result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
          reaction_hash = result9.split("rhash =")[1].split("\n")[0].strip()
       #elif (reaction_hash!='') and (reaction_type=='') and (reaction_indexes==''):
       #   reaction_type = reaction_hash.split(":")[1].strip()
       #   cmd9 = chemdb_balance_reaction + "-e " + job['xyzfile'] + " \"" + reaction_hash + "\""
-      #   result9 = subprocess.check_output(cmd9,shell=True)
+      #   result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
       #   indexes = eval(result9.split("reaction indexes=")[1].split("\n")[0])
-      #   #print "indexes=",indexes
+      #   #print("indexes=",indexes)
       #   if (len(indexes)>0):
       #      for ii in indexes[0][0]:
       #         reaction_indexes += "%d " % (ii+1)
-      #   #print "result9=",result9
-      #   #print "reaction_type=",reaction_type
-      #   #print "reaction_indexes=",reaction_indexes
+      #   #print("result9=",result9)
+      #   #print("reaction_type=",reaction_type)
+      #   #print("reaction_indexes=",reaction_indexes)
 
 
       hasHZ = inchihasHZ(inchi2) and (basis!="semiempirical") and (theory!='pspw') and (theory!='pspw4') and (theory!='paw')
       notonlyHZ = (not inchionlyHZ(inchi2)) or (basis=="semiempirical") or (theory=='pspw') or (theory=='pspw4') or (theory=='paw')
-      print 
-      print "fetch_esmiles table  =",table
-      print "fetch_esmiles inchi  =",inchi
-      print "fetch_esmiles inchi2 =",inchi2
-      print "fetch_esmiles inchikey  =",inchikey
-      print "fetch_esmiles inchikey2 =",inchikey2
-      print "fetch_esmiles mformula=",mformula
-      print "fetch_esmiles theory=",theory
-      print "fetch_esmiles xc    =",xc
-      if (notonlyHZ): print "fetch_esmiles basis =",basis
-      print "HASHZ=",hasHZ
-      if (hasHZ):     print "fetch_esmiles basisHZ =",basisHZ
-      if (hasHZ):     print "fetch_esmiles basisHZ1 =",basisHZ1
-      if (hasHZ):     print "fetch_esmiles basisHZ2 =",basisHZ2
-      if (hasHZ):     print "fetch_esmiles basisHZ3 =",basisHZ3
-      if (hasHZ):     print "fetch_esmiles basisHZ3b=",basisHZ3b
-      if (theory_base!=''): print "fetch_esmiles theory_base=",theory_base
-      if (xc_base!=''):     print "fetch_esmiles xc_base    =",xc_base
-      if (basis_base!=''):  print "fetch_esmiles basis_base =",basis_base
-      if (basisHZ_base!=''):  print "fetch_esmiles basisHZ_base =",basisHZ_base
-      print "fetch_esmiles charge=",charge
-      print "fetch_esmiles mult  =",mult
-      print "fetch_esmiles solvation_type=",solvation_type
-      print "fetch_esmiles calculation_type=",calculation_type,calculation_type2
+      print()
+      print("fetch_esmiles table  =",table)
+      print("fetch_esmiles inchi  =",inchi)
+      print("fetch_esmiles inchi2 =",inchi2)
+      print("fetch_esmiles inchikey  =",inchikey)
+      print("fetch_esmiles inchikey2 =",inchikey2)
+      print("fetch_esmiles mformula=",mformula)
+      print("fetch_esmiles theory=",theory)
+      print("fetch_esmiles xc    =",xc)
+      if (notonlyHZ): print("fetch_esmiles basis =",basis)
+      print("HASHZ=",hasHZ)
+      if (hasHZ):     print("fetch_esmiles basisHZ =",basisHZ)
+      if (hasHZ):     print("fetch_esmiles basisHZ1 =",basisHZ1)
+      if (hasHZ):     print("fetch_esmiles basisHZ2 =",basisHZ2)
+      if (hasHZ):     print("fetch_esmiles basisHZ3 =",basisHZ3)
+      if (hasHZ):     print("fetch_esmiles basisHZ3b=",basisHZ3b)
+      if (theory_base!=''): print("fetch_esmiles theory_base=",theory_base)
+      if (xc_base!=''):     print("fetch_esmiles xc_base    =",xc_base)
+      if (basis_base!=''):  print("fetch_esmiles basis_base =",basis_base)
+      if (basisHZ_base!=''):  print("fetch_esmiles basisHZ_base =",basisHZ_base)
+      print("fetch_esmiles charge=",charge)
+      print("fetch_esmiles mult  =",mult)
+      print("fetch_esmiles solvation_type=",solvation_type)
+      print("fetch_esmiles calculation_type=",calculation_type,calculation_type2)
       if (reaction_hash!=''):  
-         print "fetch_esmiles reaction_hash =" + reaction_hash
+         print("fetch_esmiles reaction_hash =" + reaction_hash)
          calculation_type  = "l"+calculation_type
          calculation_type2 = "l"+calculation_type2
          if reaction_gamma=='':
             reaction_gamma = 0.0
       if (reaction_gamma!=''):  
-         print "fetch_esmiles reaction_gamma =",reaction_gamma
+         print("fetch_esmiles reaction_gamma =",reaction_gamma)
          if reaction_kappa=='':
             reaction_kappa = 1.0
-      if (reaction_kappa!=''):  print "fetch_esmiles reaction_kappa =",reaction_kappa
+      if (reaction_kappa!=''):  print("fetch_esmiles reaction_kappa =",reaction_kappa)
       if (theory=='qsharp_chem'):
-         print "fetch_esmiles qsharp_norbs  =",qsharp_norbs
-         print "fetch_esmiles qsharp_nalpha =",qsharp_nalpha
-         print "fetch_esmiles qsharp_nbeta  =",qsharp_nbeta
-         print "fetch_esmiles qsharp_nroots =",qsharp_nroots
+         print("fetch_esmiles qsharp_norbs  =",qsharp_norbs)
+         print("fetch_esmiles qsharp_nalpha =",qsharp_nalpha)
+         print("fetch_esmiles qsharp_nbeta  =",qsharp_nbeta)
+         print("fetch_esmiles qsharp_nroots =",qsharp_nroots)
 
       eps = 1.0e-6
       checklist = []
@@ -6738,8 +6746,8 @@ def fetch_esmiles(hup,dbfile,table,esmiles,submitrequest=True):
       pss = hup.split()[2]
       dbcon = MySQLdb.connect(host,user,pss,dbfile)
 
-   print "sqlcheck=",sqlcheck
-   print "checklist=",checklist
+   print("sqlcheck=",sqlcheck)
+   print("checklist=",checklist)
    rows2 = []
    with dbcon:
       cur = dbcon.cursor()
@@ -6752,15 +6760,15 @@ def fetch_esmiles(hup,dbfile,table,esmiles,submitrequest=True):
             tmp = cur.fetchall()
             rows2.append(tmp[0])
    dbcon.close()
-   print "fetch_esmiles OUT OF DB checklist=",checklist
+   print("fetch_esmiles OUT OF DB checklist=",checklist)
 
    ### esmiles1 not found call chemdb_add_request ###
    if ((len(rows2)<1) and (submitrequest) and (not searchingid)):
       cmd = chemdb_add_request + '\"' + esmiles1 + '\"'
-      print "esmiles not found, running cmd:",cmd
-      result = subprocess.check_output(cmd,shell=True)
-      print 
-      print  result
+      print("esmiles not found, running cmd:",cmd)
+      result = subprocess.check_output(cmd,shell=True).decode("utf-8")
+      print() 
+      print(result)
 
    return rows2
 
@@ -6868,7 +6876,7 @@ def add_nmrexp(hup,dbfile,table,xyznmr_data):
    msg += "solvent           ="+solvent+eoln+eoln
    msg += "xyznmr_blob       =" + eoln
    msg += xyznmr_blob + eoln + eoln
-   print msg
+   print(msg)
 
 
    if (hup=='sqlite3'):
@@ -6901,9 +6909,9 @@ def add_nmrexp(hup,dbfile,table,xyznmr_data):
    else:
       insertlist.append(xyznmr_blob)
 
-   print "hup=",hup
-   print "dbfile=",dbfile
-   print "table=",table
+   print("hup=",hup)
+   print("dbfile=",dbfile)
+   print("table=",table)
 
    if (issqlite3):
       dbcon = sqlite3.connect(dbfile)
@@ -7051,7 +7059,7 @@ def print_nmr_row(usehtml5,hup,dbfile,table,row):
       #imagelist += [(pngfilename,pngname)]
       cmd9  = chemdb_image0 + "-b %d" % id
       try:
-          result9 = subprocess.check_output(cmd9,shell=True)
+          result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
           imagelist += [(pngfilename,pngname)]
           msg2  = "</pre>\n"
           msg2 += '<br><center><img src="cid:%s"></center><br>\n' % pngname
@@ -7185,7 +7193,7 @@ def print_nmr_row(usehtml5,hup,dbfile,table,row):
             os.unlink(nmrdatafile)
             os.unlink(nmrdatafile2)
          except:
-            print "Failed to delete temporary gnuplot files"
+            print("Failed to delete temporary gnuplot files")
 
          pngname     = "image-%d-%d" % (pdrand,pdrand2)
          imagelist += [(nmrpng,pngname)]
@@ -7232,7 +7240,7 @@ def fetch_nmr(hup,dbfile,table,esmiles,submitrequest=True):
 
    #esmiles1=esmiles.strip()
    esmiles1=esmileswithname_to_esmiles(esmiles.strip())
-   print "ESMILES,ESMILES1=",esmiles,esmiles1
+   print("ESMILES,ESMILES1=",esmiles,esmiles1)
    ss = esmiles1.split()
    smiles  = clean_smiles(ss[0])
    ss = esmiles1.split()
@@ -7265,8 +7273,8 @@ def fetch_nmr(hup,dbfile,table,esmiles,submitrequest=True):
       inchi2    = xyz2InChI(xyzfile) #inchi2 does not include charge
       inchikey2 = xyz2InChIKey(xyzfile) #inchikey2 does not include charge
 
-      #print "ss[0]=",ss[0]
-      #print "inchi=",inchi
+      #print("ss[0]=",ss[0])
+      #print("inchi=",inchi)
       #for s in ss:
       #   if 'theory' in s: theory = s.split('{')[1].split('}')[0]
       #   if 'xc' in s:     xc     = s.split('{')[1].split('}')[0]
@@ -7298,19 +7306,19 @@ def fetch_nmr(hup,dbfile,table,esmiles,submitrequest=True):
       if (theory_property==''): theory_property = theory
       if (xc_property==''):     xc_property = xc
       if (basis_property==''):  basis_property = basis
-      print "fetch_nmr inchi =",inchi
-      print "fetch_nmr inchi2=",inchi2
-      print "fetch_nmr inchikey =",inchikey
-      print "fetch_nmr inchikey2=",inchikey2
-      print "fetch_nmr theory=",theory
-      print "fetch_nmr xc    =",xc
-      print "fetch_nmr basis =",basis
-      print "fetch_nmr theory_property=",theory_property
-      print "fetch_nmr xc_property    =",xc_property
-      print "fetch_nmr basis_property =",basis_property
-      print "fetch_nmr charge=",charge
-      print "fetch_nmr mult  =",mult
-      print "fetch_nmr solvation_type=",solvation_type
+      print("fetch_nmr inchi =",inchi)
+      print("fetch_nmr inchi2=",inchi2)
+      print("fetch_nmr inchikey =",inchikey)
+      print("fetch_nmr inchikey2=",inchikey2)
+      print("fetch_nmr theory=",theory)
+      print("fetch_nmr xc    =",xc)
+      print("fetch_nmr basis =",basis)
+      print("fetch_nmr theory_property=",theory_property)
+      print("fetch_nmr xc_property    =",xc_property)
+      print("fetch_nmr basis_property =",basis_property)
+      print("fetch_nmr charge=",charge)
+      print("fetch_nmr mult  =",mult)
+      print("fetch_nmr solvation_type=",solvation_type)
 
       checklist = []
       checklist.append(inchi)
@@ -7358,8 +7366,8 @@ def fetch_nmr(hup,dbfile,table,esmiles,submitrequest=True):
    #else:
    #   sqlcheck = "select * from " + table + wherestr.replace('?','%s')
 
-   print "nmr_table=",table
-   print "sqlcheck =",sqlcheck
+   print("nmr_table=",table)
+   print("sqlcheck =",sqlcheck)
 
 
    if (issqlite3):
@@ -7392,10 +7400,10 @@ def fetch_nmr(hup,dbfile,table,esmiles,submitrequest=True):
    ### esmiles not found call chemdb_add_request ###
    if ((len(rows2)<1) and (submitrequest) and (not searchingid)):
       cmd = chemdb_add_request + '\"' + esmiles1 + '\"'
-      print "esmiles not found, running cmd:",cmd
-      result = subprocess.check_output(cmd,shell=True)
-      print
-      print  result
+      print("esmiles not found, running cmd:",cmd)
+      result = subprocess.check_output(cmd,shell=True).decode("utf-8")
+      print()
+      print(result)
 
    return rows2
 
@@ -7502,7 +7510,7 @@ def submit_esmiles(esmiles,includerotation,datafile,emailfrom=None,machine=None)
    else:
       cmd1 = tnt_submit + cmd0 + '"' + esmiles.strip() + '"'
 
-   print "submit esmiles cmd1 = " + cmd1
+   print("submit esmiles cmd1 = " + cmd1)
    result += "\n\nsubmit esmiles cmd1 = " + cmd1 +"\n"
 
    subprocess_Background(cmd1)
@@ -7510,11 +7518,11 @@ def submit_esmiles(esmiles,includerotation,datafile,emailfrom=None,machine=None)
    #   #cmd1p = cmd1 + " >> " + wrkdir + "/tntsubmit.out"
    #   #pp1 = subprocess.Popen(cmd1p, shell=True)
    #   #result += "\nJob Submit, pid=%d\n" % pp1.pid
-   #   result += subprocess.check_output(cmd1,shell=True)
+   #   result += subprocess.check_output(cmd1,shell=True).decode("utf-8")
    #except:
    #   result += "\n\ntnt_submit failed and job was not submitted\n\n"
 
-   print  result
+   print(result)
    return result
 
 
@@ -7578,7 +7586,7 @@ def submit_esmiles_base(esmiles,includerotation,datafile,emailfrom=None,machine=
    else:
       cmd1 = tnt_submit + cmd0 + '"' + esmiles.strip() + '"'
 
-   print "submit esmiles cmd1 = " + cmd1
+   print("submit esmiles cmd1 = " + cmd1)
    result += "\n\nsubmit esmiles cmd1 = " + cmd1 +"\n"
 
    subprocess_Background(cmd1)
@@ -7586,11 +7594,11 @@ def submit_esmiles_base(esmiles,includerotation,datafile,emailfrom=None,machine=
    #   #cmd1p = cmd1 + " >> " + wrkdir + "/tntsubmit.out"
    #   #pp1 = subprocess.Popen(cmd1p, shell=True)
    #   #result += "\nJob Submit, pid=%d\n" % pp1.pid
-   #   result += subprocess.check_output(cmd1,shell=True)
+   #   result += subprocess.check_output(cmd1,shell=True).decode("utf-8")
    #except:
    #   result += "\n\ntnt_submit failed and job was not submitted\n\n"
 
-   print  result
+   print(result)
    return result
 
 
@@ -7661,13 +7669,13 @@ def submit_esmiles_base(esmiles,includerotation,datafile,emailfrom=None,machine=
 #   ofile.write(xyz)
 #   ofile.close()
 #   cmd1 = tnt_submit + cmd0 + " " + xyzfile
-#   print "submit esmiles cmd1 = " + cmd1
+#   print("submit esmiles cmd1 = " + cmd1)
 #
 #   try:
-#      result += subprocess.check_output(cmd1,shell=True)
+#      result += subprocess.check_output(cmd1,shell=True).decode("utf-8")
 #   except:
 #      result += "\n\ntnt_submit failed and job was not submitted\n\n"
-#   print  result
+#   print(result)
 #   return result
 
 
@@ -7689,8 +7697,8 @@ def fetch_myids(hup,dbfile,table,myids):
          checklist.append(id)
          wherestr2 += " or id=? "
       wherestr2 += " "
-      print "wherestr2=",wherestr2
-      print "checklist=",checklist
+      print("wherestr2=",wherestr2)
+      print("checklist=",checklist)
 
 
       if (issqlite3):
@@ -7890,12 +7898,12 @@ def inertia_rotate(mass,xyz0):
       v2[1] = v2[1]/r
       v2[2] = v2[2]/r
 
-      #print "v0v0=",v0[0]*v0[0]+v0[1]*v0[1]+v0[2]*v0[2]
-      #print "v1v1=",v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2]
-      #print "v2v2=",v2[0]*v2[0]+v2[1]*v2[1]+v2[2]*v2[2]
-      #print "v0v1=",v0[0]*v1[0] + v0[1]*v1[1] + v0[2]*v1[2]
-      #print "v0v2=",v0[0]*v2[0]+v0[1]*v2[1]+v0[2]*v2[2]
-      #print "v1v2=",v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2]
+      #print("v0v0=",v0[0]*v0[0]+v0[1]*v0[1]+v0[2]*v0[2])
+      #print("v1v1=",v1[0]*v1[0]+v1[1]*v1[1]+v1[2]*v1[2])
+      #print("v2v2=",v2[0]*v2[0]+v2[1]*v2[1]+v2[2]*v2[2])
+      #print("v0v1=",v0[0]*v1[0] + v0[1]*v1[1] + v0[2]*v1[2])
+      #print("v0v2=",v0[0]*v2[0]+v0[1]*v2[1]+v0[2]*v2[2])
+      #print("v1v2=",v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
 
       xyz = [0.0]*3*nion
       for ii in range(nion):
@@ -8304,7 +8312,8 @@ chemdb fetch reactions program
 eoln = "\n"
 #Database defaults
 hup    = hup0
-dbfile = "TNT_Project"
+#dbfile = "TNT_Project"
+dbfile = dbfile0
 table  = "calculations"
 requests_table = "requests"
 abbrev_table   = "abbreviations"
@@ -8313,7 +8322,7 @@ nmr_scaling_table = "nmr_scaling"
 nmr_experiments_table = "nmr_experiments"
 heat_formation_table = "heats_of_formation"
 
-print "chemdb_fetch_reactions5 mysql version"
+print("chemdb_fetch_reactions5 mysql version")
 tt      = time.localtime()
 
 viewfreq              = False
@@ -8335,14 +8344,14 @@ for o, a in opts:
   if '-e' in o:
      submitmissingesmiles1 = True
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<3): 
-   print usage
+   print(usage)
    exit()
-print args[0]
-print args[1]
+print(args[0])
+print(args[1])
 
 ### load the reactions input file into rstring ###
 if (os.path.isfile(args[0])):
@@ -8377,9 +8386,9 @@ ooofile = open(args[2],'w')
 
 if (usehtml5): ooofile.write("<!DOCTYPE html>\n")
 ooofile.write("<html>\n")
-if (usehtml5): ooofile.write("<head> <meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no, target-densitydpi=device-dpi\"> <meta charset=\"utf-8\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"https://dl.dropboxusercontent.com/s/r0gjpgxp8byjbzr/favicon-32x32.png\"><link rel=\"icon\" type=\"image/png\" sizes=\"96x96\" href=\"https://dl.dropboxusercontent.com/s/k0kyp30ale2pkod/favicon-96x96.png\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"https://dl.dropboxusercontent.com/s/0l0w2wk9wfxt4el/favicon-16x16.png\"><style type=\"text/css\"> \n .linkbanner { \n position: relative; \n padding: 1px; \n background-image: linear-gradient(#4286f4,lightgreen,#4286f4); \n font-size: 18px; \n font-weight: bold; \n font-family: times; \n color: white; \n } \n </style> </head>")
+if (usehtml5): ooofile.write("<head> <meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no, target-densitydpi=device-dpi\"> <meta charset=\"utf-8\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-32x32.png')}}\"><link rel=\"icon\" type=\"image/png\" sizes=\"96x96\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-96x96.png')}}\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-16x16.png')}}\"><style type=\"text/css\"> \n .linkbanner { \n position: relative; \n padding: 1px; \n background-image: linear-gradient(#4286f4,lightgreen,#4286f4); \n font-size: 18px; \n font-weight: bold; \n font-family: times; \n color: white; \n } \n </style> </head>")
 ooofile.write("<body>\n")
-if (usehtml5): ooofile.write("<div class=\"linkbanner\"> <a href=\"https://arrows.emsl.pnnl.gov/api\"><img src=\"https://dl.dropboxusercontent.com/s/s5fof263qwxzcaq/EMSLArrows2019.png\" alt=\"Copyright Arrows Logo\" width=\"180\" height=\"90\" align=\"middle\"></a> <a href=\"https://arrows.emsl.pnnl.gov/api/periodic\">3D Periodic Editor</a> &nbsp;<a href=\"https://arrows.emsl.pnnl.gov/api/3dbuilder\">3D Molecular And Reaction Editor</a>  &nbsp; <a href=\"https://arrows.emsl.pnnl.gov/api/expert\">Expert Editor</a> &nbsp;   <a href=\"https://arrows.emsl.pnnl.gov/api/qsharp_chem\">Microsoft Quantum Editor</a> &nbsp;  <a href=\"https://arrows.emsl.pnnl.gov/api/aerosol\">EMSL Aerosol Workshop Editor</a> &nbsp; <a href=\"http://www.nwchem-sw.org/index.php/EMSL_Arrows#\">Manual</a> </div>")
+if (usehtml5): ooofile.write("<div class=\"linkbanner\"> <a href=\"https://arrows.emsl.pnnl.gov/api\"><img src=\"{{url_for(\'static\', filename=\'arrows-static/EMSLArrows2019.png')}}\" alt=\"Copyright Arrows Logo\" width=\"180\" height=\"90\" align=\"middle\"></a> <a href=\"https://arrows.emsl.pnnl.gov/api/periodic\">3D Periodic Editor</a> &nbsp;<a href=\"https://arrows.emsl.pnnl.gov/api/3dbuilder\">3D Molecular And Reaction Editor</a>  &nbsp; <a href=\"https://arrows.emsl.pnnl.gov/api/expert\">Expert Editor</a> &nbsp;   <a href=\"https://arrows.emsl.pnnl.gov/api/qsharp_chem\">Microsoft Quantum Editor</a> &nbsp;  <a href=\"https://arrows.emsl.pnnl.gov/api/aerosol\">EMSL Aerosol Workshop Editor</a> &nbsp; <a href=\"http://www.nwchem-sw.org/index.php/EMSL_Arrows#\">Manual</a> </div>")
 if is_qsharp_chem:
    ooofile.write(ArrowsHeader_QDK)
 elif (usehtml5):
@@ -8448,7 +8457,7 @@ while ((len(rstring.split("emailfrom:"))>1) and (not toolong) and (":emailfrom" 
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing emailfrom: :emailfrom, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing emailfrom: :emailfrom, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 ### emailcc  ###
@@ -8467,7 +8476,7 @@ while ((len(rstring.split("emailcc:"))>1) and (not toolong) and (":emailcc" in r
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing emailcc: :emailcc, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing emailcc: :emailcc, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8485,7 +8494,7 @@ blockdata2 += rstring.strip()+eoln
 blockdata2 += "::Arrows"+eoln+eoln
 
 emailall = emailfrom.strip() + " " + emailcc.strip()
-print "All emails= " + emailall
+print("All emails= " + emailall)
 
 ### print blockdata to ooofile ####
 printheader = (emailfrom!='') or (emailcc!='')
@@ -8518,7 +8527,7 @@ while ((len(rstring.split("findreplace:"))>1) and (not toolong) and (":findrepla
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing findreplace: :findreplace exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing findreplace: :findreplace exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
 
 
 
@@ -8630,7 +8639,7 @@ while ((len(rstring.split("name{"))>1) and (not toolong) and ("}" in rstring)):
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing name{}, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing name{}, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
 
 
 ### xyzdata  ###
@@ -8638,7 +8647,7 @@ if (toolong):
 if (not success):
    ooofile.write("chemdb_fetch_reactions: too long parsing xyzdata: :xyzdata, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing xyzdata: :xyzdata, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 ### submit nmrexp data  ###
@@ -8658,7 +8667,7 @@ while ((len(rstring.split("nmr_experiment:"))>1) and (not toolong) and (":nmr_ex
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parinsg submitxyz_nmrexp: :submitxyz_nmrexp\n")
    pppfile.write("chemdb_fetch_reactions: too long parinsg submitxyz_nmrexp: :submitxyz_nmrexp\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8679,7 +8688,7 @@ while ((len(rstring.split("submithf:"))>1) and (not toolong) and (":submithf" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parinsg submithf: :submithf\n")
    pppfile.write("chemdb_fetch_reactions: too long parinsg submithf: :submithf\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8714,7 +8723,7 @@ while ((len(rstring.split("submitesmiles:"))>1) and (not toolong) and (":submite
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parinsg submitesmiles: :submitesmiles\n")
    pppfile.write("chemdb_fetch_reactions: too long parinsg submitesmiles: :submitesmiles\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8736,7 +8745,7 @@ while ((len(rstring.split("submitmachines:"))>1) and (not toolong) and (":submit
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing submitmachines: :submitmachines, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing submitmachines: :submitmachines, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
    
 
@@ -8760,7 +8769,7 @@ while ((len(rstring.split("printnwout:"))>1) and (not toolong) and (":printnwout
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing printnwout: :printnwout, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing printnwout: :printnwout, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 ### nwoutput ###
@@ -8795,7 +8804,7 @@ while ((len(rstring.split("nwoutput:"))>1) and (not toolong) and (":nwoutput" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing nwoutput: :nwoutput, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing nwoutput: :nwoutput, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8804,7 +8813,7 @@ toolongcountmax = 20
 toolongcount = 0
 toolong      = False
 rstring = ireplace("NWINPUT", "nwinput", rstring)
-print "RSTRING=",rstring
+print("RSTRING=",rstring)
 while ((len(rstring.split("nwinput:"))>1) and (not toolong) and (":nwinput" in rstring)):
    msg2 = rstring.split("nwinput:")
    esmiles = msg2[1].split(":nwinput")[0]
@@ -8843,8 +8852,8 @@ while ((len(rstring.split("nwinput:"))>1) and (not toolong) and (":nwinput" in r
          vtag = '"osmiles:'+ esmiles1.strip().split()[0].strip() + ':osmiles "'
          cmd0 += ' -v ' + vtag + ' '
          cmd0 +=  '"' + esmiles1.strip() + '"'
-         print "cmd0=",cmd0
-         msg4 += subprocess.check_output(cmd0,shell=True)
+         print("cmd0=",cmd0)
+         msg4 += subprocess.check_output(cmd0,shell=True).decode("utf-8")
    except:
       msg4 += "Error: not generating input deck for esmiles="+esmiles+"\n"
 
@@ -8858,7 +8867,7 @@ while ((len(rstring.split("nwinput:"))>1) and (not toolong) and (":nwinput" in r
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing nwinput: :nwinput, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing nwinput: :nwinput, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8867,7 +8876,7 @@ toolongcountmax = 20
 toolongcount = 0
 toolong      = False
 rstring = ireplace("NWDATAFILE", "nwdatafile", rstring)
-print "RSTRING=",rstring
+print("RSTRING=",rstring)
 while ((len(rstring.split("nwdatafile:"))>1) and (not toolong) and (":nwdatafile" in rstring)):
    msg2 = rstring.split("nwdatafile:")
    esmiles = msg2[1].split(":nwdatafile")[0]
@@ -8882,7 +8891,7 @@ while ((len(rstring.split("nwdatafile:"))>1) and (not toolong) and (":nwdatafile
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing nwdatafile: :nwdatafile, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing nwdatafile: :nwdatafile, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8908,7 +8917,7 @@ while ((len(rstring.split("printjobinfo:"))>1) and (not toolong) and (":printjob
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing printjobinfo: :printjobinfo, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing printjobinfo: :printjobinfo, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8932,7 +8941,7 @@ while ((len(rstring.split("printxyz:"))>1) and (not toolong) and (":printxyz" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing printxyz: :printxyz, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing printxyz: :printxyz, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8969,7 +8978,7 @@ while ((len(rstring.split("xyzfile:"))>1) and (not toolong) and (":xyzfile" in r
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing xyzfile: :xyzfile, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing xyzfile: :xyzfile, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -8994,7 +9003,7 @@ while ((len(rstring.split("printmol:"))>1) and (not toolong) and (":printmol" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing printmol: :printmol, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing printmol: :printmol, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9032,7 +9041,7 @@ while ((len(rstring.split("molfile:"))>1) and (not toolong) and (":molfile" in r
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing molfile: :molfile, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing molfile: :molfile, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9058,7 +9067,7 @@ while ((len(rstring.split("printeig:"))>1) and (not toolong) and (":printeig" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing printeig: :printeig, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing printeig: :printeig, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 toolongcountmax = 500
@@ -9093,7 +9102,7 @@ while ((len(rstring.split("eigenvalues:"))>1) and (not toolong) and (":eigenvalu
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing eigenvalues: :eigenvalues, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing eigenvalues: :eigenvalues, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9132,7 +9141,7 @@ while ((len(rstring.split("alleigs:"))>1) and (not toolong) and (":alleigs" in r
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing alleigs: :alleigs, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing alleigs: :alleigs, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9163,9 +9172,9 @@ while ((len(rstring.split("showfreq:"))>1) and (not toolong) and (":showfreq" in
       cmd1 = chemdb_freq0 + "-b \""+rbond+"\" -g \""+rgroup+"\" "+ tid + " " + fnum
    else:
       cmd1 = chemdb_freq0 + tid + " " + fnum
-   print "showfreq cmd1 = " + cmd1
+   print("showfreq cmd1 = " + cmd1)
    try:
-      msg4 = subprocess.check_output(cmd1,shell=True)
+      msg4 = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    except:
       msg4 = "frequency analysis failed for id = "+ id
    if usehtml5:
@@ -9188,7 +9197,7 @@ while ((len(rstring.split("showfreq:"))>1) and (not toolong) and (":showfreq" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing showfreq: :showfreq, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing showfreq: :showfreq, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9207,9 +9216,9 @@ while ((len(rstring.split("printfreq:"))>1) and (not toolong) and (":printfreq" 
    tt = msg3.split()
    for id in tt:
       cmd1 = chemdb_freq + id + " 2"
-      print "printfreq cmd1 = " + cmd1
+      print("printfreq cmd1 = " + cmd1)
       try:
-         msg4 = subprocess.check_output(cmd1,shell=True)
+         msg4 = subprocess.check_output(cmd1,shell=True).decode("utf-8")
       except:
          msg4 = "frequency analysis failed for id = "+ id
       ooofile.write(eoln+msg4+eoln)
@@ -9219,7 +9228,7 @@ while ((len(rstring.split("printfreq:"))>1) and (not toolong) and (":printfreq" 
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing printfreq: :printfreq, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing printfreq: :printfreq, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 ### frequencies ###
@@ -9244,9 +9253,9 @@ while ((len(rstring.split("frequencies:"))>1) and (not toolong) and (":frequenci
       if (use_lowest_energy_esmiles): rows = lowest_energy_esmiles(rows)
       id = rows[0][0]
       cmd1 = chemdb_freq + " %d 2" % id
-      print "frequencies cmd1 = " + cmd1
+      print("frequencies cmd1 = " + cmd1)
       try:
-         msg4 += subprocess.check_output(cmd1,shell=True)
+         msg4 += subprocess.check_output(cmd1,shell=True).decode("utf-8")
       except:
          msg4 += "frequency analysis failed for id = "+ id
    ooofile.write(eoln + msg4 + eoln)
@@ -9256,7 +9265,7 @@ while ((len(rstring.split("frequencies:"))>1) and (not toolong) and (":frequenci
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing frequencies: :frequencies, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing frequencies: :frequencies, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 ### allfreqs ###
@@ -9280,9 +9289,9 @@ while ((len(rstring.split("allfreqs:"))>1) and (not toolong) and (":allfreqs" in
       for row in rows:
          id = row[0]
          cmd1 = chemdb_freq + " %d 2" % id
-         print "allfreqs cmd1 = " + cmd1
+         print("allfreqs cmd1 = " + cmd1)
          try:
-            msg4 += subprocess.check_output(cmd1,shell=True)
+            msg4 += subprocess.check_output(cmd1,shell=True).decode("utf-8")
          except:
             msg4 += "frequency analysis failed for id = "+ id
    ooofile.write(eoln + msg4 + eoln)
@@ -9292,7 +9301,7 @@ while ((len(rstring.split("allfreqs:"))>1) and (not toolong) and (":allfreqs" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing frequencies: :frequencies, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing frequencies: :frequencies, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9329,7 +9338,7 @@ while ((len(rstring.split("printcsv:"))>1) and (not toolong) and (":printcsv" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing printcsv: :printcsv, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing printcsv: :printcsv, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9347,11 +9356,11 @@ while ((len(rstring.split("pushnwjob:"))>1) and (not toolong) and (":pushnwjob" 
    pushnwjob.append(msg3)
    toolong = (toolongcount > toolongcountmax)
    toolongcount += 1
-   print "toolong=",toolong,toolongcount
+   print("toolong=",toolong,toolongcount)
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing pushnwjob: :pushnwjob, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing pushnwjob: :pushnwjob, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9372,7 +9381,7 @@ while ((len(rstring.split("fetchnwjob:"))>1) and (not toolong) and (":fetchnwjob
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing fetchnwjob: :fetchnwjob, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing fetchnwjob: :fetchnwjob, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9394,7 +9403,7 @@ while ((len(rstring.split("badids:"))>1) and (not toolong) and (":badids" in rst
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing badids: :badids, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing badids: :badids, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 ###  reactionpath ###
@@ -9411,7 +9420,7 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
    esmiles = addspaces_reaction(esmiles.strip())
    esmiles = parsetosmiles(esmiles)
    esmiles = cleanxyzdata(esmiles)
-   print "REACTIONPATH ESMILES=",esmiles
+   print("REACTIONPATH ESMILES=",esmiles)
    if "gamma{" in esmiles:
       msg2 = esmiles.split("gamma{")
       gamma = msg2[1].split("}")[0]
@@ -9454,7 +9463,7 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
          ttt += " mult{%d}" % mymult
       ttt += " reaction_genhash{"+rxn+"} reaction_gamma{"+gamma+"} "
       rstring += "molecule: " + ttt + " :molecule" + eoln
-      print "TTTTMOLECULE = ",ttt
+      print("TTTTMOLECULE = ",ttt)
    else:
       autokcal= 627.509469
       autokj  = 2625.49962
@@ -9484,7 +9493,7 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
             x = 1
             m = rmol
          rsmiles = m + " " + opts
-         print "rsmiles=",rsmiles
+         print("rsmiles=",rsmiles)
          rows = fetch_esmiles(hup,dbfile,table,rsmiles,False)
          rows = lowest_energy_esmiles(rows)
          if (len(rows)==0):
@@ -9522,7 +9531,7 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
             x = 1
             m = pmol
          psmiles = m + " " + opts
-         print "psmiles=",psmiles
+         print("psmiles=",psmiles)
          rows = fetch_esmiles(hup,dbfile,table,psmiles,False)
          rows = lowest_energy_esmiles(rows)
          if (len(rows)==0):
@@ -9612,7 +9621,7 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
       xyzdat = ''
       msg4 += "Table values in atomic units\n\n"
       msg4 += "  Gamma  Kappa  Gamma0        Fspring        Espring      Erxn(gas)      Hrxn(gas)      Grxn(gas)      Solvation       Grxn(aq)   Id" + eoln
-      #print "renergies=",len(renergies),renergies
+      #print("renergies=",len(renergies),renergies)
       if (not badreactants): msg4 += "reactants              %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f\n" % (0.0,renergies[0],renergies[1],renergies[2],renergies[3],renergies[4],renergies[5])
       for ee in energies:
          msg4 += "%7.3f %6.3f %7.3f %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f   %s\n" % ee[:11]
@@ -9657,7 +9666,7 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
             os.unlink(erxngnuplot)
             os.unlink(erxndumb)
          except:
-            print "Failed to delete temporary gnuplot files"
+            print("Failed to delete temporary gnuplot files")
 
          ### PNG gnuplotting ####
          if (not useascii):
@@ -9671,7 +9680,7 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
             try:
                os.unlink(erxngnuplot)
             except:
-               print "Failed to delete temporary gnuplot files"
+               print("Failed to delete temporary gnuplot files")
 
             hmsg4   += "</pre>\n"
             pngname  = "image-%d-%d" % (ddrand,imagecount)
@@ -9703,7 +9712,7 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing reactionpath: :reactionpath, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing reactionpath: :reactionpath, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -9831,7 +9840,7 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
 
             msg5 += eoln + "Search Links to Other Online Resources (may not be available):" + eoln
             if (row[29] is not None):
-               encodedkey = urllib.urlencode({'':row[29]})
+               encodedkey = urllib.parse.urlencode({'':row[29]})
                link = "https://www.google.com/search?q=%22"+ row[29] + "%22&cad=h"
                dnname = " - <a target=\"_blank\" href=\"" + link + "\">" +"Google Structure Search" + "</a>"
                msg5 +=  dnname + eoln
@@ -9860,7 +9869,7 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
 
             ### turn off vcclab.org ###
             if False and (row[4] is not None):
-               encodedsmiles = urllib.urlencode({'':row[4]})
+               encodedsmiles = urllib.parse.urlencode({'':row[4]})
                link = "http://www.vcclab.org/web/alogps/calc?SMILES"+encodedsmiles
                msg5 += eoln
                msg5 += "<a target=\"_blank\" href=\"" + link + "\">" + "VCCL" + "</a>         = "
@@ -9908,24 +9917,19 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
                #msg5 += xyzdat2glmol(row[23])
                if (row[60] is not None) and ("mo_orbital_" in row[60]):
                   try:
-                     msg5 += nwout2jsmol("0x3BBC52",row[60],row[23])
+                     #msg5 += nwout2jsmol("0x3BBC52",row[60],row[23])
+                     msg5 += xyzdat2jsmol("0x3BBC52",row[23],row[64])
                   except:
                      msg5 += xyzdat2jsmol("0x3BBC52",row[23],row[64])
                      theory = row[9]
-                     if (theory=="dft" or theory=="hf" or theory=="uhf"):
-                        resubmit_homolumo_Background(id)
+                     #if (theory=="dft" or theory=="hf" or theory=="uhf"):
+                     #   resubmit_homolumo_Background(id)
                else:
                   msg5 += xyzdat2jsmol("0x3BBC52",row[23],row[64])
                   theory = row[9]
-                  if (theory=="dft" or theory=="hf" or theory=="uhf"):
-                     resubmit_homolumo_Background(id)
-                     #cmd99 = chemdb_homolumo + "-g %d" % id
-                     #print "cmd99=",cmd99
-                     #try:
-                     #   result99 = subprocess.check_output(cmd99,shell=True)
-                     #except:
-                     #   result99 = "\n\nchemdb_homolumo failed and job was not submitted\n\n"
-                     #print "result99=",result99
+                  #if (theory=="dft" or theory=="hf" or theory=="uhf"):
+                  #   resubmit_homolumo_Background(id)
+
             elif (not useascii):
                pngfilename = wrkdir + "/%d-large.png" % (id)
                pngname     = "image-%d-large-%d" % (id,imagecount)
@@ -9933,7 +9937,7 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
                #imagelist.append((pngfilename,pngname))
                cmd9 = chemdb_image0 + "-b %d" % id
                try:
-                  result9 = subprocess.check_output(cmd9,shell=True)
+                  result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
                   imagelist.append((pngfilename,pngname))
                   msg5 += "</pre>\n"
                   msg5 += '<br><center><img src="cid:%s"></center><br>\n' % pngname
@@ -9981,7 +9985,7 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing molecule: :molecule, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing molecule: :molecule, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -10031,11 +10035,11 @@ while ((len(rstring.split("predict:"))>1) and (not toolong) and (":predict" in r
       #cmd9 = chemdb_predict_reaction + "-f \"" + esmiles + "\""
 
       try:
-         result9 = subprocess.check_output(cmd9,shell=True)
+         result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
          if ("check back in ~10 minutes" in result9) and (not usehtml5):
             cmd9b    = chemdb_predict_reaction + "-v -j  "
-            result9b = subprocess.check_output(cmd9b,shell=True)
-            result9  = subprocess.check_output(cmd9,shell=True)
+            result9b = subprocess.check_output(cmd9b,shell=True).decode("utf-8")
+            result9  = subprocess.check_output(cmd9,shell=True).decode("utf-8")
 
          if ("imagelist:" in result9):
             result99 = result9.split("imagelist:")[1].split(":imagelist")[0]
@@ -10060,7 +10064,7 @@ while ((len(rstring.split("predict:"))>1) and (not toolong) and (":predict" in r
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing predict: :predict, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing predict: :predict, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 ###### add predicted reactions #####
@@ -10123,7 +10127,7 @@ while ((len(rstring.split("nmr:"))>1) and (not toolong) and (":nmr" in rstring))
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing nmr: :nmr, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing nmr: :nmr, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 #################################
@@ -10143,12 +10147,12 @@ while ((len(rstring.split("reactionenumerate:"))>1) and (not toolong) and (":rea
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing reactionenumerate: :reactionenumerate, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing reactionenumerate: :reactionenumerate, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 ### add reactionenumerates to rstring for parsing by parse reactions  ###
 for reactionenumerate in reactionenumerates:
-   print "reactionenumerate=",reactionenumerate
+   print("reactionenumerate=",reactionenumerate)
    rstring += "\n"
    rstring += generate_reactions_from_reactionenumerate(reactionenumerate)
    rstring += "\n"
@@ -10180,7 +10184,7 @@ while ((len(rstring.split("reaction["))>1) and (not toolong) and (":reaction" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing reaction[]: :reaction, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing reaction[]: :reaction, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -10221,13 +10225,13 @@ while ((len(rstring.split("reaction:"))>1) and (not toolong) and (":reaction" in
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing reaction: :reaction, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing reaction: :reaction, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 if (len(reactions)<1):
-   print "no reactions found, exiting"
+   print("no reactions found, exiting")
 else:
-   print "reactions=",reactions
+   print("reactions=",reactions)
 
 reaction_data = []
 noreaction_data = []
@@ -10317,10 +10321,10 @@ for reaction in reactions:
    if (SHE_product_string!=''):
       SHE_product_string  = ' + %.2f SHE ^{-1}' % SHE_product_x
 
-   print
-   print "esmiles_reactants=",esmiles_reactants
-   print "esmiles_products =",esmiles_products
-   print "numbers=",number_reactants,number_products
+   print()
+   print("esmiles_reactants=",esmiles_reactants)
+   print("esmiles_products =",esmiles_products)
+   print("numbers=",number_reactants,number_products)
 
    ### get the reactants from the database ###
    imagemsg = ""
@@ -10338,10 +10342,10 @@ for reaction in reactions:
    npaths = 1
    path   = []
    mcount_reactants = []
-   print
-   print "esmiles_reactants=",esmiles_reactants
-   print "esmiles_products =",esmiles_products
-   print "numbers=",number_reactants,number_products
+   print()
+   print("esmiles_reactants=",esmiles_reactants)
+   print("esmiles_products =",esmiles_products)
+   print("numbers=",number_reactants,number_products)
 
    ### get the reactants from the database ###
    imagemsg = ""
@@ -10427,7 +10431,7 @@ for reaction in reactions:
          missingesmiles = True
          if (submitmissingesmiles):
             rows1 = fetch_esmiles(hup,dbfile,requests_table,esmiles2,False)
-            print "ROWS1 = ",rows1
+            print("ROWS1 = ",rows1)
             rows = fetch_esmiles(hup,dbfile,table,esmiles2) #adding to request table
             if ((len(rows1)==0) or (resubmitmissingesmiles)):
                ooofile.write(" - product not found : " + esmiles2 + " scheduled to be submitted." + eoln)
@@ -10477,17 +10481,17 @@ for reaction in reactions:
       pppfile.write("The reaction is not balanced!" + eoln)
 
    ### add reaction to noreaction_data ###
-   #print "REACTION=",reaction
-   #print "CHARGES=",abs(charges)
-   #print "f2balance=",f2balance
-   #print "mformulas=",mformulas
-   #print "rps=",rps
-   #print "coeffs=",coeffs
-   #print "esmiles_reactants=",esmiles_reactants
-   #print "esmiles_products=",esmiles_products
-   #print "NPATHS=",npaths
-   #print "reactionbalanced=",reactionbalanced
-   #print "EMPTY=",empty
+   #print("REACTION=",reaction)
+   #print("CHARGES=",abs(charges))
+   #print("f2balance=",f2balance)
+   #print("mformulas=",mformulas)
+   #print("rps=",rps)
+   #print("coeffs=",coeffs)
+   #print("esmiles_reactants=",esmiles_reactants)
+   #print("esmiles_products=",esmiles_products)
+   #print("NPATHS=",npaths)
+   #print("reactionbalanced=",reactionbalanced)
+   #print("EMPTY=",empty)
    #if (npaths==0) and (reactionbalanced) and (not empty):
    if (npaths==0) and (len(esmiles_reactants)>0) and (len(esmiles_products)>0):
       noreaction_data.append(reaction)
@@ -10771,7 +10775,7 @@ for reaction in reactions:
          if (i>=len(path)): done = True
 
    ### append the reaction data reaction_data ###
-   print "inspaths2=",instance_paths_data
+   print("inspaths2=",instance_paths_data)
    reaction_data.append([reaction,instance_paths_data])
 
    ### print asciiart ###
@@ -10802,15 +10806,15 @@ for reaction in reactions:
          #imagecount += 1
          cmd9  = chemdb_reaction_image + imagemsg + " " + pngfilename
          try:
-            print "cmd9=",cmd9
-            result9 = subprocess.check_output(cmd9,shell=True)
+            print("cmd9=",cmd9)
+            result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
             imagelist.append((pngfilename,pngname))
             imagecount += 1
          except:
             cmd99 = chemdb_reaction_image + "-f " + imagemsg + " " + pngfilename
             try:
-               print "cmd99=",cmd99
-               result99 = subprocess.check_output(cmd99,shell=True)
+               print("cmd99=",cmd99)
+               result99 = subprocess.check_output(cmd99,shell=True).decode("utf-8")
                imagelist.append((pngfilename,pngname))
                imagecount += 1
             except:
@@ -10843,7 +10847,7 @@ if (addedtoerxnfile) and (len(reactions)>1):
       os.unlink(erxngnuplot)
       os.unlink(erxndumb)
    except:
-      print "Failed to delete temporary gnuplot files"
+      print("Failed to delete temporary gnuplot files")
 
    ### PNG gnuplotting ####
    if (not useascii):
@@ -10857,7 +10861,7 @@ if (addedtoerxnfile) and (len(reactions)>1):
       try:
          os.unlink(erxngnuplot)
       except:
-         print "Failed to delete temporary gnuplot files"
+         print("Failed to delete temporary gnuplot files")
 
       ooofile.write("</pre>\n")
       pngname     = "image-%d-%d" % (ddrand,imagecount)
@@ -10877,34 +10881,34 @@ for reactionenumerate in reactionenumerates:
 
 
 ### add reaction_data to reactionhash database ###
-for reaction in reaction_data:
-   try:
-      print "Adding to reaction database=",reaction
-      Erxn     = reaction[1][0][0]*autokcal
-      Hrxn     = reaction[1][0][1]*autokcal
-      Grxn     = reaction[1][0][2]*autokcal
-      Solv     = reaction[1][0][3]*autokcal
-      Grxnaq   = reaction[1][0][4]*autokcal
-      cmd9 = chemdb_predict_reaction + " -e %f -r %f -g %f -q %f -u %f  -a " % (Erxn,Hrxn,Grxn,Solv,Grxnaq)
-      cmd9 += "\"" + reaction[0] + "\""
-      print "cmd9=",cmd9
-      result9 = subprocess.check_output(cmd9,shell=True)
-      print "adding reaction result=",result9
-   except:
-      print "Failed adding adding reaction =", reaction[0]
+#for reaction in reaction_data:
+#   try:
+#      print("Adding to reaction database=",reaction)
+#      Erxn     = reaction[1][0][0]*autokcal
+#      Hrxn     = reaction[1][0][1]*autokcal
+#      Grxn     = reaction[1][0][2]*autokcal
+#      Solv     = reaction[1][0][3]*autokcal
+#      Grxnaq   = reaction[1][0][4]*autokcal
+#      cmd9 = chemdb_predict_reaction + " -e %f -r %f -g %f -q %f -u %f  -a " % (Erxn,Hrxn,Grxn,Solv,Grxnaq)
+#      cmd9 += "\"" + reaction[0] + "\""
+#      print("cmd9=",cmd9)
+#      result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
+#      print("adding reaction result=",result9)
+#   except:
+#      print("Failed adding adding reaction =", reaction[0])
 
 
 ### add noreaction_data to reactionhash database ###
-for reaction in noreaction_data:
-   try:
-      print "Adding to noreaction database=",reaction
-      cmd9 = chemdb_predict_reaction + " -n " 
-      cmd9 += "\"" + reaction + "\""
-      print "cmd9=",cmd9
-      result9 = subprocess.check_output(cmd9,shell=True)
-      print "adding noreaction result=",result9
-   except:
-      print "Failed adding adding noreaction =", reaction[0]
+#for reaction in noreaction_data:
+#   try:
+#      print("Adding to noreaction database=",reaction)
+#      cmd9 = chemdb_predict_reaction + " -n " 
+#      cmd9 += "\"" + reaction + "\""
+#      print("cmd9=",cmd9)
+#      result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
+#      print("adding noreaction result=",result9)
+#   except:
+#      print("Failed adding adding noreaction =", reaction[0])
 
 
 #### print asciiart ###
@@ -10929,8 +10933,8 @@ if (submitmissingesmiles):
       datafile = fetch_esmiles_base_datafile(hup,dbfile,table,esmiles)
       esmiles1 = esmileswithid_to_esmiles(hup,dbfile,table,esmiles)
       esmiles1 = esmileswithname_to_esmiles(esmiles1.strip())
-      print "esmiles=",esmiles,"  esmiles1=",esmiles1
-      print "datafile=",datafile
+      print("esmiles=",esmiles,"  esmiles1=",esmiles1)
+      print("datafile=",datafile)
 
       if (datafile=='') and (("ccsd(t)" in esmiles) or ("mp2" in esmiles) or ("qsharp_chem" in esmiles) or ("ccsd" in esmiles)):
          #mmsg = "Base calculation not found: not submitting esmiles="+esmiles+"\n"
@@ -10942,7 +10946,7 @@ if (submitmissingesmiles):
             msg4 = submit_esmiles_base(esmiles1,includerotation,datafile,emailfrom)
          ooofile.write(eoln + msg4 + eoln)
          pppfile.write(eoln + msg4 + eoln)
-         #print mmsg
+         #print(mmsg)
          #ooofile.write(mmsg)
          #pppfile.write(mmsg)
       else:
@@ -10957,7 +10961,7 @@ if (submitmissingesmiles):
          pppfile.write(eoln + msg4 + eoln)
     except:
       mmsg = "Error: not submitting esmiles="+esmiles+"\n"
-      print mmsg
+      print(mmsg)
       ooofile.write(mmsg)
       pppfile.write(mmsg)
    listnwjobs = listnwjobs or (len(submitesmiles)>0)
@@ -10968,52 +10972,52 @@ if (submitmissingesmiles):
 #### submit_heat_formation ####
 for esmiles in submit_heat_formation:
    cmd1 = chemdb_add_Hf + '"' + esmiles.strip() + '"'
-   print "chemdb_add_Hf = " + cmd1
+   print("chemdb_add_Hf = " + cmd1)
    try:
-      result = subprocess.check_output(cmd1,shell=True)
+      result = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    except:
       result = "\n\nchemdb_add_Hf failed and job was not submitted\n\n"
    ooofile.write(eoln+result+eoln)
    pppfile.write(eoln+result+eoln)
-   print result
+   print(result)
 
 
 #### queuecheck ####
 if (queuecheck):
    cmd1 = tnt_submit + " -i"
-   print "queuecheck cmd1 = " + cmd1
-   result = subprocess.check_output(cmd1,shell=True)
+   print("queuecheck cmd1 = " + cmd1)
+   result = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    ooofile.write(result)
    pppfile.write(result)
-   print result
+   print(result)
 
 #### listnwjobs ####
 if (listnwjobs):
    cmd1 = queue_nwchem_em + " -a -s -m None"
-   print "listnwjobs cmd1 = " + cmd1
-   result = subprocess.check_output(cmd1,shell=True)
+   print("listnwjobs cmd1 = " + cmd1)
+   result = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    ooofile.write(result)
    pppfile.write(result)
-   print result
+   print(result)
 
 #### fetchnwjob ####
 for f in fetchnwjob:
    cmd1 = queue_nwchem_em + " -f %d -m %s " % (f,emailfrom)
-   print "fetchwjob cmd1 = " + cmd1
-   result = subprocess.check_output(cmd1,shell=True)
+   print("fetchwjob cmd1 = " + cmd1)
+   result = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    ooofile.write(result)
    pppfile.write(result)
-   print result
+   print(result)
 
 #### pushnwjob ####
 for aa in pushnwjob:
    with open(wrkdir + "/"+tmpsmi1,'w') as ff: ff.write(aa)
    cmd1 = queue_nwchem_em + " -w  " + wrkdir + "/"+ tmpsmi1
-   print "pushwjob cmd1 = " + cmd1
-   result = subprocess.check_output(cmd1,shell=True)
+   print("pushwjob cmd1 = " + cmd1)
+   result = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    ooofile.write(result)
    pppfile.write(result)
-   print result
+   print(result)
 
 ### SMARTS ###
 toolongcountmax = 15
@@ -11054,7 +11058,7 @@ while ((len(rstring.split("smarts:"))>1) and (not toolong) and (":smarts" in rst
 
    myids = []
    cmd1 =  obabel + ' -ismi ' + fname + ' -osmi -s \"' + smarts + '\"'
-   result3 = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+   result3 = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    for line in result3.split("\n"):
       if "DATA:::" in line:
          line2 = line.split('DATA:::')[1] + "\n"
@@ -11081,7 +11085,7 @@ while ((len(rstring.split("smarts:"))>1) and (not toolong) and (":smarts" in rst
 if (toolong):
    ooofile.write("chemdb_fetch_reactions: too long parsing smarts: :smarts, exiting.\n")
    pppfile.write("chemdb_fetch_reactions: too long parsing smarts: :smarts, exiting.\n")
-   print  "All requests to Arrows were successful."
+   print("All requests to Arrows were successful.")
    exit()
 
 
@@ -11109,7 +11113,7 @@ if (listallesmiles):
 #### listallreactions ####
 if (listallreactions):
    cmd1 = chemdb_predict_reaction
-   result = subprocess.check_output(cmd1,shell=True)
+   result = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    ooofile.write(result)
    pppfile.write(result)
 
@@ -11121,7 +11125,7 @@ else:
    msg = "All requests to Arrows were successful."
 ooofile.write(eoln+msg+eoln)
 pppfile.write(eoln+msg+eoln)
-print eoln+msg+eoln
+print(eoln+msg+eoln)
 
 
 ##### report image files #####
@@ -11130,7 +11134,7 @@ if (not useascii):
    for image in imagelist:
       msg += "%s %s " % (image[0],image[1])
    msg += ":imagelist"
-   print eoln+msg+eoln
+   print(eoln+msg+eoln)
 
 
 ### add simple arrows logo 
@@ -11154,32 +11158,32 @@ ooofile.close()
 pppfile.close()
 
 #for molecule in rows:
-#   print "Id=%6d iupac=%s csmiles=%s charge=%d mult=%d method=%s theory=%s basis=%s \tE=%14.6f  Enthalpy=%14.6f Entropy=%8.3f solvation=%8.3f sitkoff=%8.3f" % (molecule[0],molecule[1],molecule[4],molecule[12],molecule[13],molecule[9],molecule[10],molecule[11],molecule[14],molecule[15],molecule[16],molecule[18],molecule[19])
+#   print("Id=%6d iupac=%s csmiles=%s charge=%d mult=%d method=%s theory=%s basis=%s \tE=%14.6f  Enthalpy=%14.6f Entropy=%8.3f solvation=%8.3f sitkoff=%8.3f" % (molecule[0],molecule[1],molecule[4],molecule[12],molecule[13],molecule[9],molecule[10],molecule[11],molecule[14],molecule[15],molecule[16],molecule[18],molecule[19]))
 
 
 ### remove temporary wrkdir files ###
 try:
    os.unlink(wrkdir + "/"+tmpsmi1)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi1
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi1)
 
 try:
    os.unlink(wrkdir + "/"+tmpsmi2)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi2
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi2)
 
 try:
    os.unlink(wrkdir + "/"+tmpxyz1)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpxyz1
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpxyz1)
 
 try:
    os.unlink(wrkdir + "/"+tmperxn)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmperxn
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmperxn)
 
 try:
    os.unlink(wrkdir + "/"+tmpnwout)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpnwout
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpnwout)
 

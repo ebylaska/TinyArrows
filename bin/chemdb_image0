@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect
+import sys,os,time,pickle,math,pymysql,urllib,getopt,subprocess,pexpect,sqlite3
 from math import *
 #import image
 from PIL import Image
@@ -8,16 +8,24 @@ from PIL import ImageFont
 from PIL import ImageDraw
 
 ############## machine parameters #########################
-wrkdir    = "/srv/arrows/Projects/Work"
-chemdbfile = "/srv/arrows/bin/.chemdb-en"
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+
+#TIMEOUT = '/usr/bin/timeout'
+TIMEOUT = '/usr/local/bin/gtimeout'
+TIMEOUT20 ="DISPLAY=:10; " + TIMEOUT + " 20 "
+TIMEOUT40 ="DISPLAY=:10; " + TIMEOUT + " 40 "
+TIMEOUT80 ="DISPLAY=:10; " + TIMEOUT + " 80 "
+TIMEOUT160 ="DISPLAY=:10; " + TIMEOUT + " 160 "
+
+wrkdir    = ARROWS_HOME + "/Work"
+chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
 sshmachine0 = "bylaska@archive.emsl.pnl.gov"
-#sshmachine0 = "bylaska@cascade.emsl.pnl.gov"
-#sshmachine0 = "bylaska@constance.pnl.gov"
 dirmachine0 = "/archive/bylaska"
-shepng      = "/srv/arrows/bin/she.png"
+shepng      = ARROWS_HOME + "/bin/she.png"
 ############## machine parameters #########################
 
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 
 
@@ -30,23 +38,23 @@ def pexpect_command(pcmd,mypassword):
       p=pexpect.spawn(pcmd,timeout=300)
       i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==0:
-          print "I say yes"
+          print("I say yes")
           p.sendline('yes')
           i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==1:
-          print "sending password",
+          print("sending password")
           p.sendline(mypassword)
           p.expect(pexpect.EOF)
       elif i>=2:
-          print "either received key or connection timeout"
+          print("either received key or connection timeout")
           pass
-      print p.before # print out the result
+      print(p.before) # print out the result
       return p.before
 
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
 
 
 
@@ -68,11 +76,12 @@ Remote chemdb_image0 program
 
 #Database defaults
 hup         = hup0
-dbfile      = "TNT_Project"
+dbfile      = dbfile0
+#dbfile      = "TNT_Project"
 table       = "calculations"
 image_table = "images"
 
-print "chemdb_image0 mysql version"
+print("chemdb_image0 mysql version")
 tt      = time.localtime()
 
 largeimage = False
@@ -90,11 +99,11 @@ for o, a in opts:
   if '-f' in o:
      regenerateimage = True
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1): 
-   print usage
+   print(usage)
    exit()
 
 arrows_id = args[0]
@@ -102,14 +111,14 @@ arrows_id = args[0]
 if ("SHE" in arrows_id):
    filename = wrkdir + "/SHE.png"
    cmd6 = "/usr/bin/cp %s %s" % (shepng,filename)
-   print "cmd6=",cmd6
+   print("cmd6=",cmd6)
    try:
       result1 = subprocess.check_output(cmd6,shell=True)
    except:
-      print "chemdb_image0 Failed to copy she.png"
+      print("chemdb_image0 Failed to copy she.png")
    filesize = os.path.getsize(filename)
-   print "filesize=",filesize
-   print "Small Image Created"
+   print("filesize=",filesize)
+   print("Small Image Created")
    exit()
 
 
@@ -136,17 +145,17 @@ else:
 
 if (hup=='sqlite3'):
    issqlite3 = True
-   print "sqlite3 db file =",dbfile
+   print("sqlite3 db file =",dbfile)
 else:
    issqlite3 = False
-   print "mysql db         =",dbfile
-print "table name       =",table
-print "arrows_id        =",arrows_id
-print "permanent imagefile =",imagefile
-print "temporary imagefile =",filename
+   print("mysql db         =",dbfile)
+print("table name       =",table)
+print("arrows_id        =",arrows_id)
+print("permanent imagefile =",imagefile)
+print("temporary imagefile =",filename)
 
 cmd0   = "scp " + imagefile + " " + filename
-print "cmd0=",cmd0
+print("cmd0=",cmd0)
 try:
    ##result = pexpect_command(cmd0,archivepassword)
    result = "Turning off until March 1st"
@@ -156,7 +165,7 @@ try:
 except:
    result = "Input/output error"
 
-print "RESULT=",result
+print("RESULT=",result)
 
 if "Input/output error" in result: 
    regenerateimage = True
@@ -164,7 +173,7 @@ if "Input/output error" in result:
 
 ### create imagefile if not found
 if ((not os.path.isfile(filename)) or (regenerateimage)):
-   print "Creating imagefile with jmol"
+   print("Creating imagefile with jmol")
    xyzfile   = "chemdb.xyz"
    if (Id>0):
       if (issqlite3):
@@ -191,76 +200,64 @@ if ((not os.path.isfile(filename)) or (regenerateimage)):
       xyzstring = "1\n\nH 0.0 0.0 0.0\n"
 
    ### generate image ###
-   print xyzstring
+   print(xyzstring)
    nion  = eval(xyzstring.split("\n")[0])
    xfile = open(xyzfile,'w')
    xfile.write(xyzstring)
    xfile.close()
    if largeimage:
-      #cmd6 = "java -Xmx512m -jar /srv/arrows/Codes/jmol-14.4.1_2016.01.15/Jmol.jar -i -L -o -n -g 600x600 -s %s %s -q0 -w png:%s" %  (wrkdir + "/jmol.script",xyzfile,filename)
-      cmd6 = "/srv/arrows/bin/jmol-big %s %s %s" % (wrkdir + "/jmol-big.script",xyzfile,filename)
+      cmd6 = ARROWS_HOME + "/bin/jmol-big %s %s %s" % (wrkdir + "/jmol-big.script",xyzfile,filename)
    else:
       if (nion<30):
          bigimage = False
-         #cmd6 = "/srv/arrows/bin/jmol -n -g 160x160 -s %s %s -q0 -w png:%s" % (wrkdir + "/jmol.script",xyzfile,filename)
-         #cmd6 = "java -Xmx512m -jar /srv/arrows/Codes/jmol-14.4.1_2016.01.15/Jmol.jar -i -L -o -n -g 160x160 -s %s %s -q0 -w png:%s" %  (wrkdir + "/jmol.script",xyzfile,filename)
-         cmd6 = "/srv/arrows/bin/jmol-small %s %s %s" % (wrkdir + "/jmol.script",xyzfile,filename)
+         cmd6 = ARROWS_HOME + "/bin/jmol-small %s %s %s" % (ARROWS_HOME + "/bin//jmol.script",xyzfile,filename)
       else:
          bigimage = True
-         #cmd6 = "/srv/arrows/bin/jmol -n -g 355x355 -s %s %s -q0 -w png:%s" % (wrkdir + "/jmol.script",xyzfile,filename)
-         #cmd6 = "java -Xmx512m -jar /srv/arrows/Codes/jmol-14.4.1_2016.01.15/Jmol.jar -i -L -o -n -g 355x355 -s %s %s -q0 -w png:%s" %  (wrkdir + "/jmol.script",xyzfile,filename)
-         cmd6 = "/srv/arrows/bin/jmol-medium %s %s %s" % (wrkdir + "/jmol.script",xyzfile,filename)
-   print "cmd6="+cmd6
+         cmd6 = ARROWS_HOME + "/bin/jmol-medium %s %s %s" % (ARROWS_HOMEr + "/bin//jmol.script",xyzfile,filename)
+   print("cmd6="+cmd6)
 
    try:
-      result1 = subprocess.check_output("DISPLAY=:10; /usr/bin/timeout 20 " + cmd6,shell=True)
+      result1 = subprocess.check_output(TIMEOUT20 + cmd6,shell=True)
    except:
-      print "Attempt 1 failed, trying 40 second timeout"
+      print("Attempt 1 failed, trying 40 second timeout")
       try:
-         result2 = subprocess.check_output("DISPLAY=:10; /usr/bin/timeout 40 " + cmd6,shell=True)
+         result2 = subprocess.check_output(TIMEOUT40 + cmd6,shell=True)
       except:
-         print "Attempt 2 failed, trying 80 second timeout"
+         print("Attempt 2 failed, trying 80 second timeout")
          try:
-            result3 = subprocess.check_output("DISPLAY=:10 ; /usr/bin/timeout 80 " + cmd6,shell=True)
+            result3 = subprocess.check_output(TIMEOUT80 + cmd6,shell=True)
          except:
-            print "Attempt 3 failed, trying 160 second timeout"
+            print("Attempt 3 failed, trying 160 second timeout")
             try:
-               result4 = subprocess.check_output("DISPLAY=:10; /usr/bin/timeout 160 " + cmd6,shell=True)
+               result4 = subprocess.check_output(TIMEOUT160 + cmd6,shell=True)
             except:
-               print "JMOL Failed to create PNG"
+               print("JMOL Failed to create PNG")
                exit()
 
    #### delete file in archive ####
    if (regenerateimage):
       cmd1d   = "ssh " + sshmachine0 + " rm " + imagefiler
-      print "cmd1d",cmd1d
+      print("cmd1d",cmd1d)
       try:
          result = pexpect_command(cmd1d,archivepassword)
       except:
-         print "cmd1d failed=",cmd1d
+         print("cmd1d failed=",cmd1d)
 
    #### upload file ####
    cmd1   = "scp " + filename + " " + imagefile 
-   print "cmd1",cmd1
+   print("cmd1",cmd1)
    try:
       ##result = pexpect_command(cmd1,archivepassword)
       result = "Upload turned off until March 1st."
    except:
-      print "cmd1 failed=",cmd1
+      print("cmd1 failed=",cmd1)
 
 filesize = os.path.getsize(filename)
-print "filesize=",filesize
+print("filesize=",filesize)
 
 bigimage = (filesize > 99999)
 if bigimage:
-   print "Big Image Created"
+   print("Big Image Created")
 else:
-   print "Small Image Created"
-
-
-
-
-
-
-
+   print("Small Image Created")
 

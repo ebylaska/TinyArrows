@@ -1,25 +1,29 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess
+import sys,os,time,pickle,math,pymysql,urllib,getopt,subprocess,sqlite3
 from math import *
 #import image
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 
-############## machine parameters #########################
-chemdb_image0  = "/srv/arrows/bin/chemdb_image0 "
-chemdb_image0f = "/srv/arrows/bin/chemdb_image0 -f "
-wrkdir         = "/srv/arrows/Projects/Work"
 
-chemdbfile = "/srv/arrows/bin/.chemdb-en"
+############## machine parameters #########################
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+
+chemdb_image0  = ARROWS_HOME + "/bin/chemdb_image0 "
+chemdb_image0f = ARROWS_HOME + "/bin/chemdb_image0 -f "
+wrkdir         = ARROWS_HOME + "/Work"
+
+chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
 ############## machine parameters #########################
 
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
 
 
 
@@ -41,10 +45,11 @@ Remote chemdb_reaction_image     program
 
 #Database defaults
 hup    = hup0
-dbfile = "TNT_Project"
+#dbfile = "TNT_Project"
+dbfile = dbfile0
 table  = "calculations"
 
-print "chemdb_reaction_image mysql version"
+print("chemdb_reaction_image mysql version")
 tt      = time.localtime()
 
 regenerateimages = False
@@ -59,11 +64,11 @@ for o, a in opts:
   if '-f' in o:
      regenerateimages = True
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1): 
-   print usage
+   print(usage)
    exit()
 
 myfilename  = args[-1]
@@ -71,7 +76,7 @@ reactants = []
 products  = []
 isreactant = True
 for a in args[:-1]:
-   print a,isreactant
+   print(a,isreactant)
    if (a=='=') : 
       isreactant=False
    else:
@@ -82,13 +87,13 @@ for a in args[:-1]:
 
 if (hup=='sqlite3'):
    issqlite3 = True
-   print "sqlite3 db file =",dbfile
+   print("sqlite3 db file =",dbfile)
 else:
    issqlite3 = False
-   print "mysql db        =",dbfile
-print "table name      =",table
-print "reactants       = "," ".join(reactants)
-print "products        = "," ".join(products)
+   print("mysql db        =",dbfile)
+print("table name      =",table)
+print("reactants       = "," ".join(reactants))
+print("products        = "," ".join(products))
 
 
 xyzfile2  = "tmpsmiles.xyz"
@@ -131,7 +136,7 @@ for rr in (reactants,products):
       label  = ''
       centerplus = False
       if (x==xstart) and (y==ystart):
-         if isinstance(num,(int,long)):
+         if isinstance(num,int):
             if (num!=1):
                label = "%4d"   % int(num)
             else:
@@ -146,7 +151,7 @@ for rr in (reactants,products):
             label = "-"
          else:
             label = "+"
-         if isinstance(num,(int,long)):
+         if isinstance(num,int):
             if (abs(num)!=1): 
                label += "%3d"   % int(abs(num))
             else:
@@ -189,31 +194,31 @@ for rr in (reactants,products):
          cmd6 = chemdb_image0f + Id
       else:
          cmd6 = chemdb_image0 + Id
-      print "cmd6=",cmd6
+      print("cmd6=",cmd6)
       try:
-         result1 = subprocess.check_output(cmd6,shell=True)
+         result1 = subprocess.check_output(cmd6,shell=True).decode("utf-8")
       except:
-         print "chemdb_image0 Failed to create PNG"
+         print("chemdb_image0 Failed to create PNG")
          exit()
       bigimage = "Big Image Created" in result1
       if (bigimage):
-         print "Big Image Created, Id=", Id
+         print("Big Image Created, Id=", Id)
       else:
-         print "Small Image Created, Id=",Id
+         print("Small Image Created, Id=",Id)
 
       if (bigimage):
          if (x!=xstart):
             x = xstart
             y += 165
          x0 = x;      y0 = y
-         x1 = x - 35; y1 = y + 355/2 - 10
+         x1 = x - 35; y1 = y + 355//2 - 10
          x2 = x +295; y2 = y
          mh = y +360
          x  = xstart
          y += 360
       else:
          x0 = x;      y0 = y
-         x1 = x - 35; y1 = y + 160/2 -10
+         x1 = x - 35; y1 = y + 160//2 -10
          x2 = x +120; y2 = y
          mh = y +165
          if (x==xstart):
@@ -235,21 +240,21 @@ for rr in (reactants,products):
 
 dbcon.close()
 
-print "image_data=",image_data
+print("image_data=",image_data)
 
 #images = map(Image.open, filenames)
 mhmax  = max(mhall)
-shifty = [(mhmax-mhall[0])/2,(mhmax-mhall[1])/2]
+shifty = [(mhmax-mhall[0])//2,(mhmax-mhall[1])//2]
 
 #result = Image.new("RGBA", (800, mhmax), (250,250,250))
 result = Image.new("RGBA", (800, mhmax), (350,300,350))
 draw   = ImageDraw.Draw(result)
-font   = ImageFont.truetype(wrkdir+"/arial.ttf",20)
+font   = ImageFont.truetype(ARROWS_HOME+"/bin/arial.ttf",20)
 
 ### paste images ###
 for ii in image_data:
    if ii[0]=="image":
-      im = map(Image.open, [ii[3]])[0]
+      im = list(map(Image.open, [ii[3]]))[0]
       result.paste(im, (ii[1],ii[2]+shifty[ii[4]]))
 #result.save("hello.jpg")
 
@@ -273,27 +278,27 @@ draw.text((300,mhmax-25),txt1,(0,0,0),font=font)
 ### draw arrow ###
 if (centerarrow):
    points = []
-   points.append((390,mhmax/2))
-   points.append((435,mhmax/2))
+   points.append((390,mhmax//2))
+   points.append((435,mhmax//2))
    draw.line(points,fill=(0,0,200),width=8)
 
    points = []
-   points.append((445,mhmax/2))
-   points.append((435,mhmax/2+7))
-   points.append((435,mhmax/2-7))
-   points.append((445,mhmax/2))
+   points.append((445,mhmax//2))
+   points.append((435,mhmax//2+7))
+   points.append((435,mhmax//2-7))
+   points.append((445,mhmax//2))
    draw.polygon(points,fill=(0,0,200),outline=(0,0,0))
 else:
    points = []
-   points.append((370,mhmax/2))
-   points.append((405,mhmax/2))
+   points.append((370,mhmax//2))
+   points.append((405,mhmax//2))
    draw.line(points,fill=(0,0,200),width=8)
 
    points = []
-   points.append((415,mhmax/2))
-   points.append((405,mhmax/2+7))
-   points.append((405,mhmax/2-7))
-   points.append((415,mhmax/2))
+   points.append((415,mhmax//2))
+   points.append((405,mhmax//2+7))
+   points.append((405,mhmax//2-7))
+   points.append((415,mhmax//2))
    draw.polygon(points,fill=(0,0,200),outline=(0,0,0))
 
 
@@ -305,10 +310,5 @@ for ii in image_data:
       try:
          os.unlink(ii[3])
       except:
-         print "chemdb_image Failed to remove " + ii[3]
-
-
-
-
-
+         print("chemdb_image Failed to remove " + ii[3])
 

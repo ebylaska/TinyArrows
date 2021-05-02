@@ -1,20 +1,22 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,re,itertools
+import sys,os,time,pickle,math,pymysql,urllib,getopt,subprocess,pexpect,random,operator,re,itertools,sqlite3
 from math import *
 from copy import deepcopy
 
 ############## machine parameters #########################
-babel              = "/usr/bin/babel"
-obabel             = "/usr/bin/obabel "
-esmiles2xyz        = "/srv/arrows/bin/esmiles2xyz "
-chemdb_add_request = "/srv/arrows/bin/chemdb_add_request "
-chemdb_freq        = "/srv/arrows/bin/chemdb_freq -v "
-chemdb_add_Hf      = "/srv/arrows/bin/chemdb_add_Hf "
-chemdb_image0      = "/srv/arrows/bin/chemdb_image0 "
-chemdb_reaction_image = "/srv/arrows/bin/chemdb_reaction_image "
-wrkdir             = "/srv/arrows/Work"
-chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+
+#babel              = "/usr/bin/babel"
+obabel             = "/usr/local/bin/obabel "
+esmiles2xyz        = ARROWS_HOME + "/bin/esmiles2xyz "
+chemdb_add_request = ARROWS_HOME + "/bin/chemdb_add_request "
+chemdb_freq        = ARROWS_HOME + "/bin/chemdb_freq -v "
+chemdb_add_Hf      = ARROWS_HOME + "/bin/chemdb_add_Hf "
+chemdb_image0      = ARROWS_HOME + "/bin/chemdb_image0 "
+chemdb_reaction_image = ARROWS_HOME + "/bin/chemdb_reaction_image "
+wrkdir             = ARROWS_HOME + "/Work"
+chemdbfile         = ARROWS_HOME + "/bin/.chemdb-en"
 #chemdbfile         = "/srv/arrows/bin/.chemdb-en"
 #with open('/Users/bylaska/bin/.chemdb','r') as f:
 #   hup0            = f.readline().strip()
@@ -35,11 +37,7 @@ myreactiontypes0 = ["A + B --> AB", "AB --> A + B", "AB + C --> AC + B","AB + CD
 ##### Types of reactions #####
 
 
-
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
-
-
-
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 
 
@@ -561,8 +559,7 @@ def stripWARNINGS(str):
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
-
+exec(aaa)
 
 
 
@@ -570,7 +567,7 @@ exec aaa
 def geturlresult(url):
     try:
         connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
+    except urllib2.HTTPError(e):
         return ""
     else:
         return connection.read().rstrip()
@@ -584,17 +581,17 @@ def pexpect_command(pcmd,mypassword):
       p=pexpect.spawn(pcmd,timeout=300)
       i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==0:
-          print "I say yes"
+          print("I say yes")
           p.sendline('yes')
           i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==1:
-          print "sending password",
+          print("sending password")
           p.sendline(mypassword)
           p.expect(pexpect.EOF)
       elif i>=2:
-          print "either received key or connection timeout"
+          print("either received key or connection timeout")
           pass
-      print p.before # print out the result
+      print(p.before) # print out the result
 
 
 
@@ -702,7 +699,8 @@ def mol2smiles(mol):
       ofile = open(molfile,'w')
       ofile.write(mol); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -imol " + molfile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      #cmd6 = babel + " -imol " + molfile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      cmd6 = obabel + " -imol " + molfile + " -ocan -O" + smilefile2 + " >& " + wrkdir + "/junk.err"
       os.system(cmd6)
       smiles2 = "nosmiles"
       sdat = []
@@ -736,7 +734,8 @@ def nametosmiles(name):
  try:
    #
    hup    = hup0
-   dbfile = "TNT_Project"
+   #dbfile = "TNT_Project"
+   dbfile = dbfile0
    table  = "nametosmiles"
    if (hup=='sqlite3'):
       issqlite3 = True
@@ -770,7 +769,7 @@ def nametosmiles(name):
             insertlist = []
             insertlist.append(name)
             insertlist.append(smiles)
-            print "inserting "+ name + " " + smiles + " into " + table
+            print("inserting "+ name + " " + smiles + " into " + table)
             cur.execute(sqlinsert,insertlist)
       else:
          smiles = rows[0][2]
@@ -801,7 +800,7 @@ def esmiles_hasname(esmiles):
          smiles = esmiles.strip().split()[0]
          cmd = obabel + ' -:\"' + smiles + '\" -ocan'
          result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
-         #print "result=",result
+         #print("result=",result)
          if "0 molecules converted" in result:
             hasname = True
          else:
@@ -968,7 +967,8 @@ def cannonicalsmiles(smiles):
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
 
-      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      #cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
+      cmd6 = obabel + " -ismi " + smilefile + " -ocan -O" + smilefile2 + " >& " + wrkdir + "/junk.err"
       os.system(cmd6)
       smiles2 = "nosmiles"
       sdat = []
@@ -993,7 +993,8 @@ def xyz2smiles(xyzfile):
    try:
       smiles = ''
       smilefile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile + " >& junk.err"
+      #cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile + " >& junk.err"
+      cmd6 = obabel + " -ixyz " + xyzfile + " -ocan -O" + smilefile + " >& junk.err"
       os.system(cmd6)
       sdat = []
       ofile = open(smilefile,'r')
@@ -1033,7 +1034,8 @@ def xyz2InChI(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+ tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile + " >& junk.err"
+      #cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile + " >& junk.err"
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchi -O" + inchifile + " >& junk.err"
       os.system(cmd6)
       sdat = []
       ofile = open(inchifile,'r')
@@ -1050,7 +1052,8 @@ def xyz2InChIKey(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile + " >& junk.err"
+      #cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile + " >& junk.err"
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchikey -O" + inchifile + " >& junk.err"
       os.system(cmd6)
       sdat = []
       ofile = open(inchifile,'r')
@@ -1073,7 +1076,8 @@ def smiles2InChI(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile + " >& " + wrkdir + "/junk.err"
+      #cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile + " >& " + wrkdir + "/junk.err"
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchi -O" + inchifile + " >& " + wrkdir + "/junk.err"
       os.system(cmd6)
       sdat = []
       ofile = open(inchifile,'r')
@@ -1096,7 +1100,8 @@ def smiles2InChIKey(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile + " >& " + wrkdir + "/junk.err"
+      #cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile + " >& " + wrkdir + "/junk.err"
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchikey -O" + inchifile + " >& " + wrkdir + "/junk.err"
       os.system(cmd6)
       sdat = []
       ofile = open(inchifile,'r')
@@ -1230,14 +1235,14 @@ def xyz_molecular_formula(xyzfilename):
 
 def convertaromatic_adjmat(adjmat):
    n = len(adjmat)
-   print "aromatic n=",n
+   print("aromatic n=",n)
    aedges = []
    for i in range(n):
       for j in range(i+1,n):
          if (adjmat[i][j]==1.5):
             aedges.append((i,j))
 
-   print "len(aedges)=",len(aedges)
+   print("len(aedges)=",len(aedges))
    if (len(aedges)%2==0):
       ne = len(aedges)
       bonding = [1]*(ne/2) + [2]*(ne/2)
@@ -1245,11 +1250,11 @@ def convertaromatic_adjmat(adjmat):
       gbonding = []
       done = False
       b = 0
-      print "aromatic ne,nb=",ne,nb
+      print("aromatic ne,nb=",ne,nb)
       while (not done) and (b<nb):
          random.shuffle(bonding)
          badbonding = False
-         print "b,bonding=",b,bonding
+         print("b,bonding=",b,bonding)
          for e0 in range(ne):
             if (not badbonding):
                i0 = aedges[e0][0]
@@ -1274,7 +1279,7 @@ def convertaromatic_adjmat(adjmat):
             adjmat[i0][j0] = b0
             adjmat[j0][i0] = b0
 
-   print "aromatic Finished!"
+   print("aromatic Finished!")
  
 
 
@@ -1314,8 +1319,8 @@ def bondtostring(ii,jj,adjmat):
 ###############################################
 def generate_smiles(findx,indx,symbols,adjmat,visited,cycle,smilecount):
    nion = len(symbols)
-   #print "INDX,from,VISITED=",indx,findx,visited,cycle
-   #print
+   #print("INDX,from,VISITED=",indx,findx,visited,cycle)
+   #print()
    visited[indx] = True
    children = []
    children_strings = []
@@ -1495,8 +1500,8 @@ def generate_smiles(findx,indx,symbols,adjmat,visited,cycle,smilecount):
       tt = bondtostring(ii,jj,adjmat)+child_string[0]
       str += tt
 
-   #print "indx,findx,str=",indx,findx,str," visited=",visited," cycle=",cycle
-   #print
+   #print("indx,findx,str=",indx,findx,str," visited=",visited," cycle=",cycle)
+   #print()
    return str
 
 
@@ -1508,27 +1513,27 @@ def generate_smiles(findx,indx,symbols,adjmat,visited,cycle,smilecount):
 
 def generate_products1(molecules,indxsyms,bstring,row,level):
 
-   print "not doing anything yet!"
-   print "molecules=",molecules
-   print "bstring=",bstring
-   print "row=",row
-   print "indxsyms=",indxsyms
-   print "number of reactants = ",len(molecules)
-   print
+   print("not doing anything yet!")
+   print("molecules=",molecules)
+   print("bstring=",bstring)
+   print("row=",row)
+   print("indxsyms=",indxsyms)
+   print("number of reactants = ",len(molecules))
+   print()
    nr = len(molecules)
 
-   #print
-   #print "XYZ:"
+   #print()
+   #print("XYZ:")
    #for r in range(nr):
    #   nion    = len(molecules[r][1])
    #   symbols = molecules[r][1]
    #   rxyz = molecules[r][6]
-   #   print nion
-   #   print
+   #   print(nion)
+   #   print()
    #   for ii in range(nion):
-   #      print "%s %f %f %f" % (symbols[ii],rxyz[3*ii],rxyz[3*ii+1],rxyz[3*ii+2])
-   #print ":XYZ"
-   #print 
+   #      print("%s %f %f %f" % (symbols[ii],rxyz[3*ii],rxyz[3*ii+1],rxyz[3*ii+2]))
+   #print(":XYZ")
+   #print() 
 
    nion = 0
    symbols = []
@@ -1555,10 +1560,10 @@ def generate_products1(molecules,indxsyms,bstring,row,level):
    else:
       mult_total = 1
 
-   print "symbols=",symbols
-   print "mult_total=",mult_total
-   print "charge_total=",charge_total
-   print "number of atoms = ",nion
+   print("symbols=",symbols)
+   print("mult_total=",mult_total)
+   print("charge_total=",charge_total)
+   print("number of atoms = ",nion)
    adjmat = []
    for ii in range(nion):
       adjmat.append([])
@@ -1578,15 +1583,15 @@ def generate_products1(molecules,indxsyms,bstring,row,level):
    for ls in indxsyms:
       i=ls[0][0]
       j=ls[0][1]
-      print "i,j=",i,j
-      print "adjmat = ",adjmat[i][j]
+      print("i,j=",i,j)
+      print("adjmat = ",adjmat[i][j])
       tmp = adjmat[i][j]
       if (adjmat[i][j]>0): 
-         print "destroying bond :",i,j
+         print("destroying bond :",i,j)
          adjmat[i][j] = 0
          adjmat[j][i] = 0
       else:
-         print "creating bond :",i,j
+         print("creating bond :",i,j)
          adjmat[i][j] = 1
          adjmat[j][i] = 1
 
@@ -1628,9 +1633,9 @@ def generate_products1(molecules,indxsyms,bstring,row,level):
          charge_products.append(q)
 
          done = sum(visited) >= nion
-         print
-         print "SMILES=",smiles
-         print
+         print()
+         print("SMILES=",smiles)
+         print()
 
       adjmat[i][j] = tmp
       adjmat[j][i] = tmp
@@ -1761,8 +1766,8 @@ def generate_products1(molecules,indxsyms,bstring,row,level):
 
       reaction += " :Reaction_Predicted"
 
-      print  reaction
-      print
+      print(reaction)
+      print()
 
 
 
@@ -1776,13 +1781,13 @@ def generate_products1(molecules,indxsyms,bstring,row,level):
 
 def generate_products2(molecules,indxsyms,bstring,row,level):
 
-   print "not doing anything yet!"
-   print "molecules=",molecules
-   print "bstring=",bstring
-   print "row=",row
-   print "indxsyms=",indxsyms
-   print "number of reactants = ",len(molecules)
-   print
+   print("not doing anything yet!")
+   print("molecules=",molecules)
+   print("bstring=",bstring)
+   print("row=",row)
+   print("indxsyms=",indxsyms)
+   print("number of reactants = ",len(molecules))
+   print()
    nr = len(molecules)
 
    nion = 0
@@ -1810,11 +1815,11 @@ def generate_products2(molecules,indxsyms,bstring,row,level):
    else:
       mult_total = 1
 
-   print "symbols=",symbols
-   print "mult_total=",mult_total
-   print "charge_total=",charge_total
+   print("symbols=",symbols)
+   print("mult_total=",mult_total)
+   print("charge_total=",charge_total)
 
-   print "number of atoms = ",nion
+   print("number of atoms = ",nion)
    adjmat = []
    for ii in range(nion):
       adjmat.append([])
@@ -1835,18 +1840,18 @@ def generate_products2(molecules,indxsyms,bstring,row,level):
       i=ls[0][0]
       j=ls[0][1]
       k=ls[0][2]
-      print "i,j,k=",i,j,k
-      print "adjmat = ",adjmat[i][j],adjmat[j][k]
+      print("i,j,k=",i,j,k)
+      print("adjmat = ",adjmat[i][j],adjmat[j][k])
       tmp1 = adjmat[i][j]
       tmp2 = adjmat[j][k]
       if (adjmat[i][j]>0): 
-         print "destroying bond :",i,j, " creating bond :",j,k
+         print("destroying bond :",i,j, " creating bond :",j,k)
          adjmat[i][j] = 0
          adjmat[j][i] = 0
          adjmat[j][k] = 1
          adjmat[k][j] = 1
       else:
-         print "creating bond :",i,j, " destroying bond :",j,k
+         print("creating bond :",i,j, " destroying bond :",j,k)
          adjmat[i][j] = 1
          adjmat[j][i] = 1
          adjmat[j][k] = 0
@@ -1892,10 +1897,10 @@ def generate_products2(molecules,indxsyms,bstring,row,level):
          charge_products.append(q)
 
          done = sum(visited) >= nion
-         print
-         print "SMILES=",smiles
-         print "mult,charge=",mult,q
-         print
+         print()
+         print("SMILES=",smiles)
+         print("mult,charge=",mult,q)
+         print()
 
       adjmat[i][j] = tmp1
       adjmat[j][i] = tmp1
@@ -2013,8 +2018,8 @@ def generate_products2(molecules,indxsyms,bstring,row,level):
 
       reaction += " :Reaction_Predicted"
 
-      print  reaction
-      print
+      print(reaction)
+      print()
 
 
 
@@ -2027,13 +2032,13 @@ def generate_products2(molecules,indxsyms,bstring,row,level):
 
 def generate_products3(molecules,indxsyms,bstring,row,level):
 
-   print "not doing anything yet!"
-   print "molecules=",molecules
-   print "bstring=",bstring
-   print "row=",row
-   print "indxsyms=",indxsyms
-   print "number of reactants = ",len(molecules)
-   print
+   print("not doing anything yet!")
+   print("molecules=",molecules)
+   print("bstring=",bstring)
+   print("row=",row)
+   print("indxsyms=",indxsyms)
+   print("number of reactants = ",len(molecules))
+   print()
    nr = len(molecules)
 
    nion = 0
@@ -2061,10 +2066,10 @@ def generate_products3(molecules,indxsyms,bstring,row,level):
    else:
       mult_total = 1
 
-   print "symbols=",symbols
-   print "mult_total=",mult_total
-   print "charge_total=",charge_total
-   print "number of atoms = ",nion
+   print("symbols=",symbols)
+   print("mult_total=",mult_total)
+   print("charge_total=",charge_total)
+   print("number of atoms = ",nion)
    adjmat = []
    for ii in range(nion):
       adjmat.append([])
@@ -2086,14 +2091,14 @@ def generate_products3(molecules,indxsyms,bstring,row,level):
       j=ls[0][1]
       k=ls[0][2]
       l=ls[0][3]
-      print "i,j,k,l=",i,j,k,l
-      print "adjmat = ",adjmat[i][j],adjmat[j][k],adjmat[k][l],adjmat[l][i]
+      print("i,j,k,l=",i,j,k,l)
+      print("adjmat = ",adjmat[i][j],adjmat[j][k],adjmat[k][l],adjmat[l][i])
       tmp1 = adjmat[i][j]
       tmp2 = adjmat[j][k]
       tmp3 = adjmat[k][l]
       tmp4 = adjmat[l][i]
       if (adjmat[i][j]>0) and (adjmat[k][l]>0): 
-         print "destroying bond :",i,j, " increasing bond :", j,k," destroying bond :",k,l, " creating bond :",i,l
+         print("destroying bond :",i,j, " increasing bond :", j,k," destroying bond :",k,l, " creating bond :",i,l)
          adjmat[i][j] = 0
          adjmat[j][i] = 0
          adjmat[j][k] += 1
@@ -2103,7 +2108,7 @@ def generate_products3(molecules,indxsyms,bstring,row,level):
          adjmat[i][l] = 1
          adjmat[l][i] = 1
       else:
-         print "creating bond :",i,j, " decreasing bond :", j,k, " creating bond :",k,l," destroying bond :",i,l
+         print("creating bond :",i,j, " decreasing bond :", j,k, " creating bond :",k,l," destroying bond :",i,l)
          adjmat[i][j] = 1
          adjmat[j][i] = 1
          adjmat[j][k] -= 1
@@ -2151,9 +2156,9 @@ def generate_products3(molecules,indxsyms,bstring,row,level):
          charge_products.append(q)
 
          done = sum(visited) >= nion
-         print
-         print "SMILES=",smiles
-         print
+         print()
+         print("SMILES=",smiles)
+         print()
 
       adjmat[i][j] = tmp1
       adjmat[j][i] = tmp1
@@ -2278,8 +2283,8 @@ def generate_products3(molecules,indxsyms,bstring,row,level):
 
       reaction += " :Reaction_Predicted"
 
-      print  reaction
-      print
+      print(reaction)
+      print()
 
 
 
@@ -2291,13 +2296,13 @@ def generate_products3(molecules,indxsyms,bstring,row,level):
 
 def generate_products4(molecules,indxsyms,bstring,row,level):
 
-   print "not doing anything yet!"
-   print "molecules=",molecules
-   print "bstring=",bstring
-   print "row=",row
-   print "indxsyms=",indxsyms
-   print "number of reactants = ",len(molecules)
-   print
+   print("not doing anything yet!")
+   print("molecules=",molecules)
+   print("bstring=",bstring)
+   print("row=",row)
+   print("indxsyms=",indxsyms)
+   print("number of reactants = ",len(molecules))
+   print()
    nr = len(molecules)
 
    nion = 0
@@ -2325,11 +2330,11 @@ def generate_products4(molecules,indxsyms,bstring,row,level):
    else:
       mult_total = 1
    
-   print "symbols=",symbols
-   print "mult_total=",mult_total
-   print "charge_total=",charge_total
+   print("symbols=",symbols)
+   print("mult_total=",mult_total)
+   print("charge_total=",charge_total)
 
-   print "number of atoms = ",nion
+   print("number of atoms = ",nion)
    adjmat = []
    for ii in range(nion):
       adjmat.append([])
@@ -2352,15 +2357,15 @@ def generate_products4(molecules,indxsyms,bstring,row,level):
       j=ls[0][1]
       k=ls[0][2]
       l=ls[0][3]
-      print "i,j,k,l=",i,j,k,l
-      print "adjmat = ",adjmat[i][j],adjmat[j][k],adjmat[k][l],adjmat[l][i]
+      print("i,j,k,l=",i,j,k,l)
+      print("adjmat = ",adjmat[i][j],adjmat[j][k],adjmat[k][l],adjmat[l][i])
       tmpab = adjmat[i][j]
       tmpbc = adjmat[j][k]
       tmpcd = adjmat[k][l]
       tmpad = adjmat[i][l]
 
       if (adjmat[i][j]>0) and (adjmat[k][l]>0): 
-         print "destroying bond :",i,j, " destroying bond :",k,l, " creating bond :",i,l," creating bond :",j,k
+         print("destroying bond :",i,j, " destroying bond :",k,l, " creating bond :",i,l," creating bond :",j,k)
          adjmat[i][j] = 0
          adjmat[j][i] = 0
 
@@ -2373,7 +2378,7 @@ def generate_products4(molecules,indxsyms,bstring,row,level):
          adjmat[i][l] = 1
          adjmat[l][i] = 1
       else:
-         print "creating bond :",i,j, " creating bond :",k,l, " destroying bond :",i,l," destroying bond :",j,k
+         print("creating bond :",i,j, " creating bond :",k,l, " destroying bond :",i,l," destroying bond :",j,k)
          adjmat[i][j] = 1
          adjmat[j][i] = 1
 
@@ -2424,9 +2429,9 @@ def generate_products4(molecules,indxsyms,bstring,row,level):
          charge_products.append(q)
 
          done = sum(visited) >= nion
-         print
-         print "SMILES=",smiles
-         print
+         print()
+         print("SMILES=",smiles)
+         print()
 
       adjmat[i][j] = tmpab
       adjmat[j][i] = tmpab
@@ -2552,8 +2557,8 @@ def generate_products4(molecules,indxsyms,bstring,row,level):
 
       reaction += " :Reaction_Predicted"
 
-      print  reaction
-      print
+      print(reaction)
+      print()
 
 
 ###############################################
@@ -2564,13 +2569,13 @@ def generate_products4(molecules,indxsyms,bstring,row,level):
 
 def generate_products5(molecules,indxsyms,bstring,row,level):
 
-   print "generate products5!"
-   print "molecules=",molecules
-   print "bstring=",bstring
-   print "row=",row
-   print "indxsyms=",indxsyms
-   print "number of reactants = ",len(molecules)
-   print
+   print("generate products5!")
+   print("molecules=",molecules)
+   print("bstring=",bstring)
+   print("row=",row)
+   print("indxsyms=",indxsyms)
+   print("number of reactants = ",len(molecules))
+   print()
    nr = len(molecules)
 
 
@@ -2599,11 +2604,11 @@ def generate_products5(molecules,indxsyms,bstring,row,level):
    else:
       mult_total = 1
 
-   print "symbols=",symbols
-   print "mult_total=",mult_total
-   print "charge_total=",charge_total
+   print("symbols=",symbols)
+   print("mult_total=",mult_total)
+   print("charge_total=",charge_total)
 
-   print "number of atoms = ",nion
+   print("number of atoms = ",nion)
    adjmat = []
    for ii in range(nion):
       adjmat.append([])
@@ -2626,14 +2631,14 @@ def generate_products5(molecules,indxsyms,bstring,row,level):
       k=ls[0][2]
       l=ls[0][3]
       m=ls[0][4]
-      print "i,j,k,l,m=",i,j,k,l,m
+      print("i,j,k,l,m=",i,j,k,l,m)
       tmpab = adjmat[i][j]
       tmpbc = adjmat[j][k]
       tmpde = adjmat[l][m]
       tmpae = adjmat[i][m]
 
       if (adjmat[i][j]>0) and (adjmat[l][m]>0):
-         print "destroying bond :",i,j, " destroying bond :",l,m, " creating bond :",i,m," creating bond :",j,k
+         print("destroying bond :",i,j, " destroying bond :",l,m, " creating bond :",i,m," creating bond :",j,k)
          adjmat[i][j] = 0
          adjmat[j][i] = 0
 
@@ -2646,7 +2651,7 @@ def generate_products5(molecules,indxsyms,bstring,row,level):
          adjmat[j][k] = 1
          adjmat[k][j] = 1
       else:
-         print "creating bond :",i,j, " creating bond :",l,m, " destroying bond :",i,m," destroying bond :",j,k
+         print("creating bond :",i,j, " creating bond :",l,m, " destroying bond :",i,m," destroying bond :",j,k)
          adjmat[i][j] = 1
          adjmat[j][i] = 1
 
@@ -2698,9 +2703,9 @@ def generate_products5(molecules,indxsyms,bstring,row,level):
          charge_products.append(q)
 
          done = sum(visited) >= nion
-         print
-         print "SMILES=",smiles
-         print
+         print()
+         print("SMILES=",smiles)
+         print()
 
       adjmat[i][j] = tmpab
       adjmat[j][i] = tmpab
@@ -2824,8 +2829,8 @@ def generate_products5(molecules,indxsyms,bstring,row,level):
 
       reaction += " :Reaction_Predicted"
 
-      print  reaction
-      print
+      print(reaction)
+      print()
 
 
 
@@ -3077,7 +3082,7 @@ def f2_reaction(mformulas,rps,coeffs):
 
 def df_reaction_numerical(mformulas,rps,coeffs):
    f0 = f2_reaction(mformulas,rps,coeffs)
-   print "f0=",f0
+   print("f0=",f0)
    df = []
    for i in range(len(mformulas)):
       coeffs[i] += 0.0000001 
@@ -3621,7 +3626,7 @@ def mmtokens2VertEdge(k,tokens,verts,edges):
       return cids
 
    else:
-      print "should not be here, k=",k," token=",tokens[k]
+      print("should not be here, k=",k," token=",tokens[k])
       return [[],verts,edges]
 
 
@@ -4008,9 +4013,9 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
                   bonds[key] = 1*x
 
    inchikeys = inchikeys.strip()
-   print "inchikeys = " + inchikeys
-   print
-   print "product bonds -  reactant bonds"
+   print("inchikeys = " + inchikeys)
+   print()
+   print("product bonds -  reactant bonds")
    nbondsinvolved = 0
    nbondscreated   = 0
    nbondsdestroyed = 0
@@ -4018,7 +4023,7 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
    destroybonds = []
    for key,val in bonds.iteritems():
       syms = key.split(':')
-      print  syms[0]+ " " + syms[1] + "  val=",val
+      print(syms[0]+ " " + syms[1] + "  val=",val)
       if (val>0): 
          for ii in range(int(abs(val))): createbonds.append(syms)
          nbondscreated += abs(val)
@@ -4027,9 +4032,9 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
          nbondsdestroyed += abs(val)
       nbondsinvolved += abs(val)
 
-   print "nbondsinvolved=",nbondsinvolved
-   print "len(createbonds) =",len(createbonds),createbonds
-   print "len(destroybonds)=",len(destroybonds),destroybonds
+   print("nbondsinvolved=",nbondsinvolved)
+   print("len(createbonds) =",len(createbonds),createbonds)
+   print("len(destroybonds)=",len(destroybonds),destroybonds)
 
    #### check for charge consistency
    #### check for number of atom consistency 
@@ -4054,12 +4059,12 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
          if (mm[3]<0):  nshep += int(mm[4])
       
    if (nionr != nionp): 
-      print "Reaction not balanced: The number of reactant atoms and product atoms are not the same."
+      print("Reaction not balanced: The number of reactant atoms and product atoms are not the same.")
       return
 
    if (qr != qp): 
-      print "Reaction not balanced: The overall charge of reactant atoms and product atoms are not the same."
-      print "qr,qp=",qr,qp
+      print("Reaction not balanced: The overall charge of reactant atoms and product atoms are not the same.")
+      print("qr,qp=",qr,qp)
       return
 
    ### make reactant adjmatrix
@@ -4107,9 +4112,9 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
    bonding_products  = bonding_string(nion,symbol_products, adj_products)
 
    if (bonding_reactants==bonding_products):
-      print "bonding_reactants="+bonding_reactants
-      print "bonding_products ="+bonding_products
-      print "reactants and products are the same,exiting"
+      print("bonding_reactants="+bonding_reactants)
+      print("bonding_products ="+bonding_products)
+      print("reactants and products are the same,exiting")
       return
 
    bstringsall = []
@@ -4134,11 +4139,11 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
       nmolr_rtype = len(reactiontype.split("-->")[0].split("+"))
       nmolp_rtype = len(reactiontype.split("-->")[1].split("+"))
       if ((nmolr>nmolr_rtype) or (nmolp>nmolp_rtype)):
-         print 
-         print "Looking for " + reactiontype + " reaction"
-         print "Number of reactants or products does not agree with reaction type"
-         print " - nmolr,nmolr_rtype=",nmolr,nmolr_rtype
-         print " - nmolp,nmolp_rtype=",nmolp,nmolp_rtype
+         print()
+         print("Looking for " + reactiontype + " reaction")
+         print("Number of reactants or products does not agree with reaction type")
+         print(" - nmolr,nmolr_rtype=",nmolr,nmolr_rtype)
+         print(" - nmolp,nmolp_rtype=",nmolp,nmolp_rtype)
          reactionid += 1
 
          if checksymbols and (reactionid>=(len(reactiontypes))):
@@ -4188,25 +4193,25 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
                edges += [[i,j]]
 
       
-      print 
-      print "Looking for " + reactiontype + " reaction"
-      print "rgraph=",rgraph
-      print "pgraph=",pgraph
-      print "graph =",graph
-      print "equiv_nodes = ",enodes
-      print "reaction equiv_nodes = ",renodes
-      print "product equiv_nodes  = ",penodes
-      print "nnodes      = ",nnodes
-      print "redges      = ",redges
-      print "nredges     = ",nredges
-      print "pedges      = ",pedges
-      print "npedges     = ",npedges
-      print "edges       = ",edges
-      print "bonding_reactants = ",bonding_reactants
-      print "bonding_products  = ",bonding_products
-      print "destroy,create bonds=",ddestroy,ccreate
+      print()
+      print("Looking for " + reactiontype + " reaction")
+      print("rgraph=",rgraph)
+      print("pgraph=",pgraph)
+      print("graph =",graph)
+      print("equiv_nodes = ",enodes)
+      print("reaction equiv_nodes = ",renodes)
+      print("product equiv_nodes  = ",penodes)
+      print("nnodes      = ",nnodes)
+      print("redges      = ",redges)
+      print("nredges     = ",nredges)
+      print("pedges      = ",pedges)
+      print("npedges     = ",npedges)
+      print("edges       = ",edges)
+      print("bonding_reactants = ",bonding_reactants)
+      print("bonding_products  = ",bonding_products)
+      print("destroy,create bonds=",ddestroy,ccreate)
       if (ddestroy==len(destroybonds)) and (ccreate==len(createbonds)) and checksymbols:
-         print "Adding symbol checking!"
+         print("Adding symbol checking!")
          rsymb = ['']*nnodes
          for i in range(ddestroy):
             rsymb[redges[i][0]] = destroybonds[i][0]
@@ -4215,26 +4220,26 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
          for i in range(ccreate):
             psymb[pedges[i][0]] = createbonds[i][0]
             psymb[pedges[i][1]] = createbonds[i][1]
-         print "rsymb=",rsymb
-         print "psymb=",psymb
+         print("rsymb=",rsymb)
+         print("psymb=",psymb)
             	
          ### Note only psymb is used ###
          aa = genloops_reactants_string(nnodes,edges,redges,nredges,pedges,psymb)
          bb = genloops_products_string(nnodes,edges,pedges,npedges,redges,psymb)
-         print "into reactant loops"
+         print("into reactant loops")
          exec(aa)
-         print "into product loops"
+         print("into product loops")
          exec(bb)
       elif (len(edges)>=nbondsinvolved):
-         print "No symbol checking!"
+         print("No symbol checking!")
          aa = genloops_reactants_string(nnodes,edges,redges,nredges,pedges)
          bb = genloops_products_string(nnodes,edges,pedges,npedges,redges)
-         print "into reactant loops"
+         print("into reactant loops")
          exec(aa)
-         print "into product loops"
+         print("into product loops")
          exec(bb)
       else:
-         print "not looking"
+         print("not looking")
          bstrings_reactants = []
          bstrings_products = []
    
@@ -4243,8 +4248,8 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
       for b1 in bstrings_reactants:
          for b2 in bstrings_products:
             if b1==b2:
-               print "success!: "+ b1 
-               print "indexs=",indxs_reactants[b1]
+               print("success!: "+ b1)
+               print("indexs=",indxs_reactants[b1])
                fstring = generate_fasthash(reactiontype,indxs_reactants[b1],nionr,symbol_reactants,adj_reactants)
                #fstring = reactiontype + " : "
                #ssyms = []
@@ -4262,8 +4267,8 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
                #   for s in symx: fstring += s + " "
                #   fstring += "] "
                #fstring = fstring.strip()
-               #print "symbols=",ssyms
-               print "fstring=",fstring
+               #print("symbols=",ssyms)
+               print("fstring=",fstring)
                bstrings_reaction.append((b1,fstring))
                #fstrings_reaction.append(fstring)
       bstrings_reaction = list(set(bstrings_reaction))
@@ -4286,22 +4291,22 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
       for bstring0 in bstrings_reaction:
          bstring = bstring0[0]
          fstring = bstring0[1]
-         print
-         print "reaction constraint_string = " + bstring
+         print()
+         print("reaction constraint_string = " + bstring)
          transitionstate = bstring.split(":")[2]
          bstrings_filtered = [bstring]
          for b in all_prune:
             bstrings_filtered.append(filter_reaction_string(b,bstring))
-         print
-         print "filtered reaction constraint_strings = ",bstrings_filtered
+         print()
+         print("filtered reaction constraint_strings = ",bstrings_filtered)
          bstringsall.append([reactionid,reactiontype,transitionstate]+bstrings_filtered+[reaction]+method+energies+[fstring]+[inchikeys])
 
-      print "number of reactions found=",len(bstringsall)
+      print("number of reactions found=",len(bstringsall))
       if (len(bstringsall)==0):
-         print reaction + " is not an " + reactiontype + " reaction"
+         print(reaction + " is not an " + reactiontype + " reaction")
       reactionid += 1
 
-      print "checksymbols...",checksymbols,reactionid,len(reactiontypes)
+      print("checksymbols...",checksymbols,reactionid,len(reactiontypes))
       if checksymbols and (reactionid>=(len(reactiontypes))):
          checksymbols = False
          reactionid = 0
@@ -4309,13 +4314,13 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
 
 
    if (len(bstringsall)==0):
-      print "This is not an elementary reaction"
+      print("This is not an elementary reaction")
 
-   print
-   print "bstringsall =",bstringsall
-   print
-   print "number of reactions found=",len(bstringsall)
-   print
+   print()
+   print("bstringsall =",bstringsall)
+   print()
+   print("number of reactions found=",len(bstringsall))
+   print()
 
 
    if (not testingadd):
@@ -4342,16 +4347,16 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
 
             duplicate = (row[0]>0)
             if (not duplicate) :
-               print
-               print "Inserting reaction hash  into " + table
-               print "   - insertlist = ",insertlist
-               print
+               print()
+               print("Inserting reaction hash  into " + table)
+               print("   - insertlist = ",insertlist)
+               print()
                cur.execute(sqlinsert,insertlist)
             else:
-               print
-               print "Reaction hash already exists in  " + table
-               print "   - insertlist = ",insertlist
-               print
+               print()
+               print("Reaction hash already exists in  " + table)
+               print("   - insertlist = ",insertlist)
+               print()
          dbcon.close()
 
 
@@ -4366,19 +4371,19 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
 def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,level,method):
 
    molecules0 = deepcopy(molecules00)
-   print "generate products0!"
-   print "molecules0=",molecules0
+   print("generate products0!")
+   print("molecules0=",molecules0)
 
    ### set  extrashe ###
    extrashe = []
 
-   print "bstring=",bstring
-   print "row=",row
-   print "indxsyms=",indxsyms
-   print "number of reactants = ",len(molecules0)
-   print "level=",level
-   print
-   print "row[11]=",row[11]
+   print("bstring=",bstring)
+   print("row=",row)
+   print("indxsyms=",indxsyms)
+   print("number of reactants = ",len(molecules0))
+   print("level=",level)
+   print()
+   print("row[11]=",row[11])
    nsher = 0.0
    nshep = 0.0
    hasshe = False
@@ -4466,8 +4471,8 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
    #      molecules1.append(mm)
    #molecules = molecules1
 
-   print
-   print
+   print()
+   print()
 
    #nr = len(molecules)
    #nion = 0
@@ -4495,11 +4500,11 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
    #else:
    #   mult_total = 1
 
-   #print "symbols=",symbols
-   #print "mult_total=",mult_total
-   #print "charge_total=",charge_total
+   #print("symbols=",symbols)
+   #print("mult_total=",mult_total)
+   #print("charge_total=",charge_total)
 
-   #print "number of atoms = ",nion
+   #print("number of atoms = ",nion)
    #adjmat = []
    #for ii in range(nion):
    #   adjmat.append([])
@@ -4523,8 +4528,8 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
       ijk0    = ls[0]
       symijk = ls[1]
 
-      print "i,j,k,l,..; ijk0=",ijk0
-      print "syms i,j,k,l,..=",symijk
+      print("i,j,k,l,..; ijk0=",ijk0)
+      print("syms i,j,k,l,..=",symijk)
 
       #### reduce molecules0 to contain only molecules that are in the ijk ####
       #### also change the values of ijk
@@ -4556,13 +4561,13 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
             rrr = deepcopy(molecules0[r])
             rrr[4] -= x0
             extramolecules += [rrr]
-      print "niona=",niona
-      print "i,j,k,l,..; ijk1=",ijk1
+      print("niona=",niona)
+      print("i,j,k,l,..; ijk1=",ijk1)
 
-      print "MOLECULES=",molecules
-      print "EXTRAMOLECULES=",extramolecules
+      print("MOLECULES=",molecules)
+      print("EXTRAMOLECULES=",extramolecules)
       
-      print "MOLECULES=",molecules[0][4],molecules0[0][4]
+      print("MOLECULES=",molecules[0][4],molecules0[0][4])
 #
 #            rstart += nionr
       #molecules = molecules0
@@ -4596,11 +4601,11 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
       else:
          mult_total = 1
 
-      print "symbols=",symbols
-      print "mult_total=",mult_total
-      print "charge_total=",charge_total
+      print("symbols=",symbols)
+      print("mult_total=",mult_total)
+      print("charge_total=",charge_total)
 
-      print "number of atoms = ",nion
+      print("number of atoms = ",nion)
       adjmat = []
       for ii in range(nion):
          adjmat.append([])
@@ -4640,7 +4645,7 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
       #tmpae = adjmat[i][m]
 
       #if (adjmat[i][j]>0) and (adjmat[l][m]>0):
-      #   print "destroying bond :",i,j, " destroying bond :",l,m, " creating bond :",i,m," creating bond :",j,k
+      #   print("destroying bond :",i,j, " destroying bond :",l,m, " creating bond :",i,m," creating bond :",j,k)
       #   adjmat[i][j] = 0
       #   adjmat[j][i] = 0
 #
@@ -4653,7 +4658,7 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
 #         adjmat[j][k] = 1
 #         adjmat[k][j] = 1
 #      else:
-#         print "creating bond :",i,j, " creating bond :",l,m, " destroying bond :",i,m," destroying bond :",j,k
+#         print("creating bond :",i,j, " creating bond :",l,m, " destroying bond :",i,m," destroying bond :",j,k)
 #         adjmat[i][j] = 1
 #         adjmat[j][i] = 1
 #
@@ -4707,9 +4712,9 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
          charge_products.append(q)
 
          done = sum(visited) >= nion
-         print
-         print "SMILES=",smiles, q, mult
-         print
+         print()
+         print("SMILES=",smiles, q, mult)
+         print()
 
       ##############################
       count = 0
@@ -4870,7 +4875,7 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
                np0 += 1   
                indxp.append(p)
          charge_total0 = charge_total + (np-np0)
-         #print "charge_total,charge_total0=",charge_total,charge_total0
+         #print("charge_total,charge_total0=",charge_total,charge_total0)
 
          if (charge_total0<0):
             sgn = -1
@@ -4879,8 +4884,8 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
 
          mult0 = [4]*np0
          charge0 = [0]*np0
-         #print "np0,indxp=",np0,indxp
-         #print "MULT_PRODUCts =",mult_products
+         #print("np0,indxp=",np0,indxp)
+         #print "MULT_PRODUCts =",mult_products)
          #s1 = abs(charge_total0)+1
          #for it in itertools.product(range(-s1,s1+1),repeat=np0):
          if (abs(charge_total0)<1e-6):
@@ -4947,19 +4952,19 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
       mult_total_products = 0
       for mm in mult_products:
          mult_total_products += mm
-      print "mult_reactants=",mult_reactants
-      print "mult_products =",mult_products
-      print "mult_total,mult_total_products=",mult_total,mult_total_products
-      print
-      print "charge_reactants =",charge_reactants
-      print "charge_products =",charge_products
-      print
+      print("mult_reactants=",mult_reactants)
+      print("mult_products =",mult_products)
+      print("mult_total,mult_total_products=",mult_total,mult_total_products)
+      print()
+      print("charge_reactants =",charge_reactants)
+      print("charge_products =",charge_products)
+      print()
 
 
       #if (np==2):
       #   if (mult_products[0]==2) and (mult_products[1]==2):
       #      printreaction = False
-      #      print "Two doublets found, printreaction = ",printreaction
+      #      print("Two doublets found, printreaction = ",printreaction)
 
       if (printreaction):
          np = len(string_products)
@@ -5042,11 +5047,11 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
          if (" ~ " in reaction):
             reaction0 += " ~ " + reaction.split(" ~ ")[1]
          reaction0 += " :Reaction_Predicted"
-         print  reaction0.replace("Predicted_Reaction","Predicted_TotalRXN").replace("Reaction_Predicted","TotalRXN_Predicted")
+         print(reaction0.replace("Predicted_Reaction","Predicted_TotalRXN").replace("Reaction_Predicted","TotalRXN_Predicted"))
 
          reaction  += " :Reaction_Predicted"
-         print
-         print  reaction
+         print()
+         print(reaction)
          msg3 = " -                   "
          msg3 += "       Erxn(gas)"
          msg3 += "       Hrxn(gas)"
@@ -5061,10 +5066,10 @@ def generate_products0(edges,redges,pedges,molecules00,indxsyms,bstring,row,leve
          msg4 += " %15.3f" % (row[20])
          msg4 += "  -- in kcal/mol :energy_estimates"
          msg5 = " - agreement_level:      %d       :agreement_level" % level
-         print msg3
-         print msg4
-         print msg5
-         print
+         print(msg3)
+         print(msg4)
+         print(msg5)
+         print()
 
 
 
@@ -5275,8 +5280,8 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
    sqlcheck2 += "reactionid=? and (theory=? and xc=? and basis=? and solvation_type=?);"
    if (not issqlite3): sqlcheck2 = sqlcheck2.replace('?','%s')
 
-   print "molecules=",molecules
-   print "method=",method
+   print("molecules=",molecules)
+   print("method=",method)
 
 
    ### make reactant adjmatrix
@@ -5308,8 +5313,8 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
    reactants2 = (nr==2)
    bonding_reactants = bonding_string(nion,symbol_reactants,adj_reactants)
 
-   print "reactants1,reactants2=",reactants1,reactants2
-   print "adj_reactants=",reactants1,adj_reactants
+   print("reactants1,reactants2=",reactants1,reactants2)
+   print("adj_reactants=",reactants1,adj_reactants)
 
 
    reactiontypes = myreactiontypes0
@@ -5348,20 +5353,20 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
             if j in graph[i]:
                edges += [[i,j]]
 
-      print
-      print "Looking for " + reactiontype + " reactions"
-      print "rgraph=",rgraph
-      print "pgraph=",pgraph
-      print "graph =",graph
-      print "equiv_nodes = ",enodes
-      print "reactant equiv_nodes = ",renodes
-      print "product equiv_nodes = ",penodes
-      print "nnodes      = ",nnodes
-      print "redges      = ",redges
-      print "nredges     = ",nredges
-      print "pedges      = ",pedges
-      print "npedges     = ",npedges
-      print "edges       = ",edges
+      print()
+      print("Looking for " + reactiontype + " reactions")
+      print("rgraph=",rgraph)
+      print("pgraph=",pgraph)
+      print("graph =",graph)
+      print("equiv_nodes = ",enodes)
+      print("reactant equiv_nodes = ",renodes)
+      print("product equiv_nodes = ",penodes)
+      print("nnodes      = ",nnodes)
+      print("redges      = ",redges)
+      print("nredges     = ",nredges)
+      print("pedges      = ",pedges)
+      print("npedges     = ",npedges)
+      print("edges       = ",edges)
 
       ### get fasthashes ###
       checklist2 = [reactionid]
@@ -5378,19 +5383,19 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
       cur.execute(sqlcheck2,checklist2)
       fasthashes0 = cur.fetchall()
       fasthashes  = [fasthashes0[i][0] for i in range(len(fasthashes0)) if fasthashes0[i]!=(None,) ]
-      #print "fasthashes=",fasthashes
+      #print("fasthashes=",fasthashes)
 
 
       if (len(fasthashes)>0):
-         print "bonding_reactants = ",bonding_reactants
+         print("bonding_reactants = ",bonding_reactants)
          aa = findreaction_loops_string(nnodes,edges,redges,nredges,pedges)
-         print "into reactant loops"
-         #print "aa=",aa
+         print("into reactant loops")
+         #print("aa=",aa)
          exec(aa)
       else:
-         print "No fasthashes for ", reactiontype, " and method=",method
+         print("No fasthashes for ", reactiontype, " and method=",method)
          bstrings_reactants = {}
-      print "number of bstrings_reactions = ",len(bstrings_reactants)
+      print("number of bstrings_reactions = ",len(bstrings_reactants))
 
       bond_prune        = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
       replacement_prune = [[0,1,1,1,1,1,1],  [0,1,1,1,1,1,0],   [0,1,1,1,1,0,0],  [0,1,1,1,0,0,0],  [0,1,1,1,0,0,0],  [0,1,1,0,0,0,0]]
@@ -5425,8 +5430,8 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
                bstring_filter = filter_reaction_string(p,bstring)
                checklist.append(bstring_filter)
 
-            #print "sqlcheck="+sqlcheck
-            #print "checklist=",checklist
+            #print("sqlcheck="+sqlcheck)
+            #print("checklist=",checklist)
             cur.execute(sqlcheck,checklist)
             #row = cur.fetchone()
             #if (row != None):
@@ -5440,14 +5445,14 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
                      #if checklist[maxlevel+2-ii]==row[maxlevel+4-ii]: level = maxlevel-ii
                      if checklist[maxlevel+5-ii]==row[maxlevel+4-ii]: level = maxlevel-ii
                if (level<=maxlevel):
-                  print "level=",level," addition bstring=",bstring," row=",row
-                  print "indexes = ", indxsym
-                  print
+                  print("level=",level," addition bstring=",bstring," row=",row)
+                  print("indexes = ", indxsym)
+                  print()
                   generate_products0(edges,redges,pedges,molecules,indxsym,bstring,row,level,method)
       dbcon.close()
 
 
-   print "findreactions not finished!"
+   print("findreactions not finished!")
 
 
 
@@ -5522,7 +5527,7 @@ def xyz_indx_to_reactiohash(xyzfile,indx,reactiontype):
       y = rxyz[3*ii+1] - rxyz[3*jj+1]
       z = rxyz[3*ii+2] - rxyz[3*jj+2]
       [x,y,z] = lattice_min(lattice,x,y,z);
-      print "reaction ii,jj=",ii,jj,x,y,z
+      print("reaction ii,jj=",ii,jj,x,y,z)
       gamma += math.sqrt(x*x + y*y + z*z)
    for p in pedges:
       ii = indx[p[0]]
@@ -5531,7 +5536,7 @@ def xyz_indx_to_reactiohash(xyzfile,indx,reactiontype):
       y = rxyz[3*ii+1] - rxyz[3*jj+1]
       z = rxyz[3*ii+2] - rxyz[3*jj+2]
       [x,y,z] = lattice_min(lattice,x,y,z);
-      print "product ii,jj=",ii,jj,x,y,z
+      print("product ii,jj=",ii,jj,x,y,z)
       gamma -= math.sqrt(x*x + y*y + z*z)
    gamma = gamma/0.529177
    indxs = []
@@ -5576,9 +5581,9 @@ def generate_bondings(indx,reactiontype):
          else:
             npedges += [[i,j]]
 
-   print "indx=",indx
-   print "redges=",redges
-   print "pedges=",pedges
+   print("indx=",indx)
+   print("redges=",redges)
+   print("pedges=",pedges)
    #negative numbers bonds being created
    #positive numbers bonds being destroyed
    bondings = 'spring bondings K gamma'
@@ -5637,33 +5642,33 @@ def findreaction_indexes(reactionhash,xyzfile):
          if j in graph[i]:
             edges += [[i,j]]
 
-   print
-   print "Looking for " + reactiontype + " reactions"
-   print "rgraph=",rgraph
-   print "pgraph=",pgraph
-   print "graph =",graph
-   print "equiv_nodes = ",enodes
-   print "reactant equiv_nodes = ",renodes
-   print "product equiv_nodes = ",penodes
-   print "nnodes      = ",nnodes
-   print "redges      = ",redges
-   print "nredges     = ",nredges
-   print "pedges      = ",pedges
-   print "npedges     = ",npedges
-   print "edges       = ",edges
+   print()
+   print("Looking for " + reactiontype + " reactions")
+   print("rgraph=",rgraph)
+   print("pgraph=",pgraph)
+   print("graph =",graph)
+   print("equiv_nodes = ",enodes)
+   print("reactant equiv_nodes = ",renodes)
+   print("product equiv_nodes = ",penodes)
+   print("nnodes      = ",nnodes)
+   print("redges      = ",redges)
+   print("nredges     = ",nredges)
+   print("pedges      = ",pedges)
+   print("npedges     = ",npedges)
+   print("edges       = ",edges)
 
    aa = findreaction_loops_string00(nnodes,edges,redges,nredges,pedges)
-   print "into reactant loops"
-   #print aa
+   print("into reactant loops")
+   #print(aa)
    exec(aa)
-   print "number of bstrings_reactions = ",len(bstrings_reactants)
+   print("number of bstrings_reactions = ",len(bstrings_reactants))
 
    indexes = []
    for bstring,indxsym in bstrings_reactants.iteritems():
-      #print "bstring=",bstring
-      #print "indexes=",indxsym
+      #print("bstring=",bstring)
+      #print("indexes=",indxsym)
       if bstring==reactionhash:
-         #print "indxsym=",indxsym
+         #print("indxsym=",indxsym)
          #indexes += indxsym
          idm2s = []
          for idm in indxsym:
@@ -5814,33 +5819,33 @@ def findproducts_indexes(reactionhash,xyzfile):
          if j in graph[i]:
             edges += [[i,j]]
 
-   print
-   print "Looking for " + reactiontype + " reactions"
-   print "rgraph=",rgraph
-   print "pgraph=",pgraph
-   print "graph =",graph
-   print "equiv_nodes = ",enodes
-   print "reactant equiv_nodes = ",renodes
-   print "product equiv_nodes = ",penodes
-   print "nnodes      = ",nnodes
-   print "redges      = ",redges
-   print "nredges     = ",nredges
-   print "pedges      = ",pedges
-   print "npedges     = ",npedges
-   print "edges       = ",edges
+   print()
+   print("Looking for " + reactiontype + " reactions")
+   print("rgraph=",rgraph)
+   print("pgraph=",pgraph)
+   print("graph =",graph)
+   print("equiv_nodes = ",enodes)
+   print("reactant equiv_nodes = ",renodes)
+   print("product equiv_nodes = ",penodes)
+   print("nnodes      = ",nnodes)
+   print("redges      = ",redges)
+   print("nredges     = ",nredges)
+   print("pedges      = ",pedges)
+   print("npedges     = ",npedges)
+   print("edges       = ",edges)
 
    aa = findproducts_loops_string(nnodes,edges,redges,pedges,npedges)
-   print "into product loops"
-   #print aa
+   print("into product loops")
+   #print(aa)
    exec(aa)
-   print "number of bstrings_reactions = ",len(bstrings_products)
+   print("number of bstrings_reactions = ",len(bstrings_products))
 
    indexes = []
    for bstring,indxsym in bstrings_products.iteritems():
-      #print "bstring=",bstring
-      #print "indexes=",indxsym
+      #print("bstring=",bstring)
+      #print("indexes=",indxsym)
       if bstring==reactionhash:
-         #print "indxsym=",indxsym
+         #print("indxsym=",indxsym)
          #indexes += indxsym
          idm2s = []
          for idm in indxsym:
@@ -5905,8 +5910,8 @@ def reactionbalance_molecules(molecules):
             if (ii>0): bstr += " + "
             bstr += "%.3f %s" % (coeff[i],esmiles2all[i])
             ii += 1
-   print
-   print "initial reaction = " + bstr
+   print()
+   print("initial reaction = " + bstr)
    reaction = bstr
 
 
@@ -5914,8 +5919,8 @@ def reactionbalance_molecules(molecules):
 
 
    f2 = f2_reaction(mformulas,rps,coeff)
-   print "initial f2=",f2
-   if (f2<1.0e-6): print "The initial chemical reaction is balanced!"
+   print("initial f2=",f2)
+   if (f2<1.0e-6): print("The initial chemical reaction is balanced!")
 
    #### not a balanced reaction - balance it####
    coeff2 = [x/min(coeff) for x in coeff]
@@ -5936,13 +5941,13 @@ def reactionbalance_molecules(molecules):
       if ((f2-f2old)>0.0): alpha *= 0.5
       niter += 1
 
-   print "final coeff = ",coeff
-   print "final f2=",f2
+   print("final coeff = ",coeff)
+   print("final f2=",f2)
 
    coeff3 = [round(x) for x in coeff]
    f3 = f2_reaction(mformulas,rps,coeff3)
-   print "final coeff3 = ",coeff3
-   print "final f3=",f3
+   print("final coeff3 = ",coeff3)
+   print("final f3=",f3)
    if (f3<f2):
       f2 = f3
       coeff = coeff3
@@ -5951,7 +5956,7 @@ def reactionbalance_molecules(molecules):
    alpha = 0.01
    f0 = 393939.0393
    if (max(coeff) > 50*min(coeff)) or (f2>1.0e-6):
-      print "large coeffients found  = ",coeff
+      print("large coeffients found  = ",coeff)
       coeff0       = []
       esmiles2all0 = []
       mformulas0   = []
@@ -5978,8 +5983,8 @@ def reactionbalance_molecules(molecules):
          f0=f2_reaction(mformulas0,rps0,coeff0)
          if ((f0-f0old)>0.0): alpha *= 0.5
          niter += 1
-      print "final coeff0 = ",coeff0
-      print "final f0=",f0
+      print("final coeff0 = ",coeff0)
+      print("final f0=",f0)
 
    #### balanced reaction ####
    if (f2<1e-6):
@@ -5999,8 +6004,8 @@ def reactionbalance_molecules(molecules):
             bstr += "%.3f %s" % (coeff[i],esmiles2all[i])
             ii += 1
 
-      print
-      print "balanced reaction = " + bstr
+      print()
+      print("balanced reaction = " + bstr)
       reaction = bstr
 
 
@@ -6022,14 +6027,14 @@ def reactionbalance_molecules(molecules):
             bstr += "%.3f %s" % (coeff0[i],esmiles2all0[i])
             ii += 1
 
-      print
-      print "reduced balanced reaction = " + bstr
+      print()
+      print("reduced balanced reaction = " + bstr)
       reaction = bstr
 
-   print
-   print
-   print "reaction: " + reaction + " :reaction"
-   print
+   print()
+   print()
+   print("reaction: " + reaction + " :reaction")
+   print()
 
 
 def listreactions_molecules(hup,dbfile,table,inchikey=''):
@@ -6056,21 +6061,21 @@ def listreactions_molecules(hup,dbfile,table,inchikey=''):
       cur = dbcon.cursor()
       cur.execute(sqlcheck)
       rows = cur.fetchall()
-      print
+      print()
       if inchikey!='':
-         print "Reactions Containing INCHIKEY = " + inchikey
+         print("Reactions Containing INCHIKEY = " + inchikey)
       else:
-         print "Reactions Currently in Database:"
-      print
-      print "Reactionid    Erxn(gas)    Hrxn(gas)    Grxn(gas)   delta_Solv     Grxn(aq) ReactionType             Reaction"
+         print("Reactions Currently in Database:")
+      print()
+      print("Reactionid    Erxn(gas)    Hrxn(gas)    Grxn(gas)   delta_Solv     Grxn(aq) ReactionType             Reaction")
       for row in rows:
-         #print "%10d %12.3f %12.3f %12.3f %12.3f %12.3f %-24s \"%s\"" % row
+         #print("%10d %12.3f %12.3f %12.3f %12.3f %12.3f %-24s \"%s\"" % row)
          if (inchikey in row[8]) or (inchikey==''):
             ll = "%d" % row[0]
             sp = ''
             for i in range(10-len(ll)):  sp += ' '
             rink = "<a target=\"_blank\" href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\'>%d</a>" % (row[7].replace('#','%23'),row[0])
-            print sp + "%s %12.3f %12.3f %12.3f %12.3f %12.3f %-24s \"%s\"" % (rink,row[1],row[2],row[3],row[4],row[5],row[6],row[7])
+            print(sp + "%s %12.3f %12.3f %12.3f %12.3f %12.3f %-24s \"%s\"" % (rink,row[1],row[2],row[3],row[4],row[5],row[6],row[7]))
 
    dbcon.close()
 
@@ -6109,7 +6114,8 @@ chemdb balance reaction program
 eoln = "\n"
 #Database defaults
 hup    = hup0
-dbfile = "TNT_Project"
+#dbfile = "TNT_Project"
+dbfile = dbfile0
 table  = "reactionhashes2"
 
 tt      = time.localtime()
@@ -6170,65 +6176,65 @@ for o, a in opts:
      balancereaction = False
      inchikey = a
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (listreactions):
    listreactions_molecules(hup,dbfile,table,inchikey)
    exit()
 
-print
-print "chemdb_balance_reaction mysql version 9.0"
-print
+print()
+print("chemdb_balance_reaction mysql version 9.0")
+print()
 
 if (len(args)<1): 
-   print usage
+   print(usage)
    exit()
-print args[0]
+print(args[0])
 
 if (genbondings):
    indx = [evalnum(f) for f in args[0].split()]
    reactiontype = args[1]
    pp = generate_bondings(indx,reactiontype)
-   print pp
+   print(pp)
    exit()
 
 if (findindx):
    xyzfile      = args[0]
    reactionhash = args[1]
    indxs = findreaction_indexes(reactionhash,xyzfile)
-   print "reaction indexes=",indxs
+   print("reaction indexes=",indxs)
    indxsp1 = []
    for iii in indxs:
       indxsp1 += [[[f+1 for f in iii[0]],iii[1],iii[2],[[f+1 for f in g] for g in iii[3]],[[f+1 for f in g] for g in iii[4]],iii[5]]]
-   print "reaction regular indexes=",indxsp1
+   print("reaction regular indexes=",indxsp1)
    exit()
 
 if (findindx2):
    xyzfile      = args[0]
    reactionhash = args[1]
    indxs = findproducts_indexes(reactionhash,xyzfile)
-   print "products indexes=",indxs
+   print("products indexes=",indxs)
    indxsp1 = []
    for iii in indxs:
       indxsp1 += [[[f+1 for f in iii[0]],iii[1],iii[2]]] 
-   print "products regular indexes=",indxsp1
+   print("products regular indexes=",indxsp1)
    exit()
 
 if (xyztohash):
    xyzfile = args[0]
    indx = [evalnum(f)-1 for f in args[1].split()]
    reactiontype = args[2]
-   print "indxes =",indx
-   print "reaction type =",reactiontype
-   print
+   print("indxes =",indx)
+   print("reaction type =",reactiontype)
+   print()
    (rhash,indxs) = xyz_indx_to_reactiohash(xyzfile,indx,reactiontype)
-   print "rhash =" + rhash
-   print "reaction indexes =",indxs
+   print("rhash =" + rhash)
+   print("reaction indexes =",indxs)
    indxsp1 = []
    for iii in indxs:
       indxsp1 += [[[f+1 for f in iii[0]],iii[1],iii[2],[[f+1 for f in g] for g in iii[3]],[[f+1 for f in g] for g in iii[4]],iii[5]]]
-   print "reaction regular indexes=",indxsp1
+   print("reaction regular indexes=",indxsp1)
    exit()
 
 ### load the reaction input file into rstring ###
@@ -6247,11 +6253,11 @@ if (addreaction):
    energies.append(eval(ss[3]))
    energies.append(eval(ss[4]))
    reaction = " ".join(ss[5:])
-   print "energies = ", energies
+   print("energies = ", energies)
 else:
    reaction = reaction_string
 
-print "reaction = ", reaction
+print("reaction = ", reaction)
 
 
 #### determine method ####
@@ -6278,13 +6284,13 @@ if (theory=="pm3") or (theory=="am1") or (theory=="mindo") or (theory=="mindo3")
    xc = "unknown"
    basis = "semiempirical"
 
-print "maxlevel=",maxlevel
-print "theory=",theory
-print "xc=",xc
-print "basis=",basis
-print "solvation_type=",solvation_type
+print("maxlevel=",maxlevel)
+print("theory=",theory)
+print("xc=",xc)
+print("basis=",basis)
+print("solvation_type=",solvation_type)
 method = [theory,xc,basis,solvation_type]
-print "method = ", method
+print("method = ", method)
 if "~" in reaction:
    reaction = reaction.split("~")[0].strip()
 
@@ -6316,10 +6322,10 @@ else:
    esmiles_products = []
    number_products  = 0
 
-print
-print "esmiles_reactants=",esmiles_reactants
-print "esmiles_products =",esmiles_products
-print "numbers=",number_reactants,number_products
+print()
+print("esmiles_reactants=",esmiles_reactants)
+print("esmiles_products =",esmiles_products)
+print("numbers=",number_reactants,number_products)
 
 molecules          = []
 rps = []
@@ -6411,16 +6417,16 @@ for esmiles in esmiles_products:
    molecules.append([mformula1,symbol1,adjmat1,-1,x,esmiles2,rxyz,mult,charge,inchikey])
    mformula_products.append(mformula1)
    rps.append(-1)
-   #print "product symbol,adjmat=",symbol1,adjmat1
+   #print("product symbol,adjmat=",symbol1,adjmat1)
 
 esmiles2all = esmiles2_reactants + esmiles2_products
 
-print
-print "mformula_reactants=",mformula_reactants,coeff_reactants
-print "mformula_products =",mformula_products, coeff_products
-print "rps=",rps
-print "combined reactant smiles=",'.'.join(rsmiles)
-print "combined product  smiles=",'.'.join(psmiles)
+print()
+print("mformula_reactants=",mformula_reactants,coeff_reactants)
+print("mformula_products =",mformula_products, coeff_products)
+print("rps=",rps)
+print("combined reactant smiles=",'.'.join(rsmiles))
+print("combined product  smiles=",'.'.join(psmiles))
 
 if (addreaction):
    bstrings = reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies,method,testingadd)
@@ -6439,25 +6445,25 @@ if (findreactions):
 try:
    os.unlink(wrkdir + "/"+tmpsmi1)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi1
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi1)
 
 try:
    os.unlink(wrkdir + "/"+tmpsmi2)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi2
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpsmi2)
 
 try:
    os.unlink(wrkdir + "/"+tmpxyz1)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpxyz1
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpxyz1)
 
 try:
    os.unlink(wrkdir + "/"+tmperxn)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmperxn
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmperxn)
 
 try:
    os.unlink(wrkdir + "/"+tmpnwout)
 except:
-   print "chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpnwout
+   print("chemdb_fetch_reactions5 Failed to remove " + wrkdir + "/"+ tmpnwout)
 
