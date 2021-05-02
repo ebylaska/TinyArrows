@@ -511,7 +511,7 @@ def nwinput2jsmol(backgroundcolor,nwinput):
 
 
    if cell!='':
-      xyzfilename = "molecule-jsmol-%d.cif" % xx
+      xyzfilename = "tmp/molecule-jsmol-%d.cif" % xx
       xyzlist = xyzdat.strip().split("\n")
       nion = eval(xyzlist[0].strip())
       cifdat = ''
@@ -523,7 +523,7 @@ def nwinput2jsmol(backgroundcolor,nwinput):
       with open(staticdir + xyzfilename,'w') as ff:
          ff.write(cifdat)
    else:
-      xyzfilename = "molecule-jsmol-%d.xyz" % xx
+      xyzfilename = "tmp/molecule-jsmol-%d.xyz" % xx
       with open(staticdir + xyzfilename,'w') as ff:
          ff.write(xyzdat)
 
@@ -657,8 +657,8 @@ def clean_upload_directory():
 
 def clean_directories():
    ### remove files from templatedir ###
-   for the_file in os.listdir(templatedir):
-      file_path = os.path.join(templatedir, the_file)
+   for the_file in os.listdir(templatedir+"/tmp"):
+      file_path = os.path.join(templatedir+"/tmp", the_file)
       try:
          if os.path.isfile(file_path):
             if ('reaction' in file_path) or ('molecule' in file_path):
@@ -668,8 +668,8 @@ def clean_directories():
          print(e)
 
    ### remove files from staticdir ###
-   for the_file in os.listdir(staticdir):
-      file_path = os.path.join(staticdir, the_file)
+   for the_file in os.listdir(staticdir+"/tmp"):
+      file_path = os.path.join(staticdir+"/tmp", the_file)
       try:
          if os.path.isfile(file_path):
             dt = time.time() - os.path.getmtime(file_path)
@@ -685,8 +685,8 @@ def resolve_images(result,html):
    for a in images:
       if os.path.isfile(a[0]):
          a1 = "cid:"+a[1]
-         a2 = " {{url_for('static',filename='img-%s')}}" % (a[0].split("/")[-1])
-         cmd8    = "cp " + a[0] + " " + staticdir + "/img-%s" %  (a[0].split("/")[-1])
+         a2 = " {{url_for('static',filename='tmp/img-%s')}}" % (a[0].split("/")[-1])
+         cmd8    = "cp " + a[0] + " " + staticdir + "/tmp/img-%s" %  (a[0].split("/")[-1])
          #result2 = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          print("cmd8=",cmd8)
          result2 = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
@@ -865,7 +865,7 @@ def get_osra(esmiles0):
 @app.route('/api/smarts/<smarts0>', methods=['GET'])
 def get_smarts(smarts0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -911,7 +911,7 @@ def get_smarts(smarts0):
 @app.route('/api/frequency/<idfreq0>', methods=['GET'])
 def get_frequency(idfreq0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -962,7 +962,7 @@ def get_frequency(idfreq0):
 @app.route('/api/listallesmiles/<nrows>', methods=['GET'])
 def get_listallesmiles(nrows):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1006,7 +1006,7 @@ def get_listallesmiles(nrows):
 @app.route('/api/listallreactions/', methods=['GET'])
 def get_listallreactions():
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1052,7 +1052,7 @@ def get_listallreactions():
 @app.route('/api/submitesmiles/<esmiles0>', methods=['GET'])
 def get_submitesmiles(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1106,7 +1106,7 @@ def get_submitesmiles(esmiles0):
 @app.route('/api/molecule/<path:esmiles0>', methods=['GET'])
 def get_molecule(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1177,7 +1177,7 @@ def get_molecule(esmiles0):
 @app.route('/api/nmr/<esmiles0>', methods=['GET'])
 def get_nmr(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1230,7 +1230,7 @@ def get_nmr(esmiles0):
 @app.route('/api/xyz/<esmiles0>', methods=['GET'])
 def get_xyz(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1288,7 +1288,7 @@ def get_xyz(esmiles0):
 @app.route('/api/mol/<esmiles0>', methods=['GET'])
 def get_mol(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1345,7 +1345,7 @@ def get_mol(esmiles0):
 @app.route('/api/nwoutput/<esmiles0>', methods=['GET'])
 def get_nwoutput(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1392,7 +1392,7 @@ def get_nwoutput(esmiles0):
 @app.route('/api/nwoutput_download/<esmiles0>', methods=['GET'])
 def get_nwoutput_download(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1452,7 +1452,7 @@ def get_nwoutput_download(esmiles0):
 @app.route('/api/nwinput/<esmiles0>', methods=['GET'])
 def get_nwinput(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1505,7 +1505,7 @@ def get_nwinput(esmiles0):
 @app.route('/api/nwdatafile/<esmiles0>', methods=['GET'])
 def get_nwdatafile(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1557,7 +1557,7 @@ def get_nwdatafile(esmiles0):
 @app.route('/api/nwdatafile_download/<esmiles0>', methods=['GET'])
 def get_nwdatafile_download(esmiles0):
     global namecount
-    name = "molecule%d.html" % namecount
+    name = "tmp/molecule%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1626,7 +1626,7 @@ def get_nwdatafile_download(esmiles0):
 @app.route('/api/reaction/<path:esmiles0>', methods=['GET'])
 def get_reaction(esmiles0):
     global namecount
-    name = "reaction%d.html" % namecount
+    name = "tmp/reaction%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1698,7 +1698,7 @@ def get_reaction(esmiles0):
 @app.route('/api/reactionpath/<esmiles0>', methods=['GET'])
 def get_reactionpath(esmiles0):
     global namecount
-    name = "reaction%d.html" % namecount
+    name = "tmp/reaction%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -1756,7 +1756,7 @@ def get_reactionpath(esmiles0):
 @app.route('/api/predict/<esmiles0>', methods=['GET'])
 def get_predict(esmiles0):
     global namecount
-    name = "reaction%d.html" % namecount
+    name = "tmp/reaction%d.html" % namecount
     namecount += 1
 
     increment_apivisited()
@@ -2035,7 +2035,7 @@ def fetch_queue(jobid):
 @app.route('/api/queue_view/<jobid>', methods=['GET'])
 def view_queue(jobid):
    global namecount
-   name = "molecule%d.html" % namecount
+   name = "tmp/molecule%d.html" % namecount
    namecount += 1
    try:
       increment_apivisited()
@@ -2072,7 +2072,7 @@ def view_queue(jobid):
 @app.route('/api/eric_view/<path:input_data>', methods=['GET'])
 def eric_queue(input_data):
    global namecount
-   name = "molecule%d.html" % namecount
+   name = "tmp/molecule%d.html" % namecount
    namecount += 1
    try:
       increment_apivisited()
