@@ -1,5 +1,5 @@
 #!/bin/csh
 
 
-java -jar /Users/bylaska/Downloads/jmol-14.31.36/JmolData.jar -i -L -o -n -g 355x355 -s $1 $2 -q0 -w png:$3
+java -jar /Users/bylaska/Codes/jmol-14.31.36/JmolData.jar -i -L -o -n -g 355x355 -s $1 $2 -q0 -w png:$3
 

@@ -2731,7 +2731,7 @@ def xyzdat2jsmol(backgroundcolor,xyzdat,cell=None):
    staticdir = ARROWS_HOME + "/Public/static/"
    xx = random.randint(0,999999)
    if cell is not None:
-      xyzfilename = "molecule-jsmol-%d.cif" % xx
+      xyzfilename = "tmp/molecule-jsmol-%d.cif" % xx
       xyzlist = xyzdat.strip().split("\n")
       nion = eval(xyzlist[0].strip())
       cifdat = ''
@@ -2743,7 +2743,7 @@ def xyzdat2jsmol(backgroundcolor,xyzdat,cell=None):
       with open(staticdir + xyzfilename,'w') as ff:
          ff.write(cifdat)
    else:
-      xyzfilename = "molecule-jsmol-%d.xyz" % xx
+      xyzfilename = "tmp/molecule-jsmol-%d.xyz" % xx
       with open(staticdir + xyzfilename,'w') as ff:
          ff.write(xyzdat)
 
@@ -2817,10 +2817,9 @@ def xyzdat2jsmol(backgroundcolor,xyzdat,cell=None):
 #                                         #
 ###########################################
 def nmrdat2jsmol(xyzdat,tscript):
-   #staticdir = arrows_dir + "/Public/static/"
    staticdir = ARROWS_HOME + "/Public/static/"
    xx = random.randint(0,999999)
-   xyzfilename = "molecule-nmr-jsmol-%d.xyz" % xx
+   xyzfilename = "tmp/molecule-nmr-jsmol-%d.xyz" % xx
    with open(staticdir + xyzfilename,'w') as ff:
       ff.write(xyzdat)
 
@@ -2878,7 +2877,7 @@ def nwout2jsmol(backgroundcolor,datafiles,xyzdat):
          afilename = mm
 
    xx = random.randint(0,999999)
-   nwoutfilename = "molecule-jsmol-%d.out" % xx
+   nwoutfilename = "tmp/molecule-jsmol-%d.out" % xx
    cmd0 = "scp " + afilename + " " + staticdir + nwoutfilename
    pexpect_command(cmd0,archivepassword)
 
