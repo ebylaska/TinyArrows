@@ -1,0 +1,1 @@
+Directory fo temporary templates
