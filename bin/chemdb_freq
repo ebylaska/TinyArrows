@@ -1,17 +1,24 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random
+#import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random
+import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,sqlite3
+import pymysql as MySQLdb
 from math import *
 
 ############## machine parameters #########################
-gnuplot  = "/usr/bin/gnuplot "
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+
+ARROWS_API_HOME = 'localhost:5000/api/'
+
+gnuplot  = "/usr/local/bin/gnuplot "
 ddrand  = random.randint(0,999999)
-wrkdir  = "/srv/arrows/Projects/Work"
-chemdbfile = "/srv/arrows/bin/.chemdb-en"
+wrkdir  = ARROWS_HOME + "/Work"
+chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
 
 ############## machine parameters #########################
 
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 
 
@@ -50,13 +57,12 @@ def fetch_all_frequency_data(hup,dbfile,table,id):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       row = cur.fetchone()
-   dbcon.close()
 
    return row
 
@@ -66,7 +72,7 @@ def fetch_all_frequency_data(hup,dbfile,table,id):
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
 
 #############################################
 #                                           #
@@ -134,7 +140,7 @@ def get_frequency(frequency_data,fnum):
    n = len(freqdat)
    for i in range(n):
       split = freqdat[i].split()
-      #print split[0],"  ",split[shift+1]
+      #print(split[0],"  ",split[shift+1])
       freq.append(evalnum(split[shift+1]))
 
    return (w,freq)
@@ -194,18 +200,18 @@ def dos_frequencies(plotdos,frequency_data):
 
 
    exact_dos_norm = len(freqs)-6.0
-   print "Total number of frequencies=",len(freqs)
-   print "Total number of negative frequencies=",nfreqs
+   print("Total number of frequencies=",len(freqs))
+   print("Total number of negative frequencies=",nfreqs)
    for i in range(nfreqs):
-      print "  - w_negative = %.1f cm-1" % freqs[i]
-   print "Number of lowest frequencies=",nlowest," (frequency threshold=",threshfreq,")"
-   print "Exact dos norm=",exact_dos_norm
-   print
+      print("  - w_negative = %.1f cm-1" % freqs[i])
+   print("Number of lowest frequencies=",nlowest," (frequency threshold=",threshfreq,")")
+   print("Exact dos norm=",exact_dos_norm)
+   print()
    
    dw  = ((maxfreq-minfreq)/float(ngrid-1))
    ww  = []
 
-   print "Generating vibrational DOS"
+   print("Generating vibrational DOS")
    doss  = []
    doss_lowest   = []
    for sigma in sigmas:
@@ -233,7 +239,7 @@ def dos_frequencies(plotdos,frequency_data):
       doss_lowest.append(dos_lowest)
 
 
-   print "Generating model vibrational DOS to have a proper norm"
+   print("Generating model vibrational DOS to have a proper norm")
    doss_fixed =[]
    for k in range(len(doss)):
       dos = doss[k]
@@ -251,10 +257,10 @@ def dos_frequencies(plotdos,frequency_data):
 
       dos_fixed_norm = simpson(dw,dos_fixed)
       doss_fixed.append(dos_fixed)
-      print sigmas[k],dos_norm,dos_lowest_norm,dos_fixed_norm
+      print(sigmas[k],dos_norm,dos_lowest_norm,dos_fixed_norm)
 
    if (foundir):
-      print "Generating IR Spectra"
+      print("Generating IR Spectra")
       irdoss  = []
       irdoss_lowest   = []
       for sigma in sigmas:
@@ -282,8 +288,8 @@ def dos_frequencies(plotdos,frequency_data):
             irdos_lowest.append(pplow)
          irdoss.append(irdos)
          irdoss_lowest.append(irdos_lowest)
-   print
-   print
+   print()
+   print()
 
 
    ## set up temporary gnuplot files
@@ -296,7 +302,7 @@ def dos_frequencies(plotdos,frequency_data):
 
 
    if plotdos:
-      print "Writing vibrational density of states (DOS) to vdos.dat"
+      print("Writing vibrational density of states (DOS) to vdos.dat")
       ofile = open("vdos.dat",'w')
       for i in range(ngrid):
          ofile.write("%f" % ww[i])
@@ -304,8 +310,8 @@ def dos_frequencies(plotdos,frequency_data):
             ofile.write(" %f" % doss[k][i])
          ofile.write("\n")
       ofile.close()
-      print "Writing model vibrational density of states (DOS_FIXED) to vdos-model.dat"
-      print
+      print("Writing model vibrational density of states (DOS_FIXED) to vdos-model.dat")
+      print()
       ofile = open("vdos-model.dat",'w')
       for i in range(ngrid):
          ofile.write("%f" % ww[i])
@@ -314,7 +320,7 @@ def dos_frequencies(plotdos,frequency_data):
          ofile.write("\n")
       ofile.close()
       if (foundir):
-         print "Writing IR spectra to irdos.dat"
+         print("Writing IR spectra to irdos.dat")
          ofile = open("irdos.dat",'w')
          for i in range(ngrid):
             ofile.write("%f" % ww[i])
@@ -364,8 +370,8 @@ def dos_frequencies(plotdos,frequency_data):
    kgas=1.3807e-16
    Rgas = 1.98630/1000.00/AUKCAL
 
-   print "Temperature=%7.2f " % (temp)
-   print
+   print("Temperature=%7.2f " % (temp))
+   print()
    ethermal0 = 0.0
    Svib0     = 0.0
    for w in freqs:
@@ -384,9 +390,9 @@ def dos_frequencies(plotdos,frequency_data):
    #ethermal0 += Rgas*temp*2.5 #translaton+(pv=RT) - atom
    #ethermal0 += Rgas*temp*3.5 #translaton+rotation+(pv=RT) - linear
    #ethermal0 += Rgas*temp*4.0 #translaton+rotation+(pv=RT) - not linear
-   print "vibrational contribution to enthalpy correction = %8.3f kcal/mol (%10.6f)"%(ethermal0*AUKCAL,ethermal0)
-   print "vibrational contribution to Entropy             = %8.3f cal/mol-k"%(Svib0*AUKCAL*1000.0)
-   print
+   print("vibrational contribution to enthalpy correction = %8.3f kcal/mol (%10.6f)"%(ethermal0*AUKCAL,ethermal0))
+   print("vibrational contribution to Entropy             = %8.3f cal/mol-k"%(Svib0*AUKCAL*1000.0))
+   print()
 
    for k in range(len(doss)):
 
@@ -424,7 +430,7 @@ def dos_frequencies(plotdos,frequency_data):
       os.system(gnuplot + gnufilename)
       with open(dumbfilename,'r') as f:
          msg = f.read()
-         print msg
+         print(msg)
 
       ## plot IR Spectra ##
       if (foundir):
@@ -433,7 +439,7 @@ def dos_frequencies(plotdos,frequency_data):
          os.system(gnuplot + gnufilename)
          with open(dumbfilename,'r') as f:
             msg = f.read()
-            print msg
+            print(msg)
        
        
       
@@ -453,36 +459,36 @@ def dos_frequencies(plotdos,frequency_data):
       sol_free_energy       = gas_free_energy       + solvation_energy/AUKCAL
       sol_free_energy_fixed = gas_free_energy_fixed + solvation_energy/AUKCAL
 
-      print "DOS sigma = %f" % sigmas[k]
-      print "  -       vibrational DOS enthalpy correction = %10.6f (%8.3f kcal/mol)" %  (ethermal,ethermal*AUKCAL)
-      print "  - model vibrational DOS enthalpy correction = %10.6f (%8.3f kcal/mol)" %  (ethermal_fixed,ethermal_fixed*AUKCAL)
-      print "  -       vibrational DOS Entropy             = %10.6f (%8.3f cal/mol-k)"  %  (Svib,Svib*AUKCAL*1000.0)
-      print "  - model vibrational DOS Entropy             = %10.6f (%8.3f cal/mol-k)"  %  (Svib_fixed,Svib_fixed*AUKCAL*1000.0)
-      print
-      print "  - orginal       gas Energy       = %12.6f (%8.3f kcal/mol)"  % (energy,                  energy*AUKCAL)
-      print 
-      print "  - orginal       gas Enthalpy     = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_enthalpy0,     gas_enthalpy0*AUKCAL,(gas_enthalpy0-gas_enthalpy0)*AUKCAL)
-      print "  - unajusted DOS gas Enthalpy     = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_enthalpy,      gas_enthalpy*AUKCAL,(gas_enthalpy-gas_enthalpy0)*AUKCAL)
-      print "  - model     DOS gas Enthalpy     = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_enthalpy_fixed,gas_enthalpy_fixed*AUKCAL,(gas_enthalpy_fixed-gas_enthalpy0)*AUKCAL)
-      print
-      print "  - orginal       gas Entropy      = %12.6f (%8.3f cal/mol-K,delta=%8.3f cal/mol-K)" % (gas_entropy0,     gas_entropy0*AUKCAL*1000.0,(gas_entropy0-gas_entropy0)*AUKCAL*1000.0)
-      print "  - unajusted DOS gas Entropy      = %12.6f (%8.3f cal/mol-K,delta=%8.3f cal/mol-K)" % (gas_entropy,      gas_entropy*AUKCAL*1000.0,(gas_entropy-gas_entropy0)*AUKCAL*1000.0)
-      print "  - model     DOS gas Entropy      = %12.6f (%8.3f cal/mol-K,delta=%8.3f cal/mol-K)" % (gas_entropy_fixed,gas_entropy_fixed*AUKCAL*1000.0,(gas_entropy_fixed-gas_entropy0)*AUKCAL*1000.0)
-      print
-      print "  - orginal        gas Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_free_energy0,     gas_free_energy0*AUKCAL,(gas_free_energy0-gas_free_energy0)*AUKCAL)
-      print "  - unadjusted DOS gas Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_free_energy,      gas_free_energy*AUKCAL,(gas_free_energy-gas_free_energy0)*AUKCAL)
-      print "  - model      DOS gas Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_free_energy_fixed,gas_free_energy_fixed*AUKCAL,(gas_free_energy_fixed-gas_free_energy0)*AUKCAL)
-      print
-      print "  - orginal        sol Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (sol_free_energy0,     sol_free_energy0*AUKCAL,(sol_free_energy0-sol_free_energy0)*AUKCAL)
-      print "  - unadjusted DOS sol Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (sol_free_energy,      sol_free_energy*AUKCAL,(sol_free_energy-sol_free_energy0)*AUKCAL)
-      print "  - model      DOS sol Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (sol_free_energy_fixed,sol_free_energy_fixed*AUKCAL,(sol_free_energy_fixed-sol_free_energy0)*AUKCAL)
+      print("DOS sigma = %f" % sigmas[k])
+      print("  -       vibrational DOS enthalpy correction = %10.6f (%8.3f kcal/mol)" %  (ethermal,ethermal*AUKCAL))
+      print("  - model vibrational DOS enthalpy correction = %10.6f (%8.3f kcal/mol)" %  (ethermal_fixed,ethermal_fixed*AUKCAL))
+      print("  -       vibrational DOS Entropy             = %10.6f (%8.3f cal/mol-k)"  %  (Svib,Svib*AUKCAL*1000.0))
+      print("  - model vibrational DOS Entropy             = %10.6f (%8.3f cal/mol-k)"  %  (Svib_fixed,Svib_fixed*AUKCAL*1000.0))
+      print()
+      print("  - orginal       gas Energy       = %12.6f (%8.3f kcal/mol)"  % (energy,                  energy*AUKCAL))
+      print ()
+      print("  - orginal       gas Enthalpy     = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_enthalpy0,     gas_enthalpy0*AUKCAL,(gas_enthalpy0-gas_enthalpy0)*AUKCAL))
+      print("  - unajusted DOS gas Enthalpy     = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_enthalpy,      gas_enthalpy*AUKCAL,(gas_enthalpy-gas_enthalpy0)*AUKCAL))
+      print("  - model     DOS gas Enthalpy     = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_enthalpy_fixed,gas_enthalpy_fixed*AUKCAL,(gas_enthalpy_fixed-gas_enthalpy0)*AUKCAL))
+      print()
+      print("  - orginal       gas Entropy      = %12.6f (%8.3f cal/mol-K,delta=%8.3f cal/mol-K)" % (gas_entropy0,     gas_entropy0*AUKCAL*1000.0,(gas_entropy0-gas_entropy0)*AUKCAL*1000.0))
+      print("  - unajusted DOS gas Entropy      = %12.6f (%8.3f cal/mol-K,delta=%8.3f cal/mol-K)" % (gas_entropy,      gas_entropy*AUKCAL*1000.0,(gas_entropy-gas_entropy0)*AUKCAL*1000.0))
+      print("  - model     DOS gas Entropy      = %12.6f (%8.3f cal/mol-K,delta=%8.3f cal/mol-K)" % (gas_entropy_fixed,gas_entropy_fixed*AUKCAL*1000.0,(gas_entropy_fixed-gas_entropy0)*AUKCAL*1000.0))
+      print()
+      print("  - orginal        gas Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_free_energy0,     gas_free_energy0*AUKCAL,(gas_free_energy0-gas_free_energy0)*AUKCAL))
+      print("  - unadjusted DOS gas Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_free_energy,      gas_free_energy*AUKCAL,(gas_free_energy-gas_free_energy0)*AUKCAL))
+      print("  - model      DOS gas Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (gas_free_energy_fixed,gas_free_energy_fixed*AUKCAL,(gas_free_energy_fixed-gas_free_energy0)*AUKCAL))
+      print()
+      print("  - orginal        sol Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (sol_free_energy0,     sol_free_energy0*AUKCAL,(sol_free_energy0-sol_free_energy0)*AUKCAL))
+      print("  - unadjusted DOS sol Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (sol_free_energy,      sol_free_energy*AUKCAL,(sol_free_energy-sol_free_energy0)*AUKCAL))
+      print("  - model      DOS sol Free Energy = %12.6f (%8.3f kcal/mol, delta=%8.3f kcal/mol)"  % (sol_free_energy_fixed,sol_free_energy_fixed*AUKCAL,(sol_free_energy_fixed-sol_free_energy0)*AUKCAL))
 
-   print
-   print
-   print "Frequencies (cm-1)"
-   print "------------------"
+   print()
+   print()
+   print("Frequencies (cm-1)")
+   print("------------------")
    for w in freqs:
-      print "%18.1f" % w
+      print("%18.1f" % w)
       
    try:
       os.unlink(dumbfilename)
@@ -492,7 +498,7 @@ def dos_frequencies(plotdos,frequency_data):
       if (foundir):
          os.unlink(irdosfilename)
    except:
-      print "chemdb_freq: Failed to delete temporary gnuplot files"
+      print("chemdb_freq: Failed to delete temporary gnuplot files")
 
 # Thermal correction to Enthalpy   =  217.652 kcal/mol  (  0.346851 au)
 #- Vibrational                  =  107.470 cal/mol-K
@@ -521,20 +527,20 @@ def plot_frequency(frequency_data,fnum):
    tfnum = "%d" % fnum
    #xyzfile = wrkdir + "/" + "tmpxyz1-%d.xyz" % ddrand
    #print "\n\nTrajectory for freq id=",id," fnum=",fnum,"  w(cm-1)=",w," - Generating xyzfile = ",xyzfile
-   print "\n\nTrajectory for freq id="+tid+" fnum="+tfnum+"  w(cm-1)=",w," - Generating xyzfile"
+   print("\n\nTrajectory for freq id="+tid+" fnum="+tfnum+"  w(cm-1)=",w," - Generating xyzfile")
    #xfile = open(xyzfile,'w')
-   print "################## begin xyz movie #######################"
+   print("################## begin xyz movie #######################")
    for k in range(-20,21)+range(19,-20,-1):
       #xfile.write("%d\n\n" % nion)
-      print "%d\n" % nion
+      print("%d\n" % nion)
       for i in range(nion):
          x = rxyz[3*i]   + 0.11*k*freq[3*i]
          y = rxyz[3*i+1] + 0.11*k*freq[3*i+1]
          z = rxyz[3*i+2] + 0.11*k*freq[3*i+2]
          #xfile.write("%s   %f %f %f\n" % (name[i],x,y,z))
-         print "%s   %f %f %f" % (name[i],x,y,z)
+         print("%s   %f %f %f" % (name[i],x,y,z))
    #xfile.close()
-   print "################## end xyz movie   #######################"
+   print("################## end xyz movie   #######################")
 
    #cmd6 = "/Applications/\"VMD 1.8.6.app\"/Contents/Resources/VMD.app/Contents/MacOS/VMD " + xyzfile
    #cmd6 = "/Applications/iMol.app/Contents/MacOS/iMol " + xyzfile
@@ -548,7 +554,7 @@ def plot_frequency(frequency_data,fnum):
    #   print "chemdb_freq: Failed to remove " + xyzfile
 
  except:
-   print "frequency %d in id=%d not found" % (fnum,frequency_data[0])
+   print("frequency %d in id=%d not found" % (fnum,frequency_data[0]))
 
 #############################################
 #                                           #
@@ -563,7 +569,7 @@ def analyze_frequency(fnum,w):
    kgas=1.3807e-16
    Rgas = 1.98630/1000.00/AUKCAL
 
-   print "Temperature=%7.2f  freq(%d)= %8.3f cm-1" % (temp,fnum,w)
+   print("Temperature=%7.2f  freq(%d)= %8.3f cm-1" % (temp,fnum,w))
 
    if (w>1.0e-8):
       thetav = w*(h*c/kgas)
@@ -575,8 +581,8 @@ def analyze_frequency(fnum,w):
          Svib   =  (xdum/(exp(xdum)-1.00) - log(1.00-exp(-xdum)))*Rgas
       else:
          Svib = 0.0
-      print "  - contribution to thermal correction to enthalpy= %8.3f kcal/mol (%10.6f)" %  (ethermal*AUKCAL,ethermal)
-      print "  - contribution to Entropy                       = %8.3f cal/mol-k"       %  (Svib*AUKCAL*1000.0)
+      print("  - contribution to thermal correction to enthalpy= %8.3f kcal/mol (%10.6f)" %  (ethermal*AUKCAL,ethermal))
+      print("  - contribution to Entropy                       = %8.3f cal/mol-k"       %  (Svib*AUKCAL*1000.0))
 
 
 
@@ -727,8 +733,8 @@ def plot_rotor_xyz(frequency_data,rbond1,rgroup1):
       x2 = rion[ia1:ib1]
 
       
-      print "\n\nTrajectory for rotor id="+tid+" rbond="+rbond1+"  rgroup="+rgroup1+" - Generating xyzfile"
-      print "################## begin xyz movie #######################"
+      print("\n\nTrajectory for rotor id="+tid+" rbond="+rbond1+"  rgroup="+rgroup1+" - Generating xyzfile")
+      print("################## begin xyz movie #######################")
       for i in range(nphi):
          phi = i*dphi
          for ii in range(len(rion)): rion2[ii] = rion[ii]
@@ -736,15 +742,15 @@ def plot_rotor_xyz(frequency_data,rbond1,rgroup1):
             ii1 = 3*(ii-1)
             ii2 = ii1 + 3
             rion2[ii1:ii2] = rotate_about_axis(phi,x1,x2,rion2[ii1:ii2])
-         print  "%d" % nion
-         print
+         print("%d" % nion)
+         print()
          for ii in range(len(rion2)/3):
-            print '%s   %f %f %f' % (symbol[ii],rion2[3*ii],rion2[3*ii+1],rion2[3*ii+2])
+            print('%s   %f %f %f' % (symbol[ii],rion2[3*ii],rion2[3*ii+1],rion2[3*ii+2]))
 
-      print "################## end xyz movie   #######################"
+      print("################## end xyz movie   #######################")
          
    except:
-      print "plot_rotor id=%d not found" % (frequency_data[0])
+      print("plot_rotor id=%d not found" % (frequency_data[0]))
 
 
 
@@ -771,7 +777,8 @@ chemdb frequency program
 
 #Database defaults
 hup    = hup0
-dbfile = "TNT_Project"
+#dbfile = "TNT_Project"
+dbfile = dbfile0
 table  = "calculations"
 
 analyze = False
@@ -796,11 +803,11 @@ for o, a in opts:
   if '-g' in o:
      rgroup = a
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<2):
-   print usage
+   print(usage)
    exit()
 
 id   = evalnum(args[0])
@@ -824,7 +831,8 @@ if (not rotation):
    for j in range(len(freqs)):
       if ((j%10)==0): headerfreqs += "\n"
       f0 = freqs[j]
-      link = "https://arrows.emsl.pnnl.gov/api/frequency/%22"
+      #link = "https://arrows.emsl.pnnl.gov/api/frequency/%22"
+      link = ARROWS_API_HOME + "frequency/%22"
       link += " %d %d " % (id,j+1)
       link += "%22"
       num2 = "%.3f" % (f0)
@@ -832,17 +840,18 @@ if (not rotation):
 
    (w,freq) = get_frequency(freqdata,fnum)
    analyze_frequency(fnum,w)
-   print
-   print headerfreqs
+   print()
+   print(headerfreqs)
 
-print "</pre>"
-print "<pre style=\"font-size:1.0em;color:black\">"
-print 
-print "+---------------------------------+"
-print "| chemdb_freq - frequency program |"
-print "+---------------------------------+"
-print
-idlink = "https://arrows.emsl.pnnl.gov/api/molecule/%22"
+print("</pre>")
+print("<pre style=\"font-size:1.0em;color:black\">")
+print()
+print("+---------------------------------+")
+print("| chemdb_freq - frequency program |")
+print("+---------------------------------+")
+print()
+#idlink = "https://arrows.emsl.pnnl.gov/api/molecule/%22"
+idlink = ARROWS_API_HOME + "molecule/%22"
 idlink += "id=%d" % (id)
 idlink += "%22"
 num2 = "%d" % (id)
@@ -850,15 +859,15 @@ idtag = " <a href=\"" + idlink + "\">" + num2 + "</a>"
 
 if (hup=='sqlite3'):
    issqlite3 = True
-   print "sqlite3 db file =",dbfile
+   print("sqlite3 db file =",dbfile)
 else:
    issqlite3 = False
-   print "mysql db        =",dbfile
-print "table name      =",table
+   print("mysql db        =",dbfile)
+print("table name      =",table)
 #print "id              =",id
-print "id              ="+idtag
-print "fnum            =",fnum
-print
+print("id              ="+idtag)
+print("fnum            =",fnum)
+print()
 
 
 
@@ -888,29 +897,29 @@ honig            = freqdata[20]
 area             = freqdata[21]
 volume           = freqdata[22]
 if solvation_type=='COSMO': solvation_energy = -solvation_energy + sitkoff
-print "iupac    = " + iupac
-print "mformula = " + mformula
-print "inchi    = " + inchi
-print "inchikey = " + inchikey
-print "esmiles  = " + esmiles
-print 
-print "calculation_type = ",calculation_type
-print "theory           = ",theory
-print "xc               = ",xc
-print "basis            = ",basis
-print "charge,mult      = ",charge,mult
-print "energy           = %14.6f Hartrees"  % energy
-print "enthalpy correct.= %14.6f Hartrees"  % enthalpy
-print "entropy          = %14.3f cal/mol-K" % entropy
-print "solvation energy = %14.3f kcal/mol  solvation_type = %s" % (solvation_energy,solvation_type)
+print("iupac    = " + iupac)
+print("mformula = " + mformula)
+print("inchi    = " + inchi)
+print("inchikey = " + inchikey)
+print("esmiles  = " + esmiles)
+print()
+print("calculation_type = ",calculation_type)
+print("theory           = ",theory)
+print("xc               = ",xc)
+print("basis            = ",basis)
+print("charge,mult      = ",charge,mult)
+print("energy           = %14.6f Hartrees"  % energy)
+print("enthalpy correct.= %14.6f Hartrees"  % enthalpy)
+print("entropy          = %14.3f cal/mol-K" % entropy)
+print("solvation energy = %14.3f kcal/mol  solvation_type = %s" % (solvation_energy,solvation_type))
 #print "Sitkoff cavity dispersion          = ", sitkoff
 #print "Honig cavity dispersion            = ", honig
 #print "ASA solvent accesible surface area = ", area
 #print "ASA solvent accesible volume       = ", volume
-print
+print()
 if (freqdata[64] is not None):
-   print freqdata[64]
-   print
+   print(freqdata[64])
+   print()
 
 #print "chemical_structure_asciiart  = "
 #print "</pre>"
@@ -920,26 +929,26 @@ if (freqdata[64] is not None):
 #print "<pre style=\"font-size:1.0em;color:black\">"
 
 if (dos):
-   print "+----------------------------------------+"
-   print "| Vibrational Density of States Analysis | "
-   print "+----------------------------------------+"
-   print
+   print("+----------------------------------------+")
+   print("| Vibrational Density of States Analysis |")
+   print("+----------------------------------------+")
+   print()
    dos_frequencies(plotdos,freqdata)
 
 elif (analyze):
-   print "+---------------------------+"
-   print "| Analyzing Low Frequencies |"
-   print "+---------------------------+\n"
+   print("+---------------------------+")
+   print("| Analyzing Low Frequencies |")
+   print("+---------------------------+\n")
    for f in range(1,fnum+1):
       (w,freq) = get_frequency(freqdata,f)
       analyze_frequency(f,w)
-      print
+      print()
 elif (rotation):
    plot_rotor_xyz(freqdata,rbond.strip(),rgroup.strip())
 else:
    plot_frequency(freqdata,fnum)
-print
-print "Finished"
-print "</pre>"
-print "<pre style=\"font-size:0.6em;color:black\">"
+print()
+print("Finished")
+print("</pre>")
+print("<pre style=\"font-size:0.6em;color:black\">")
 
