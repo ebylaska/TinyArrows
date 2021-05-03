@@ -8,7 +8,7 @@ from math import *
 ############## machine parameters #########################
 ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
 
-ARROWS_API_HOME = 'localhost:5000/api/'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 gnuplot  = "/usr/local/bin/gnuplot "
 ddrand  = random.randint(0,999999)

@@ -10,6 +10,8 @@ from math import *
 ############## machine parameters #########################
 ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
 
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
 #babel              = "/usr/bin/babel"
 obabel             = "/usr/local/bin/obabel "
 obgrep             = "/usr/local/bin/obgrep "
@@ -1211,13 +1213,14 @@ def subprocess_Background(cmd99):
 
 def nwoutputfromid(id):
    ss = '%d' % id
-   link = "https://arrows.emsl.pnnl.gov/api/nwoutput/%22id=" + ss + "%22"
+   #link = "https://arrows.emsl.pnnl.gov/api/nwoutput/%22id=" + ss + "%22"
+   link = ARROWS_API_HOME + "nwoutput/%22id=" + ss + "%22"
    result = "<a target=\"_blank\" href=\"" + link + "\">Link to NWChem Output</a>"
    return result
 
 def nwoutputfromid_download(id):
    ss = '%d' % id
-   link = "https://arrows.emsl.pnnl.gov/api/nwoutput_download/%22id=" + ss + "%22"
+   link = ARROWS_API_HOME + "nwoutput_download/%22id=" + ss + "%22"
    result = "<a target=\"_blank\" href=\"" + link + "\">(download)</a>"
    return result
 
@@ -4372,7 +4375,8 @@ def dos_frequencies(plotdos,frequency_data):
    msg2 += "Normal Mode    Frequency (cm-1)     IR Intensity (arbitrary)\n"
    msg2 += "-----------    ----------------     ------------------------\n"
    for j in range(len(freqs)):
-      link = "https://arrows.emsl.pnnl.gov/api/frequency/%22"
+      #link = "https://arrows.emsl.pnnl.gov/api/frequency/%22"
+      link = ARROWS_API_HOME + "frequency/%22"
       link += " %d %d " % (tid,j+1)
       link += "%22"
       f0 = freqs[j]
@@ -4514,7 +4518,8 @@ def write_hrotors(tid,hrotors_blob):
       rbond  = " rbond:"  + hrotor_blob.split("rbond    =")[1].split("\n")[0].strip() + ":rbond"
       rgroup = " rgroup:" + hrotor_blob.split("rgroup   =")[1].split("\n")[0].strip() + ":rgroup"
 
-      link = "https://arrows.emsl.pnnl.gov/api/frequency/%22"
+      #link = "https://arrows.emsl.pnnl.gov/api/frequency/%22"
+      link = ARROWS_API_HOME + "frequency/%22"
       link += " %d %d " % (tid,-1) + rbond + rgroup
       link += "%22"
       rmsg = " <a target=\"_blank\" href=\"" + link + "\">rotation xyz movie</a>\n"
@@ -8029,7 +8034,8 @@ def kekuletablehtml(hup,dbfile,table,myids):
           homo = "HOMO = %.2f eV" % (homolumo[0]*27.2116)
           lumo = "LUMO = %.2f eV" % (homolumo[1]*27.2116)
        ss0 = "%d" % id
-       link = "https://arrows.emsl.pnnl.gov/api/molecule/%22id=" + ss0 + "%22"
+       #link = "https://arrows.emsl.pnnl.gov/api/molecule/%22id=" + ss0 + "%22"
+       link = ARROWS_API_HOME + "molecule/%22id=" + ss0 + "%22"
        ref = "<a target=\"_blank\" href=\"" + link + "\">%s</a>" % ss0
 
        count += 1
@@ -9609,7 +9615,8 @@ while ((len(rstring.split("reactionpath:"))>1) and (not toolong) and (":reaction
           if ('COSMO-SMD' in row[17]): solv =  row[18]
           solv = solv/autokcal
           aq_free_energy = free_energy + solv
-          link3 = 'https://arrows.emsl.pnnl.gov/api/molecule/' + 'id=%d' % row[0]
+          #link3 = 'https://arrows.emsl.pnnl.gov/api/molecule/' + 'id=%d' % row[0]
+          link3 = ARROWS_API_HOME + 'molecule/' + 'id=%d' % row[0]
           ref3 = "<a target=\"_blank\" href=\"" + link3 + "\">%d</a>" % row[0]
           energies.append((row[55],row[67],row[69],fspring,espring,energy,enthalpy,free_energy,solv,aq_free_energy,ref3,row[23]))
       ### bubble sort ###
@@ -9898,9 +9905,11 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
                   nname = nn.split('/')[-1]
                   ss = "id=%d " % id
                   ss += nname
-                  link = "https://arrows.emsl.pnnl.gov/api/nwdatafile/%22" + ss + "%22"
+                  #link = "https://arrows.emsl.pnnl.gov/api/nwdatafile/%22" + ss + "%22"
+                  link = ARROWS_API_HOME + "nwdatafile/%22" + ss + "%22"
                   dnname = "<a target=\"_blank\" href=\"" + link + "\">" + nname + "</a>"
-                  link2 = "https://arrows.emsl.pnnl.gov/api/nwdatafile_download/%22" + ss + "%22"
+                  #link2 = "https://arrows.emsl.pnnl.gov/api/nwdatafile_download/%22" + ss + "%22"
+                  link2 = ARROWS_API_HOME + "nwdatafile_download/%22" + ss + "%22"
                   dnname2 = "<a href=\"" + link2 + "\">(download)</a>"
                   msg5 += "%s %s\n" % (dnname,dnname2)
                msg5 += "\n"
@@ -10252,7 +10261,7 @@ addedtoerxnfile = False
 for reaction in reactions:
    text2speech_Threading("reaction requested for " + reaction)
    reactioncount += 1
-   rlink =  "https://arrows.emsl.pnnl.gov/api/reaction/%22" + reaction.strip() + "%22"
+   rlink =  ARROWS_API_HOME + "reaction/%22" + reaction.strip() + "%22"
    htmlreactionlink = "<a target=\"_blank\" href=\"" + rlink.replace('#','%23') + "\">%s</a>" % reaction.strip()
    #ooofile.write(eoln+eoln+eoln + "Reaction %d: " % (reactioncount)  + reaction.strip()+ eoln)
    ooofile.write(eoln+eoln+eoln + "Reaction %d: " % (reactioncount)  + htmlreactionlink+ eoln)
@@ -10567,7 +10576,8 @@ for reaction in reactions:
          msg1f += "%.2f %s" % (x,molecule[2])
          if (ir<(number_reactants-1)): msg1f += " + "
          ss0 = "Id=%d" % molecule[0]
-         link = "https://arrows.emsl.pnnl.gov/api/molecule/%22" + ss0 + "%22"
+         #link = "https://arrows.emsl.pnnl.gov/api/molecule/%22" + ss0 + "%22"
+         link = ARROWS_API_HOME + "molecule/%22" + ss0 + "%22"
          gink = "<a target=\"_blank\" href=\"" + link + "\">%s</a>" % ss0
          msg2 += "%.2f (%s)" % (x,gink)
          #msg2 += "%.2f (Id=%d)" % (x,molecule[0])
@@ -10623,7 +10633,8 @@ for reaction in reactions:
          msg1f += "%.2f %s" % (x,molecule[2])
          if (ip<(number_products-1)): msg1f += " + "
          ss0 = "Id=%d" % molecule[0]
-         link = "https://arrows.emsl.pnnl.gov/api/molecule/%22" + ss0 + "%22"
+         #link = "https://arrows.emsl.pnnl.gov/api/molecule/%22" + ss0 + "%22"
+         link = ARROWS_API_HOME + "molecule/%22" + ss0 + "%22"
          gink = "<a target=\"_blank\" href=\"" + link + "\">%s</a>" % ss0
          msg2 += "%.2f (%s)" % (x,gink)
          #msg2 += "%.2f (Id=%d)" % (x,molecule[0])
@@ -11078,7 +11089,8 @@ while ((len(rstring.split("smarts:"))>1) and (not toolong) and (":smarts" in rst
          ss0 = line2.split()[0].strip()
          space = ''
          for i in range(6-len(ss0)): space += ' '
-         link = "https://arrows.emsl.pnnl.gov/api/molecule/%22id=" + ss0 + "%22"
+         #link = "https://arrows.emsl.pnnl.gov/api/molecule/%22id=" + ss0 + "%22"
+         link = ARROWS_API_HOME + "molecule/%22id=" + ss0 + "%22"
          result1 += space + "<a target=\"_blank\" href=\"" + link + "\">%s</a>" % ss0
          result1 += line2[6:]
          myids.append(evalnum(ss0))
@@ -11116,7 +11128,8 @@ if (listallesmiles):
       ss0 = "%d" % r[0]
       space = ''
       for i in range(6-len(ss0)): space += ' '
-      link   = "https://arrows.emsl.pnnl.gov/api/molecule/%22id=" + ss0 + "%22"
+      #link   = "https://arrows.emsl.pnnl.gov/api/molecule/%22id=" + ss0 + "%22"
+      link   = ARROWS_API_HOME + "molecule/%22id=" + ss0 + "%22"
       result += space + "<a target=\"_blank\" href=\"" + link + "\">%s</a>" % ss0
       result += " %20s %18s  %s\n" % (r[1],r[2],r[3])
 
