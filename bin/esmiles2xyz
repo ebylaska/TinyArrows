@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
-import sys,os,shutil,time,pickle,math,pymysql,urllib,getopt,random,operator,re
+import sys,os,shutil,time,pickle,math,urllib,getopt,random,operator,re
+import pymysql as MySQLdb
 import subprocess,json,sqlite3
 from math import *
 
@@ -1266,7 +1267,7 @@ def insert_abbreviation(hup,dbfile,abrev_table,abbreviation,
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
    
    with dbcon:
       cur = dbcon.cursor()
@@ -1282,7 +1283,6 @@ def insert_abbreviation(hup,dbfile,abrev_table,abbreviation,
          if (not duplicate2):
             #cout += "inserting into " + abrev_table + eoln
             cur.execute(sqlinsert,insertlist)
-   dbcon.close()
 
 
 
@@ -1312,7 +1312,7 @@ def nametosmiles_set(hup,dbfile,table,name,smiles):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -1320,7 +1320,6 @@ def nametosmiles_set(hup,dbfile,table,name,smiles):
          cout += "inserting "+ name + " " + smiles + " into " + table + eoln
          cur.execute(sqlinsert,insertlist)
 
-   dbcon.close()
 
 
 
@@ -1353,7 +1352,8 @@ def nametosmiles(hup,dbfile,table,name):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      #dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4',cursorclass=MySQLdb.cursors.DictCursor)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -1371,7 +1371,7 @@ def nametosmiles(hup,dbfile,table,name):
             cur.execute(sqlinsert,insertlist)
       else:
          smiles = rows[0][2]
-   dbcon.close()
+   
 
    return smiles
 
@@ -1860,7 +1860,8 @@ else:
    host = hup.split()[0]
    user = hup.split()[1]
    pss = hup.split()[2]
-   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   #dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+   dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
 with dbcon:
    cur = dbcon.cursor()
@@ -1883,7 +1884,7 @@ with dbcon:
          smiles2xyz(smiles,xyzfile)
    else:
       row = best_row(esmiles,rows)
-      xyzstring = row[10]
+      xyzstring = row[10].decode("utf-8")
       with  open(xyzfile,'w') as ff:
          ff.write(xyzstring)
       if (row[14].strip()==''):
@@ -1941,7 +1942,6 @@ with dbcon:
       esmiles_dict['xyz_blob']  = row[10]
       esmiles_dict['mol_blob']  = xyzdat2mol(row[10])
       esmiles_dict['chemical_structure_asciiart'] = row[16]
-dbcon.close()
 
 
 try:

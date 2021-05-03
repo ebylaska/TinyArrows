@@ -1,7 +1,9 @@
 #!/usr/local/bin/python3
 
 #import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,re,threading,shlex,urllib
-import sys,os,time,pickle,math,pymysql,urllib,getopt,subprocess,pexpect,random,operator,re,threading,shlex,sqlite3,urllib.parse
+import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator,re,threading,shlex,sqlite3,urllib.parse
+import pymysql as MySQLdb
+
 from math import *
 
 
@@ -792,6 +794,7 @@ def f2_reaction(mformulas,rps,coeffs):
 def print_xyzdat_bond_angle_torsion(xyzdat):
    eoln = '\n'
    msg = ''
+   if isinstance(xyzdat,bytes): xyzdat = xyzdat.decode("utf-8")
    lines = xyzdat.strip().split("\n")
    nion = eval(lines[0])
 
@@ -1421,7 +1424,7 @@ def mformula_to_smiles(hup,dbfile,table,mformula0):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -1435,7 +1438,6 @@ def mformula_to_smiles(hup,dbfile,table,mformula0):
          for r in rows:
             smileslist.append(r[0])
          smileslist = list(set(smileslist))
-   dbcon.close()
 
    return smileslist
 
@@ -1570,7 +1572,7 @@ def nametosmiles(name):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -1596,7 +1598,6 @@ def nametosmiles(name):
             cur.execute(sqlinsert,insertlist)
       else:
          smiles = rows[0][2]
-   dbcon.close()
 
  except:
    smiles = ""
@@ -1730,7 +1731,6 @@ def isformula_check(str0):
       smiles = str0.strip()
       cmd = obabel + ' -:\"' + smiles + '\" -ocan'
       result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
-      print("ISFORMULA_CHECK result=",result)
       if "0 molecules converted" in result:
          isformula = True
       else:
@@ -3402,7 +3402,7 @@ def fetch_esmiles_full(hup,dbfile,table,esmiles):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    rows2 = []
    with dbcon:
@@ -3415,7 +3415,6 @@ def fetch_esmiles_full(hup,dbfile,table,esmiles):
             cur.execute(sqlcheck2,checklist2)
             tmp = cur.fetchall()
             rows2.append(tmp[0])
-   dbcon.close()
 
    return rows2
  except:
@@ -3509,13 +3508,12 @@ def fetch_jobinfo(hup,dbfile,table,id):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       rows = cur.fetchall()
-   dbcon.close()
 
 
    ### id found? ###
@@ -3575,13 +3573,12 @@ def fetch_nwout(hup,dbfile,table,id):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       rows = cur.fetchall()
-   dbcon.close()
 
    ### id found? ###
    if (len(rows)>0):
@@ -3650,7 +3647,7 @@ def cmd_nwdatafile(hup,dbfile,table,nwcmd):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -3698,7 +3695,6 @@ def cmd_nwdatafile(hup,dbfile,table,nwcmd):
       else:
          msg = "no nwdatafile file for Id=%d\n\n" % id
 
-   dbcon.close()
 
    return msg
 
@@ -3734,13 +3730,12 @@ def fetch_xyz(hup,dbfile,table,id):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       rows = cur.fetchall()
-   dbcon.close()
 
    ### id found? ###
    if (len(rows)>0):
@@ -3781,13 +3776,12 @@ def fetch_mol(hup,dbfile,table,id):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       rows = cur.fetchall()
-   dbcon.close()
 
    ### id found? ###
    if (len(rows)>0):
@@ -3832,13 +3826,12 @@ def fetch_all_frequency_data(hup,dbfile,table,id):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       row = cur.fetchone()
-   dbcon.close()
 
    return row
 
@@ -3926,7 +3919,9 @@ def simpson(h,f):
 
 
 
-def get_hindered_energy_entropy(freqdata):
+def get_hindered_energy_entropy(freqdata0):
+   freqdata = freqdata0
+   if isinstance(freqdata,bytes): freqdata = freqdata.decode("utf-8")
    AUKCAL=627.509469
    hindered_energy  = 0.0
    hindered_entropy = 0.0
@@ -3955,7 +3950,12 @@ def dos_frequencies(plotdos,frequency_data):
    pi      = 4.0*atan(1.0)
 
    ### extract frequencies ###
-   all_lines2 = frequency_data[24].split("\n")
+   #all_lines2 = frequency_data[24].split("\n")
+
+   bfreq = frequency_data[24]
+   if isinstance(bfreq,bytes): bfreq = bfreq.decode("utf-8")
+   all_lines2 = bfreq.split("\n")
+
    freqs = []
    for line in all_lines2:
       if (line.find("P.Frequency") != -1):
@@ -4764,7 +4764,10 @@ def model_correct_frequencies(frequency_data,sigma=50.0,threshfreq=500.0,minfreq
    ngrid   = 501
    pi      = 4.0*atan(1.0)
 
-   all_lines2 = frequency_data[24].split("\n")
+   #all_lines2 = frequency_data[24].split("\n")
+   fdat = frequency_data[24]
+   if isinstance(fdat,bytes): fdat = fdat.decode("utf-8")
+   all_lines2 = fdat.split("\n")
    freqs = []
    for line in all_lines2:
       if (line.find("P.Frequency") != -1):
@@ -5415,7 +5418,7 @@ def ascii_restricted_eig_plot(eig,occ):
 
 def mymedian(x):
     if len(x)%2 != 0:
-        return sorted(x)[len(x)/2]
+        return sorted(x)[len(x)//2]
     else:
         midavg = (sorted(x)[len(x)//2] + sorted(x)[len(x)//2-1])/2.0
         return midavg
@@ -5445,13 +5448,12 @@ def fetch_eig(hup,dbfile,table,id):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       rows = cur.fetchall()
-   dbcon.close()
 
    msg0 = ''
    msg1 = ''
@@ -5481,7 +5483,9 @@ def fetch_eig(hup,dbfile,table,id):
       msg0 += "twirl webpage  = %s\n" % (smiles2twirl(rows[0][4]))
       msg0 += "image webpage  = %s\n\n" % (smiles2image(rows[0][4]))
       msg1 = "chemical_structure_asciiart  = </pre> <pre style=\"font-size:0.5em;color:magenta\"> \n"
-      msg1 += stripWARNINGS(rows[0][34])
+      rows034 = rows[0][34]
+      if isinstance(rows034,bytes): rows034 = rows034.decode("utf-8")
+      msg1 += stripWARNINGS(rows034)
       msg1 += "</pre> <pre style=\"font-size:1.0em;color:black\"> \n"
 
       theory = rows[0][9]
@@ -5504,6 +5508,7 @@ def fetch_eig(hup,dbfile,table,id):
 
       eigall = rows[0][25]
       #restricted = eigall.split("\n")[0].strip() == "restricted"
+      if isinstance(eigall,bytes): eigall = eigall.decode("utf-8")
       eigtype = eigall.split("\n")[0].strip()
 
       ### rdft calculation ###
@@ -5805,7 +5810,7 @@ def fetch_esmiles_base_datafile(hup,dbfile,table,esmiles):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    rows2 = []
    with dbcon:
@@ -5819,7 +5824,6 @@ def fetch_esmiles_base_datafile(hup,dbfile,table,esmiles):
             tmp = cur.fetchall()
             rows2.append(tmp[0])
 
-   dbcon.close()
 
    rows = lowest_energy_esmiles(rows2)
 
@@ -6157,7 +6161,7 @@ def fetch_reactionpathesmiles(hup,dbfile,table,esmiles):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    #print("sqlcheck=",sqlcheck)
    #print("checklist=",checklist)
@@ -6172,7 +6176,6 @@ def fetch_reactionpathesmiles(hup,dbfile,table,esmiles):
             cur.execute(sqlcheck2,checklist2)
             tmp = cur.fetchall()
             rows2.append(tmp[0])
-   dbcon.close()
 
 
    return rows2
@@ -6743,7 +6746,7 @@ def fetch_esmiles(hup,dbfile,table,esmiles,submitrequest=True):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    print("sqlcheck=",sqlcheck)
    print("checklist=",checklist)
@@ -6758,7 +6761,7 @@ def fetch_esmiles(hup,dbfile,table,esmiles,submitrequest=True):
             cur.execute(sqlcheck2,checklist2)
             tmp = cur.fetchall()
             rows2.append(tmp[0])
-   dbcon.close()
+   
    print("fetch_esmiles OUT OF DB checklist=",checklist)
 
    ### esmiles1 not found call chemdb_add_request ###
@@ -6802,14 +6805,13 @@ def fetch_all_esmiles(hup,dbfile,table,nrows=None):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    rows = []
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck)
       rows = cur.fetchall()
-   dbcon.close()
 
    return rows
 
@@ -6918,12 +6920,12 @@ def add_nmrexp(hup,dbfile,table,xyznmr_data):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlinsert,insertlist)
-   dbcon.close()
+   
 
    tmsg = "Hi. I just added the nmr data for the " + iupac + " molecule to the " + table + " table in the " + dbfile  + " database."
    msg += tmsg + eoln
@@ -6989,13 +6991,13 @@ def fetch_nmr_scaling(hup,dbfile,table,atom,theory,xc,basis,theory_property,xc_p
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       rows = cur.fetchall()
-   dbcon.close()
+   
 
 
    return rows
@@ -7037,7 +7039,11 @@ def print_nmr_row(usehtml5,hup,dbfile,table,row):
 
    #### ascii molecular picture ####
    msg1  = "chemical_structure_asciiart  = </pre> <pre style=\"font-size:0.5em;color:magenta\"> \n"
-   msg1 += stripWARNINGS(row[34])
+
+   row34 = row[34]
+   if isinstance(row34,bytes): row34 = row34.decode("utf-8")
+   msg1 += stripWARNINGS(row34)
+
    msg1 += "</pre> <pre style=\"font-size:1.0em;color:black\"> \n"
    pmsg += msg1
 
@@ -7375,7 +7381,7 @@ def fetch_nmr(hup,dbfile,table,esmiles,submitrequest=True):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    rows2 = []
    with dbcon:
@@ -7388,13 +7394,12 @@ def fetch_nmr(hup,dbfile,table,esmiles,submitrequest=True):
             cur.execute(sqlcheck2,checklist2)
             tmp = cur.fetchall()
             rows2.append(tmp[0])
-   dbcon.close()
+   
 
    #with dbcon:
    #   cur = dbcon.cursor()
    #   cur.execute(sqlcheck,checklist)
    #   rows = cur.fetchall()
-   #dbcon.close()
 
    ### esmiles not found call chemdb_add_request ###
    if ((len(rows2)<1) and (submitrequest) and (not searchingid)):
@@ -7711,14 +7716,13 @@ def fetch_myids(hup,dbfile,table,myids):
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
       with dbcon:
          cur = dbcon.cursor()
          cur.execute(sqlcheck,checklist)
          rows = cur.fetchall()
 
-      dbcon.close()
 
       return rows
 
@@ -9890,6 +9894,7 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
             if row[60] is not None:
                msg5 += "Datafiles:\n"
                for nn in row[60].split(): 
+                  if isinstance(nn,bytes): nn = nn.decode("utf-8")
                   nname = nn.split('/')[-1]
                   ss = "id=%d " % id
                   ss += nname
@@ -9914,17 +9919,23 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
             msg5 += "+-----------------+" + eoln
             if (usehtml5):
                #msg5 += xyzdat2glmol(row[23])
-               if (row[60] is not None) and ("mo_orbital_" in row[60]):
+               row23 = row[23]
+               row60 = row[60]
+               row64 = row[64]
+               if isinstance(row23,bytes): row23 = row23.decode("utf-8")
+               if isinstance(row60,bytes): row60 = row60.decode("utf-8")
+               if isinstance(row64,bytes): row64 = row64.decode("utf-8")
+               if (row[60] is not None) and ("mo_orbital_" in row60):
                   try:
                      #msg5 += nwout2jsmol("0x3BBC52",row[60],row[23])
-                     msg5 += xyzdat2jsmol("0x3BBC52",row[23],row[64])
+                     msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)
                   except:
-                     msg5 += xyzdat2jsmol("0x3BBC52",row[23],row[64])
+                     msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)
                      theory = row[9]
                      #if (theory=="dft" or theory=="hf" or theory=="uhf"):
                      #   resubmit_homolumo_Background(id)
                else:
-                  msg5 += xyzdat2jsmol("0x3BBC52",row[23],row[64])
+                  msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)
                   theory = row[9]
                   #if (theory=="dft" or theory=="hf" or theory=="uhf"):
                   #   resubmit_homolumo_Background(id)
@@ -10380,7 +10391,9 @@ for reaction in reactions:
       if (len(rows)>0):
          iupac    = rows[0][1]
          #asciiart = stripWARNINGS(rows[0][34])
-         asciiart = stripWARNINGS(rows[0][23])
+         rows023 = rows[0][23]
+         if isinstance(rows023,bytes): rows023 = rows023.decode("utf-8")
+         asciiart = stripWARNINGS(rows023)
          tstr = "Compound = " + iupac + eoln
          tstr += "twirl webpage  = %s\n" % (smiles2twirl(rows[0][4]))
          tstr += "image webpage  = %s\n\n" % (smiles2image(rows[0][4]))
@@ -10420,7 +10433,9 @@ for reaction in reactions:
       if (len(rows)>0):
          iupac    = rows[0][1]
          #asciiart = stripWARNINGS(rows[0][34])
-         asciiart = stripWARNINGS(rows[0][23])
+         rows023 = rows[0][23]
+         if isinstance(rows023,bytes): rows023 = rows023.decode("utf-8")
+         asciiart = stripWARNINGS(rows023)
          tstr = "Compound = " + iupac + eoln
          tstr += "twirl webpage  = %s\n" % (smiles2twirl(rows[0][4]))
          tstr += "image webpage  = %s\n\n" % (smiles2image(rows[0][4]))
@@ -10430,7 +10445,6 @@ for reaction in reactions:
          missingesmiles = True
          if (submitmissingesmiles):
             rows1 = fetch_esmiles(hup,dbfile,requests_table,esmiles2,False)
-            print("ROWS1 = ",rows1)
             rows = fetch_esmiles(hup,dbfile,table,esmiles2) #adding to request table
             if ((len(rows1)==0) or (resubmitmissingesmiles)):
                ooofile.write(" - product not found : " + esmiles2 + " scheduled to be submitted." + eoln)

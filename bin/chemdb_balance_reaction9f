@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,pymysql,urllib,getopt,subprocess,pexpect,random,operator,re,itertools,sqlite3
+import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator,re,itertools,sqlite3
+import pymysql as MySQLdb
 from math import *
 from copy import deepcopy
 
@@ -755,7 +756,7 @@ def nametosmiles(name):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -773,7 +774,6 @@ def nametosmiles(name):
             cur.execute(sqlinsert,insertlist)
       else:
          smiles = rows[0][2]
-   dbcon.close()
 
  except:
    smiles = ""
@@ -4338,7 +4338,7 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
             host = hup.split()[0]
             user = hup.split()[1]
             pss = hup.split()[2]
-            dbcon = MySQLdb.connect(host,user,pss,dbfile)
+            dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
          with dbcon:
             cur = dbcon.cursor()
@@ -4357,7 +4357,6 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
                print("Reaction hash already exists in  " + table)
                print("   - insertlist = ",insertlist)
                print()
-         dbcon.close()
 
 
 
@@ -5377,7 +5376,7 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
       with dbcon:
          cur = dbcon.cursor()
       cur.execute(sqlcheck2,checklist2)
@@ -5418,7 +5417,7 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
       with dbcon:
          cur = dbcon.cursor()
          for bstring,indxsym in bstrings_reactants.iteritems():
@@ -5449,7 +5448,6 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
                   print("indexes = ", indxsym)
                   print()
                   generate_products0(edges,redges,pedges,molecules,indxsym,bstring,row,level,method)
-      dbcon.close()
 
 
    print("findreactions not finished!")
@@ -6055,7 +6053,7 @@ def listreactions_molecules(hup,dbfile,table,inchikey=''):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -6077,7 +6075,6 @@ def listreactions_molecules(hup,dbfile,table,inchikey=''):
             rink = "<a target=\"_blank\" href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\'>%d</a>" % (row[7].replace('#','%23'),row[0])
             print(sp + "%s %12.3f %12.3f %12.3f %12.3f %12.3f %-24s \"%s\"" % (rink,row[1],row[2],row[3],row[4],row[5],row[6],row[7]))
 
-   dbcon.close()
 
 
 

@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,pymysql,urllib2,getopt,subprocess,sqlite3
+import sys,os,time,pickle,math,getopt,subprocess,sqlite3
+import pymysql as MySQLdb
 from math import *
 #import image
 from PIL import Image
@@ -112,60 +113,60 @@ else:
    host = hup.split()[0]
    user = hup.split()[1]
    pss = hup.split()[2]
-   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
-image_data = []
-mhall      = []
-count = 0
-erxn  = 0.0
-hrxn  = 0.0
-centerarrow = False
-for rr in (reactants,products):
-   reactant_coeff = rr[0::2]
-   reactant_id    = rr[1::2]
-   if (count==0):
-      xstart = 35;  ystart = 0
-   else:
-      xstart = 445; ystart = 0
-   x = xstart; y = ystart; mh = 160
-
-   for i in range(len(reactant_id)):
-      Id     = reactant_id[i]
-      alabel = reactant_coeff[i]
-      num    = eval(alabel)
-      label = ''
-      centerplus = False
-      if (x==xstart) and (y==ystart):
-         if isinstance(num,(int,long)):
-            if (num!=1):
-               label = "%4d"   % int(num)
-            else:
-               if (count==1): centerarrow = True
-         else:
-            if (abs(num-1.0)>1.0e-3):
-               label = "%4.1f" % (num)
-            else:
-               if (count==1): centerarrow = True
+with dbcon:
+   image_data = []
+   mhall      = []
+   count = 0
+   erxn  = 0.0
+   hrxn  = 0.0
+   centerarrow = False
+   for rr in (reactants,products):
+      reactant_coeff = rr[0::2]
+      reactant_id    = rr[1::2]
+      if (count==0):
+         xstart = 35;  ystart = 0
       else:
-         if (num<0.0): 
-            label = "-"
-         else:
-            label = "+"
-         if isinstance(num,(int,long)):
-            if (abs(num)!=1): 
-               label += "%3d"   % int(abs(num))
-            else:
-               centerplus = True
-         else:
-            if (abs(num-1.0)>1.0e-3):
-               label += "%3.1f" % (abs(num))
-            else:
-               centerplus = True
+         xstart = 445; ystart = 0
+      x = xstart; y = ystart; mh = 160
 
-      checklist = [Id]
+      for i in range(len(reactant_id)):
+         Id     = reactant_id[i]
+         alabel = reactant_coeff[i]
+         num    = eval(alabel)
+         label = ''
+         centerplus = False
+         if (x==xstart) and (y==ystart):
+            if isinstance(num,(int,long)):
+               if (num!=1):
+                  label = "%4d"   % int(num)
+               else:
+                  if (count==1): centerarrow = True
+            else:
+               if (abs(num-1.0)>1.0e-3):
+                  label = "%4.1f" % (num)
+               else:
+                  if (count==1): centerarrow = True
+         else:
+            if (num<0.0): 
+               label = "-"
+            else:
+               label = "+"
+            if isinstance(num,(int,long)):
+               if (abs(num)!=1): 
+                  label += "%3d"   % int(abs(num))
+               else:
+                  centerplus = True
+            else:
+               if (abs(num-1.0)>1.0e-3):
+                  label += "%3.1f" % (abs(num))
+               else:
+                  centerplus = True
 
-      ### fetch xyzdata ###
-      with dbcon:
+         checklist = [Id]
+
+         ### fetch xyzdata ###
          cur = dbcon.cursor()
          cur.execute(sqlcheck,checklist)
          row = cur.fetchone()
@@ -175,77 +176,76 @@ for rr in (reactants,products):
          erxn += (-1+2*count)*(row[3])*eval(reactant_coeff[i])
          hrxn += (-1+2*count)*(row[3]+row[4])*eval(reactant_coeff[i])
 
-      ### generate chargelabel
-      chargelabel = ''
-      if (charge!=0):
-         if (charge<0):
-            chargelabel = '{%d-}' % abs(charge)
-         else:
-            chargelabel = '{%d+}' % abs(charge)
+         ### generate chargelabel
+         chargelabel = ''
+         if (charge!=0):
+            if (charge<0):
+               chargelabel = '{%d-}' % abs(charge)
+            else:
+               chargelabel = '{%d+}' % abs(charge)
 
-      ### generate image ###
-      print(xyzstring)
-      nion  = eval(xyzstring.split("\n")[0])
-      xfile = open(xyzfile,'w')
-      xfile.write(xyzstring)
-      xfile.close()
-      filename = wrkdir + "/" + Id.strip()+ ".png"
-      if (nion<30):
-         bigimage = False
-         cmd6 = "java -Xmx512m -jar /srv/arrows/Codes/jmol-14.4.1_2016.01.15/Jmol.jar -i -L -o -n -g 160x160 -s %s %s -q0 -w png:%s" %  (wrkdir + "/jmol.script",xyzfile,filename)
-      else:
-         bigimage = True
-         cmd6 = "java -Xmx512m -jar /srv/arrows/Codes/jmol-14.4.1_2016.01.15/Jmol.jar -i -L -o -n -g 355x355 -s %s %s -q0 -w png:%s" %  (wrkdir + "/jmol.script",xyzfile,filename)
-      print("cmd6="+cmd6)
-      try:
-         result1 = subprocess.check_output(TIMEOUT20 + cmd6,shell=True)
-      except:
-         print("Attempt 1 failed, trying 40 second timeout")
+         ### generate image ###
+         print(xyzstring)
+         nion  = eval(xyzstring.split("\n")[0])
+         xfile = open(xyzfile,'w')
+         xfile.write(xyzstring)
+         xfile.close()
+         filename = wrkdir + "/" + Id.strip()+ ".png"
+         if (nion<30):
+            bigimage = False
+            cmd6 = ARROWS_HOME + "/bin/jmol-small %s %s %s" % (ARROWS_HOME + "/bin//jmol.script",xyzfile,filename)
+         else:
+            bigimage = True
+            cmd6 = ARROWS_HOME + "/bin/jmol-medium %s %s %s" % (ARROWS_HOME + "/bin//jmol.script",xyzfile,filename)
+         print("cmd6="+cmd6)
          try:
-            result2 = subprocess.check_output(TIMEOUT40 + cmd6,shell=True)
+            result1 = subprocess.check_output(TIMEOUT20 + cmd6,shell=True).decode("utf-8")
          except:
-            print("Attempt 2 failed, trying 80 second timeout")
+            print("Attempt 1 failed, trying 40 second timeout")
             try:
-               result3 = subprocess.check_output(TIMEOUT80 + cmd6,shell=True)
+               result2 = subprocess.check_output(TIMEOUT40 + cmd6,shell=True).decode("utf-8")
             except:
-               print("JMOL Failed to create PNG")
-               exit()
-      #os.system(cmd6)
-      print "Image Created"
+               print("Attempt 2 failed, trying 80 second timeout")
+               try:
+                  result3 = subprocess.check_output(TIMEOUT80 + cmd6,shell=True).decode("utf-8")
+               except:
+                  print("JMOL Failed to create PNG")
+                  exit()
+         #os.system(cmd6)
+         print "Image Created"
 
-      if (bigimage):
-         if (x!=xstart):
-            x = xstart
-            y += 165
-         x0 = x;      y0 = y
-         x1 = x - 35; y1 = y + 355/2 - 10
-         x2 = x +295; y2 = y
-         mh = y +360
-         x  = xstart
-         y += 360
-      else:
-         x0 = x;      y0 = y
-         x1 = x - 35; y1 = y + 160/2 -10
-         x2 = x +120; y2 = y
-         mh = y +165
-         if (x==xstart):
-            x = xstart+195
+         if (bigimage):
+            if (x!=xstart):
+               x = xstart
+               y += 165
+            x0 = x;      y0 = y
+            x1 = x - 35; y1 = y + 355/2 - 10
+            x2 = x +295; y2 = y
+            mh = y +360
+            x  = xstart
+            y += 360
          else:
-            x = xstart
-            y += 165
-      image_data.append(('image',x0,y0,filename,count))
-      if (label!=''):
-         if (centerplus):
-            image_data.append(('text', x1+12,y1,label,count))
-         else:
-            image_data.append(('text', x1,y1,label,count))
-      if (chargelabel!=''):
-         image_data.append(('text', x2,y2,chargelabel,count))
+            x0 = x;      y0 = y
+            x1 = x - 35; y1 = y + 160/2 -10
+            x2 = x +120; y2 = y
+            mh = y +165
+            if (x==xstart):
+               x = xstart+195
+            else:
+               x = xstart
+               y += 165
+         image_data.append(('image',x0,y0,filename,count))
+         if (label!=''):
+            if (centerplus):
+               image_data.append(('text', x1+12,y1,label,count))
+            else:
+               image_data.append(('text', x1,y1,label,count))
+         if (chargelabel!=''):
+            image_data.append(('text', x2,y2,chargelabel,count))
 
-   mhall.append(mh)
-   count += 1
+      mhall.append(mh)
+      count += 1
 
-dbcon.close()
 
 print("image_data=",image_data)
 

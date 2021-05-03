@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,pymysql,urllib,getopt,subprocess,pexpect,sqlite3
+import sys,os,time,pickle,math,getopt,subprocess,pexpect,sqlite3
+import pymysql as MySQLdb
 from math import *
 #import image
 from PIL import Image
@@ -113,7 +114,7 @@ if ("SHE" in arrows_id):
    cmd6 = "/usr/bin/cp %s %s" % (shepng,filename)
    print("cmd6=",cmd6)
    try:
-      result1 = subprocess.check_output(cmd6,shell=True)
+      result1 = subprocess.check_output(cmd6,shell=True).decode("utf-8")
    except:
       print("chemdb_image0 Failed to copy she.png")
    filesize = os.path.getsize(filename)
@@ -188,7 +189,7 @@ if ((not os.path.isfile(filename)) or (regenerateimage)):
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
       ### fetch xyzdata ###
       with dbcon:
@@ -200,36 +201,37 @@ if ((not os.path.isfile(filename)) or (regenerateimage)):
       xyzstring = "1\n\nH 0.0 0.0 0.0\n"
 
    ### generate image ###
+   if isinstance(xyzstring,bytes): xyzstring = xyzstring.decode("utf-8")
    print(xyzstring)
    nion  = eval(xyzstring.split("\n")[0])
    xfile = open(xyzfile,'w')
    xfile.write(xyzstring)
    xfile.close()
    if largeimage:
-      cmd6 = ARROWS_HOME + "/bin/jmol-big %s %s %s" % (wrkdir + "/jmol-big.script",xyzfile,filename)
+      cmd6 = ARROWS_HOME + "/bin/jmol-big %s %s %s" % (ARROWS_HOME + "/bin/jmol.script",xyzfile,filename)
    else:
       if (nion<30):
          bigimage = False
-         cmd6 = ARROWS_HOME + "/bin/jmol-small %s %s %s" % (ARROWS_HOME + "/bin//jmol.script",xyzfile,filename)
+         cmd6 = ARROWS_HOME + "/bin/jmol-small %s %s %s" % (ARROWS_HOME + "/bin/jmol.script",xyzfile,filename)
       else:
          bigimage = True
-         cmd6 = ARROWS_HOME + "/bin/jmol-medium %s %s %s" % (ARROWS_HOMEr + "/bin//jmol.script",xyzfile,filename)
+         cmd6 = ARROWS_HOME + "/bin/jmol-medium %s %s %s" % (ARROWS_HOMEr + "/bin/jmol.script",xyzfile,filename)
    print("cmd6="+cmd6)
 
    try:
-      result1 = subprocess.check_output(TIMEOUT20 + cmd6,shell=True)
+      result1 = subprocess.check_output(TIMEOUT20 + cmd6,shell=True).decode("utf-8")
    except:
       print("Attempt 1 failed, trying 40 second timeout")
       try:
-         result2 = subprocess.check_output(TIMEOUT40 + cmd6,shell=True)
+         result2 = subprocess.check_output(TIMEOUT40 + cmd6,shell=True).decode("utf-8")
       except:
          print("Attempt 2 failed, trying 80 second timeout")
          try:
-            result3 = subprocess.check_output(TIMEOUT80 + cmd6,shell=True)
+            result3 = subprocess.check_output(TIMEOUT80 + cmd6,shell=True).decode("utf-8")
          except:
             print("Attempt 3 failed, trying 160 second timeout")
             try:
-               result4 = subprocess.check_output(TIMEOUT160 + cmd6,shell=True)
+               result4 = subprocess.check_output(TIMEOUT160 + cmd6,shell=True).decode("utf-8")
             except:
                print("JMOL Failed to create PNG")
                exit()

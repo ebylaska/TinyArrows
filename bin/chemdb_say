@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 
 #import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator
-import sys,os,time,pickle,math,pymysql,urllib,getopt,subprocess,pexpect,random,operator
+import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator
 from math import *
 
 ############## machine parameters #########################
