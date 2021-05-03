@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 
-#import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random
-import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,sqlite3
+#import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,random
+import sys,os,time,pickle,math,getopt,random,sqlite3
 import pymysql as MySQLdb
 from math import *
 
@@ -84,7 +84,11 @@ exec(aaa)
 
 def get_frequency_geometry(frequency_data):
 
-   all_lines1 = frequency_data[23].split("\n")
+   #all_lines1 = frequency_data[23].split("\n")
+   fdat = frequency_data[23]
+   if isinstance(fdat,bytes): fdat = fdat.decode("utf-8")
+   all_lines1 = fdat.split("\n")
+
    ### get the geometry ###
    nion = evalnum(all_lines1[0])
    name = []
@@ -109,8 +113,12 @@ def get_frequency_geometry(frequency_data):
 
 def get_frequency(frequency_data,fnum):
 
-   all_lines2 = frequency_data[24].split("\n")
-   pcount_num = (fnum-1)/6
+   #all_lines2 = frequency_data[24].split("\n")
+   fdat = frequency_data[24]
+   if isinstance(fdat,bytes): fdat = fdat.decode("utf-8")
+   all_lines2 = fdat.split("\n")
+
+   pcount_num = (fnum-1)//6
    shift      = (fnum-1)%6
    freqs = []
    freqdat = []
@@ -133,7 +141,10 @@ def get_frequency(frequency_data,fnum):
               if (pcount==pcount_num):
                  freqs.append(line)
 
-   splt = freqs[0].split()
+   #splt = freqs[0].split()
+   fdat = freqs[0]
+   if isinstance(fdat,bytes): fdat = fdat.decode("utf-8")
+   splt = fdat.split()
    w = evalnum(splt[shift+1])
 
    freq = []
@@ -301,33 +312,33 @@ def dos_frequencies(plotdos,frequency_data):
 
 
 
-   if plotdos:
-      print("Writing vibrational density of states (DOS) to vdos.dat")
-      ofile = open("vdos.dat",'w')
-      for i in range(ngrid):
-         ofile.write("%f" % ww[i])
-         for k in range(len(doss)):
-            ofile.write(" %f" % doss[k][i])
-         ofile.write("\n")
-      ofile.close()
-      print("Writing model vibrational density of states (DOS_FIXED) to vdos-model.dat")
-      print()
-      ofile = open("vdos-model.dat",'w')
-      for i in range(ngrid):
-         ofile.write("%f" % ww[i])
-         for k in range(len(doss_fixed)):
-            ofile.write(" %f" % doss_fixed[k][i])
-         ofile.write("\n")
-      ofile.close()
-      if (foundir):
-         print("Writing IR spectra to irdos.dat")
-         ofile = open("irdos.dat",'w')
-         for i in range(ngrid):
-            ofile.write("%f" % ww[i])
-            for k in range(len(irdoss)):
-               ofile.write(" %f" % irdoss[k][i])
-            ofile.write("\n")
-         ofile.close()
+   #if plotdos:
+   #   print("Writing vibrational density of states (DOS) to vdos.dat")
+   #   ofile = open("vdos.dat",'w')
+   #   for i in range(ngrid):
+   #      ofile.write("%f" % ww[i])
+   #      for k in range(len(doss)):
+   #         ofile.write(" %f" % doss[k][i])
+   #      ofile.write("\n")
+   #   ofile.close()
+   #   print("Writing model vibrational density of states (DOS_FIXED) to vdos-model.dat")
+   #   print()
+   #   ofile = open("vdos-model.dat",'w')
+   #   for i in range(ngrid):
+   #      ofile.write("%f" % ww[i])
+   #      for k in range(len(doss_fixed)):
+   #         ofile.write(" %f" % doss_fixed[k][i])
+   #      ofile.write("\n")
+   #   ofile.close()
+   #   if (foundir):
+   #      print("Writing IR spectra to irdos.dat")
+   #      ofile = open("irdos.dat",'w')
+   #      for i in range(ngrid):
+   #         ofile.write("%f" % ww[i])
+   #         for k in range(len(irdoss)):
+   #            ofile.write(" %f" % irdoss[k][i])
+   #         ofile.write("\n")
+   #      ofile.close()
 
    # write tempory data files for gnuplot
    ofile = open(vdosfilename,'w')
@@ -530,7 +541,7 @@ def plot_frequency(frequency_data,fnum):
    print("\n\nTrajectory for freq id="+tid+" fnum="+tfnum+"  w(cm-1)=",w," - Generating xyzfile")
    #xfile = open(xyzfile,'w')
    print("################## begin xyz movie #######################")
-   for k in range(-20,21)+range(19,-20,-1):
+   for k in list(range(-20,21))+list(range(19,-20,-1)):
       #xfile.write("%d\n\n" % nion)
       print("%d\n" % nion)
       for i in range(nion):
@@ -821,7 +832,10 @@ else:
 ### extract frequencies ###
 freqdata = fetch_all_frequency_data(hup,dbfile,table,id)
 if (not rotation):
-   all_lines2 = freqdata[24].split("\n")
+   #all_lines2 = freqdata[24].split("\n")
+   fdat = freqdata[24]
+   if isinstance(fdat,bytes): fdat = fdat.decode("utf-8")
+   all_lines2 = fdat.split("\n")
    freqs = []
    for line in all_lines2:
       if (line.find("P.Frequency") != -1):
