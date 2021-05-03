@@ -84,7 +84,7 @@ ArrowsHeader = '''
    </td></tr></table>
    <font color="E8613B"><p> Molecular modeling software has previously been extremely complex, making it prohibative to all but experts in the field, yet even experts can struggle to perform calculations.  This service is designed to be used by experts and non-experts alike.  Experts can carry out and keep track of large numbers of complex calculations with diverse levels of theories present in their workflows.  Additionally, due to a streamlined and easy-to-use input, non-experts can carry out a wide variety of molecular modeling calculations previously not accessible to them.</p></font>
    %s
-''' % (headerfigure[4],'<a href="https://arrows.emsl.pnnl.gov/api/">Link back to EMSL Arrows API</a>')
+''' % (headerfigure[4],'<a href="' + ARROWS_API_HOME + '/">Link back to EMSL Arrows API</a>')
 
 ArrowsHeader_QDK = '''
    <center> <font color="4A9FF9" size="+2"> <p><b>Results from an EMSL Arrows MQDK Calculation</b></p></font></center>
@@ -94,7 +94,7 @@ ArrowsHeader_QDK = '''
    </td></tr></table>
    <font color="E8613B"><p>  This webpage contains a link to a (Microsoft Quantum Development Kit) YAML file, which has in it the 1-electron and 2-electron integrals over the requested select-CI orbital subspace. To fetch the YAML file scroll down the the "Molecular Calculation" section in the output and then in the "Datafiles:" subsection click on the (download) link next to the YAML file. </p></font>
    %s
-''' % (headerfigure[4],'<a href="https://arrows.emsl.pnnl.gov/api/qsharp_chem">Link back to Microsoft Quantum Editor</a>')
+''' % (headerfigure[4],'<a href="' + ARROWS_API_HOME + 'qsharp_chem">Link back to Microsoft Quantum Editor</a>')
 
 
 
@@ -282,7 +282,7 @@ KEYWORDs -
 alogowww = '''
 </pre>
 <br>
-<a href="https://arrows.emsl.pnnl.gov/api/">Link to EMSL Arrows API</a>
+<a href="%s">Link to EMSL Arrows API</a>
 <br>
 <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">More information about EMSL Arrows</a>
 <br>
@@ -356,7 +356,7 @@ KEYWORDs -
    <font color="443322" size="1"> This software service and its documentation were developed at the Environmental Molecular Sciences Laboratory (EMSL) at Pacific Northwest National Laboratory, a multiprogram national laboratory, operated for the U.S. Department of Energy by Battelle under Contract Number DE-AC05-76RL01830. Support for this work was provided by the Department of Energy Office of Biological and Environmental Research, and Department of Defense environmental science and technology program (SERDP). THE SOFTWARE SERVICE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE SERVICE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE SERVICE. </font>
    <pre style=\"font-size:1.0em;color:black\">
 
-'''
+''' % (ARROWS_API_HOME)
 
 
 
@@ -8397,7 +8397,7 @@ if (usehtml5): ooofile.write("<!DOCTYPE html>\n")
 ooofile.write("<html>\n")
 if (usehtml5): ooofile.write("<head> <meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no, target-densitydpi=device-dpi\"> <meta charset=\"utf-8\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-32x32.png')}}\"><link rel=\"icon\" type=\"image/png\" sizes=\"96x96\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-96x96.png')}}\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-16x16.png')}}\"><style type=\"text/css\"> \n .linkbanner { \n position: relative; \n padding: 1px; \n background-image: linear-gradient(#4286f4,lightgreen,#4286f4); \n font-size: 18px; \n font-weight: bold; \n font-family: times; \n color: white; \n } \n </style> </head>")
 ooofile.write("<body>\n")
-if (usehtml5): ooofile.write("<div class=\"linkbanner\"> <a href=\"https://arrows.emsl.pnnl.gov/api\"><img src=\"{{url_for(\'static\', filename=\'arrows-static/EMSLArrows2019.png')}}\" alt=\"Copyright Arrows Logo\" width=\"180\" height=\"90\" align=\"middle\"></a> <a href=\"https://arrows.emsl.pnnl.gov/api/periodic\">3D Periodic Editor</a> &nbsp;<a href=\"https://arrows.emsl.pnnl.gov/api/3dbuilder\">3D Molecular And Reaction Editor</a>  &nbsp; <a href=\"https://arrows.emsl.pnnl.gov/api/expert\">Expert Editor</a> &nbsp;   <a href=\"https://arrows.emsl.pnnl.gov/api/qsharp_chem\">Microsoft Quantum Editor</a> &nbsp;  <a href=\"https://arrows.emsl.pnnl.gov/api/aerosol\">EMSL Aerosol Workshop Editor</a> &nbsp; <a href=\"http://www.nwchem-sw.org/index.php/EMSL_Arrows#\">Manual</a> </div>")
+if (usehtml5): ooofile.write("<div class=\"linkbanner\"> <a href=\"%s\"><img src=\"{{url_for(\'static\', filename=\'arrows-static/EMSLArrows2019.png')}}\" alt=\"Copyright Arrows Logo\" width=\"180\" height=\"90\" align=\"middle\"></a> <a href=\"%speriodic\">3D Periodic Editor</a> &nbsp;<a href=\"%s3dbuilder\">3D Molecular And Reaction Editor</a>  &nbsp; <a href=\"%sexpert\">Expert Editor</a> &nbsp;   <a href=\"%sqsharp_chem\">Microsoft Quantum Editor</a> &nbsp;  <a href=\"%saerosol\">EMSL Aerosol Workshop Editor</a> &nbsp; <a href=\"http://www.nwchem-sw.org/index.php/EMSL_Arrows#\">Manual</a> </div>" % (ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME))
 if is_qsharp_chem:
    ooofile.write(ArrowsHeader_QDK)
 elif (usehtml5):

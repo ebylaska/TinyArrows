@@ -8,6 +8,8 @@ from copy import deepcopy
 ############## machine parameters #########################
 ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
 
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
 #babel              = "/usr/bin/babel"
 obabel             = "/usr/local/bin/obabel "
 esmiles2xyz        = ARROWS_HOME + "/bin/esmiles2xyz "
@@ -6072,7 +6074,8 @@ def listreactions_molecules(hup,dbfile,table,inchikey=''):
             ll = "%d" % row[0]
             sp = ''
             for i in range(10-len(ll)):  sp += ' '
-            rink = "<a target=\"_blank\" href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\'>%d</a>" % (row[7].replace('#','%23'),row[0])
+            #rink = "<a target=\"_blank\" href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\'>%d</a>" % (row[7].replace('#','%23'),row[0])
+            rink = "<a target=\"_blank\" href=\'%sreaction/\"%s\"\'>%d</a>" % (ARROWS_API_HOME,row[7].replace('#','%23'),row[0])
             print(sp + "%s %12.3f %12.3f %12.3f %12.3f %12.3f %-24s \"%s\"" % (rink,row[1],row[2],row[3],row[4],row[5],row[6],row[7]))
 
 
