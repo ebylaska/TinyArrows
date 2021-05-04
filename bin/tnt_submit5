@@ -48,14 +48,16 @@ machine_collection = arrows_db.nwchem_machinedata
 
 #################### machine specifics ######################
 nwpythonlib    = "/bin/nwpythonlib.py"
-obabel    = "/usr/local/bin/obabel "
-obrotamer = "/usr/local/bin/obrotamer"
-esmiles2xyz    = ARROWS_HOME + "/bin/esmiles2xyz "
-esmilespmf2xyz = ARROWS_HOME + "/bin/esmilespmf2xyz "
+
+obabel         = "/usr/local/bin/obabel "
+obrotamer       = "/usr/local/bin/obrotamer"
+
+esmiles2xyz              = ARROWS_HOME + "/bin/esmiles2xyz "
+esmilespmf2xyz           = ARROWS_HOME + "/bin/esmilespmf2xyz "
 chemdb_balance_reaction  = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
-remote_nwchem  = ARROWS_HOME + "/bin/submit_nwchem3"
-chemdb_queue   = ARROWS_HOME + "/chemdb_queue "
-solvatedsolute_esmiles = ARROWS_HOME + "/solvatedsolute_esmiles "
+remote_nwchem            = ARROWS_HOME + "/bin/submit_nwchem3"
+chemdb_queue             = ARROWS_HOME + "/bin/chemdb_queue "
+solvatedsolute_esmiles   = ARROWS_HOME + "/bin/solvatedsolute_esmiles "
 
 wrkdir     = ARROWS_HOME + "/Work"
 submitdir0 = ARROWS_HOME + "/TNTQ" 
@@ -1038,7 +1040,7 @@ def theorysmiles2machine(theory,smiles):
          if mname in machinejobs: machinejobs[mname] += 1
 
       smallest = 999999999
-      for key,val in machinejobs.iteritems():
+      for key,val in machinejobs.items():
          if val < smallest:
             smallest = val
             machine  = key
