@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,random
+import sys,os,time,pickle,math,getopt,subprocess,random
 from math import *
 #import image
 #from PIL import Image
@@ -8,10 +8,15 @@ from math import *
 #from PIL import ImageDraw
 
 ############## machine parameters #########################
-obabel         = "/usr/bin/obabel "
-babel          = "/usr/bin/babel "
-esmiles2xyz    = "/srv/arrows/bin/esmiles2xyz "
-wrkdir         = "/srv/arrows/Projects/Work"
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
+#babel          = "/usr/bin/babel "
+obabel         = "/usr/local/bin/obabel "
+
+esmiles2xyz    = ARROWS_HOME + "/bin/esmiles2xyz "
+wrkdir         = ARROWS_HOME + "/Work"
 ddrand = random.randint(0,999999)
 tmpxyz         = "jkjk-%d.xyz" % ddrand
 tmpsmi1        = "jkj1-%d.xyz" % ddrand
@@ -305,9 +310,9 @@ def xyzdat2mol(xyzdat):
       xyzfile = wrkdir + "/"+tmpsmi1
       with open(xyzfile,'w') as ff:
          ff.write(xyzdat)
-      cmd6 = babel + " -ixyz " + xyzfile + " -omol " + molfile
+      cmd6 = obabel + " -ixyz " + xyzfile + " -omol -O" + molfile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       with open(molfile,'r') as ff:
          mol0 = ff.read()
       mol = '\n'
@@ -332,17 +337,17 @@ Remote chemdb_reaction_kekule program - version 1.0
 
 #Database defaults
 
-print "chemdb_reaction_kekule - version 1.0"
+print("chemdb_reaction_kekule - version 1.0")
 tt      = time.localtime()
 
 opts, args = getopt.getopt(sys.argv[1:], "h")
 for o, a in opts:
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1): 
-   print usage
+   print(usage)
    exit()
 
 tags = []
@@ -372,8 +377,8 @@ esmiles_products  = right.split(' + ')
 number_products = len(esmiles_products)
 
 
-print "esmiles_reactants       = ", esmiles_reactants
-print "esmiles_products        = ", esmiles_products
+print("esmiles_reactants       = ", esmiles_reactants)
+print("esmiles_products        = ", esmiles_products)
 
 reactants = []
 for esmiles in esmiles_reactants:
@@ -397,8 +402,8 @@ for esmiles in esmiles_products:
 
 
 
-print "reactants = ", reactants
-print "products  = ", products
+print("reactants = ", reactants)
+print("products  = ", products)
 
 count = 0
 centerarrow = False
@@ -421,7 +426,7 @@ for rr in (reactants,products):
             label = "-"
          elif (rcount>0):
             label = "+"
-      if isinstance(num,(int,long)):
+      if isinstance(num,int):
          if (abs(num)!=1): 
             label += " %3d"   % int(abs(num))
          else:
@@ -438,9 +443,9 @@ for rr in (reactants,products):
       if ("SHE" not in esmiles):
          cmd9 = esmiles2xyz + "\"" + esmiles + "\" " + wrkdir + "/" + tmpxyz
          try:
-            result9 = subprocess.check_output(cmd9,shell=True)
+            result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
          except:
-            print "chemdb_reaction_draw: Failed in esmiles2xyz"
+            print("chemdb_reaction_draw: Failed in esmiles2xyz")
             exit()
 
          #with open(wrkdir + "/" + tmpxyz) as ff:
@@ -472,7 +477,7 @@ for rr in (reactants,products):
       if (mult>1):
             chargelabel += ' mult{%d} &nbsp;' % mult
 
-      #print "xyzdat=",alignxyzdat(xyzdat) 
+      #print("xyzdat=",alignxyzdat(xyzdat))
       ### generate image ###
       if ("SHE" in esmiles):
          tags.append(["SHE",label,chargelabel,100])
@@ -483,7 +488,7 @@ for rr in (reactants,products):
                cmd6k = obabel + "--gen2d -:\"" +  smiles + "\" -omol"
             else:
                cmd6k = obabel + "--gen2d -d -:\"" +  smiles + "\" -omol"
-            result1k = subprocess.check_output(cmd6k,shell=True)
+            result1k = subprocess.check_output(cmd6k,shell=True).decode("utf-8")
             natom = int(result1k.split("V2000")[0].split("\n")[-1].split()[0])
             sz = int(math.sqrt(natom)*50)
             if (sz<150): sz = 150
@@ -498,7 +503,7 @@ for rr in (reactants,products):
             tags.append([moleculename,label,chargelabel,sz])
             #mtags.append([mformula,label,chargelabel,sz])
          except:
-            print "chemdb_reaction_kekule Failed to create mol"
+            print("chemdb_reaction_kekule Failed to create mol")
             tags.append(["FAILED",label,chargelabel,100])
             #mtags.append(["FAILED",label,chargelabel,100])
 
@@ -521,7 +526,7 @@ for tag in tags:
 
 kekule += "</tr> </table> </center> </font>\n"
 kekule += "<pre style=\"font-size:1.0em;color:black\">\n"
-print "KEKULE:: "+ kekule + " ::KEKULE"
+print("KEKULE:: "+ kekule + " ::KEKULE")
 
 #mrxn = ""
 #for tag in mtags:
@@ -538,7 +543,7 @@ print "KEKULE:: "+ kekule + " ::KEKULE"
 try:
    os.unlink(wrkdir + "/" + tmpxyz)
 except:
-   print "chemdb_reaction_kekule Failed to remove " + wrkdir + "/" + tmpxyz
+   print("chemdb_reaction_kekule Failed to remove " + wrkdir + "/" + tmpxyz)
 
 
 
