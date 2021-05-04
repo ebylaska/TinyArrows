@@ -1,22 +1,41 @@
-#!/usr/bin/python2.7
-import os,sys,getopt,math,copy,random,subprocess,time,urllib2,re
+#!/usr/local/bin/python3
+import os,sys,getopt,math,copy,random,subprocess,time,urllib.request,re
 
 
-tnt_submit  = "/srv/arrows/bin/tnt_submit5 -f "
-uff_path    = "/srv/arrows/bin/uff-path9 -s 9101 "
-uff_surface = "/srv/arrows/bin/uff-path7b "
-generate_atomtype_string = "/srv/arrows/bin/generate_atomtype_string "
-wrkdir      = "/srv/arrows/Work"
+###################### PARAMETERS ###########################
+ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
 
+tnt_submit  = ARROWS_HOME + "/bin/tnt_submit5 -f "
+uff_path    = ARROWS_HOME + "/bin/uff-path9 -s 9101 "
+uff_surface = ARROWS_HOME + "/bin/uff-path7b "
+generate_atomtype_string = ARROWS_HOME + "/bin/generate_atomtype_string "
+wrkdir      = ARROWS_HOME + "/Work"
+#############################################################
+
+
+##### geturlresult function ####
+#def geturlresult(url):
+#    try:
+#        connection = urllib2.urlopen(url)
+#    except urllib2.HTTPError, e:
+#        return ""
+#    else:
+#        return connection.read().rstrip()
+#
 
 #### geturlresult function ####
 def geturlresult(url):
-    try:
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = ""
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
 
 #############################################
 #                                           #
@@ -120,7 +139,7 @@ chemdb_molcalc
 
 """
 
-print
+print()
 appending = False
 maxiter = 55001
 includemid = False
@@ -134,15 +153,15 @@ for o, a in opts:
   if o in ("-s"): 
      maxiter = eval(a)
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1):
-   print usage
+   print(usage)
    exit()
 
 molfilename  = args[0]
-print "molfilename = "+molfilename
+print("molfilename = "+molfilename)
 
 try:
    with open(molfilename,'r') as ff:
@@ -152,7 +171,7 @@ try:
    if (("calculation:" in inputdata) and (":calculation" in inputdata)):
       calculation = inputdata.split("calculation:")[1].split(":calculation")[0].strip()
 
-   print "calculation=",calculation
+   print("calculation=",calculation)
    if ("uff-path" in calculation):
       xyzfilename  = wrkdir + "/uffinput.xyz"
       with open(xyzfilename,'w') as ff:
@@ -173,7 +192,7 @@ try:
       if (("bondings:" in inputdata) and (":bondings" in inputdata)):
          bondings = [eval(x) for x in inputdata.split("bondings:")[1].split(":bondings")[0].strip().split()]
          nb = len(bondings)
-         print "bondings=",bondings
+         print("bondings=",bondings)
          bbr = []
          bbt = []
          bbp = []
@@ -192,7 +211,7 @@ try:
               bbp.append([i,j,sb])
 
          bstring = "\"%s\"" % [bbr,bbt,bbp]
-         print "bstring=",bstring
+         print("bstring=",bstring)
       else:
          bstring = inputdata.split("bstring:")[1].split(":bstring")[0].strip()
 
@@ -201,7 +220,7 @@ try:
       else:
          cmd7 = uff_surface + " -s 9511 " + xyzfilename + " " + bstring + " 0 "
 
-      print "cmd7=",cmd7
+      print("cmd7=",cmd7)
 
    elif ("atomtype_string" in calculation):
       xyzfilename  = wrkdir + "/atomtype.xyz"
@@ -209,10 +228,10 @@ try:
          ff.write(inputdata.split("input.xyz:")[1].split(":input.xyz")[0].strip() + "\n")
       opts = inputdata.split("indexstring:")[1].split(":indexstring")[0].strip()
       cmd7 = generate_atomtype_string + opts + " " + xyzfilename
-      print "cmd7=",cmd7
+      print("cmd7=",cmd7)
 
    else:
-      print "inputdata=",inputdata
+      print("inputdata=",inputdata)
       inputdata = inputdata.replace("\"",'')
       inputdata = inputdata.replace("\'",'')
       inputdata = inputdata.replace("%2F",'/')
@@ -225,7 +244,7 @@ try:
 except:
    data = "molecular_calculation failed!"
 
-print data
+print(data)
 
 
 
