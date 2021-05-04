@@ -1,20 +1,45 @@
 #!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator,pymongo,json
+import sys,os,time,pickle,math,getopt,subprocess,pexpect,random,operator,pymongo,json
 import datetime,re
 from bson.objectid import ObjectId
 from math import *
 
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+############## tinymongo ################
+import tinydb
+import tinymongo as tm
+from tinymongo.serializers import DateTimeSerializer
+from tinydb_serialization import SerializationMiddleware
+class TinyMongoClient(tm.TinyMongoClient):
+    @property
+    def _storage(self):
+        return tinydb.storages.JSONStorage
+class CustomClient(TinyMongoClient):
+    @property
+    def _storage(self):
+        serialization = SerializationMiddleware()
+        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
+        # register other custom serializers
+        return serialization
+############## tinymongo ################
+
+###################### PARAMETERS ###########################
+ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 ####################### mongoDB #############################
-#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+#uri = "mongodb://arrows:password@machine.gov:27017"
 with open(ARROWS_HOME + "/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
-mongo_client                        = pymongo.MongoClient(uri)
-arrows_db                           = mongo_client.Arrows
+if "mongodb:" in uri:
+   nosql_client = pymongo.MongoClient(uri)
+   ismongo      = True
+else:
+   nosql_client = CustomClient(uri)
+   ismongo      = False
+arrows_db                           = nosql_client.Arrows
 chemdb_reaction_collection          = arrows_db.chemdb_reaction_collection2
 chemdb_finished_reaction_collection = arrows_db.chemdb_finished_reaction_collection2
-chemdb_noreaction_collection  = arrows_db.chemdb_noreaction_collection2
+chemdb_noreaction_collection        = arrows_db.chemdb_noreaction_collection2
 chemdb_predict_collection           = arrows_db.chemdb_predict_collection2
 chemdb_predict_collection_email     = arrows_db.chemdb_predict_collection2_email
 qnumber_collection                  = arrows_db.queue_number
@@ -85,7 +110,7 @@ def predict_hash(reaction):
       cmd9 = esmiles2xyz + "\"" + esmiles + "\" " + wrkdir +"/predict99.xyz"
       try:
          print("cmd9=",cmd9)
-         result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+         result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          ehash = result9.split("bonding_string  =")[1].split("\n")[0].strip()
       except:
          print("Call to esmiles2xyzailed!")
@@ -178,7 +203,7 @@ def filter_predict_reaction(aa,gen_image):
          rstring =  reactions2[i].split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] 
          rstring = rstring.split("~")[0].strip()
          cmd5k = chemdb_reaction_kekule +"\"" + rstring + "\" "
-         result5k = subprocess.check_output(cmd5k,shell=True,stderr=subprocess.STDOUT)
+         result5k = subprocess.check_output(cmd5k,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          kekule = result5k.split("KEKULE::")[1].split("::KEKULE")[0]
          bb += "predicted_kekule: %s :predicted_kekule\n" % (kekule)
       except:
@@ -195,7 +220,7 @@ def filter_predict_reaction(aa,gen_image):
             rstring =  reactions2[i].split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] 
             rstring = rstring.split("~")[0].strip()
             cmd5 = chemdb_reaction_draw +"\"" + rstring + "\" "+filename
-            result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT)
+            result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
             bb += "predicted_image: %s %s :predicted_image\n" % (filename,pngname)
          except:
             bb += "chem_reaction_draw failed!\n"
@@ -365,7 +390,7 @@ for o, a in opts:
 if (listqueues):
    check = {}
    queue = chemdb_predict_collection.find(check)
-   print("</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> refresh reaction queue </a> <pre style=\"font-size:1.0em;color:black\">")
+   print("</pre> <a href=\'" + ARROWS_API_HOME + "listallreactions' style=\"font-size:1.0em\"> refresh reaction queue </a> <pre style=\"font-size:1.0em;color:black\">")
    print()
    print("Predicted Reactions:")
    #print("status                      reactants")
@@ -416,7 +441,7 @@ if (listqueues):
    cmd9 = chemdb_balance_reaction 
    cmd9 += " -g"
    try:
-      result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+      result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       print(result9)
    except:
       print("Call to chemdb_balance_reaction failed!")
@@ -521,7 +546,7 @@ if (checknoreaction):
       print("%11d %7d  \"%s\"" % (entry['queue_number'],entry['fetched'],entry['reaction']))
       with open(inpfile,'w') as ff: ff.write("reaction: " + entry['reaction'] + " :reaction\n")
       cmd7 = chemdb_fetch_reactions + inpfile + " " + outfile 
-      result = subprocess.check_output(cmd7,shell=True)
+      result = subprocess.check_output(cmd7,shell=True).decode("utf-8")
       print("result=" + result)
       if ("All requests to Arrows were successful" in result) or (entry['fetched']>100):
          qqq = chemdb_noreaction_collection.remove(entry)
@@ -556,7 +581,7 @@ if (submitqueue2):
             cmd9 = chemdb_balance_reaction 
             cmd9 += "-a \" %12.3f %12.3f %12.3f %12.3f %12.3f  %s\"" % (entry['energy'],entry['enthalpy'],entry['free_energy'], entry['solvation_energy'],entry['aq_free_energy'],entry['reaction'])
             print("cmd9=",cmd9)
-            result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+            result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
             print("result9=",result9)
             qq1 = chemdb_finished_reaction_collection.insert(entry)
             print("added to finished reactions=",qq1)
@@ -617,7 +642,7 @@ if (runqueue) and (not email):
                      cmd7 = chemdb_balance_reaction 
                      cmd7 += " -f \"" + p + "\""
                      print("noimages cmd7=",cmd7)
-                     result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+                     result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
                      print("noimages cmd7 finished !")
                      if "maxlevel=" in result7:
                         maxlevel = result7.split("maxlevel=")[1].split("\n")[0].strip()
@@ -652,7 +677,7 @@ if (runqueue) and (not email):
                cmd7 = chemdb_balance_reaction 
                cmd7 += " -f \"" + entry['reactants'] + "\""
                print("cmd7=",cmd7)
-               result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+               result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
                print("cmd7 finished !")
                if "maxlevel=" in result7:
                   maxlevel = result7.split("maxlevel=")[1].split("\n")[0].strip()
@@ -852,7 +877,7 @@ if (predictreaction) and (not email):
          #   pngname     = "rimage-%d" % (ddrand)
          #   imagelist += [(filename,pngname)]
          #   cmd5 = chemdb_reaction_draw +"\"" + preaction.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] + "\" "+filename
-         #   result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT)
+         #   result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          if (len(kekulelist)>i):
             if (i==0):
                print("</pre>\n")
@@ -908,7 +933,7 @@ if (runqueue) and (email):
                   cmd7 = chemdb_balance_reaction
                   cmd7 += " -f \"" + p + "\""
                   print("cmd7=",cmd7)
-                  result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+                  result7 = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
                   if "maxlevel=" in result7:
                      maxlevel = result7.split("maxlevel=")[1].split("\n")[0].strip()
                   else:
@@ -1032,7 +1057,7 @@ if (predictreaction) and (email):
          #   pngname     = "rimage-%d" % (ddrand)
          #   imagelist += [(filename,pngname)]
          #   cmd5 = chemdb_reaction_draw +"\"" + preaction.split("Predicted_Reaction:")[1].split(":Reaction_Predicted")[0] + "\" "+filename
-         #   result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT)
+         #   result5 = subprocess.check_output(cmd5,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
          iimges = pimagelist[i].split("predicted_image:")[1].split(":predicted_image")[0].strip()
          filename = iimges.split()[0]

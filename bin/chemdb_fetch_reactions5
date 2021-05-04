@@ -7739,8 +7739,11 @@ def fetch_myids(hup,dbfile,table,myids):
       return []
 
 
-def findhomolumo(eigall):
+def findhomolumo(eigall0):
 
+   #eigtype = eigall.split("\n")[0].strip()
+   eigall = eigall0
+   if isinstance(eigall,bytes): eigall=eigall.decode("utf-8")
    eigtype = eigall.split("\n")[0].strip()
 
    ### rdft calculation ###
@@ -8002,8 +8005,10 @@ def kekuletablehtml(hup,dbfile,table,myids):
    #### append geometries ####
    for molecule in molecules:
       moleculename = "kekule%d" % molecule[0]
+      molecule23 = molecule[23]
+      if isinstance(molecule23,bytes): molecule23=molecule23.decode("utf-8")
       html += "<script id=\"%s\" type=\"chemical/x-mdl-molfile\">\n" % moleculename
-      html += xyzdat2mol(alignxyzdat(molecule[23]))
+      html += xyzdat2mol(alignxyzdat(molecule23))
       html += "</script>\n\n"
 
    html += "Maximum of 100 rows printed fancy form - all row listed below"
