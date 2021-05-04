@@ -1,23 +1,50 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+import sys,os,time,pickle,math,getopt,subprocess,pexpect,random,operator,pymongo,json
 import datetime,re
 from bson.objectid import ObjectId
 from math import *
 
+############## tinymongo ################
+import tinydb
+import tinymongo as tm
+from tinymongo.serializers import DateTimeSerializer
+from tinydb_serialization import SerializationMiddleware
+class TinyMongoClient(tm.TinyMongoClient):
+    @property
+    def _storage(self):
+        return tinydb.storages.JSONStorage
+class CustomClient(TinyMongoClient):
+    @property
+    def _storage(self):
+        serialization = SerializationMiddleware()
+        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
+        # register other custom serializers
+        return serialization
+############## tinymongo ################
+
+###################### PARAMETERS ###########################
+ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
 ####################### mongoDB #############################
-#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
-with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
-mongo_client                     = pymongo.MongoClient(uri)
-arrows_db                        = mongo_client.Arrows
+#uri = "mongodb://arrows:password@machine.gov:27017"
+with open(ARROWS_HOME + "/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+if "mongodb:" in uri:
+   nosql_client = pymongo.MongoClient(uri)
+   ismongo      = True
+else:
+   nosql_client = CustomClient(uri)
+   ismongo      = False
+arrows_db                        = nosql_client.Arrows
 chemdb_queue_collection          = arrows_db.chemdb_queue_nwchem_collection
 qnumber_collection               = arrows_db.queue_number
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
-wrkdir           = "/srv/arrows/Work"
+wrkdir           = ARROWS_HOME + "/Work"
 curdir           = os.getcwd()
-chemdbdir        = "/srv/arrows/Public/chemdb_hold"
+chemdbdir        = ARROWS_HOME + "/Public/chemdb_hold"
 ############## machine parameters #########################
 
 
@@ -132,9 +159,9 @@ chemdb_queue_nwchem program
 """
 
 
-print
-print "#chemdb_queue_nwchem - version 1.0"
-print
+print()
+print("#chemdb_queue_nwchem - version 1.0")
+print()
 tt      = time.localtime()
 
 submitqueue2 = False
@@ -248,26 +275,27 @@ for o, a in opts:
 
 
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (listqueues):
    check = {}
    echeck = {}
-   #echeck['restart_input_deck'] = 0
-   echeck['queue_number'] = 1
-   echeck['fetched'] = 1
-   echeck['finished'] = 1
-   echeck['stopped'] = 1
-   echeck['eap_calculation'] = 1
-   echeck['machine_type'] = 1
-   echeck['queue_name'] = 1
-   echeck['label'] = 1
-   echeck['start_time'] = 1
-   echeck['submit_machine'] = 1
-   echeck['submit_dir'] = 1
+   if ismongo:
+      #echeck['restart_input_deck'] = 0
+      echeck['queue_number'] = 1
+      echeck['fetched'] = 1
+      echeck['finished'] = 1
+      echeck['stopped'] = 1
+      echeck['eap_calculation'] = 1
+      echeck['machine_type'] = 1
+      echeck['queue_name'] = 1
+      echeck['label'] = 1
+      echeck['start_time'] = 1
+      echeck['submit_machine'] = 1
+      echeck['submit_dir'] = 1
    queue = chemdb_queue_collection.find(check,echeck)
-   print "queue_entry  fetched finished  stopped eap_calculation  machine_type    queue_name  label::"
+   print("queue_entry  fetched finished  stopped eap_calculation  machine_type    queue_name  label::")
    ss = []
    for entry in queue:
       if ("queue_name" in entry):
@@ -279,16 +307,16 @@ if (listqueues):
          sstr += " %f" % (entry['start_time'])
       else:
          sstr += " %f" % (0.0)
-      #print sstr
+      #print(sstr)
       ss.append(sstr)
       #print "%11d    " % (entry['queue_number'])
       #print "entry=",entry
    ss.sort()
    for entry in ss:
-      print entry
+      print(entry)
 
 if (listqueues2):
-   print "hello"
+   print("hello")
 
 if (addqueue):
    entry = {}
@@ -361,8 +389,23 @@ if (addqueue):
 
 
       ### set queue number  ##
-      queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue_nwchem'})['count']
-      qqq = qnumber_collection.update({'queue':'chemdb_queue_nwchem'},{'$inc':{'count':1}},upsert=False,multi=False)
+      #queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue_nwchem'})['count']
+      #qqq = qnumber_collection.update({'queue':'chemdb_queue_nwchem'},{'$inc':{'count':1}},upsert=False,multi=False)
+      if (qnumber_collection.find({'queue':'chemdb_queue_nwchem'}).count()>0):
+         queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue'})['count']
+      else:
+         queue_number00 = 1
+         qqq = qnumber_collection.insert({'queue':'chemdb_queue_nwchem', 'count':1})
+      if ismongo:
+         qqq = qnumber_collection.update({'queue':'chemdb_queue_nwchem'},{'$inc':{'count':1}},upsert=False,multi=False)
+      else:
+         qp1 = queue_number00+1
+         qqn = {'count': qp1}
+         qqq = qnumber_collection.update_one({'queue':'chemdb_queue_nwchem'},{'$set':qqn})
+
+
+
+
       entry['queue_number']    = queue_number00
       entry['arrows_password'] = arrows_password
       entry['label']  = label
@@ -391,10 +434,10 @@ if (addqueue):
          entry['eap_calculation'] = 'no'
 
       qq = chemdb_queue_collection.insert(entry)
-      print "Added " + nwinputfile + " to chemdb_queue. queue_entry=",entry['queue_number']
-      print "QUEUE_ENTRY:%d:QUEUE_ENTRY" % int(entry['queue_number'])
+      print("Added " + nwinputfile + " to chemdb_queue. queue_entry=",entry['queue_number'])
+      print("QUEUE_ENTRY:%d:QUEUE_ENTRY" % int(entry['queue_number']))
    else:
-      print "nwchem input file " + nwinputfile + " does not exist."
+      print("nwchem input file " + nwinputfile + " does not exist.")
 
 if (delqueue):
    if ("_" in delete_queue_number):
@@ -409,7 +452,7 @@ if (delqueue):
       delentry = {'queue_number' : delete_queue_number}
    else:
       delentry = {'queue_number' : delete_queue_number,'arrows_password':arrows_password}
-   print "delentry=",delentry
+   print("delentry=",delentry)
    entry = chemdb_queue_collection.find_one(delentry)
    queue = chemdb_queue_collection.remove(delentry)
 
@@ -423,13 +466,16 @@ if (delqueue):
          except Exception as e:
             print(e)
    except:
-      print "no datafiles to delete."
+      print("no datafiles to delete.")
 
 if (resetqueue):
    resetentry = {'queue_number' : reset_queue_number}
    resetentry['finished'] = 'no'
-   print "resetentry=",resetentry
-   qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'fetched':0}},upsert=False,multi=False)
+   print("resetentry=",resetentry)
+   if ismongo:
+      qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'fetched':0}},upsert=False,multi=False)
+   else:
+      qqq      = chemdb_queue_collection.update_one(resetentry,{'$set':{'fetched':0}})
 
 
 if (runqueue):
@@ -449,7 +495,12 @@ if (runqueue):
    if entry is not None:
       if (entry['finished']=='no'):
          if (add_fetch):
-            qqq   = chemdb_queue_collection.update(runentry,{'$inc':{'fetched':1}},upsert=False,multi=False)
+            if ismongo:
+               qqq   = chemdb_queue_collection.update(runentry,{'$inc':{'fetched':1}},upsert=False,multi=False)
+            else:
+               qp1 = chemdb_queue_collection.find_one(runentry)['fetched'] + 1
+               qqn = {'fetched': qp1}
+               qqq = chemdb_queue_collection.update_one(runentry,{'$set':qqn})
 
          ctag = "#"
          cname = "NWCHEM"
@@ -469,28 +520,28 @@ if (runqueue):
          else:
             data1 +=  entry['restart_input_deck'] + "\n"
          data1 += ctag + "########################  END   "+cname+" INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
-         print data1
+         print(data1)
       else:
-         print 
+         print()
          try:
-            print "# CHEMDB OUTPUT AVAILABLE!"
-            print "# nwoutfile       = ",entry['nwchem_output'] 
-            print "# extra_datafiles = ",entry['extra_datafiles']
+            print("# CHEMDB OUTPUT AVAILABLE!")
+            print("# nwoutfile       = ",entry['nwchem_output'] )
+            print("# extra_datafiles = ",entry['extra_datafiles'])
          except:
-            print "#no output files available"
+            print("#no output files available")
    else:
-      print "# CHEMDB ENTRY NOT AVAILABLE! queue_number=", run_queue_number
+      print("# CHEMDB ENTRY NOT AVAILABLE! queue_number=", run_queue_number)
 
 if (outqueue):
    outentry = {'queue_number' : out_queue_number}
    outentry    = chemdb_queue_collection.find_one(outentry)
-   print 
+   print()
    try:
-      print "nwoutfile       = ",outentry['nwchem_output'] 
-      print "extra_datafiles = ",outentry['extra_datafiles']
+      print("nwoutfile       = ",outentry['nwchem_output'])
+      print("extra_datafiles = ",outentry['extra_datafiles'])
    except:
-      print "no output files available"
-   print 
+      print("no output files available")
+   print()
 
 
 
@@ -524,9 +575,9 @@ if (nwoutfile!=''):
             upentry = {}
             upentry['_id']  = id
             upentry['restart_count'] = int(rcount)
-            print "RCOUNT=",rcount
+            print("RCOUNT=",rcount)
             count = chemdb_queue_collection.find(upentry).count()
-            print "COUNT=",count
+            print("COUNT=",count)
             if (count>0):
                ee = chemdb_queue_collection.find_one(upentry)
                if (ee['finished']=='no') or (ee['finished']=="running"):
@@ -564,7 +615,7 @@ if (nwoutfile!=''):
                            except Exception as e:
                               print(e)
                      except:
-                        print "no datafiles to delete."
+                        print("no datafiles to delete.")
 
                   elif jobrunning:
                      newentry['nwchem_output']    = nwoutfile
@@ -590,7 +641,7 @@ if (nwoutfile!=''):
                            except Exception as e:
                               print(e)
                      except:
-                        print "no datafiles to delete."
+                        print("no datafiles to delete.")
 
                   ###### output finished  ######
                   else:
@@ -618,20 +669,23 @@ if (nwoutfile!=''):
                            except Exception as e:
                               print(e)
                      except:
-                        print "no datafiles to delete."
+                        print("no datafiles to delete.")
 
 
-                  qqq = chemdb_queue_collection.update(upentry,{'$set':newentry},upsert=False,multi=False)
+                  if ismongo:
+                     qqq = chemdb_queue_collection.update(upentry,{'$set':newentry},upsert=False,multi=False)
+                  else:
+                     qqq = chemdb_queue_collection.update_one(upentry,{'$set':newentry})
                else:
                   count = 0
          except:
-            print "- update to entry failed"
+            print("- update to entry failed")
             count = 0
       
 
       if (count==0):
          for filename in allfiles0.strip().split():
-            print "#  - filename = "+filename+" was not added"
+            print("#  - filename = "+filename+" was not added")
             try:
                if os.path.isfile(filename):
                   os.unlink(filename)
