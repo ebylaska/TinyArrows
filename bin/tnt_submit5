@@ -1,38 +1,65 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
 import pymongo
-import sys,os,time,pickle,urllib2,getopt,subprocess,random,operator,datetime
+import sys,os,time,pickle,urllib,getopt,subprocess,random,operator,datetime
 import re
 from math import *
 from numpy import *
 from numpy.linalg import *
 from numpy.fft import *
 
+############## tinymongo ################
+import tinydb
+import tinymongo as tm
+from tinymongo.serializers import DateTimeSerializer
+from tinydb_serialization import SerializationMiddleware
+class TinyMongoClient(tm.TinyMongoClient):
+    @property
+    def _storage(self):
+        return tinydb.storages.JSONStorage
+class CustomClient(TinyMongoClient):
+    @property
+    def _storage(self):
+        serialization = SerializationMiddleware()
+        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
+        # register other custom serializers
+        return serialization
+############## tinymongo ################
+
+
+################ machine parameters #########################
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
 ####################### mongoDB #############################
 #uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
-with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
-mongo_client       = pymongo.MongoClient(uri)
-arrows_db          = mongo_client.Arrows
+with open(ARROWS_HOME + "/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+if "mongodb:" in uri:
+   nosql_client = pymongo.MongoClient(uri)
+   ismongo      = True
+else:
+   nosql_client = CustomClient(uri)
+   ismongo      = False
+arrows_db          = nosql_client.Arrows
 tnt_collection     = arrows_db.tnt_queue
 qnumber_collection = arrows_db.queue_number
 nwchem_collection  = arrows_db.nwchem_queue
 machine_collection = arrows_db.nwchem_machinedata
 
-
 #################### machine specifics ######################
-nwpythonlib    = "/srv/arrows/Codes/InSilico/tntqueue/nwpythonlib.py"
-babel     = "/usr/bin/babel"
-obabel    = "/usr/bin/obabel "
-obrotamer = "/usr/bin/obrotamer"
-esmiles2xyz    = "/srv/arrows/bin/esmiles2xyz "
-esmilespmf2xyz = "/srv/arrows/bin/esmilespmf2xyz "
-chemdb_balance_reaction  = "/srv/arrows/bin/chemdb_balance_reaction9f "
-remote_nwchem  = "/srv/arrows/bin/submit_nwchem3"
-chemdb_queue   = "/srv/arrows/bin/chemdb_queue "
-solvatedsolute_esmiles = "/srv/arrows/bin/solvatedsolute_esmiles "
+nwpythonlib    = "/bin/nwpythonlib.py"
+obabel    = "/usr/local/bin/obabel "
+obrotamer = "/usr/local/bin/obrotamer"
+esmiles2xyz    = ARROWS_HOME + "/bin/esmiles2xyz "
+esmilespmf2xyz = ARROWS_HOME + "/bin/esmilespmf2xyz "
+chemdb_balance_reaction  = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
+remote_nwchem  = ARROWS_HOME + "/bin/submit_nwchem3"
+chemdb_queue   = ARROWS_HOME + "/chemdb_queue "
+solvatedsolute_esmiles = ARROWS_HOME + "/solvatedsolute_esmiles "
 
-wrkdir     = "/srv/arrows/Work"
-submitdir0 = "/srv/arrows/Projects/TNTQ" 
+wrkdir     = ARROWS_HOME + "/Work"
+submitdir0 = ARROWS_HOME + "/TNTQ" 
 curdir     = os.getcwd()
 
 geom_maxiter   = 50
@@ -44,7 +71,7 @@ tmpsdf1  = "tmpsdf1-%d.sdf" % ddrand
 tmpsdf2  = "tmpsdf2-%d.sdf" % ddrand
 tmpjunk  = "tmpjunk-%d.err" % ddrand
 tmpjob   = "tntjob-%d"      % ddrand
-#################### machine specifics ######################
+################ machine parameters #########################
 
 #global variables
 bad_smiles2xyz_geom = False
@@ -397,13 +424,8 @@ def addspaces_esmiles(esmiles):
 #### geturlresult function ####
 def geturlresult(url):
     try:
-        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib2.build_opener(proxy)
-        urllib2.install_opener(opener)
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
+        connection = urllib.urlopen(url)
+    except urllib2.HTTPError(e):
         return ""
     else:
         return connection.read().rstrip()
@@ -593,7 +615,7 @@ def smilespmf2xyz(esmiles,xyzfile):
    #eoln = "\n"
    cmd = esmilespmf2xyz + ' "'+ esmiles.strip() + '" ' + xyzfile
    result1 = subprocess.check_output(cmd,shell=True)
-   print result1
+   print(result1)
    solutejob = result1.split("solutejob:")[1].split(":solutejob")[0]
 
    return eval(solutejob)
@@ -1072,7 +1094,7 @@ def theorysmiles2machine(theory,smiles):
          machine = 'Shirky'
 
     
-   print "#VALENCE CHARGE=",vcharge, " MACHINE=",machine
+   print("#VALENCE CHARGE=",vcharge, " MACHINE=",machine)
 
    return machine
 
@@ -1117,7 +1139,7 @@ def datafile_xyzfile(datafile,tmpxyzfile):
                  gfound = True
                  count = 0
 
-      #print "Generating xyzfile = ",xyzfile
+      #print("Generating xyzfile = ",xyzfile)
       n = len(xyzdat)
       xfile = open(tmpxyzfile,'w')
       xfile.write("%d\n\n" % n)
@@ -1127,7 +1149,7 @@ def datafile_xyzfile(datafile,tmpxyzfile):
       xfile.close()
 
    except:
-      print "Cannot generate xyzfile "
+      print("Cannot generate xyzfile ")
 
 
 
@@ -3013,7 +3035,7 @@ Generates an nwchem job for a molecule
 
 """
 
-#print 'TNT NWChem Submission Program\n'
+#print('TNT NWChem Submission Program\n')
 tt   = time.localtime()
 gt   = time.gmtime()
 dd   = "-%d-%d-%d-%d:%d" % (tt[0],tt[1],tt[2],tt[3],tt[4])
@@ -3021,7 +3043,7 @@ ddlt = time.asctime(tt)
 job  = {}
 job['submit_time'] = pickle.dumps(tt)
 job['submit_gm_time'] = pickle.dumps(gt)
-print '# NWChem Input Generation (tnt_submit5)  - The current time is ' + ddlt 
+print('# NWChem Input Generation (tnt_submit5)  - The current time is ' + ddlt)
 
 
 emailresults = ''
@@ -3085,7 +3107,7 @@ for o, a in opts:
      emailresults = a
   if '-v' in o:
      vtag = a
-     print "# - adding tag " + vtag + " to input deck.\n" 
+     print("# - adding tag " + vtag + " to input deck.\n" )
   if '-m' in o:
      machine = a
   if '-t' in o:
@@ -3135,12 +3157,12 @@ for o, a in opts:
     submitthejob = False
 
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 
 if (len(args)<1):
-   print "\nEnter xyz file / cml file / esmiles string:"
+   print("\nEnter xyz file / cml file / esmiles string:")
    xyzsmiles  = sys.stdin.readline()[:-1]
 else:
    xyzsmiles  = args[0]
@@ -3151,7 +3173,7 @@ esmiles = addspaces_esmiles(xyzsmiles.strip())
 if "theory{aimd-mm}" in esmiles.lower():
    cmd6 = solvatedsolute_esmiles + '\"' + esmiles + '\"'
    result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
-   print result
+   print(result)
    exit()
 
 isdatafile = False
@@ -3175,7 +3197,7 @@ if (os.path.isfile(xyzsmiles.split()[0])):
       xyz2cml(xyzsmiles.split()[0],job['cmlfile'])
 else:
    #esmiles = addspaces_esmiles(xyzsmiles.strip())
-   #print "tnt_submit esmiles = " + esmiles
+   #print("tnt_submit esmiles = " + esmiles)
    xyzsmiles = esmiles.split()[0]
    job['smiles']  = nametosmiles(xyzsmiles)
    job['xyzfile'] = wrkdir + "/" + tmpjob + ".xyz"
@@ -3216,12 +3238,12 @@ if 'reaction_genhash{' in esmiles:
          reaction_genhash += cc
          i += 1
    cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash + "\""
-   #print "cmd9=",cmd9
+   #print("cmd9=",cmd9)
    result9 = subprocess.check_output(cmd9,shell=True)
    if "bstringsall =" in result9:
       bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
       reaction_hash = bstringsall[0][3]
-   #print "cmd9 reaction_hash=",reaction_hash
+   #print("cmd9 reaction_hash=",reaction_hash)
 
 if (reaction_hash=='') and (reaction_type!='') and (reaction_indexes!=''):
    cmd9 = chemdb_balance_reaction + "-r " + job['xyzfile'] + " \"" + reaction_indexes + "\" \"" + reaction_type + "\""
@@ -3232,13 +3254,13 @@ elif (reaction_hash!='') and (reaction_type=='') and (reaction_indexes==''):
    cmd9 = chemdb_balance_reaction + "-e " + job['xyzfile'] + " \"" + reaction_hash + "\""
    result9 = subprocess.check_output(cmd9,shell=True)
    indexes = eval(result9.split("reaction indexes=")[1].split("\n")[0])
-   #print "indexes=",indexes
+   #print("indexes=",indexes)
    if (len(indexes)>0):
       for ii in indexes[0][0]:
          reaction_indexes += "%d " % (ii+1)
-   #print "result9=",result9
-   #print "reaction_type=",reaction_type
-   #print "reaction_indexes=",reaction_indexes
+   #print("result9=",result9)
+   #print("reaction_type=",reaction_type)
+   #print("reaction_indexes=",reaction_indexes)
    
 
 if 'rotamer{' in esmiles:
@@ -3351,7 +3373,7 @@ if (xyzdata==''):
    if (solvation_type=='aimdmm'):
       job['solutejob'] = smilespmf2xyz(esmiles,job['xyzfile'])
    elif job.has_key('appendfile'):
-      print "# Generating xyz data from appendfile."
+      print("# Generating xyz data from appendfile.")
       datafile_xyzfile(job['appendfile'],job['xyzfile'])
       if (theory=="mp2") or (theory=="ccsd(t)") or (theory=="qsharp_chem") or (theory=="ccsd"): 
          rotamer = False
@@ -3398,7 +3420,7 @@ else:
 
 if (rotamer):
    jkj = xyzrotamer(job['xyzfile'])
-   print "# Rotating single bonds in " + job['xyzfile'] + "." + jkj
+   print("# Rotating single bonds in " + job['xyzfile'] + "." + jkj)
 
 
 #if (machine ==''): machine= 'constance'
@@ -3516,7 +3538,7 @@ if 'bonddiff' in constraint_string:
       constraint_value1 = 2.0
       constraint_value2 = 2.0
    else:
-      print "# constraint_value=",constraint_value
+      print("# constraint_value=",constraint_value)
       constraint_value1 = evalnum(constraint_value.split(',')[0])
       constraint_value2 = evalnum(constraint_value.split(',')[1])
    job['constraint_value1'] = constraint_value1
@@ -3661,7 +3683,7 @@ job['chemical_structure_asciiart']  = smiles2ascii(job['smiles'])
 job['mformula'] = xyz_molecular_formula(job['xyzfile'])
 job['cosmoradii'] = makecosmoradii(job['xyzfile'])
 
-#print "\nEnter memory:"
+#print("\nEnter memory:")
 #job['mem']=sys.stdin.readline()[:-1]
 if (job['theory']=="ccsd(t)") or (job['theory']=="qsharp_chem") or (job['theory']=='ccsd'):
    job['mem'] = "stack 800 mb heap 100 mb global 1000 mb"
@@ -3676,51 +3698,51 @@ qqq = qnumber_collection.update({'queue':'tnt'},{'$inc':{'count':1}},upsert=Fals
 job['queue_number']  = queue_number00
 
 
-print "# "
-print "#  - pubchem_synonyms = ",job['pubchem_synonyms']
-print "# "
-print "#  - queue_number     = ",job['queue_number']
-print "#  - mformula         = ",job['mformula']
-print "#  - name             = ",xyzsmiles
-print "#  - smiles           = ",job['smiles']
-print "#  - csmiles          = ",job['csmiles']
-print "#  - InChI            = ",job['InChI']
-print "#  - InChIKey         = ",job['InChIKey']
-print "#  - pubchem_cid      = ",job['pubchem_cid_link']
-print "#  - pubchem_smiles   = ",job['pubchem_smiles']
-print "#  - pubchem_iupac    = ",job['pubchem_iupac']
-print "#  - pubchem_synonym0 = ",job['pubchem_synonym0']
-print "#  - theory           = ",job['theory']
-if ('aimd' in job): print "#  - aimd simulation  = ",job['aimd']
-print "#  - pspw4            = ",job['pspw4']
-print "#  - paw              = ",job['paw']
+print("# ")
+print("#  - pubchem_synonyms = ",job['pubchem_synonyms'])
+print("# ")
+print("#  - queue_number     = ",job['queue_number'])
+print("#  - mformula         = ",job['mformula'])
+print("#  - name             = ",xyzsmiles)
+print("#  - smiles           = ",job['smiles'])
+print("#  - csmiles          = ",job['csmiles'])
+print("#  - InChI            = ",job['InChI'])
+print("#  - InChIKey         = ",job['InChIKey'])
+print("#  - pubchem_cid      = ",job['pubchem_cid_link'])
+print("#  - pubchem_smiles   = ",job['pubchem_smiles'])
+print("#  - pubchem_iupac    = ",job['pubchem_iupac'])
+print("#  - pubchem_synonym0 = ",job['pubchem_synonym0'])
+print("#  - theory           = ",job['theory'])
+if ('aimd' in job): print("#  - aimd simulation  = ",job['aimd'])
+print("#  - pspw4            = ",job['pspw4'])
+print("#  - paw              = ",job['paw'])
 if (job['theory']=='dft' or job['theory']=='pspw' or job['theory']=='tddft'):
-   print "#  - xc               =",job['xc']
-print "#  - basis            = ",job['basis']
-print "#  - basisHZ          = ",job['basisHZ']
-print "#  - theory_property       = ",job['theory_property']
-print "#  - property_pspw4        = ",job['property_pspw4']
-print "#  - property_paw          = ",job['property_paw']
+   print("#  - xc               =",job['xc'])
+print("#  - basis            = ",job['basis'])
+print("#  - basisHZ          = ",job['basisHZ'])
+print("#  - theory_property       = ",job['theory_property'])
+print("#  - property_pspw4        = ",job['property_pspw4'])
+print("#  - property_paw          = ",job['property_paw'])
 if (job['theory_property']=='dft' or job['theory_property']=='pspw' or job['theory']=='tddft'):
-   print "#  - xc_property      =",job['xc_property']
-print "#  - basis_property   = ",job['basis_property']
-print "#  - basisHZ_property = ",job['basisHZ_property']
-print "#  - type             = ",job['type']
-print "#  - solvation_type   = ",job['solvation_type']
-print "#  - charge           = ",job['charge']
-print "#  - mult             = ",job['mult']
-print "#  - babel gen. xyz   = ", (not bad_smiles2xyz_geom)
-print "#  - cactus gen. xyz  = ", use_cactus_geom
-print "#  - bonds rotated    = ", rotamer
-print "#  - machine          = ",job['machine']
-print "#  - emailresults     = ",job['emailresults']
-print "# "
-print "#  - twirl webpage    = ",job['twirl']
-print "#  - image webpage    = ",job['image']
-print job['nmrdb']
-print "# "
-for line in job['chemical_structure_asciiart'].split("\n"): print "#" + line
-print "# "
+   print("#  - xc_property      =",job['xc_property'])
+print("#  - basis_property   = ",job['basis_property'])
+print("#  - basisHZ_property = ",job['basisHZ_property'])
+print("#  - type             = ",job['type'])
+print("#  - solvation_type   = ",job['solvation_type'])
+print("#  - charge           = ",job['charge'])
+print("#  - mult             = ",job['mult'])
+print("#  - babel gen. xyz   = ", (not bad_smiles2xyz_geom))
+print("#  - cactus gen. xyz  = ", use_cactus_geom)
+print("#  - bonds rotated    = ", rotamer)
+print("#  - machine          = ",job['machine'])
+print("#  - emailresults     = ",job['emailresults'])
+print("# ")
+print("#  - twirl webpage    = ",job['twirl'])
+print("#  - image webpage    = ",job['image'])
+print(job['nmrdb'])
+print("# ")
+for line in job['chemical_structure_asciiart'].split("\n"): print("#" + line)
+print("# ")
 
 ###############################
 #### submit the input deck ####
@@ -3750,7 +3772,7 @@ if (submitthejob):
       cmd1_submit = chemdb_queue +  '-a \"' + tmp_esmiles + '\"'
       if (vtag!=''): cmd1_submit += ' -v "' + vtag + '"'
       result1 = subprocess.check_output(cmd1_submit,shell=True)
-      print "cmd1_submit= ", result1
+      print("cmd1_submit= ", result1)
       job['status']  = "submitted"
 
    ### submit to nwchem queue ###
@@ -3784,14 +3806,14 @@ if (submitthejob):
       #cmd_submit = remote_nwchem + " -r " + submitdir + " " + job['nwchemjob_submit']
       cmd_submit = "cd " + submitdir + "; " + remote_nwchem + " " +  job['nwchemjob_submit']
       result1 = subprocess.check_output(cmd_submit,shell=True)
-      print "cmd_submit= ", result1
+      print("cmd_submit= ", result1)
 
       job['status']  = "submitted"
 
       #Turnning this off since it's really not used
       ##### put job on queue #### 
       #qq = tnt_collection.insert(job)
-      #print "tnt_collection.insert=", qq
+      #print("tnt_collection.insert=", qq)
 
 
 #############################################
@@ -3807,7 +3829,7 @@ else:
    job['nwchem_done']       = job['name'] + ".done"
    job['permdir']           = jobname + "_%d" % job['queue_number']
    job['nwchem_input_deck'] = make_nwinputdeck(job)
-   print job['nwchem_input_deck']
+   print(job['nwchem_input_deck'])
 
 
 
