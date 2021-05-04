@@ -424,6 +424,11 @@ def addspaces_esmiles(esmiles):
 #### geturlresult function ####
 def geturlresult(url):
     try:
+        proxy = urllib.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+                                    )
+        opener = urllib.build_opener(proxy)
+        urllib.install_opener(opener)
         connection = urllib.urlopen(url)
     except urllib2.HTTPError(e):
         return ""
@@ -488,15 +493,8 @@ def smiles2nmrdb(smiles):
 def smiles2ascii(smiles):
    try:
       cmd6 = esmiles2xyz + ' "'+ smiles.strip() + '" ' + wrkdir + "/" + tmpsmi1
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       ascii  = result.split("chemical_structure_asciiart:")[1].split(":chemical_structure_asciiart")[0]
-
-      ### split up disconnected fragments ##
-      #ascii = ""
-      #for ss in smiles.split('.'):
-      #   cmd = obabel + ' --gen3d -:\"' + ss.strip() + '\" -oascii'
-      #   result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
-      #   ascii  += result.replace("1 molecule converted","").rstrip() + "\n"
    except:
       ascii = ""
 
@@ -520,7 +518,7 @@ def smiles2ascii(smiles):
 def nametosmiles(name):
    try:
       cmd6 = esmiles2xyz + ' "'+ name.strip() + '" ' + wrkdir + "/" + tmpsmi1
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles = result.split("smiles   =")[1].split("\n")[0].strip()
 
    except:
@@ -547,7 +545,7 @@ def xyz_badgeom(xyzfile):
          rxyz.append(evalnum(ss[1]))
          rxyz.append(evalnum(ss[2]))
          rxyz.append(evalnum(ss[3]))
-      nion = len(rxyz)/3
+      nion = len(rxyz)//3
       for i in range(nion-1):
          for j in range(i+1,nion):
             x = rxyz[3*i]   - rxyz[3*j]
@@ -569,13 +567,13 @@ def cactus_smiles2xyz(smiles):
 
 #### cml2xyz function ####
 def cml2xyz(cmlfile,xyzfile):
-   cmd6 = babel + " --ffuff --gen3d -icml " + cmlfile + " -oxyz " + xyzfile 
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   cmd6 = obabel + " --ffuff --gen3d -icml " + cmlfile + " -oxyz -O" + xyzfile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
 #### xyz2cml function ####
 def xyz2cml(xyzfile,cmlfile):
-   cmd6 = babel + " -ixyz " + xyzfile + " -ocml " + cmlfile 
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   cmd6 = obabel + " -ixyz " + xyzfile + " -ocml -O" + cmlfile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
 #### smiles2cml function ####
 def smiles2cml(smiles,cmlfile):
@@ -584,20 +582,15 @@ def smiles2cml(smiles,cmlfile):
    ofile = open(smilefile,'w')
    ofile.write(smiles); ofile.write(eoln)
    ofile.close()
-   cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -ocml " + cmlfile 
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   cmd6 = obabel + " --ffuff --gen3d -ismi " + smilefile + " -ocml -O" + cmlfile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
 #### smiles2xyz function ####
 def smiles2xyz(smiles,xyzfile):
-   #eoln = "\n"
-   #smilefile = wrkdir + "/" + tmpsmi1
-   #ofile = open(smilefile,'w')
-   #otstr += smiles); otstr += eoln)
-   #ofile.close()
-   #cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
-   #os.system(cmd6)
    cmd6 = esmiles2xyz + ' "'+ smiles.strip() + '" ' + xyzfile
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+   print("xyzfile smiles2xyz=",xyzfile)
+   print("RESULT smiles2xyz=",result)
 
    #### if nan's are produced or a bond distance < 0.5 then use cactus smiles2xyz rest interface ####
    badgeom = xyz_badgeom(xyzfile)
@@ -614,7 +607,7 @@ def smiles2xyz(smiles,xyzfile):
 def smilespmf2xyz(esmiles,xyzfile):
    #eoln = "\n"
    cmd = esmilespmf2xyz + ' "'+ esmiles.strip() + '" ' + xyzfile
-   result1 = subprocess.check_output(cmd,shell=True)
+   result1 = subprocess.check_output(cmd,shell=True).decode("utf-8")
    print(result1)
    solutejob = result1.split("solutejob:")[1].split(":solutejob")[0]
 
@@ -680,9 +673,8 @@ def cannonicalsmiles(smiles):
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
 
-      #cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
-      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ismi " + smilefile + " -ocan -O" + smilefile2 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
       ofile = open(smilefile2,'r')
@@ -707,9 +699,9 @@ def cannonicalsmiles(smiles):
 def cml2smiles(cmlfile):
    smiles = "nosmiles"
    smilefile = wrkdir + "/" + tmpsmi1
-   cmd6 = babel + " -icml " + cmlfile + " -ocan " + smilefile 
+   cmd6 = obabel + " -icml " + cmlfile + " -ocan -O" + smilefile 
    #os.system(cmd6)
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    sdat = []
    ofile = open(smilefile,'r')
    for line in ofile:
@@ -722,8 +714,8 @@ def cml2smiles(cmlfile):
 def xyz2smiles(xyzfile):
    smiles = "nosmiles"
    smilefile = wrkdir + "/" + tmpsmi1
-   cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile 
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   cmd6 = obabel + " -ixyz " + xyzfile + " -ocan -O" + smilefile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    sdat = []
    ofile = open(smilefile,'r')
    for line in ofile:
@@ -738,18 +730,15 @@ def xyzrotamer(xyzfile):
       xyzbak = ff.read()
    sdffile  = wrkdir + "/" + tmpsdf1
    sdffile2 = wrkdir + "/" + tmpsdf2
-   #cmd6 = babel + " -ixyz " + xyzfile + " -osdf " + sdffile + " >& "  + wrkdir + "/junk.err"
-   #cmd7 = "(" + obrotamer + " " + sdffile + " > " + sdffile2 + ") >& "+ wrkdir + "/" + tmpjunk
-   #cmd8 = babel + " -isdf " + sdffile2 + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
-   cmd6 = babel + " -ixyz " + xyzfile + " -osdf " + sdffile 
+   cmd6 = obabel + " -ixyz " + xyzfile + " -osdf -O" + sdffile 
    cmd7 = "(" + obrotamer + " " + sdffile + " > " + sdffile2 + ") > "+ wrkdir + "/" + tmpjunk
-   cmd8 = babel + " -isdf " + sdffile2 + " -oxyz " + xyzfile 
+   cmd8 = obabel + " -isdf " + sdffile2 + " -oxyz -O" + xyzfile 
    os.system(cmd6)
    os.system(cmd7)
    os.system(cmd8)
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
-   result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
-   result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+   result = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+   result = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    sdat = []
    ofile = open(wrkdir + "/"+tmpjunk,'r')
    for line in ofile:
@@ -772,8 +761,8 @@ def xyzrotamer(xyzfile):
 def xyz2InChI(xyzfile):
    inchi = ""
    inchifile = wrkdir + "/" + tmpsmi1
-   cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile 
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   cmd6 = obabel + " -ixyz " + xyzfile + " -oinchi -O" + inchifile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    sdat = []
    ofile = open(inchifile,'r')
    for line in ofile:
@@ -786,8 +775,8 @@ def xyz2InChI(xyzfile):
 def xyz2InChIKey(xyzfile):
    inchi = ""
    inchifile = wrkdir + "/" + tmpsmi1
-   cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile 
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   cmd6 = obabel + " -ixyz " + xyzfile + " -oinchikey -O" + inchifile 
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    sdat = []
    ofile = open(inchifile,'r')
    for line in ofile:
@@ -809,8 +798,8 @@ def smiles2InChI(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile 
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchi -O" + inchifile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -831,8 +820,8 @@ def smiles2InChIKey(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile 
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchikey -O" + inchifile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -1060,35 +1049,35 @@ def theorysmiles2machine(theory,smiles):
    #### compare to shirky queues ####
    if ((vachinetype=='tiny') and (hasmopac)):
       cmd9 = chemdb_queue 
-      result9 = subprocess.check_output(cmd9,shell=True)
+      result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
       shirkycount = len([w for w in result9.split() if w=='mopac'])
       if (shirkycount<=smallest):
          machine = 'Shirky'
 
    if ((vachinetype=='tiny') and (not hasmopac)):
       cmd9 = chemdb_queue 
-      result9 = subprocess.check_output(cmd9,shell=True)
+      result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
       shirkycount = len([w for w in result9.split() if w=='tiny'])
       if (shirkycount<=smallest):
          machine = 'Shirky'
 
    if ((vachinetype=='small') and (not hasmopac)):
       cmd9 = chemdb_queue 
-      result9 = subprocess.check_output(cmd9,shell=True)
+      result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
       shirkycount = len([w for w in result9.split() if w=='small'])
       if (shirkycount<=smallest):
          machine = 'Shirky'
 
    if ((vachinetype=='medium') and (not hasmopac)):
       cmd9 = chemdb_queue
-      result9 = subprocess.check_output(cmd9,shell=True)
+      result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
       shirkycount = len([w for w in result9.split() if w=='medium'])
       if (shirkycount<=smallest):
          machine = 'Shirky'
 
    if ((vachinetype=='large') and (not hasmopac)):
       cmd9 = chemdb_queue
-      result9 = subprocess.check_output(cmd9,shell=True)
+      result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
       shirkycount = len([w for w in result9.split() if w=='large'])
       if (shirkycount<=smallest):
          machine = 'Shirky'
@@ -2450,7 +2439,7 @@ def maketasks(jobtype,jobtheory,radii,rbond,rgroup,mbond1,mbond2,xyzfile,zcoords
                istart += 72
             tstr += "#Constraint: reaction_hash:"+rstr[istart:] + ":reaction_hash\n"
             cmd9 = chemdb_balance_reaction + "-c \"" + job['reaction_indexes'] + "\" \"" + job['reaction_type'] + "\""
-            result9 = subprocess.check_output(cmd9,shell=True)
+            result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
             bondings = result9.split("spring bondings K gamma")[1].split("\n")[0].strip()
             with open(job['xyzfile'],'r') as ff:
                aa = ff.read() 
@@ -2834,7 +2823,7 @@ def xyz_molecular_formula(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -2882,7 +2871,7 @@ def make_nwinputdeck(job):
  
 
    ## appendfile ##
-   if job.has_key('appendfile'):
+   if ('appendfile' in job):
       for line in job['appendfile'].split("\n"): tstr += "#"+line+"\n"
 
    ## header ##
@@ -2980,8 +2969,8 @@ def make_nwchemjob(job):
    else:
       nwtstr += "queue regular\n"
 
-   if job.has_key('priority'):     nwtstr += "priority " + job['priority']     + eoln
-   if job.has_key('emailresults'): nwtstr += "email "    + job['emailresults'] + eoln
+   if ('priority' in job):     nwtstr += "priority " + job['priority']     + eoln
+   if ('emailresults' in job): nwtstr += "email "    + job['emailresults'] + eoln
 
    nwtstr += "\n"
    #nwtstr += "@remote_directory /Users/bylaska/Projects/TNTQ/%d\n" % ddrand)
@@ -3172,7 +3161,7 @@ esmiles = addspaces_esmiles(xyzsmiles.strip())
 ##### this is an aimd-mm simulation #####
 if "theory{aimd-mm}" in esmiles.lower():
    cmd6 = solvatedsolute_esmiles + '\"' + esmiles + '\"'
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    print(result)
    exit()
 
@@ -3239,7 +3228,7 @@ if 'reaction_genhash{' in esmiles:
          i += 1
    cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash + "\""
    #print("cmd9=",cmd9)
-   result9 = subprocess.check_output(cmd9,shell=True)
+   result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
    if "bstringsall =" in result9:
       bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
       reaction_hash = bstringsall[0][3]
@@ -3247,12 +3236,12 @@ if 'reaction_genhash{' in esmiles:
 
 if (reaction_hash=='') and (reaction_type!='') and (reaction_indexes!=''):
    cmd9 = chemdb_balance_reaction + "-r " + job['xyzfile'] + " \"" + reaction_indexes + "\" \"" + reaction_type + "\""
-   result9 = subprocess.check_output(cmd9,shell=True)
+   result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
    reaction_hash = result9.split("rhash =")[1].split("\n")[0].strip()
 elif (reaction_hash!='') and (reaction_type=='') and (reaction_indexes==''):
    reaction_type = reaction_hash.split(":")[1].strip()
    cmd9 = chemdb_balance_reaction + "-e " + job['xyzfile'] + " \"" + reaction_hash + "\""
-   result9 = subprocess.check_output(cmd9,shell=True)
+   result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
    indexes = eval(result9.split("reaction indexes=")[1].split("\n")[0])
    #print("indexes=",indexes)
    if (len(indexes)>0):
@@ -3372,7 +3361,7 @@ if '^{' in esmiles:
 if (xyzdata==''):
    if (solvation_type=='aimdmm'):
       job['solutejob'] = smilespmf2xyz(esmiles,job['xyzfile'])
-   elif job.has_key('appendfile'):
+   elif ("appendfile" in job):
       print("# Generating xyz data from appendfile.")
       datafile_xyzfile(job['appendfile'],job['xyzfile'])
       if (theory=="mp2") or (theory=="ccsd(t)") or (theory=="qsharp_chem") or (theory=="ccsd"): 
@@ -3771,7 +3760,7 @@ if (submitthejob):
          tmp_esmiles += ' rotamer{true} '
       cmd1_submit = chemdb_queue +  '-a \"' + tmp_esmiles + '\"'
       if (vtag!=''): cmd1_submit += ' -v "' + vtag + '"'
-      result1 = subprocess.check_output(cmd1_submit,shell=True)
+      result1 = subprocess.check_output(cmd1_submit,shell=True).decode("utf-8")
       print("cmd1_submit= ", result1)
       job['status']  = "submitted"
 
@@ -3805,7 +3794,7 @@ if (submitthejob):
 
       #cmd_submit = remote_nwchem + " -r " + submitdir + " " + job['nwchemjob_submit']
       cmd_submit = "cd " + submitdir + "; " + remote_nwchem + " " +  job['nwchemjob_submit']
-      result1 = subprocess.check_output(cmd_submit,shell=True)
+      result1 = subprocess.check_output(cmd_submit,shell=True).decode("utf-8")
       print("cmd_submit= ", result1)
 
       job['status']  = "submitted"

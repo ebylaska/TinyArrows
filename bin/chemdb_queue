@@ -67,17 +67,19 @@ def evalnum(s):
       return float(s)
 
 
-
 #### geturlresult function ####
 def geturlresult(url):
     try:
+        proxy = urllib.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+                                    )
+        opener = urllib.build_opener(proxy)
+        urllib.install_opener(opener)
         connection = urllib.urlopen(url)
     except urllib2.HTTPError(e):
         return ""
     else:
         return connection.read().rstrip()
-
-
 
 
 periodic_table_charge = {
