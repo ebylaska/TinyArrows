@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 
 #import sys,os,time,pickle,math,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
-import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator,pymongo,json
+import sys,os,time,pickle,math,urllib.request,getopt,subprocess,pexpect,random,operator,pymongo,json
 import datetime,re
 from bson.objectid import ObjectId
 from math import *
@@ -67,19 +67,33 @@ def evalnum(s):
       return float(s)
 
 
+##### geturlresult function ####
+#def geturlresult(url):
+#    try:
+#        proxy = urllib.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+#                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+#                                    )
+#        opener = urllib.build_opener(proxy)
+#        urllib.install_opener(opener)
+#        connection = urllib.urlopen(url)
+#    except urllib2.HTTPError(e):
+#        return ""
+#    else:
+#        return connection.read().rstrip()
+
 #### geturlresult function ####
 def geturlresult(url):
-    try:
-        proxy = urllib.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib.build_opener(proxy)
-        urllib.install_opener(opener)
-        connection = urllib.urlopen(url)
-    except urllib2.HTTPError(e):
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = ""
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
+
 
 
 periodic_table_charge = {
@@ -1156,12 +1170,18 @@ if (delqueue2):
 if (resetqueue):
    resetentry = {'queue_number' : reset_queue_number}
    print("resetentry=",resetentry)
-   qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'fetched':0}},upsert=False,multi=False)
+   if ismongo:
+      qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'fetched':0}},upsert=False,multi=False)
+   else:
+      qqq      = chemdb_queue_collection.update_one(resetentry,{'$set':{'fetched':0}})
 
 if (changequeue):
    resetentry = {'queue_number' : reset_queue_number}
    print("changeentry=",resetentry)
-   qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'machine_type':newqueue}},upsert=False,multi=False)
+   if ismongo:
+      qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'machine_type':newqueue}},upsert=False,multi=False)
+   else:
+      qqq      = chemdb_queue_collection.update_one(resetentry,{'$set':{'machine_type':newqueue}})
 
 
 if (runqueue):

@@ -2052,6 +2052,8 @@ if notjson:
 
 
 if not notjson:
+   if isinstance(esmiles_dict['xyz_blob'],bytes): esmiles_dict['xyz_blob']=esmiles_dict['xyz_blob'].decode("utf-8")
+   if isinstance(esmiles_dict['mol_blob'],bytes): esmiles_dict['mol_blob']=esmiles_dict['mol_blob'].decode("utf-8")
    esmiles_json = json.dumps(esmiles_dict)
    cout += esmiles_json + eoln
 #with open(xyzfile,'r') as ff: 

@@ -4,7 +4,8 @@ from flask import abort
 from werkzeug.utils import secure_filename
 import os,subprocess,urllib,time,random,requests,zipfile,math,yaml
 
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 #UPLOAD_FOLDER = '/tmp/'
 UPLOAD_FOLDER = ARROWS_HOME + '/Public/uploads/'
@@ -39,16 +40,18 @@ esmiles2xyzblocked = 0
 
 
 
-headerfigure = ['<a href="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif"><img src="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif" alt="Arrows Banner Movie"> </a>', '<a href="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg"><img src="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif"><img src="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a>']
+#headerfigure = ['<a href="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif"><img src="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif" alt="Arrows Banner Movie"> </a>', '<a href="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg"><img src="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif"><img src="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a>']
+
+headerfigure = ['<a href="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif"><img src="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif" alt="Arrows Banner Movie"> </a>', '<a href="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg"><img src="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif"><img src="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}" alt="Arrows Movie"> </a>']
 
 ##### define the arrows logos #####
 ArrowsHeader = '''
    <head> <meta http-equiv="content-type" content="text/html; charset=UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, target-densitydpi=device-dpi"> <meta charset="utf-8"><link rel="icon" type="image/png" sizes="32x32" href="https://dl.dropboxusercontent.com/s/r0gjpgxp8byjbzr/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="https://dl.dropboxusercontent.com/s/k0kyp30ale2pkod/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="https://dl.dropboxusercontent.com/s/0l0w2wk9wfxt4el/favicon-16x16.png"><style type="text/css"> </style> </head>
 
    <center> <font color="74A52B" size="+2"><p><b>Results from an EMSL Arrows Request</b></p></font></center>
-   <center> <p>Making molecular modeling accessible by combining NWChem, databases, web APIs (<a href="https://arrows.emsl.pnnl.gov/api/">https://arrows.emsl.pnnl.gov/api</a>), and email (arrows@emsl.pnnl.gov)</p> </center>
+   <center> <p>Making molecular modeling accessible by combining NWChem, databases, web APIs (<a href="%s">%s</a>), and email (arrows@emsl.pnnl.gov)</p> </center>
    <center> %s </center>
-''' % headerfigure[3]
+''' % (ARROWS_API_HOME,ARROWS_API_HOME,headerfigure[3])
 
 ArrowsHeader2 = '''
    <center> <font color="darkgreen" size="+2"><p><b> EMSL Arrows Microsoft Quantum Development Kit Queue</b></p></font></center>
@@ -831,8 +834,8 @@ def get_esmiles(esmiles0):
        esmiles0 = esmiles0.replace("%2F",'/')
        #print "esmiles=",esmiles0
        cmd7 = chemdb_fetch_esmiles5 + '\"' + esmiles0 + '\"'
-       #data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
-       data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
+       print("CMD7",cmd7)
+       data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
        if len(data) == 0: data=esmiles0 + " not found\n"
     except:
        data = '????'
@@ -1254,7 +1257,7 @@ def get_xyz(esmiles0):
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
-       print("html=",html)
+       #print("html=",html)
        data = html.split("====== start xyzfile ======")[1].split("====== end xyzfile ======")[0].strip() + "\n"
        html = "<html>\n"
        html += ArrowsHeader
@@ -1263,14 +1266,7 @@ def get_xyz(esmiles0):
        html += "</pre> </html>"
        with open(htmlfile1,'w') as ff: ff.write(html)
 
-       #print "rendering name=",name
        data =  render_template(name)
-
-       #html = resolve_images(result,html)
-       #with open(htmlfile1,'w') as ff: ff.write(html)
-
-       ##print "rendering name=",name
-       #data =  render_template(name)
 
        try:
           os.unlink(inpfile)
@@ -1312,7 +1308,7 @@ def get_mol(esmiles0):
 
        ### resolve image files in html ###
        with open(htmlfile,'r') as ff: html = ff.read()
-       print("html=",html)
+       #print("html=",html)
        data = html.split("====== start molfile ======")[1].split("====== end molfile ======")[0].strip() + "\n"
        html = "<html>\n"
        html += ArrowsHeader
@@ -1590,11 +1586,6 @@ def get_nwdatafile_download(esmiles0):
           data += ll + "\n"
        data = data.lstrip()
 
-       #html = "<html>\n"
-       #html += ArrowsHeader
-       #html += "<pre style=\"font-size:1.0em;color:black\">\n"
-       #html += data
-       #html += "</pre> </html>"
        myid = ''
        if ('id=' in esmiles0):  myid = esmiles0.split('id=')[1].split()[0]
 
@@ -1803,6 +1794,9 @@ def get_predict(esmiles0):
 
 @app.route('/api/input_deck/<esmiles0>', methods=['GET'])
 def get_input_deck(esmiles0):
+    global namecount
+    name = "tmp/reaction%d.html" % namecount
+    namecount += 1
     try:
        increment_apivisited()
        esmiles0 = esmiles0.replace("\"",'')
@@ -1815,31 +1809,44 @@ def get_input_deck(esmiles0):
        data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        #print "- input_deck: esmiles=",esmiles0
        if len(data) == 0: data=esmiles0 + " not generated\n"
+
+       htmlfile1 = templatedir + "/"+name
+
        html = "<html>\n" 
        html += ArrowsHeader
        html += "<pre style=\"font-size:1.0em;color:black\">\n"
        html += data
        html += "</pre> </html>"
+       with open(htmlfile1,'w') as ff: ff.write(html)
+       data =  render_template(name)
     except:
-       html = "Input generation failed\n"
-    return html
+       data = "Input generation failed\n"
+    return data
 
 @app.route('/api/crystal_input/<ocd0>', methods=['GET'])
 def get_crystal_input_deck(ocd0):
+    global namecount
+    name = "tmp/reaction%d.html" % namecount
+    namecount += 1
     try:
        ocd0 = ocd0.replace("\"",'')
        ocd0 = ocd0.replace("\'",'')
        cmd7 = cifocd_gennw +  ocd0 
        data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        if len(data) == 0: data=ocd0 + " not generated\n"
+
+       htmlfile1 = templatedir + "/"+name
+
        html = "<html>\n" 
        html += ArrowsHeader
        html += "<pre style=\"font-size:1.0em;color:black\">\n"
        html += data
        html += "</pre> </html>"
+       with open(htmlfile1,'w') as ff: ff.write(html)
+       data =  render_template(name)
     except:
-       html = "Input generation failed\n"
-    return html
+       data = "Input generation failed\n"
+    return data
 
 
 
@@ -1880,6 +1887,9 @@ def list_queue_nwchem3():
 
 @app.route('/api/queue/', methods=['GET'])
 def list_queue():
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-l'
@@ -1887,6 +1897,8 @@ def list_queue():
       calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
+
+   htmlfile1 = templatedir + "/"+name
 
    html = "<html>\n"
    html += ArrowsHeader
@@ -1894,10 +1906,16 @@ def list_queue():
    html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data =  render_template(name)
+
+   return data
 
 @app.route('/api/queue_html/', methods=['GET'])
 def list_queue_html():
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-l'
@@ -1905,6 +1923,8 @@ def list_queue_html():
       calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
+
+   htmlfile1 = templatedir + "/"+name
 
    html = "<html>\n"
    html += ArrowsHeader
@@ -1915,7 +1935,7 @@ def list_queue_html():
          html += ln + "\n"
       elif ss[0].isdigit():
          restln = ln.split(ss[0])[1]
-         link   = "https://arrows.emsl.pnnl.gov/api/queue_view/"+ss[0]
+         link   = ARROWS_API_HOME + "queue_view/"+ss[0]
          hlink  = "<a href=\"" + link + "\">%s</a>" % ss[0]
          nspace = 11-len(ss[0])
          html += " " * nspace
@@ -1925,7 +1945,10 @@ def list_queue_html():
    #html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data =  render_template(name)
+
+   return data
 
 
 @app.route('/api/queue_submit/', methods=['GET'])
@@ -1949,6 +1972,9 @@ def submit_queue():
 
 @app.route('/api/queue_reset/<esmiles>', methods=['GET'])
 def add_reset(esmiles):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       esmiles = esmiles.replace("\"",'')
@@ -1962,17 +1988,26 @@ def add_reset(esmiles):
       result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "queue_reset = " + esmiles + " was not reset on arrows queue.\n"
+
+   htmlfile1 = templatedir + "/"+name
+
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    html += result
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data =  render_template(name)
+
+   return data
 
 
 @app.route('/api/queue_delete/<esmiles>', methods=['GET'])
 def add_delete(esmiles):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       esmiles = esmiles.replace("\"",'')
@@ -1983,17 +2018,26 @@ def add_delete(esmiles):
       result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "queue_delete = " + esmiles + " was not removed from arrows queue.\n"
+
+   htmlfile1 = templatedir + "/"+name
+
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    html += result
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data =  render_template(name)
+
+   return data
 
 
 @app.route('/api/queue_add/<esmiles>', methods=['GET'])
 def add_queue(esmiles):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       esmiles = esmiles.replace("\"",'')
@@ -2004,18 +2048,27 @@ def add_queue(esmiles):
       result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "queue_add = " + esmiles + " was not added to arrows queue.\n"
+
+   htmlfile1 = templatedir + "/"+name
+
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    html += result
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data =  render_template(name)
+
+   return data
 
 
 
 @app.route('/api/queue_fetch/<jobid>', methods=['GET'])
 def fetch_queue(jobid):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-f ' + jobid
@@ -2023,13 +2076,19 @@ def fetch_queue(jobid):
       calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
+
+   htmlfile1 = templatedir + "/"+name
+
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data =  render_template(name)
+
+   return data
 
 
 @app.route('/api/queue_view/<jobid>', methods=['GET'])
@@ -2056,7 +2115,7 @@ def view_queue(jobid):
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    if queuenumber!="unknown":
-      link   = "https://arrows.emsl.pnnl.gov/api/queue_html"
+      link   = ARROWS_API_HOME + "queue_html"
       hlink  = "Arrows <a href=\"" + link + "\">queue</a> entry:" + queuenumber
       html += hlink + "\n"
       html += nwinput2jsmol("0x8c0101",calcs)

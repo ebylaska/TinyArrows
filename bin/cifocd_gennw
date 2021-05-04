@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,urllib2
+import sys,os,time,pickle,urllib.request
 from math import *
 from numpy import *
 from numpy.linalg import *
@@ -8,7 +8,7 @@ from numpy.fft import *
 
 
 #################### machine specifics ######################
-babel     = "/usr/bin/babel"
+obabel     = "/usr/local/bin/obabel"
 curdir         = os.getcwd()
 #################### machine specifics ######################
 
@@ -30,19 +30,34 @@ symall= [[1, 1, '        P1', 'Triclinic', '+x,+y,+z'], [2, 1, '       P-1', 'Tr
 #        return connection.read().rstrip()
 #
 
+##### geturlresult function ####
+#def geturlresult(url):
+#    try:
+#        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+#                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+#                                    )
+#        opener = urllib2.build_opener(proxy)
+#        urllib2.install_opener(opener)
+#        connection = urllib2.urlopen(url)
+#    except urllib2.HTTPError, e:
+#        return ""
+#    else:
+#        return connection.read().rstrip()
+
 #### geturlresult function ####
 def geturlresult(url):
-    try:
-        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib2.build_opener(proxy)
-        urllib2.install_opener(opener)
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = ""
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
+
+
 
 
 #### cml2xyz function ####
@@ -247,7 +262,7 @@ def compare_ops(ops1,ops2):
 
 
 ##################################### main program ##########################################
-#print 'ocd_gennw Program\n'
+#print('ocd_gennw Program\n')
 tt      = time.localtime()
 dd = "-%d-%d-%d-%d:%d" % (tt[0],tt[1],tt[2],tt[3],tt[4])
 job = {}
@@ -258,7 +273,7 @@ argcount = len(sys.argv)-1
 parg     = 1
 
 if (argcount<1):
-   print "\nEnter cif or ocd number :"
+   print("\nEnter cif or ocd number :")
    cifocd  = sys.stdin.readline()[:-1]
 else:
    cifocd  = sys.argv[parg]
@@ -304,9 +319,9 @@ except:
    groupnumber = 1
 
 
-#print a,b,c
-#print alpha,beta,gamma
-#print groupname,groupnumber
+#print(a,b,c)
+#print(alpha,beta,gamma)
+#print(groupname,groupnumber)
 
 try:
    symops=[]
@@ -331,13 +346,13 @@ except:
 
 
 
-#print "symops=",symops
+#print("symops=",symops)
 loops = []
 for i in range(len(ocdlist)):
    if (ocdlist[i]=='loop_'): 
       loops.append(i)
 
-#print ocdlist
+#print(ocdlist)
 try:
    isym = ocdlist.index("_atom_site_type_symbol")
 except:
@@ -434,6 +449,6 @@ for k in range(1,4):
    nwinput += 'end' + eln
    nwinput += 'driver; clear; maxiter 20; end; task band optimize ignore' + eln+eln
 
-print nwinput
+print(nwinput)
 
 

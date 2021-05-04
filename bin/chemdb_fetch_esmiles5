@@ -1,23 +1,54 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+#import sys,os,time,pickle,math,MySQLdb,urllib.request,getopt,subprocess,pexpect,random,operator,pymongo,json
+import sys,os,time,pickle,math,urllib.request,getopt,subprocess,pexpect,random,operator,pymongo,json,sqlite3,ast
+import pymysql as MySQLdb
 import datetime
 from math import *
 
+############## tinymongo ################
+import tinydb
+import tinymongo as tm
+from tinymongo.serializers import DateTimeSerializer
+from tinydb_serialization import SerializationMiddleware
+class TinyMongoClient(tm.TinyMongoClient):
+    @property
+    def _storage(self):
+        return tinydb.storages.JSONStorage
+class CustomClient(TinyMongoClient):
+    @property
+    def _storage(self):
+        serialization = SerializationMiddleware()
+        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
+        # register other custom serializers
+        return serialization
+############## tinymongo ################
+
+
+###################### PARAMETERS ###########################
+ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
 ####################### mongoDB #############################
-#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
-with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
-mongo_client              = pymongo.MongoClient(uri)
-arrows_db                 = mongo_client.Arrows
+#uri = "mongodb://arrows:password@machine.gov:27017"
+with open(ARROWS_HOME + "/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+if "mongodb:" in uri:
+   nosql_client = pymongo.MongoClient(uri)
+   ismongo      = True
+else:
+   nosql_client = CustomClient(uri)
+   ismongo      = False
+arrows_db                = nosql_client.Arrows
 esmiles_queue_collection = arrows_db.esmiles_queue_collection
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
-babel              = "/usr/bin/babel"
-obabel             = "/usr/bin/obabel "
-esmiles2xyz        = "/srv/arrows/bin/esmiles2xyz "
-wrkdir             = "/srv/arrows/Work"
-chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+#babel              = "/usr/bin/babel"
+obabel             = "/usr/local/bin/obabel "
+
+esmiles2xyz        = ARROWS_HOME + "/bin/esmiles2xyz "
+wrkdir             = ARROWS_HOME + "/Work"
+chemdbfile         = ARROWS_HOME + "/bin/.chemdb-en"
 #with open('/srv/arrows/bin/.chemdb','r') as f:
 #   hup0            = f.readline().strip()
 #   archivemachine  = f.readline().strip()
@@ -29,13 +60,13 @@ tmpxyz1 = "tmpxyz1-%d.xyz" % ddrand
 ############## machine parameters #########################
 
 
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 
 def is_json(myjson):
   try:
     json_object = json.loads(myjson)
-  except ValueError, e:
+  except:
     return False
   return True
 
@@ -182,23 +213,40 @@ def stripWARNINGS(str):
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
 
 
+
+##### geturlresult function ####
+#def geturlresult(url):
+#    try:
+#        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+#                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+#                                    )
+#        opener = urllib2.build_opener(proxy)
+#        urllib2.install_opener(opener)
+#        connection = urllib2.urlopen(url)
+#    except urllib2.HTTPError, e:
+#        return ""
+#    else:
+#        return connection.read().rstrip()
 
 #### geturlresult function ####
 def geturlresult(url):
-    try:
-        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib2.build_opener(proxy)
-        urllib2.install_opener(opener)
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = ""
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
+
+
+
+
 
 def pexpect_command(pcmd,mypassword):
    if (mypassword=="nopassword"):
@@ -209,17 +257,17 @@ def pexpect_command(pcmd,mypassword):
       p=pexpect.spawn(pcmd,timeout=300)
       i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==0:
-          print "I say yes"
+          print("I say yes")
           p.sendline('yes')
           i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==1:
-          print "sending password",
+          print("sending password",)
           p.sendline(mypassword)
           p.expect(pexpect.EOF)
       elif i>=2:
-          print "either received key or connection timeout"
+          print("either received key or connection timeout")
           pass
-      print p.before # print out the result
+      print(p.before) # print out the result
 
 
 def smiles2twirl(smiles):
@@ -293,9 +341,9 @@ def mol2smiles(mol):
       ofile = open(molfile,'w')
       ofile.write(mol); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -imol " + molfile + " -ocan " + smilefile2
+      cmd6 = obabel + " -imol " + molfile + " -ocan -O" + smilefile2
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
       ofile = open(smilefile2,'r')
@@ -328,7 +376,8 @@ def nametosmiles(name):
  try:
    #
    hup    = hup0
-   dbfile = "TNT_Project"
+   #dbfile = "TNT_Project"
+   dbfile = dbfile0
    table  = "nametosmiles"
    if (hup=='sqlite3'):
       issqlite3 = True
@@ -348,7 +397,8 @@ def nametosmiles(name):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -370,11 +420,10 @@ def nametosmiles(name):
             insertlist = []
             insertlist.append(name)
             insertlist.append(smiles)
-            print "inserting "+ name + " " + smiles + " into " + table
+            print("inserting "+ name + " " + smiles + " into " + table)
             cur.execute(sqlinsert,insertlist)
       else:
          smiles = rows[0][2]
-   dbcon.close()
 
  except:
    smiles = ""
@@ -401,8 +450,8 @@ def esmiles_hasname(esmiles):
       try:
          smiles = esmiles.strip().split()[0]
          cmd = obabel + ' -:\"' + smiles + '\" -ocan'
-         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
-         #print "result=",result
+         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+         #print("result=",result)
          if "0 molecules converted" in result:
             hasname = True
          else:
@@ -537,9 +586,9 @@ def cannonicalsmiles(smiles):
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
 
-      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 
+      cmd6 = obabel + " -ismi " + smilefile + " -ocan -O" + smilefile2 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
       ofile = open(smilefile2,'r')
@@ -563,9 +612,9 @@ def xyz2smiles(xyzfile):
    try:
       smiles = ''
       smilefile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile
+      cmd6 = obabel + " -ixyz " + xyzfile + " -ocan -O" + smilefile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(smilefile,'r')
       for line in ofile:
@@ -588,7 +637,7 @@ def cactus_smiles2xyz(smiles):
 def smiles2xyz(smiles,xyzfile):
    cmd6 = esmiles2xyz + ' "' + smiles.strip() + '" ' +xyzfile
    #os.system(cmd6)
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
    #### if nan's are produced then use cactus smiles2xyz rest interface ####
    with open(xyzfile,'r') as ff:
@@ -605,9 +654,9 @@ def xyz2InChI(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+ tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile 
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchi -O" + inchifile 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -623,9 +672,9 @@ def xyz2InChIKey(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile 
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchikey -O" + inchifile 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -647,9 +696,9 @@ def smiles2InChI(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile 
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchi -O" + inchifile 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -671,9 +720,9 @@ def smiles2InChIKey(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile 
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchikey -O" + inchifile 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -695,9 +744,9 @@ def InChI2smiles(inchi):
       ofile = open(inchifile,'w')
       ofile.write(inchi); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -iinchi " + inchifile + " -osmi " + smilefile 
+      cmd6 = obabel + " -iinchi " + inchifile + " -osmi -O" + smilefile 
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(smilefile,'r')
       for line in ofile:
@@ -896,13 +945,13 @@ def fetch_table_columns(hup,dbfile,table):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(getcolumns)
       rows = cur.fetchall()
-   dbcon.close()
 
    return rows
  except:
@@ -1009,23 +1058,23 @@ def fetch_esmiles(oprint,hup,dbfile,table,esmiles,submitrequest=True):
       if 'hartree' in  basis_base.lower(): basis_base = '%.1f Ry' % (2*evalnum(basis_base.strip().split()[0]))
 
       if (oprint):
-         print 
-         print "fetch_esmiles table  =",table
-         print "fetch_esmiles inchi  =",inchi
-         print "fetch_esmiles inchi2 =",inchi2
-         print "fetch_esmiles inchikey  =",inchikey
-         print "fetch_esmiles inchikey2 =",inchikey2
-         print "fetch_esmiles theory=",theory
-         print "fetch_esmiles xc    =",xc
-         print "fetch_esmiles basis =",basis
-      if (theory_base!=''): print "fetch_esmiles theory_base=",theory_base
-      if (xc_base!=''):     print "fetch_esmiles xc_base    =",xc_base
-      if (basis_base!=''):  print "fetch_esmiles basis_base =",basis_base
+         print()
+         print("fetch_esmiles table  =",table)
+         print("fetch_esmiles inchi  =",inchi)
+         print("fetch_esmiles inchi2 =",inchi2)
+         print("fetch_esmiles inchikey  =",inchikey)
+         print("fetch_esmiles inchikey2 =",inchikey2)
+         print("fetch_esmiles theory=",theory)
+         print("fetch_esmiles xc    =",xc)
+         print("fetch_esmiles basis =",basis)
+      if (theory_base!=''): print("fetch_esmiles theory_base=",theory_base)
+      if (xc_base!=''):     print("fetch_esmiles xc_base    =",xc_base)
+      if (basis_base!=''):  print("fetch_esmiles basis_base =",basis_base)
       if (oprint):
-         print "fetch_esmiles charge=",charge
-         print "fetch_esmiles mult  =",mult
-         print "fetch_esmiles solvation_type=",solvation_type
-         print "fetch_esmiles calculation_type=",calculation_type
+         print("fetch_esmiles charge=",charge)
+         print("fetch_esmiles mult  =",mult)
+         print("fetch_esmiles solvation_type=",solvation_type)
+         print("fetch_esmiles calculation_type=",calculation_type)
 
       checklist = []
       checklist.append(inchi)
@@ -1077,7 +1126,8 @@ def fetch_esmiles(oprint,hup,dbfile,table,esmiles,submitrequest=True):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    rows2 = []
    with dbcon:
@@ -1090,7 +1140,6 @@ def fetch_esmiles(oprint,hup,dbfile,table,esmiles,submitrequest=True):
             cur.execute(sqlcheck2,checklist2)
             tmp = cur.fetchall()
             rows2.append(tmp[0])
-   dbcon.close()
 
    return rows2
 
@@ -1186,7 +1235,8 @@ dictout = {}
 eoln = "\n"
 #Database defaults
 hup    = hup0
-dbfile = "TNT_Project"
+#dbfile = "TNT_Project"
+dbfile = dbfile0
 table  = "calculations"
 if (hup=='sqlite3'):
    issqlite3 = True
@@ -1211,24 +1261,24 @@ for o, a in opts:
   if '-c' in o:
      getcalculation = True
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if getcalculation:
    newjob = {}
    queue = esmiles_queue_collection.find(newjob)
    for job in queue:
-      print job
+      print(job)
    exit()
 
 if (len(args)<1): 
-   print usage
+   print(usage)
    exit()
 
 
 if (oprint):
-   print "chemdb_fetch_esmiles5 mysql version"
-   print args
+   print("chemdb_fetch_esmiles5 mysql/sqlite3 version")
+   print(args)
 
 ### define the outputfile
 if (len(args)>1):
@@ -1255,7 +1305,7 @@ if is_json(rstring):
 else:
    esmiles = rstring
 
-if (oprint): print "esmiles="+esmiles
+if (oprint): print("esmiles="+esmiles)
 
 
 ### name{}  ###
@@ -1276,7 +1326,7 @@ while ((len(esmiles.split("name{"))>1) and (not toolong)):
    toolong = (toolongcount > toolongcountmax)
    toolongcount += 1
 if (toolong):
-   if (oprint): print "chemdb_fetch_esmiles: too long parsing name{}, exiting.\n"
+   if (oprint): print("chemdb_fetch_esmiles: too long parsing name{}, exiting.\n")
 
 esmiles   = parsetosmiles(esmiles)
 molecules = fetch_esmiles(oprint,hup,dbfile,table,esmiles,False)
@@ -1292,7 +1342,9 @@ if (len(molecules)>0):
          if (showcolumns[j][1]=="datetime") and (molecule[j] is not None):
             mdict[showcolumns[j][0]] = molecule[j].strftime('%Y-%m-%d %H:%M:%S')
          else:
-            mdict[showcolumns[j][0]] = molecule[j]
+            ttt = molecule[j]
+            if isinstance(ttt,bytes): ttt=ttt.decode("utf-8")
+            mdict[showcolumns[j][0]] = ttt
       dictout[i] = mdict
 
 #### esmiles not found add to esmiles_queue_collection ####
@@ -1309,7 +1361,7 @@ else:
 #### print jsonout ####
 jsonout = json.dumps(dictout)
 if outfile=='':
-   print jsonout
+   print(jsonout)
 else:
    with open(outfile,'w') as ff:
       ff.write(jsonout+eoln)

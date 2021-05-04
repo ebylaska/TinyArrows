@@ -3742,10 +3742,12 @@ def fetch_xyz(hup,dbfile,table,id):
 
    ### id found? ###
    if (len(rows)>0):
-      molecule = rows[0]
+      #molecule = rows[0]
+      molecule023 = rows[0][23]
+      if isinstance(molecule023,bytes): molecule023 = molecule023.decode("utf-8")
       msg = "xyz data for Id=%d\n\n" % id
       msg += "====== start xyzfile ======\n"
-      msg += molecule[23]
+      msg += molecule023
       msg += "====== end xyzfile ======\n"
    else:
       msg = "no xyz data for Id=%d\n\n" % id
@@ -3788,10 +3790,12 @@ def fetch_mol(hup,dbfile,table,id):
 
    ### id found? ###
    if (len(rows)>0):
-      molecule = rows[0]
+      #molecule = rows[0]
+      molecule023 = rows[0][23]
+      if isinstance(molecule023,bytes): molecule023=molecule023.decode("utf-8")
       msg = "mol data for Id=%d\n\n" % id
       msg += "====== start molfile ======\n"
-      msg += xyzdat2mol(molecule[23])
+      msg += xyzdat2mol(molecule023)
       msg += "====== end molfile ======\n"
    else:
       msg = "no mol data for Id=%d\n\n" % id
