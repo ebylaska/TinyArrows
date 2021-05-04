@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 
 import pymongo
-import sys,os,time,pickle,urllib,getopt,subprocess,random,operator,datetime
+import sys,os,time,pickle,urllib.request,getopt,subprocess,random,operator,datetime
 import re
 from math import *
 from numpy import *
@@ -42,7 +42,6 @@ else:
    nosql_client = CustomClient(uri)
    ismongo      = False
 arrows_db          = nosql_client.Arrows
-tnt_collection     = arrows_db.tnt_queue
 qnumber_collection = arrows_db.queue_number
 nwchem_collection  = arrows_db.nwchem_queue
 machine_collection = arrows_db.nwchem_machinedata
@@ -423,17 +422,17 @@ def addspaces_esmiles(esmiles):
 
 #### geturlresult function ####
 def geturlresult(url):
-    try:
-        proxy = urllib.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib.build_opener(proxy)
-        urllib.install_opener(opener)
-        connection = urllib.urlopen(url)
-    except urllib2.HTTPError(e):
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = "" 
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
+
 
 #######################################
 #                                     #
@@ -589,8 +588,6 @@ def smiles2cml(smiles,cmlfile):
 def smiles2xyz(smiles,xyzfile):
    cmd6 = esmiles2xyz + ' "'+ smiles.strip() + '" ' + xyzfile
    result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
-   print("xyzfile smiles2xyz=",xyzfile)
-   print("RESULT smiles2xyz=",result)
 
    #### if nan's are produced or a bond distance < 0.5 then use cactus smiles2xyz rest interface ####
    badgeom = xyz_badgeom(xyzfile)
@@ -3401,8 +3398,17 @@ job['kindatoms'] = kindatoms
 if (seed>0):
    job['seed'] = seed
 else:
-   job['seed']  = qnumber_collection.find_one({'queue':'seed'})['count']
-   qqq = qnumber_collection.update({'queue':'seed'},{'$inc':{'count':1}},upsert=False,multi=False)
+   if (qnumber_collection.find({'queue':'seed'}).count()>0):
+      job['seed']  = qnumber_collection.find_one({'queue':'seed'})['count']
+   else:
+      job['seed'] = 1
+      qqq = qnumber_collection.insert({'queue':'seed', 'count':1})
+   if ismongo:
+      qqq = qnumber_collection.update({'queue':'seed'},{'$inc':{'count':1}},upsert=False,multi=False)
+   else:
+      seedp1 = job['seed']+1
+      qqn = {'count': seedp1}
+      qqq = qnumber_collection.update_one({'queue':'seed'},{'$set':qqn})
 
 
 
@@ -3680,8 +3686,19 @@ else:
    job['mem']="1900 mb"
 
 ## set queue number  and submitdir ##
-queue_number00  = qnumber_collection.find_one({'queue':'tnt'})['count']
-qqq = qnumber_collection.update({'queue':'tnt'},{'$inc':{'count':1}},upsert=False,multi=False)
+#queue_number00  = qnumber_collection.find_one({'queue':'tnt'})['count']
+if (qnumber_collection.find({'queue':'tnt'}).count()>0):
+   queue_number00  = qnumber_collection.find_one({'queue':'tnt'})['count']
+else:
+   queue_number00 = 1
+   qqq = qnumber_collection.insert({'queue':'tnt', 'count':1})
+if ismongo:
+   qqq = qnumber_collection.update({'queue':'tnt'},{'$inc':{'count':1}},upsert=False,multi=False)
+else:
+   qp1 = queue_number00+1
+   qqn = {'count': qp1}
+   qqq = qnumber_collection.update_one({'queue':'tnt'},{'$set':qqn})
+
 
 ## set queue number ##
 job['queue_number']  = queue_number00
@@ -3798,11 +3815,6 @@ if (submitthejob):
       print("cmd_submit= ", result1)
 
       job['status']  = "submitted"
-
-      #Turnning this off since it's really not used
-      ##### put job on queue #### 
-      #qq = tnt_collection.insert(job)
-      #print("tnt_collection.insert=", qq)
 
 
 #############################################

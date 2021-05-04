@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import sys,os,shutil,time,pickle,math,urllib,getopt,random,operator,re
+import sys,os,shutil,time,pickle,math,urllib.request,getopt,random,operator,re
 import pymysql as MySQLdb
 import subprocess,json,sqlite3
 from math import *
@@ -8,14 +8,14 @@ from math import *
 #################### machine specifics ######################
 ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
 
-babel     = "/usr/local/bin/babel"
+#babel     = "/usr/local/bin/babel"
 obabel    = "/usr/local/bin/obabel "
 obrotamer = "/usr/local/bin/obrotamer "
 mysmiles2xyz = ARROWS_HOME + "/bin/mysmiles2xyz "
 chemdbfile   = ARROWS_HOME + "/bin/.chemdb-en"
 
 curdir         = os.getcwd()
-wrkdir         = "/srv/arrows/Work"
+wrkdir         = ARROWS_HOME + "/Work"
 ddrand = random.randint(0,999999)
 tmpsmi1  = "tmpsmi1-%d.smi" % ddrand
 tmpsmi2  = "tmpsmi2-%d.smi" % ddrand
@@ -653,18 +653,33 @@ def xyz_bonding_strings(xyzfilename):
 
 
 #### geturlresult function ####
+#def geturlresult(url):
+#    try:
+#        proxy = urllib.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+#                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+#                                    )
+#        opener = urllib.build_opener(proxy)
+#        urllib.install_opener(opener)
+#        connection = urllib2.urlopen(url)
+#    except urllib2.HTTPError(e):
+#        return ""
+#    else:
+#        return connection.read().rstrip()
+
+#### geturlresult function ####
 def geturlresult(url):
-    try:
-        proxy = urllib.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib.build_opener(proxy)
-        urllib.install_opener(opener)
-        connection = urllib.urlopen(url)
-    except urllib2.HTTPError(e):
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = ""
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
+
+
 
 
 #######################################
@@ -767,20 +782,17 @@ def cannonicalsmiles(smiles):
    try:
       smilefile  = wrkdir + "/" + tmpsmi1
       smilefile2 = wrkdir + "/" + tmpsmi2
-      ofile = open(smilefile,'w')
-      ofile.write(smiles); ofile.write(eoln)
-      ofile.close()
+      with open(smilefile,'w') as ofile:
+         ofile.write(smiles+eoln);
 
-      #cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 + " >& " + wrkdir + "/junk.err"
-      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 
+      cmd6 = obabel + " -ismi " + smilefile + " -ocan -O" + smilefile2 
       #os.system(cmd6)
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
-      ofile = open(smilefile2,'r')
-      for line in ofile:
-         sdat.append(line)
-      ofile.close()
+      with open(smilefile2,'r') as ofile:
+         for line in ofile:
+            sdat.append(line)
       smiles2 = sdat[0].split()[0]
    except:
       smiles2 = smiles
@@ -800,19 +812,16 @@ def smiles2InChIKey(smiles):
    try:
       smilefile = wrkdir + "/"+tmpsmi1
       inchifile = wrkdir + "/"+tmpsmi2
-      ofile = open(smilefile,'w')
-      ofile.write(smiles); ofile.write(eoln)
-      ofile.close()
-      #cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile + " >& " + wrkdir + "/junk.err"
-      #os.system(cmd6)
-      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile 
+      with  open(smilefile,'w') as ofile:
+         ofile.write(smiles+eoln);
+    
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchikey -O" + inchifile 
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
       sdat = []
-      ofile = open(inchifile,'r')
-      for line in ofile:
-         sdat.append(line)
-      ofile.close()
+      with open(inchifile,'r') as ofile:
+         for line in ofile:
+            sdat.append(line)
       inchi = sdat[0].split()[0]
    except:
       inchi = ''
@@ -826,18 +835,16 @@ def smiles2InChI(smiles):
    try:
       smilefile = wrkdir + "/"+tmpsmi1
       inchifile = wrkdir + "/"+tmpsmi2
-      ofile = open(smilefile,'w')
-      ofile.write(smiles); ofile.write(eoln)
-      ofile.close()
-      #cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile + " >& " + wrkdir + "/junk.err"
-      #os.system(cmd6)
-      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile 
+      with open(smilefile,'w') as ofile:
+         ofile.write(smiles+eoln);
+      
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchi -O" + inchifile 
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+
       sdat = []
-      ofile = open(inchifile,'r')
-      for line in ofile:
-         sdat.append(line)
-      ofile.close()
+      with open(inchifile,'r') as ofile:
+         for line in ofile:
+            sdat.append(line)
       inchi = sdat[0].split()[0]
    except:
       inchi = ''
@@ -851,16 +858,15 @@ def InChI2smiles(inchi):
    try:
       inchifile = wrkdir + "/"+tmpsmi2
       smilefile = wrkdir + "/"+tmpsmi1
-      ofile = open(inchifile,'w')
-      ofile.write(inchi); ofile.write(eoln)
-      ofile.close()
-      cmd6 = babel + " -iinchi " + inchifile + " -osmi " + smilefile
+      with open(inchifile,'w') as ofile:
+         ofile.write(inchi + eoln);
+
+      cmd6 = obabel + " -iinchi " + inchifile + " -osmi -O" + smilefile
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
-      ofile = open(smilefile,'r')
-      for line in ofile:
-         sdat.append(line)
-      ofile.close()
+      with open(smilefile,'r') as ofile:
+         for line in ofile:
+            sdat.append(line)
       smiles = sdat[0].split()[0]
    except:
       smiles= ''
@@ -873,17 +879,16 @@ def mol2smiles(mol):
    try:
       molfile    = wrkdir + "/"+tmpsmi1
       smilefile2 = wrkdir + "/"+tmpsmi2
-      ofile = open(molfile,'w')
-      ofile.write(mol); ofile.write(eoln)
-      ofile.close()
-      cmd6 = babel + " -imol " + molfile + " -ocan " + smilefile2
+      with open(molfile,'w') as ofile:
+         ofile.write(mol+eoln);
+
+      cmd6 = obabel + " -imol " + molfile + " -ocan -O" + smilefile2
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
-      ofile = open(smilefile2,'r')
-      for line in ofile:
-         sdat.append(line)
-      ofile.close()
+      with open(smilefile2,'r') as ofile:
+         for line in ofile:
+            sdat.append(line)
       smiles2 = sdat[0].split()[0]
    except:
       smiles2 = "nosmiles"
@@ -981,13 +986,15 @@ def xyz2smiles(xyzfile):
    try:
       smiles = ''
       smilefile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile
+
+      cmd6 = obabel + " -ixyz " + xyzfile + " -ocan -O" + smilefile
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+
       sdat = []
-      ofile = open(smilefile,'r')
-      for line in ofile:
-         sdat.append(line)
-      ofile.close()
+      with open(smilefile,'r') as ofile:
+         for line in ofile:
+            sdat.append(line)
+
       smiles = sdat[0].split()[0]
    except:
       smiles = ''
@@ -1011,7 +1018,7 @@ def xyzdat2mol(xyzdat):
       xyzfile = wrkdir + "/"+tmpsmi1
       with open(xyzfile,'w') as ff:
          ff.write(xyzdat)
-      cmd6 = babel + " -ixyz " + xyzfile + " -omol " + molfile
+      cmd6 = obabel + " -ixyz " + xyzfile + " -omol -O" + molfile
       #os.system(cmd6)
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       with open(molfile,'r') as ff:
@@ -1047,13 +1054,10 @@ def smiles2xyz(smiles,xyzfile):
    eoln = "\n"
    smilefile = wrkdir + "/" + tmpsmi1
    try:
-      ofile = open(smilefile,'w')
-      ofile.write(smiles); ofile.write(eoln)
-      ofile.close()
-      #cmd6 = babel + " --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
-      #cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
-      #os.system(cmd6)
-      cmd6 = babel + " --ffuff --gen3d -ismi " + smilefile + " -oxyz " + xyzfile 
+      with open(smilefile,'w') as ofile:
+         ofile.write(smiles+eoln);
+ 
+      cmd6 = obabel + " --ffuff --gen3d -ismi " + smilefile + " -oxyz -O" + xyzfile 
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
       #### if nan's are produced or a bond distance < 0.5 then use cactus smiles2xyz rest interface ####
@@ -1817,7 +1821,7 @@ else:
 
 
 
-if notjson: cout += "esmiles2xyz mysql version" + eoln
+if notjson: cout += "esmiles2xyz mysql/sqlite3 version" + eoln
 if (hup=='sqlite3'):
    issqlite3 = True
    if notjson: cout += "sqlite3 db file = " + dbfile + eoln
@@ -1835,10 +1839,8 @@ inchi    = smiles2InChI(smiles)
 inchikey = smiles2InChIKey(smiles)
 if (mformula==''): mformula =  smiles2formula(smiles)
 
-
 if setname:
    nametosmiles_set(hup,dbfile,table2,name,smiles)
-
 
 sqlcheck = "select * from " + table 
 sqlcheck += " where (esmiles=? or csmiles=? or InChI=? or InChIKey=? or smiles=?) and mformula=?;"
