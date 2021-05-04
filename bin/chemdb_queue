@@ -1,15 +1,44 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+#import sys,os,time,pickle,math,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator,pymongo,json
 import datetime,re
 from bson.objectid import ObjectId
 from math import *
 
+############## tinymongo ################
+import tinydb
+import tinymongo as tm
+from tinymongo.serializers import DateTimeSerializer
+from tinydb_serialization import SerializationMiddleware
+class TinyMongoClient(tm.TinyMongoClient):
+    @property
+    def _storage(self):
+        return tinydb.storages.JSONStorage
+class CustomClient(TinyMongoClient):
+    @property
+    def _storage(self):
+        serialization = SerializationMiddleware()
+        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
+        # register other custom serializers
+        return serialization
+############## tinymongo ################
+
+
+###################### PARAMETERS ###########################
+ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
 ####################### mongoDB #############################
 #uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
-with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
-mongo_client                     = pymongo.MongoClient(uri)
-arrows_db                        = mongo_client.Arrows
+with open(ARROWS_HOME + "/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+if "mongodb:" in uri:
+   nosql_client = pymongo.MongoClient(uri)
+   ismongo      = True
+else:
+   nosql_client = CustomClient(uri)
+   ismongo      = False
+arrows_db                        = nosql_client.Arrows
 chemdb_queue_collection0         = arrows_db.chemdb_queue_collection0
 chemdb_queue_collection          = arrows_db.chemdb_queue_collection
 chemdb_finished_queue_collection = arrows_db.chemdb_finished_queue_collection
@@ -17,18 +46,18 @@ qnumber_collection               = arrows_db.queue_number
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
-babel            = "/usr//bin/babel"
-obabel           = "/usr/bin/obabel "
-esmiles2xyz      = "/srv/arrows/bin/esmiles2xyz "
-tnt_submit       = "/srv/arrows/bin/tnt_submit5 -f "
-chemdb_add_nwout = "/srv/arrows/bin/chemdb_add_nwout7 "
+obabel           = "/usr/local/bin/obabel "
+esmiles2xyz      = ARROWS_HOME + "/bin/esmiles2xyz "
+tnt_submit       = ARROWS_HOME + "/bin/tnt_submit5 -f "
+chemdb_add_nwout = ARROWS_HOME + "/bin/chemdb_add_nwout7 "
 
-wrkdir           = "/srv/arrows/Work"
+wrkdir           = ARROWS_HOME + "Work"
 tmpxyz1          = "chemdb_queue.xyz" 
 tmpinchi1        = "chemdb_queue.inchi" 
 curdir           = os.getcwd()
-lockfilename     = "/srv/arrows/Work/chemdbqueue1.lockfile"
+lockfilename     = ARROWS_HOME + "/Work/chemdbqueue1.lockfile"
 ############## machine parameters #########################
+###################### PARAMETERS ###########################
 
 
 def evalnum(s):
@@ -42,13 +71,8 @@ def evalnum(s):
 #### geturlresult function ####
 def geturlresult(url):
     try:
-        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib2.build_opener(proxy)
-        urllib2.install_opener(opener)
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
+        connection = urllib.urlopen(url)
+    except urllib2.HTTPError(e):
         return ""
     else:
         return connection.read().rstrip()
@@ -363,7 +387,7 @@ def xyz2smiles(xyzfile):
       smiles = ''
       smilefile = wrkdir + "/"+tmpinchi1
       cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(smilefile,'r')
       for line in ofile:
@@ -382,7 +406,7 @@ def xyz2InChI(xyzfile):
       inchifile = wrkdir + "/"+ tmpinchi1
       cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -400,7 +424,7 @@ def xyz2InChIKey(xyzfile):
       inchifile = wrkdir + "/"+tmpinchi1
       cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -520,7 +544,7 @@ def theorysmiles2machinetype(theory,mformula):
    vachinetype = "toobig"
    hasmopac    = False
    vcharge = mformula2valencecharge(mformula)
-   print "mformula,vcharge=",mformula,vcharge
+   print("mformula,vcharge=",mformula,vcharge)
    if ('am1' in theory) or ('pm3' in theory) or ('mndo' in theory) or ('mindo3' in theory):
       vachinetype = 'mopac'
    elif ('qsharp_chem' in theory):
@@ -652,7 +676,7 @@ def esmiles2entry(esmiles,vtag0):
       xyzfile = wrkdir + "/" + tmpxyz1
 
       cmd1   = esmiles2xyz + "\"" + esmiles + "\"" + " " + xyzfile
-      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
       charge   = evalnum(result.split("charge          =")[1].split("\n")[0])
       mult     = evalnum(result.split("mult            =")[1].split("\n")[0])
@@ -774,7 +798,7 @@ def esmiles2entry(esmiles,vtag0):
    cmd7 += ' -v ' + '\"' + vtag.strip() + '\" '
 
    cmd7 +=  '\"' + esmiles0 + '\"'
-   data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT)
+   data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    if len(data) == 0: data=esmiles0 + " not generated\n"
 
 
@@ -870,9 +894,9 @@ chemdb_queue program
 """
 
 
-print
-print "#chemdb_queue - version 1.0"
-print
+print()
+print("#chemdb_queue - version 2.0")
+print()
 tt      = time.localtime()
 
 submitqueue2 = False
@@ -971,25 +995,26 @@ for o, a in opts:
      extra_datafiles = a
   if '-v' in o:
      vtag = a
-     print "# - adding tag " + vtag + " to input deck.\n"
+     print("# - adding tag " + vtag + " to input deck.\n")
 
      
 
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (listqueues):
    check = {}
    echeck = {}
-   echeck['queue_number'] = 1
-   echeck['machine_type'] = 1
-   echeck['fetched'] = 1
-   echeck['esmiles'] = 1
-   echeck['csmiles'] = 1
-   echeck['client'] = 1
+   if ismongo:
+      echeck['queue_number'] = 1
+      echeck['machine_type'] = 1
+      echeck['fetched'] = 1
+      echeck['esmiles'] = 1
+      echeck['csmiles'] = 1
+      echeck['client'] = 1
    queue = chemdb_queue_collection.find(check,echeck)
-   print "queue_entry   machine_type  fetched    esmiles"
+   print("queue_entry   machine_type  fetched    esmiles")
    ss = []
    for entry in queue:
       #print "%11d %14s %8d    \"%s\"" % (entry['queue_number'],entry['machine_type'],entry['fetched'],entry['esmiles'])
@@ -1003,28 +1028,29 @@ if (listqueues):
          ss.append("%11d %14s %8d    \"%s\"" % (entry['queue_number'],entry['machine_type'],entry['fetched'],entry['esmiles']))
    ss.sort()
    for entry in ss:
-      print entry
+      print(entry)
 
 if (listqueues2):
    check = {}
    echeck = {}
-   echeck['queue_number'] = 1
-   echeck['smiles'] = 1
-   echeck['theory'] = 1
-   echeck['basis'] = 1
-   echeck['nwchem_output'] = 1
-   echeck['extra_datafiles'] = 1
+   if ismongo:
+      echeck['queue_number'] = 1
+      echeck['smiles'] = 1
+      echeck['theory'] = 1
+      echeck['basis'] = 1
+      echeck['nwchem_output'] = 1
+      echeck['extra_datafiles'] = 1
    queue2 = chemdb_finished_queue_collection.find(check,echeck)
-   print 
-   print "Finsihed Jobs Queue:"
+   print()
+   print("Finsihed Jobs Queue:")
    for entry in queue2:
-      print "queue_entry=%d smiles=%s theory=%s basis=%s nwchem_output=%s extra_datafiles=%s" % (entry['queue_number'],entry['smiles'],entry['theory'],entry['basis'],entry['nwchem_output'],entry['extra_datafiles'])
+      print("queue_entry=%d smiles=%s theory=%s basis=%s nwchem_output=%s extra_datafiles=%s" % (entry['queue_number'],entry['smiles'],entry['theory'],entry['basis'],entry['nwchem_output'],entry['extra_datafiles']))
 
 if (submitqueue2):
    check = {}
    queue2 = chemdb_finished_queue_collection.find(check)
-   print
-   print "Adding Finsihed Jobs Queue to Arrows:"
+   print()
+   print("Adding Finsihed Jobs Queue to Arrows:")
    delete_queue2 = []
    for entry in queue2:
 
@@ -1032,18 +1058,18 @@ if (submitqueue2):
       delete_queue2.append({'queue_number' : entry['queue_number']})
 
       if entry['nwchem_output']!='':
-         print " - Adding queue_entry=%d smiles=%s theory=%s basis=%s nwchem_output=%s extra_datafiles=%s" % (entry['queue_number'],entry['smiles'],entry['theory'],entry['basis'],entry['nwchem_output'],entry['extra_datafiles'])
+         print(" - Adding queue_entry=%d smiles=%s theory=%s basis=%s nwchem_output=%s extra_datafiles=%s" % (entry['queue_number'],entry['smiles'],entry['theory'],entry['basis'],entry['nwchem_output'],entry['extra_datafiles']))
          cmd2 = chemdb_add_nwout
          if entry['extra_datafiles']!='':
             cmd2 += '-z \"'+ entry['extra_datafiles'] + '\" '
          cmd2 += entry['nwchem_output']
          try:
-            print " - running: " + cmd2
-            result = subprocess.check_output(cmd2,shell=True,stderr=subprocess.STDOUT)
-            print result
+            print(" - running: " + cmd2)
+            result = subprocess.check_output(cmd2,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+            print(result)
          except:
-            print "failed:  " + cmd2
-         print
+            print("failed:  " + cmd2)
+         print()
 
          ### remove datafiles ###
          allfiles = entry['nwchem_output'] + " " + entry['extra_datafiles']
@@ -1062,14 +1088,14 @@ if (addqueue0):
    entry = {}
    entry['addesmiles'] = addesmiles
    qq = chemdb_queue_collection0.insert(entry)
-   print "Added " + addesmiles + " to chemdb_queue0."
+   print("Added " + addesmiles + " to chemdb_queue0.")
 
 
 
 if (addqueue1):
    ### lockfile ###
    if os.path.isfile(lockfilename):
-      print "currently locked by " + lockfilename
+      print("currently locked by " + lockfilename)
       exit()
    with open(lockfilename,'w') as lfile: lfile.write("iamlocked\n")
 
@@ -1082,26 +1108,24 @@ if (addqueue1):
             entry = esmiles2entry(addesmiles,vtag)
             centry = checkentry(entry)
             duplicatecount = chemdb_queue_collection.find(centry).count()
-            print "duplicatecount=", duplicatecount
+            print("duplicatecount=", duplicatecount)
             if (duplicatecount==0):
                qq = chemdb_queue_collection.insert(entry)
-               print "Added " + addesmiles + " to chemdb_queue. queue_entry=",entry['queue_number']
+               print("Added " + addesmiles + " to chemdb_queue. queue_entry=",entry['queue_number'])
             else:
-               print "Did not add " + addesmiles + " to chemdb_queue, because it already exists."
-               #dupentry = chemdb_queue_collection.find(centry)[0]
-               #print "dupentry=",dupentry
+               print("Did not add " + addesmiles + " to chemdb_queue, because it already exists.")
          except:
-            print "Adding " + addesmiles + " to chemdb_queue failed."
+            print("Adding " + addesmiles + " to chemdb_queue failed.")
          qq2 = chemdb_queue_collection0.remove(eq0)
-         print "deleted from queue0=",qq2
+         print("deleted from queue0=",qq2)
    except:
-      print "chemdb_queue: for eq0 failed"
+      print("chemdb_queue: for eq0 failed")
 
    ### remove lockfilename ###
    try:
       os.unlink(lockfilename)
    except:
-      print "chemdb_queue: failed to remove " + lockfilename
+      print("chemdb_queue: failed to remove " + lockfilename)
 
 
 
@@ -1109,33 +1133,31 @@ if (addqueue):
    entry = esmiles2entry(addesmiles,vtag)
    centry = checkentry(entry)
    duplicatecount = chemdb_queue_collection.find(centry).count()
-   print "duplicatecount=", duplicatecount
+   print("duplicatecount=", duplicatecount)
    if (duplicatecount==0): 
       qq = chemdb_queue_collection.insert(entry)
-      print "Added " + addesmiles + " to chemdb_queue. queue_entry=",entry['queue_number']
+      print("Added " + addesmiles + " to chemdb_queue. queue_entry=",entry['queue_number'])
    else:
-      print "Did not add " + addesmiles + " to chemdb_queue, because it already exists."
-      #dupentry = chemdb_queue_collection.find(centry)[0]
-      #print "dupentry=",dupentry
+      print("Did not add " + addesmiles + " to chemdb_queue, because it already exists.")
 
 if (delqueue):
    delentry = {'queue_number' : delete_queue_number}
-   print "delentry=",delentry
+   print("delentry=",delentry)
    queue = chemdb_queue_collection.remove(delentry)
 
 if (delqueue2):
    delentry2 = {'queue_number' : delete2_queue_number}
-   print "delentry2=",delentry2
+   print("delentry2=",delentry2)
    queue = chemdb_finished_queue_collection.remove(delentry2)
 
 if (resetqueue):
    resetentry = {'queue_number' : reset_queue_number}
-   print "resetentry=",resetentry
+   print("resetentry=",resetentry)
    qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'fetched':0}},upsert=False,multi=False)
 
 if (changequeue):
    resetentry = {'queue_number' : reset_queue_number}
-   print "changeentry=",resetentry
+   print("changeentry=",resetentry)
    qqq      = chemdb_queue_collection.update(resetentry,{'$set':{'machine_type':newqueue}},upsert=False,multi=False)
 
 
@@ -1150,7 +1172,7 @@ if (runqueue):
    data1 += "#\n"
    data1 +=  entry['nwchem_input_deck'] + "\n"
    data1 += "#########################  END   NWCHEM INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
-   print data1
+   print(data1)
 
 if (getqueue):
    runentry = {'queue_number' : run_queue_number}
@@ -1162,7 +1184,7 @@ if (getqueue):
    data1 += "#\n"
    data1 +=  entry['nwchem_input_deck'] + "\n"
    data1 += "#########################  END   NWCHEM INPUT DECK - NWJOB %d ########################\n" % entry['queue_number']
-   print data1
+   print(data1)
 
 if (nwfile!=''):
 
@@ -1191,7 +1213,7 @@ if (nwfile!=''):
          id = ObjectId(nwchemoutput.split('NWChemJobId:')[1].split('\n')[0].strip())
          delentry = {}
          delentry['_id']  = id
-         print "deleting entry=",delentry
+         print("deleting entry=",delentry)
          queue = chemdb_queue_collection.remove(delentry)
 
       ### set some properties
