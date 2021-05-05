@@ -10,7 +10,9 @@ from PIL import ImageDraw
 
 
 ############## machine parameters #########################
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
 
 chemdb_image0  = ARROWS_HOME + "/bin/chemdb_image0 "
 chemdb_image0f = ARROWS_HOME + "/bin/chemdb_image0 -f "

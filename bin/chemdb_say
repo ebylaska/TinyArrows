@@ -5,7 +5,9 @@ import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator
 from math import *
 
 ############## machine parameters #########################
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
 chemdbfile  = ARROWS_HOME + "/bin/.chemdb-en"
 ############## machine parameters #########################
 
@@ -64,7 +66,7 @@ chemdb say program
 
 """
 
-opts, args = getopt.getopt(sys.argv[1:], "h:d:t:n:q:efh")
+opts, args = getopt.getopt(sys.argv[1:], "h",['help'])
 for o, a in opts:
   if o in ("-h","--help"):
     print(usage)

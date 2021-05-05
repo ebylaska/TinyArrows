@@ -5,8 +5,8 @@ import pymysql as MySQLdb
 from math import *
 
 ###################### PARAMETERS ###########################
-ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
-ARROWS_API_HOME = 'http://localhost:5000/api/'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ############## machine parameters #########################
 #babel      = "/usr/bin/babel"
@@ -576,6 +576,7 @@ chemdb_add_Hf mysql/sqlite3  program
   -p nwpassrd = password for nwmachine
   -l list all
   -x prints this message
+  --help print this message
 
 """
 
@@ -585,12 +586,11 @@ hup    = hup0
 dbfile = dbfile0
 heat_formation_table = "heats_of_formation"
 
-print("chemdb_add_Hf mysql/sqlite3 version")
 tt = time.localtime()
 dd = "-%d-%d-%d-%d:%d.%d" % (tt[0],tt[1],tt[2],tt[3],tt[4],tt[5])
 
 listall = False
-opts, args = getopt.getopt(sys.argv[1:], "h:d:t:m:p:xl")
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:m:p:xl",['help'])
 for o, a in opts:
   if '-h' in o:
      hup = a
@@ -611,6 +611,8 @@ for o, a in opts:
 if (len(args)<1):
    print(usage)
    exit()
+
+print("chemdb_add_Hf - mysql/sqlite3 version")
 
 esmiles = addspaces_esmiles(args[0].strip())
 

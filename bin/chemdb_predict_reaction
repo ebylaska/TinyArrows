@@ -24,7 +24,9 @@ class CustomClient(TinyMongoClient):
 ############## tinymongo ################
 
 ###################### PARAMETERS ###########################
-ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 ####################### mongoDB #############################
@@ -252,7 +254,7 @@ def remove_xyzdata(esmiles):
 ############################# main program ###################################
 usage = \
 """
-chemdb_predict_reaction program - version 1.0
+chemdb_predict_reaction program - version 2.0
 
   Usage: chemdb_predict_reaction -e energy reaction
 
@@ -275,6 +277,9 @@ chemdb_predict_reaction program - version 1.0
   -i include images
   -j run queue of predict reactions
   -v email
+
+  --arrows_api=url location of arrows url
+  -h,--help print this message
 
 """
 
@@ -301,39 +306,39 @@ solvation_energy = 0.0
 aq_free_energy = 0.0
 reaction = ''
 noreaction = ''
-opts, args = getopt.getopt(sys.argv[1:], "a:n:d:c:e:r:g:q:u:f:lmskhijv")
+opts, args = getopt.getopt(sys.argv[1:], "a:n:d:c:e:r:g:q:u:f:lmskhijv",['help','arrows_api='])
 for o, a in opts:
-  if '-i' in o:
+  if o=='-i':
      includeimages = True
-  if '-l' in o:
+  if o=='-l':
      listqueues = True
-  if '-k' in o:
+  if o=='-k':
      listqueues2 = True
      listqueues3 = True
-  if '-s' in o:
+  if o=='-s':
      submitqueue2 = True
      listqueues   = False
-  if '-a' in o:
+  if o=='-a':
      reaction = a
      listqueues = False
      addreaction = True
-  if '-n' in o:
+  if o=='-n':
      noreaction = a
      listqueues = False
      addnoreaction = True
-  if '-m' in o:
+  if o=='-m':
      listqueues = False
      checknoreaction = True
-  if '-f' in o:
+  if o=='-f':
      reaction = a
      listqueues = False
      predictreaction = True
-  if '-j' in o:
+  if o=='-j':
      runqueue   = True
      listqueues = False
-  if '-v' in o:
+  if o=='-v':
      email = True
-  if '-d' in o:
+  if o=='-d':
      try:
         delete_queue_number = evalnum(a)
         listqueues = False
@@ -341,7 +346,7 @@ for o, a in opts:
      except:
         listqueues = True
         delqueue   = False
-  if '-c' in o:
+  if o=='-c':
      try:
         delete_queue_number2 = evalnum(a)
         listqueues = False
@@ -351,36 +356,38 @@ for o, a in opts:
         listqueues3 = True
         delqueue2   = False
 
-  if '-e' in o:
+  if o=='-e':
      try:
         energy = evalnum(a)
         listqueues = False
      except:
         listqueues = True
-  if '-r' in o:
+  if o=='-r':
      try:
         enthalpy = evalnum(a)
         listqueues = False
      except:
         listqueues = True
-  if '-g' in o:
+  if o=='-g':
      try:
         free_energy = evalnum(a)
         listqueues = False
      except:
         listqueues = True
-  if '-q' in o:
+  if o=='-q':
      try:
         solvation_energy = evalnum(a)
         listqueues = False
      except:
         listqueues = True
-  if '-u' in o:
+  if o=='-u':
      try:
         aq_free_energy = evalnum(a)
         listqueues = False
      except:
         listqueues = True
+  if o=="--arrows_api":
+     ARROWS_API_HOME = a
 
   if o in ("-h","--help"):
     print(usage)

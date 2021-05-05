@@ -6,7 +6,8 @@ import pymysql as MySQLdb
 from math import *
 
 ############## machine parameters #########################
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
@@ -782,7 +783,9 @@ chemdb frequency program
   -a analyze low frequencies
   -v analyze the vibrational density of states
   -p plot the vibrational density of states
-  -h prints this message
+  --help prints this message
+
+  --arrows_api=url local of arrows url
 
 """
 
@@ -795,24 +798,27 @@ table  = "calculations"
 analyze = False
 dos     = False
 plotdos = False
-opts, args = getopt.getopt(sys.argv[1:], "h:d:t:b:g:apvh")
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:b:g:apvh",['help','arrows_api='])
 for o, a in opts:
-  if '-a' in o:
+  if o=='-a':
      analyze = True
-  if '-v' in o:
+  if o=='-v':
      dos = True
-  if '-p' in o:
+  if o=='-p':
      plotdos = True
-  if '-h' in o:
+  if o=='-h':
      hup = a
-  if '-d' in o:
+  if o=='-d':
      dbfile = a
-  if '-t' in o:
+  if o=='-t':
      table = a
-  if '-b' in o:
+  if o=='-b':
      rbond =  a
-  if '-g' in o:
+  if o=='-g':
      rgroup = a
+  if o=='--arrows_api':
+     ARROWS_API_HOME = a
+
   if o in ("-h","--help"):
     print(usage)
     exit()
