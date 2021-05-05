@@ -26,7 +26,9 @@ class CustomClient(TinyMongoClient):
 
 
 ###################### PARAMETERS ###########################
-ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 ####################### mongoDB #############################
@@ -894,7 +896,7 @@ usage = \
 """
 chemdb_queue program
 
-  Usage: chemdb_queue -a esmiles -d queue_entry -f queue_entry -w nwout -z string_of_datafiles  -l
+  Usage: chemdb_queue --arrows_api="http://localhost/api" -a esmiles -d queue_entry -f queue_entry -w nwout -z string_of_datafiles  -l
 
   -l list entries
   -k list finished nwchem entries
@@ -910,13 +912,11 @@ chemdb_queue program
   -z string of extra_datafiles only works when used with -w option
   -r reset queue entry
   -m change queue of queue entry
+  --arrows_api= url location of webapi
 
 """
 
 
-print()
-print("#chemdb_queue - version 2.0")
-print()
 tt      = time.localtime()
 
 submitqueue2 = False
@@ -935,27 +935,27 @@ newqueue    = 'first'
 extra_datafiles = ''
 nwfile          = ''
 vtag            = ''
-opts, args = getopt.getopt(sys.argv[1:], "a:b:d:e:f:q:w:z:v:r:m:lskhc")
+opts, args = getopt.getopt(sys.argv[1:], "a:b:d:e:f:q:w:z:v:r:m:lskhc", ['help','arrows_api='])
 for o, a in opts:
-  if '-l' in o:
+  if o=='-l':
      listqueues = True
-  if '-k' in o:
+  if o=='-k':
      listqueues2 = True
-  if '-s' in o:
+  if o=='-s':
      submitqueue2 = True
      listqueues   = False
-  if '-a' in o:
+  if o=='-a':
      addesmiles = a
      listqueues = False
      addqueue   = True
-  if '-b' in o:
+  if o=='-b':
      addesmiles = a
      listqueues = False
      addqueue0  = True
-  if '-c' in o:
+  if o=='-c':
      listqueues = False
      addqueue1  = True
-  if '-r' in o:
+  if o=='-r':
      try:
         reset_queue_number = evalnum(a)
         listqueues = False
@@ -963,7 +963,7 @@ for o, a in opts:
      except:
         listqueues = True
         resetqueue = False
-  if '-m' in o:
+  if o=='-m':
      try:
         if ("M" in a):
            reset_queue_number = evalnum(a.split("M")[0].strip())
@@ -976,7 +976,7 @@ for o, a in opts:
         listqueues = True
         changequeue = False
 
-  if '-d' in o:
+  if o=='-d':
      try:
         delete_queue_number = evalnum(a)
         listqueues = False
@@ -984,7 +984,7 @@ for o, a in opts:
      except:
         listqueues = True
         delqueue   = False
-  if '-e' in o:
+  if o=='-e':
      try:
         delete2_queue_number = evalnum(a)
         listqueues = False
@@ -992,7 +992,7 @@ for o, a in opts:
      except:
         listqueues2 = True
         delqueue2   = False
-  if '-f' in o:
+  if o=='-f':
      try:
         run_queue_number = evalnum(a)
         listqueues = False
@@ -1000,7 +1000,7 @@ for o, a in opts:
      except:
         listqueues = True
         runqueue   = False
-  if '-q' in o:
+  if o=='-q':
      try:
         run_queue_number = evalnum(a)
         listqueues = False
@@ -1008,20 +1008,24 @@ for o, a in opts:
      except:
         listqueues = True
         getqueue   = False
-  if '-w' in o:
+  if o=='-w':
      nwfile = a
      listqueues = False
-  if '-z' in o:
+  if o=='-z':
      extra_datafiles = a
-  if '-v' in o:
+  if o=='-v':
      vtag = a
      print("# - adding tag " + vtag + " to input deck.\n")
-
-     
+  if o == "--arrows_api":
+     ARROWS_API_HOME = a
 
   if o in ("-h","--help"):
     print(usage)
     exit()
+
+print()
+print("#chemdb_queue - version 2.0 - arrows_api url=",ARROWS_API_HOME)
+print()
 
 if (listqueues):
    check = {}

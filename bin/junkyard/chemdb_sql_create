@@ -79,7 +79,7 @@ else:
    user = hup.split()[1]
    pss = hup.split()[2]
    dbcon = MySQLdb.connect(host,user,pss,dbfile)
-   #dbcon = MySQLdb.connect('192.168.1.17','bylaska','bridge1port',dbfile)
+   #dbcon = MySQLdb.connect('192.168.1.17','bylaska','password',dbfile)
 with dbcon:
    cur = dbcon.cursor()
    cur.execute("drop table if exists " + table)

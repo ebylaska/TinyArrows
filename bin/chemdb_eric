@@ -6,7 +6,7 @@ from bson.objectid import ObjectId
 from math import *
 
 ####################### mongoDB #############################
-#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+#uri = "mongodb://arrows:password@we17860.emsl.pnl.gov:27017"
 with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
 mongo_client                     = pymongo.MongoClient(uri)
 arrows_db                        = mongo_client.Arrows

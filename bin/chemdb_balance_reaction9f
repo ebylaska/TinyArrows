@@ -6,7 +6,8 @@ from math import *
 from copy import deepcopy
 
 ############## machine parameters #########################
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
@@ -326,7 +327,7 @@ def bonding_string(n,symbol,adjmat):
    #### generate mformula ####
    fdict = {}
    for s in symbol:
-      if (fdict.has_key(s)):
+      if (s in fdict):
          fdict[s] += 1
       else:
          fdict[s] = 1
@@ -346,7 +347,7 @@ def bonding_string(n,symbol,adjmat):
             else:
                key = symj.strip() + symi.strip()
 
-            if (bondcount.has_key(key)):
+            if (key in bondcount):
                bondcount[key] += 1
             else:
                bondcount[key] = 1
@@ -368,7 +369,7 @@ def bonding_string(n,symbol,adjmat):
                   key = symj.strip() + symi.strip() + symk.strip()
                else:
                   key = symk.strip() + symi.strip() + symj.strip()
-               if (bond2count.has_key(key)):
+               if (key in bond2count):
                   bond2count[key] += 1
                else:
                   bond2count[key] = 1
@@ -385,7 +386,7 @@ def bonding_string(n,symbol,adjmat):
             neighbors.append(symbol[j].strip())
       neighbors.sort()
       key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
-      if (neighborcount.has_key(key)):
+      if (key in neighborcount):
          neighborcount[key] += 1
       else:
          neighborcount[key] = 1
@@ -422,7 +423,7 @@ def xyz_bonding_strings(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -474,12 +475,12 @@ def xyz_bonding_strings(xyzfilename):
             else:
                key = symj.strip() + symi.strip()
 
-            if (bondcount.has_key(key)):
+            if (key in bondcount):
                bondcount[key] += 1
             else:
                bondcount[key] = 1
             covkey = key + "(%.1f)" % (adjmat[i][j])
-            if (covbondcount.has_key(covkey)):
+            if (covkey in covbondcount):
                covbondcount[covkey] += 1
             else:
                covbondcount[covkey] = 1
@@ -504,7 +505,7 @@ def xyz_bonding_strings(xyzfilename):
                   key = symj.strip() + symi.strip() + symk.strip()
                else:
                   key = symk.strip() + symi.strip() + symj.strip()
-               if (bond2count.has_key(key)):
+               if (key in bond2count):
                   bond2count[key] += 1
                else:
                   bond2count[key] = 1
@@ -521,7 +522,7 @@ def xyz_bonding_strings(xyzfilename):
             neighbors.append(symbol[j].strip())
       neighbors.sort()
       key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
-      if (neighborcount.has_key(key)):
+      if (key in neighborcount):
          neighborcount[key] += 1
       else:
          neighborcount[key] = 1
@@ -1219,7 +1220,7 @@ def xyz_molecular_formula(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -2995,7 +2996,7 @@ def xyztoadjmat(xyzfilename):
             key = line[0]
          else:
             key = line[0:2]
-         if (fdict.has_key(key)):
+         if (key in fdict):
             fdict[key] += 1
          else:
             fdict[key] = 1
@@ -3161,7 +3162,7 @@ def generate_bond_string0(symbol,n,adjmat,indx1,indx2):
    #### generate mformula ####
    fdict = {}
    for s in symbol:
-      if (fdict.has_key(s)):
+      if (s in fdict):
          fdict[s] += 1
       else:
          fdict[s] = 1
@@ -3194,7 +3195,7 @@ def generate_bond_string0(symbol,n,adjmat,indx1,indx2):
                key = symj.strip() + symi.strip() + symk.strip()
             else:
                key = symk.strip() + symi.strip() + symj.strip()
-            if (bond2count.has_key(key)):
+            if (key in bond2count):
                bond2count[key] += 1
             else:
                bond2count[key] = 1
@@ -3217,7 +3218,7 @@ def generate_bond_string0(symbol,n,adjmat,indx1,indx2):
                symk = symbol[k]
                syml = symbol[l]
                key = symk.strip() + symi.strip() + symj.strip() + syml.strip()
-               if (bond3count.has_key(key)):
+               if (key in bond3count):
                   bond3count[key] += 1
                else:
                   bond3count[key] = 1
@@ -3240,7 +3241,7 @@ def generate_bond_string0(symbol,n,adjmat,indx1,indx2):
                   symk = symbol[k]
                   syml = symbol[l]
                   key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
-                  if (bond3rcount.has_key(key)):
+                  if (key in bond3rcount):
                      bond3rcount[key] += 1
                   else:
                      bond3rcount[key] = 1
@@ -3266,7 +3267,7 @@ def generate_bond_string0(symbol,n,adjmat,indx1,indx2):
                         syml = symbol[l]
                         symm = symbol[m]
                         key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
-                        if (bond4rcount.has_key(key)):
+                        if (key in bond4rcount):
                            bond4rcount[key] += 1
                         else:
                            bond4rcount[key] = 1
@@ -3295,7 +3296,7 @@ def generate_bond_string0(symbol,n,adjmat,indx1,indx2):
                               symm = symbol[m]
                               syma = symbol[a]
                               key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
-                              if (bond5rcount.has_key(key)):
+                              if (key in bond5rcount):
                                  bond5rcount[key] += 1
                               else:
                                  bond5rcount[key] = 1
@@ -3320,7 +3321,7 @@ def generate_reactionhash(label,edges,permute_nodes,symbol,n,adjmat,indxs):
    #### generate mformula ####
    fdict = {}
    for s in symbol:
-      if (fdict.has_key(s)):
+      if (s in fdict):
          fdict[s] += 1
       else:
          fdict[s] = 1
@@ -3373,7 +3374,7 @@ def generate_reactionhash(label,edges,permute_nodes,symbol,n,adjmat,indxs):
                for ii in indxs2:
                   key += symbol[ii] 
                   if (ii==ar): key += "("+syma.strip()+")"
-               if (bond2count.has_key(key)):
+               if (key in bond2count):
                   bond2count[key] += 1
                else:
                   bond2count[key] = 1
@@ -3400,7 +3401,7 @@ def generate_reactionhash(label,edges,permute_nodes,symbol,n,adjmat,indxs):
                               if (ii==ar): key += "("+syma.strip()+")"
                               if (ii==br): key += "("+symb.strip()+")"
 
-                           if (bond3count.has_key(key)):
+                           if (key in bond3count):
                               bond3count[key] += 1
                            else:
                               bond3count[key] = 1
@@ -3433,7 +3434,7 @@ def generate_reactionhash(label,edges,permute_nodes,symbol,n,adjmat,indxs):
                                           if (ii==br): key += "("+symb.strip()+")"
                                           if (ii==cr): key += "("+symc.strip()+")"
 
-                                          if (bond4count.has_key(key)):
+                                          if (key in bond4count):
                                              bond4count[key] += 1
                                           else:
                                              bond4count[key] = 1
@@ -3473,7 +3474,7 @@ def generate_reactionhash(label,edges,permute_nodes,symbol,n,adjmat,indxs):
                                                       if (ii==cr): key += "("+symc.strip()+")"
                                                       if (ii==dr): key += "("+symd.strip()+")"
 
-                                                      if (bond5count.has_key(key)):
+                                                      if (key in bond5count):
                                                          bond5count[key] += 1
                                                       else:
                                                          bond5count[key] = 1
@@ -6106,7 +6107,8 @@ chemdb balance reaction program
   -u generate indexes from reactionhash (products)
   -g list reactions
   -m add user reaction type
-  -h prints this message
+  --arrows_api url location 
+  --help prints this message
 
 """
 
@@ -6132,50 +6134,53 @@ balancereaction = True
 testingadd = False
 listreactions = False
 inchikey = ''
-opts, args = getopt.getopt(sys.argv[1:], "h:d:t:l:k:m:eaxfbchgru")
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:l:k:m:eaxfbchgru",['help','arrows_api='])
 for o, a in opts:
-  if '-h' in o:
+  if o=='-h':
      hup = a
-  if '-d' in o:
+  if o=='-d':
      dbfile = a
-  if '-t' in o:
+  if o=='-t':
      table = a
-  if '-l' in o:
+  if o=='-l':
      maxlevel = evalnum(a)
-  if '-m' in o:
+  if o=='-m':
      myreactiontypes0.append(a)
-  if '-r' in o:
+  if o=='-r':
      xyztohash = True
-  if '-e' in o:
+  if o=='-e':
      findindx = True
-  if '-u' in o:
+  if o=='-u':
      findindx2 = True
-  if '-c' in o:
+  if o=='-c':
      genbondings = True
-  if '-f' in o:
+  if o=='-f':
      findreactions   = True
      balancereaction = False
-  if '-b' in o:
+  if o=='-b':
      fragmentmolecule = True
      balancereaction = False
-  if '-a' in o:
+  if o=='-a':
      addreaction     = True
      balancereaction = False
-  if '-x' in o:
+  if o=='-x':
      addreaction     = True
      testingadd      = True
      balancereaction = False
-  if '-g' in o:
+  if o=='-g':
      listreactions   = True
      testingadd      = False
      balancereaction = False
      inchikey = ''
-  if '-k' in o:
+  if o=='-k':
      listreactions   = True
      testingadd      = False
      balancereaction = False
      inchikey = a
-  if o in ("-h","--help"):
+  if o == "--arrows_api":
+     ARROWS_API_HOME = a
+
+  if o in ("--help"):
     print(usage)
     exit()
 
@@ -6184,7 +6189,7 @@ if (listreactions):
    exit()
 
 print()
-print("chemdb_balance_reaction mysql version 9.0")
+print("chemdb_balance_reaction mysql - version 9.0f = arrows_api url=",ARROWS_API_HOME)
 print()
 
 if (len(args)<1): 

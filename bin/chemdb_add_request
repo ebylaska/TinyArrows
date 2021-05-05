@@ -6,8 +6,8 @@ from math import *
 
 
 ###################### PARAMETERS ###########################
-ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
-ARROWS_API_HOME = 'http://localhost:5000/api/'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ############## machine parameters #########################
 obabel       = "/usr/local/bin/obabel"
@@ -600,19 +600,19 @@ dd = "-%d-%d-%d-%d:%d.%d" % (tt[0],tt[1],tt[2],tt[3],tt[4],tt[5])
 
 
 calculation_type = ''
-opts, args = getopt.getopt(sys.argv[1:], "h:d:t:m:p:c:x")
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:m:p:c:x",['help'])
 for o, a in opts:
-  if '-h' in o:
+  if o=='-h':
      hup = a
-  if '-d' in o:
+  if o=='-d':
      dbfile = a
-  if '-t' in o:
+  if o=='-t':
      table = a
-  if '-m' in o:
+  if o=='-m':
      nwmachine = a
-  if '-c' in o:
+  if o=='-c':
      calculation_type = a
-  if '-p' in o:
+  if o=='-p':
      nwpassword = a
   if o in ("-x","--help"):
     print(usage)

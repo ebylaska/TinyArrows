@@ -33,7 +33,7 @@ ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 ####################### mongoDB #############################
-#uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+#uri = "mongodb://arrows:password@we17860.emsl.pnl.gov:27017"
 with open(ARROWS_HOME + "/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
 if "mongodb:" in uri:
    nosql_client = pymongo.MongoClient(uri)

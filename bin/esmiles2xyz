@@ -6,7 +6,8 @@ import subprocess,json,sqlite3
 from math import *
 
 #################### machine specifics ######################
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 #babel     = "/usr/local/bin/babel"
 obabel    = "/usr/local/bin/obabel "
@@ -1747,8 +1748,8 @@ esmiles to xyz program
   -t table = "name of table"
   -c use cactus
   -j view with jmol
-  -h prints this message
   -s just print json
+  --help prints this message
 
 """
 
@@ -1766,26 +1767,26 @@ viewfreq = False
 viewjmol = False
 usecactus = False
 notjson = True
-opts, args = getopt.getopt(sys.argv[1:], "n:h:d:t:shcj")
+opts, args = getopt.getopt(sys.argv[1:], "n:h:d:t:shcj", ['help'])
 for o, a in opts:
-  if '-j' in o:
+  if o=='-j':
      viewjmol = True
-  if '-s' in o:
+  if o=='-s':
      notjson = False
-  if '-c' in o:
+  if o=='-c':
      usecactus = True
-  if '-h' in o:
+  if o=='-h':
      hup = a
-  if '-d' in o:
+  if o=='-d':
      dbfile = a
-  if '-n' in o:
+  if o=='-n':
      name = a
      setname = True
-  if '-t' in o:
+  if o=='-t':
      table = a
-  if '-f' in o:
+  if o=='-f':
      viewfreq = True
-  if o in ("-h","--help"):
+  if o in ("--help"):
     print(usage)
     exit()
 

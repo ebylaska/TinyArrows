@@ -5,7 +5,7 @@ import sys,os,time,pickle,urllib2,getopt,subprocess,random,operator,datetime
 import re
 
 ####################### mongoDB #############################
-uri = "mongodb://arrows:reaction@we17860.emsl.pnl.gov:27017"
+uri = "mongodb://arrows:password@we17860.emsl.pnl.gov:27017"
 mongo_client         = pymongo.MongoClient(uri)
 arrows_db            = mongo_client.Arrows
 cmdsubmit_collection = arrows_db.cmdsubmit_queue

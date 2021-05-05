@@ -24,7 +24,9 @@ class CustomClient(TinyMongoClient):
 ############## tinymongo ################
 
 ###################### PARAMETERS ###########################
-ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 ####################### mongoDB #############################
@@ -159,9 +161,6 @@ chemdb_queue_nwchem program
 """
 
 
-print()
-print("#chemdb_queue_nwchem - version 1.0")
-print()
 tt      = time.localtime()
 
 submitqueue2 = False
@@ -182,20 +181,20 @@ nwoutfile      = ''
 label           = ''
 vtag            = ''
 queue_name = ''
-opts, args = getopt.getopt(sys.argv[1:], "a:b:d:x:y:e:f:q:g:w:z:r:lskh")
+opts, args = getopt.getopt(sys.argv[1:], "a:b:d:x:y:e:f:q:g:w:z:r:lskh",['help','arrows_api='])
 for o, a in opts:
-  if '-l' in o:
+  if o=='-l':
      listqueues = True
-  if '-k' in o:
+  if o=='-k':
      listqueues2 = True
      queue_name = a
-  if '-a' in o:
+  if o=='-a':
      nwinputfile = a
      listqueues = False
      addqueue   = True
-  if '-b' in o:
+  if o=='-b':
      label = a
-  if '-r' in o:
+  if o=='-r':
      try:
         reset_queue_number = eval(a)
         listqueues = False
@@ -203,7 +202,7 @@ for o, a in opts:
      except:
         listqueues = True
         resetqueue = False
-  if '-d' in o:
+  if o=='-d':
      try:
         delete_queue_number = a
         listqueues = False
@@ -211,7 +210,7 @@ for o, a in opts:
      except:
         listqueues = True
         delqueue   = False
-  if '-x' in o:
+  if o=='-x':
      try:
         delete_queue_number = a
         listqueues = False
@@ -220,7 +219,7 @@ for o, a in opts:
      except:
         listqueues = True
         delqueue   = False
-  if '-e' in o:
+  if o=='-e':
      try:
         delete2_queue_number = eval(a)
         listqueues = False
@@ -228,7 +227,7 @@ for o, a in opts:
      except:
         listqueues2 = True
         delqueue2   = False
-  if '-f' in o:
+  if o=='-f':
      try:
         run_queue_number = a
         listqueues = False
@@ -237,7 +236,7 @@ for o, a in opts:
      except:
         listqueues = True
         runqueue   = False
-  if '-y' in o:
+  if o=='-y':
      try:
         run_queue_number = a
         listqueues = False
@@ -247,7 +246,7 @@ for o, a in opts:
      except:
         listqueues = True
         runqueue   = False
-  if '-q' in o:
+  if o=='-q':
      try:
         run_queue_number = a
         listqueues = False
@@ -256,7 +255,7 @@ for o, a in opts:
      except:
         listqueues = True
         runqueue   = False
-  if '-g' in o:
+  if o=='-g':
      try:
         out_queue_number = eval(a)
         listqueues = False
@@ -265,18 +264,23 @@ for o, a in opts:
         listqueues = True
         outqueue   = False
 
-  if '-w' in o:
+  if o=='-w':
      nwoutfile = a
      listqueues = False
 
-  if '-z' in o:
+  if o=='-z':
      extra_datafiles = a
 
-
+  if o == "--arrows_api":
+     ARROWS_API_HOME = a
 
   if o in ("-h","--help"):
     print(usage)
     exit()
+
+print()
+print("#chemdb_queue_nwchem - version 2.0 - arrows_api url=",ARROWS_API_HOME)
+print()
 
 if (listqueues):
    check = {}

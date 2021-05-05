@@ -3908,7 +3908,6 @@ chemdb balance reaction program
 
 eoln = "\n"
 #Database defaults
-hup    = "we17860.emsl.pnl.gov bylaska bridge1port"
 hup    = hup0
 dbfile = "TNT_Project"
 table  = "calculations"
