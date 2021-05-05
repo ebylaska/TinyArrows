@@ -4509,7 +4509,10 @@ def write_hrotors(tid,hrotors_blob):
    gnufilename        = wrkdir + "/hrotorplot-%d.gnuplot" % ddrand
    hrotorfilename     = wrkdir + "/hrotorplot-%d.dat"     % ddrand
 
-   for aaa in hrotors_blob.split(bstr)[1:]:
+   #for aaa in hrotors_blob.split(bstr)[1:]:
+   hhrot = hrotors_blob
+   if isinstance(hhrot,bytes): hhrot=hhrot.decode("utf-8")
+   for aaa in hhrot.split(bstr)[1:]:
       bbb = aaa.split(estr)[0]
       hrotor_blob =  bbb + estr
 
@@ -8373,7 +8376,7 @@ if (len(args)<3):
    print(usage)
    exit()
 
-print("chemdb_fetch_reactions5 - mysql/sqlite3 version - arrows_api url=",ARROWS_API_URL)
+print("chemdb_fetch_reactions5 - mysql/sqlite3 version - arrows_api url=",ARROWS_API_HOME)
 print(args[0])
 print(args[1])
 

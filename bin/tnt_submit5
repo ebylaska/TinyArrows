@@ -28,7 +28,8 @@ class CustomClient(TinyMongoClient):
 
 
 ################ machine parameters #########################
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
@@ -3017,6 +3018,7 @@ Generates an nwchem job for a molecule
   -a append file to input
 
   --mo_coefficients include mo coefficients in the output
+  --arrows_api=url enter arrows url
 
   -h,--help prints this message
 
@@ -3031,7 +3033,6 @@ ddlt = time.asctime(tt)
 job  = {}
 job['submit_time'] = pickle.dumps(tt)
 job['submit_gm_time'] = pickle.dumps(gt)
-print('# NWChem Input Generation (tnt_submit5)  - The current time is ' + ddlt)
 
 
 emailresults = ''
@@ -3086,68 +3087,71 @@ qsharp_chem_nroots = ''
 qsharp_chem_norbs  = '2'
 qsharp_chem_nalpha = '1'
 qsharp_chem_nbeta  = '1'
-opts, args = getopt.getopt(sys.argv[1:], "a:e:u:v:m:t:b:n:z:p:c:x:y:q:g:s:j:k:l:o:idfrwh",['help']) 
+opts, args = getopt.getopt(sys.argv[1:], "a:e:u:v:m:t:b:n:z:p:c:x:y:q:g:s:j:k:l:o:idfrwh",['help','arrows_api=']) 
 for o, a in opts:
-  if '-a' in o:
+  if o=='-a':
      job['appendfilename'] = a
      with open(a,'r') as ff: job['appendfile'] = datafile_prune(ff.read())
-  if '-e' in o:
+  if o=='-e':
      emailresults = a
-  if '-v' in o:
+  if o=='-v':
      vtag = a
      print("# - adding tag " + vtag + " to input deck.\n" )
-  if '-m' in o:
+  if o=='-m':
      machine = a
-  if '-t' in o:
+  if o=='-t':
      theory = a
-  if '-b' in o:
+  if o=='-b':
      basis = a
-  if '-z' in o:
+  if o=='-z':
      basisHZ = a
-  if '-p' in o:
+  if o=='-p':
      property = a
-  if '-k' in o:
+  if o=='-k':
      theory_property = a
-  if '-l' in o:
+  if o=='-l':
      xc_property = a
-  if '-o' in o:
+  if o=='-o':
      basis_property = a
-  if '-n' in o:
+  if o=='-n':
      basisHZ_property = a
-  if '-c' in o:
+  if o=='-c':
      calctype = a
-  if '-x' in o:
+  if o=='-x':
      xc = a
-  if '-y' in o:
+  if o=='-y':
      solvation_type = a
-  if '-q' in o:
+  if o=='-q':
      q = evalnum(a)
      notchargeset = False
-  if '-g' in o:
+  if o=='-g':
      geom_maxiter = evalnum(a)
-  if '-s' in o:
+  if o=='-s':
      mult = evalnum(a)
      notmultset = False
-  if '-j' in o:
+  if o=='-j':
      jobname = a
-  if '-u' in o:
+  if o=='-u':
      job['priority'] = a
 
-  if '-i' in o:
+  if o=='-i':
     exit()
-  if '-r' in o:
+  if o=='-r':
      rotamer = True
-  if '-w' in o:
+  if o=='-w':
      diagonal_hessian = True
-  if '-d' in o:
+  if o=='-d':
     exit()
-  if '-f' in o:
+  if o=='-f':
     submitthejob = False
+  if o=="--arrows_api":
+     ARROWS_API_HOME = a
 
   if o in ("-h","--help"):
     print(usage)
     exit()
 
+print('# NWChem Input Generation (tnt_submit5)  - The current time is ' + ddlt)
 
 if (len(args)<1):
    print("\nEnter xyz file / cml file / esmiles string:")
