@@ -49,8 +49,10 @@ qnumber_collection               = arrows_db.queue_number
 
 ############## machine parameters #########################
 obabel           = "/usr/local/bin/obabel "
-esmiles2xyz      = ARROWS_HOME + "/bin/esmiles2xyz "
+
 tnt_submit       = ARROWS_HOME + "/bin/tnt_submit5 -f "
+
+esmiles2xyz      = ARROWS_HOME + "/bin/esmiles2xyz "
 chemdb_add_nwout = ARROWS_HOME + "/bin/chemdb_add_nwout7 "
 
 wrkdir           = ARROWS_HOME + "/Work"
@@ -60,6 +62,9 @@ curdir           = os.getcwd()
 lockfilename     = ARROWS_HOME + "/Work/chemdbqueue1.lockfile"
 ############## machine parameters #########################
 ###################### PARAMETERS ###########################
+
+def use_arrows_api(prog):
+   return prog + "--arrows_api=" + ARROWS_API_HOME + " "
 
 
 def evalnum(s):
@@ -804,7 +809,7 @@ def esmiles2entry(esmiles,vtag0):
    esmiles0 = addspaces_reaction(esmiles0.strip())
    esmiles0 = parsetosmiles(esmiles0)
 
-   cmd7 = tnt_submit 
+   cmd7 = use_arrows_api(tnt_submit)
 
    ### use diagonal_hessian if this is a restart ###
    if "resubmitjob:" in vtag0: cmd7 += "-w "

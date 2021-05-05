@@ -14,11 +14,12 @@ ARROWS_API_HOME = 'http://localhost:5000/api/'
 #babel              = "/usr/bin/babel"
 obabel             = "/usr/local/bin/obabel "
 esmiles2xyz        = ARROWS_HOME + "/bin/esmiles2xyz "
+
 chemdb_add_request = ARROWS_HOME + "/bin/chemdb_add_request "
-chemdb_freq        = ARROWS_HOME + "/bin/chemdb_freq -v "
 chemdb_add_Hf      = ARROWS_HOME + "/bin/chemdb_add_Hf "
 chemdb_image0      = ARROWS_HOME + "/bin/chemdb_image0 "
 chemdb_reaction_image = ARROWS_HOME + "/bin/chemdb_reaction_image "
+
 wrkdir             = ARROWS_HOME + "/Work"
 chemdbfile         = ARROWS_HOME + "/bin/.chemdb-en"
 #chemdbfile         = "/srv/arrows/bin/.chemdb-en"
@@ -35,6 +36,7 @@ tmperxn2= "tmperxn2-%d.dat" % ddrand
 tmperxn3= "tmperxn3-%d.dat" % ddrand
 tmpnwout= "tmpnwout-%d.out" % ddrand
 ############## machine parameters #########################
+
 
 ##### Types of reactions #####
 myreactiontypes0 = ["A + B --> AB", "AB --> A + B", "AB + C --> AC + B","AB + CD --> CABD","CABD --> AB + CD","AB + CD --> AD + BC","ABCD --> BCA + D", "EA + BCD --> AB + CDE", "ABC + DE --> DBE + AC", "ABCD + E --> A + BC + DE", "A + BCD + E --> ABCDE","ABCDE --> A + BCD + E", "A + B + CD --> AC + BD", "AB + C + D --> CABD", "AB + C --> ACB", "ABCD --> DBCA + DC", "DBCA + DC --> ABCD", "AB + CD --> ACB + D","AC + BD --> A + B + CD", "ACB --> AB + C"]

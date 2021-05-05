@@ -13,26 +13,29 @@ ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
+#################### machine specifics ######################
 #babel              = "/usr/bin/babel"
 obabel             = "/usr/local/bin/obabel "
 obgrep             = "/usr/local/bin/obgrep "
 gnuplot            = "/usr/local/bin/gnuplot "
 
+chemdb_balance_reaction = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
+chemdb_predict_reaction = ARROWS_HOME + "/bin/chemdb_predict_reaction "
+chemdb_queue            = ARROWS_HOME + "/bin/chemdb_queue "
+chemdb_freq             = ARROWS_HOME + "/bin/chemdb_freq -v "
+chemdb_freq0            = ARROWS_HOME + "/bin/chemdb_freq "
+tnt_submit              = ARROWS_HOME + "/bin/tnt_submit5 "
+
 esmiles2xyz        = ARROWS_HOME + "/bin/esmiles2xyz "
-chemdb_predict_reaction  = ARROWS_HOME + "/bin/chemdb_predict_reaction "
 chemdb_add_request = ARROWS_HOME + "/bin/chemdb_add_request "
-chemdb_freq        = ARROWS_HOME + "/bin/chemdb_freq -v "
-chemdb_freq0       = ARROWS_HOME + "/bin/chemdb_freq "
 chemdb_add_Hf      = ARROWS_HOME + "/bin/chemdb_add_Hf "
 chemdb_image0      = ARROWS_HOME + "/bin/chemdb_image0 "
 chemdb_homolumo    = ARROWS_HOME + "/bin/chemdb_homolumo "
 chemdb_reaction_image = ARROWS_HOME + "/bin/chemdb_reaction_image "
 chemdb_say            = ARROWS_HOME + "/bin/chemdb_say "
-chemdb_queue          = ARROWS_HOME + "/bin/chemdb_queue "
-chemdb_predict_reaction = ARROWS_HOME + "/bin/chemdb_predict_reaction "
-chemdb_balance_reaction  = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
-tnt_submit         = ARROWS_HOME + "/bin/tnt_submit5 "
 queue_nwchem_em    = ARROWS_HOME + "/bin/queue_nwchem_em "
+
+
 wrkdir             = ARROWS_HOME + "/Work"
 #arrowslogo         = wrkdir + "/arrowslogo2.html"
 arrowslogosvg      = ARROWS_HOME + "/Public/static/arrows-static/arrowslogo2.svg"
@@ -51,6 +54,9 @@ tmperxn3= "tmperxn3-%d.dat" % ddrand
 tmpnwout= "tmpnwout-%d.out" % ddrand
 calculation_counter = ARROWS_HOME + "/Public/counters/arrowsjobsrun"
 ############## machine parameters #########################
+
+def use_arrows_api(prog):
+   return prog + "--arrows_api=" + ARROWS_API_HOME + " " 
 
 ##### Increment calculation counter ######
 with open(calculation_counter,'r') as ff: aa = ff.read()
@@ -7520,12 +7526,12 @@ def submit_esmiles(esmiles,includerotation,datafile,emailfrom=None,machine=None)
          if "xyzdata{" in tmp_esmiles:
             msg = tmp_esmiles.split("xyzdata{")[1].split("}")[0]
             tmp_esmiles = tmp_esmiles.replace("xyzdata{"+msg+"}","")
-         cmd1 = chemdb_queue +  '-a \"' + tmp_esmiles + '\"'
+         cmd1 = use_arrows_api(chemdb_queue) +  '-a \"' + tmp_esmiles + '\"'
       else:
-         cmd1 = chemdb_queue +  '-b \"' + tmp_esmiles + '\"'
+         cmd1 = use_arrows_api(chemdb_queue) +  '-b \"' + tmp_esmiles + '\"'
       cmd1 += ' -v ' + vtag + ' '
    else:
-      cmd1 = tnt_submit + cmd0 + '"' + esmiles.strip() + '"'
+      cmd1 = use_arrows_api(tnt_submit) + cmd0 + '"' + esmiles.strip() + '"'
 
    print("submit esmiles cmd1 = " + cmd1)
    result += "\n\nsubmit esmiles cmd1 = " + cmd1 +"\n"
@@ -7598,10 +7604,10 @@ def submit_esmiles_base(esmiles,includerotation,datafile,emailfrom=None,machine=
       tmp_esmiles = esmiles1.strip()
       if (includerotation): tmp_esmiles += ' rotamer{true} '
       if (ismp2ccsd):
-         cmd1 = chemdb_queue +  '-b \"' + tmp_esmiles + '\"'
+         cmd1 = use_arrows_api(chemdb_queue) +  '-b \"' + tmp_esmiles + '\"'
       cmd1 += ' -v ' + vtag + ' '
    else:
-      cmd1 = tnt_submit + cmd0 + '"' + esmiles.strip() + '"'
+      cmd1 = use_arrows_api(tnt_submit) + cmd0 + '"' + esmiles.strip() + '"'
 
    print("submit esmiles cmd1 = " + cmd1)
    result += "\n\nsubmit esmiles cmd1 = " + cmd1 +"\n"
@@ -8875,7 +8881,7 @@ while ((len(rstring.split("nwinput:"))>1) and (not toolong) and (":nwinput" in r
          
          #add orginal smiles string to vtag
 
-         cmd0 = tnt_submit + "-f"
+         cmd0 = use_arrows_api(tnt_submit) + "-f"
          vtag = '"osmiles:'+ esmiles1.strip().split()[0].strip() + ':osmiles "'
          cmd0 += ' -v ' + vtag + ' '
          cmd0 +=  '"' + esmiles1.strip() + '"'
@@ -9196,9 +9202,9 @@ while ((len(rstring.split("showfreq:"))>1) and (not toolong) and (":showfreq" in
    tid  = tt[0]
    fnum = tt[1]
    if (rbond!='') and (rgroup!=''):
-      cmd1 = chemdb_freq0 + "-b \""+rbond+"\" -g \""+rgroup+"\" "+ tid + " " + fnum
+      cmd1 = use_arrows_api(chemdb_freq0) + "-b \""+rbond+"\" -g \""+rgroup+"\" "+ tid + " " + fnum
    else:
-      cmd1 = chemdb_freq0 + tid + " " + fnum
+      cmd1 = use_arrows_api(chemdb_freq0) + tid + " " + fnum
    print("showfreq cmd1 = " + cmd1)
    try:
       msg4 = subprocess.check_output(cmd1,shell=True).decode("utf-8")
@@ -9242,7 +9248,7 @@ while ((len(rstring.split("printfreq:"))>1) and (not toolong) and (":printfreq" 
    rstring  = rstring.replace("printfreq:"+msg3+":printfreq","")
    tt = msg3.split()
    for id in tt:
-      cmd1 = chemdb_freq + id + " 2"
+      cmd1 = use_arrows_api(chemdb_freq) + id + " 2"
       print("printfreq cmd1 = " + cmd1)
       try:
          msg4 = subprocess.check_output(cmd1,shell=True).decode("utf-8")
@@ -9279,7 +9285,7 @@ while ((len(rstring.split("frequencies:"))>1) and (not toolong) and (":frequenci
       msg4 += "Use printfreq: :printfreq or allfreqs: :allfreqs options to print frequencies for other entries.\n"
       if (use_lowest_energy_esmiles): rows = lowest_energy_esmiles(rows)
       id = rows[0][0]
-      cmd1 = chemdb_freq + " %d 2" % id
+      cmd1 = use_arrows_api(chemdb_freq) + " %d 2" % id
       print("frequencies cmd1 = " + cmd1)
       try:
          msg4 += subprocess.check_output(cmd1,shell=True).decode("utf-8")
@@ -9315,7 +9321,7 @@ while ((len(rstring.split("allfreqs:"))>1) and (not toolong) and (":allfreqs" in
       msg4 += "\n"
       for row in rows:
          id = row[0]
-         cmd1 = chemdb_freq + " %d 2" % id
+         cmd1 = use_arrows_api(chemdb_freq) + " %d 2" % id
          print("allfreqs cmd1 = " + cmd1)
          try:
             msg4 += subprocess.check_output(cmd1,shell=True).decode("utf-8")
@@ -10066,15 +10072,15 @@ while ((len(rstring.split("predict:"))>1) and (not toolong) and (":predict" in r
    for esmiles in esmileslist:
       text2speech_Threading("predict reaction requested for " + esmiles)
       if (usehtml5):
-         cmd9 = chemdb_predict_reaction + "-i -f \"" + esmiles + "\""
+         cmd9 = use_arrows_api(chemdb_predict_reaction) + "-i -f \"" + esmiles + "\""
       else:
-         cmd9 = chemdb_predict_reaction + "-v -i -f \"" + esmiles + "\""
+         cmd9 = use_arrows_api(chemdb_predict_reaction) + "-v -i -f \"" + esmiles + "\""
       #cmd9 = chemdb_predict_reaction + "-f \"" + esmiles + "\""
 
       try:
          result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
          if ("check back in ~10 minutes" in result9) and (not usehtml5):
-            cmd9b    = chemdb_predict_reaction + "-v -j  "
+            cmd9b    = use_arrows_api(chemdb_predict_reaction) + "-v -j  "
             result9b = subprocess.check_output(cmd9b,shell=True).decode("utf-8")
             result9  = subprocess.check_output(cmd9,shell=True).decode("utf-8")
 
@@ -11026,7 +11032,7 @@ for esmiles in submit_heat_formation:
 
 #### queuecheck ####
 if (queuecheck):
-   cmd1 = tnt_submit + " -i"
+   cmd1 = use_arrows_api(tnt_submit) + " -i"
    print("queuecheck cmd1 = " + cmd1)
    result = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    ooofile.write(result)
@@ -11156,7 +11162,7 @@ if (listallesmiles):
 
 #### listallreactions ####
 if (listallreactions):
-   cmd1 = chemdb_predict_reaction
+   cmd1 = use_arrows_api(chemdb_predict_reaction)
    result = subprocess.check_output(cmd1,shell=True).decode("utf-8")
    ooofile.write(result)
    pppfile.write(result)
