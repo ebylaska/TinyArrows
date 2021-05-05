@@ -539,7 +539,7 @@ def xyz_bonding_strings(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -590,12 +590,12 @@ def xyz_bonding_strings(xyzfilename):
             else:
                key = symj.strip() + symi.strip()
 
-            if (bondcount.has_key(key)):
+            if (key in bondcount):
                bondcount[key] += 1
             else:
                bondcount[key] = 1
             covkey = key + "(%.1f)" % (adjmat[i][j])
-            if (covbondcount.has_key(covkey)):
+            if (covkey in covbondcount):
                covbondcount[covkey] += 1
             else:
                covbondcount[covkey] = 1
@@ -620,7 +620,7 @@ def xyz_bonding_strings(xyzfilename):
                   key = symj.strip() + symi.strip() + symk.strip()
                else:
                   key = symk.strip() + symi.strip() + symj.strip()
-               if (bond2count.has_key(key)):
+               if (key in bond2count):
                   bond2count[key] += 1
                else:
                   bond2count[key] = 1
@@ -637,7 +637,7 @@ def xyz_bonding_strings(xyzfilename):
             neighbors.append(symbol[j].strip())
       neighbors.sort()
       key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
-      if (neighborcount.has_key(key)):
+      if (key in neighborcount):
          neighborcount[key] += 1
       else:
          neighborcount[key] = 1
@@ -965,7 +965,7 @@ def xyz_molecular_formula(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -1285,8 +1285,10 @@ def insert_abbreviation(hup,dbfile,abrev_table,abbreviation,
 
          duplicate2 = (row2[0]>0)
          if (not duplicate2):
-            #cout += "inserting into " + abrev_table + eoln
+            #print("inserlist=",insertlist)
+            #print("inserting into " + abrev_table + eoln)
             cur.execute(sqlinsert,insertlist)
+            
 
 
 
@@ -1869,6 +1871,7 @@ with dbcon:
    cur = dbcon.cursor()
    cur.execute(sqlcheck,checklist)
    rows = cur.fetchall()
+  
    if (len(rows)==0):
       newsmiles = True
       if notjson: cout += smiles + " smiles not found in smiles, calling smiles2xyz" + eoln

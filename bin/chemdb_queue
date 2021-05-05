@@ -694,6 +694,7 @@ def esmiles2entry(esmiles,vtag0):
       cmd1   = esmiles2xyz + "\"" + esmiles + "\"" + " " + xyzfile
       print("CMD1=",cmd1)
       result = subprocess.check_output(cmd1,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      print("RESULT=",result)
 
       charge   = evalnum(result.split("charge          =")[1].split("\n")[0])
       mult     = evalnum(result.split("mult            =")[1].split("\n")[0])
@@ -898,7 +899,9 @@ chemdb_queue program
   -l list entries
   -k list finished nwchem entries
   -s submit finished nwchem entries to chemdb_add_nwout
-  -a add esmiles
+  -a add esmiles to queue
+  -b add nonparsed esmiles to prequeue
+  -c add esmiles from prequeue to queue 
   -d delete queue_entry
   -e delete finished nwchem queue_entry
   -f fetch nwchem input deck
@@ -1120,9 +1123,12 @@ if (addqueue1):
       qt = {}
       adding_q = chemdb_queue_collection0.find(qt)
       for eq0 in adding_q:
+         print("eq0=",eq0)
          addesmiles = eq0['addesmiles']
          try:
+            print("addesmiles=",addesmiles)
             entry = esmiles2entry(addesmiles,vtag)
+            print("entry=",entry)
             centry = checkentry(entry)
             duplicatecount = chemdb_queue_collection.find(centry).count()
             print("duplicatecount=", duplicatecount)
@@ -1189,7 +1195,6 @@ if (runqueue):
    if ismongo:
       qqq      = chemdb_queue_collection.update(runentry,{'$inc':{'fetched':1}},upsert=False,multi=False)
    else:
-      print("RUNENTRY=",runentry)
       qp1 = chemdb_queue_collection.find_one(runentry)['fetched'] + 1
       qqn = {'fetched': qp1}
       qqq = chemdb_queue_collection.update_one(runentry,{'$set':qqn})

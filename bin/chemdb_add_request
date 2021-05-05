@@ -1,25 +1,30 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,pexpect,getopt,random,operator,subprocess,re
+import sys,os,time,pickle,math,urllib.request,pexpect,getopt,random,operator,subprocess,re
+import pymysql as MySQLdb
 from math import *
 
+
+###################### PARAMETERS ###########################
+ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
 ############## machine parameters #########################
-babel       = "/usr/bin/babel"
-esmiles2xyz = "/srv/arrows/bin/esmiles2xyz "
-wrkdir      = "/srv/arrows/Projects/Work"
+obabel       = "/usr/local/bin/obabel"
+
+esmiles2xyz = ARROWS_HOME + "/bin/esmiles2xyz "
+wrkdir      = ARROWS_HOME + "/Work"
 ddrand  = random.randint(0,999999)
 tmpsmi1 = "tmpsmi1-%d.smi" % ddrand
 tmpsmi2 = "tmpsmi2-%d.smi" % ddrand
 tmpxyz1 = "chemdb1-%d.xyz" % ddrand
 
-chemdbfile         = "/srv/arrows/bin/.chemdb-en"
-
-chemdb_balance_reaction  = "/srv/arrows/bin/chemdb_balance_reaction9f "
+chemdbfile              = ARROWS_HOME + "/bin/.chemdb-en"
+chemdb_balance_reaction = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
 
 ############## machine parameters #########################
 
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
-
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 
 def pexpect_command(pcmd,mypassword):
@@ -31,32 +36,46 @@ def pexpect_command(pcmd,mypassword):
       p=pexpect.spawn(pcmd,timeout=300)
       i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==0:
-          print "I say yes"
+          print("I say yes")
           p.sendline('yes')
           i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==1:
-          print "sending password",
+          print("sending password")
           p.sendline(mypassword)
           p.expect(pexpect.EOF)
       elif i>=2:
-          print "either received key or connection timeout"
+          print("either received key or connection timeout")
           pass
-      print p.before # print out the result
+      print(p.before) # print out the result
 
+
+##### geturlresult function ####
+#def geturlresult(url):
+#    try:
+#        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+#                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+#                                    )
+#        opener = urllib2.build_opener(proxy)
+#        urllib2.install_opener(opener)
+#        connection = urllib2.urlopen(url)
+#    except urllib2.HTTPError, e:
+#        return ""
+#    else:
+#        return connection.read().rstrip()
 
 #### geturlresult function ####
 def geturlresult(url):
-    try:
-        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib2.build_opener(proxy)
-        urllib2.install_opener(opener)
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = ""
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
+
 
 
 
@@ -71,7 +90,7 @@ def evalnum(s):
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
 
 
 periodic_table_charge = {
@@ -298,9 +317,8 @@ def cannonicalsmiles(smiles):
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
 
-      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2
-      #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ismi " + smilefile + " -ocan -O" + smilefile2
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
       ofile = open(smilefile2,'r')
@@ -324,9 +342,8 @@ def xyz2smiles(xyzfile):
    try:
       smiles = ''
       smilefile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile 
-      #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ixyz " + xyzfile + " -ocan -O" + smilefile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(smilefile,'r')
       for line in ofile:
@@ -343,9 +360,8 @@ def xyz2InChI(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile 
-      #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchi -O" + inchifile 
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -361,9 +377,8 @@ def xyz2InChIKey(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile
-      #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchikey -O" + inchifile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -383,30 +398,11 @@ def cactus_smiles2xyz(smiles):
     result = geturlresult("http://cactus.nci.nih.gov/chemical/structure/%s/file?format=xyz&get3d=True" % tsmiles)
     return result
 
-##### smiles2xyz function ####
-#def smiles2xyz(smiles,xyzfile):
-#   eoln = "\n"
-#   smilefile = wrkdir + "/"+tmpsmi1
-#   ofile = open(smilefile,'w')
-#   ofile.write(smiles); ofile.write(eoln)
-#   ofile.close()
-#   cmd6 = babel + " --gen3d -ismi " + smilefile + " -oxyz " + xyzfile + " >& " + wrkdir + "/junk.err"
-#   os.system(cmd6)
-#
-#   #### if nan's are produced then use cactus smiles2xyz rest interface ####
-#   with open(xyzfile,'r') as ff:
-#      test = ff.read()
-#   if "nan" in test:
-#      xyzdata = cactus_smiles2xyz(smiles)
-#      with open(xyzfile,'w') as ff:
-#         ff.write(xyzdata)
-
 
 #### smiles2xyz function ####
 def smiles2xyz(smiles,xyzfile):
    cmd6 = esmiles2xyz + ' "' + smiles.strip() + '" ' +xyzfile
-   #os.system(cmd6)
-   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
    #### if nan's are produced then use cactus smiles2xyz rest interface ####
    with open(xyzfile,'r') as ff:
@@ -430,9 +426,8 @@ def smiles2InChI(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile
-      #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchi -O" + inchifile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -453,9 +448,8 @@ def smiles2InChIKey(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile
-      #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchikey -O" + inchifile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -529,7 +523,7 @@ def xyz_molecular_formula(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -592,13 +586,14 @@ Remote chemdb_add_request mysql  program
 
 #Database defaults
 hup    = hup0
-dbfile = "TNT_Project"
+#dbfile = "TNT_Project"
+dbfile = dbfile0
 table  = "requests"
 
 nwmachine  = archivemachine
 nwpassword = archivepassword
 
-print "chemdb_add_request mysql version"
+print("chemdb_add_request mysql/sqlite3 version")
 tt = time.localtime()
 gt = time.gmtime()
 dd = "-%d-%d-%d-%d:%d.%d" % (tt[0],tt[1],tt[2],tt[3],tt[4],tt[5])
@@ -620,24 +615,24 @@ for o, a in opts:
   if '-p' in o:
      nwpassword = a
   if o in ("-x","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1):
-   print usage
+   print(usage)
    exit()
 
 esmiles = args[0]
 
 if (hup=='sqlite3'):
    issqlite3 = True
-   print "sqlite3 db file =",dbfile
+   print("sqlite3 db file =",dbfile)
 else:
    issqlite3 = False
-   print "mysql db        =",dbfile
+   print("mysql db        =",dbfile)
 
-print "table name      =",table
-print "esmiles =",esmiles
+print("table name      =",table)
+print("esmiles =",esmiles)
 
 
 xyzfile   = wrkdir + "/" + tmpxyz1
@@ -771,7 +766,7 @@ if (reaction_hash=='') and ('reaction_genhash{' in esmiles):
          reaction_genhash += cc
          i += 1
    cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash + "\""
-   result9 = subprocess.check_output(cmd9,shell=True)
+   result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
    if "bstringsall =" in result9:
       bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
       reaction_hash = bstringsall[0][3]
@@ -794,7 +789,7 @@ if (basisHZ_property==''):  basisHZ_property = basisHZ
 hasHZ = inchihasHZ(InChI2) and (basis!="semiempirical") and (theory!='pspw') and (theory!='pspw4') and (theory!='paw')
 notonlyHZ = (not inchionlyHZ(InChI2)) or (basis=="semiempirical") or (theory=='pspw') or (theory=='pspw4') or (theory=='paw')
 
-print "HASHZ = ",hasHZ, " inchi=",InChI
+print("HASHZ = ",hasHZ, " inchi=",InChI)
 
 
 #smiles = xyz2smiles(xyzfile)
@@ -836,40 +831,40 @@ if (theory_base!=''): esmiles += " theory_base{%s}" % theory_base
 if (xc_base!=''):     esmiles += " xc_base{%s}" % xc_base
 if (basis_base!=''):  esmiles += " basis_base{%s}" % basis_base
 if ((hasHZ) and (basisHZ_base!='')): esmiles += " basisHZ_base{%s}" % basis_base
-print 
-print "iupac                              =",iupac
-print "mformula                           =",mformula
-print "InChI                              =",InChI
-print "InChIKey                           =",InChIKey
-print "smiles                             =",smiles
-print "cannonical smiles                  =",csmiles
-print "extended smiles                    =",esmiles
-print "program                            = ",program
-print "theory                             = ",theory
-print "xc                                 = ",xc
-if (notonlyHZ): print "basis                              = ",basis
-if (hasHZ):     print "basisHZ                              = ",basisHZ
-if (theory_base!=''): print "theory_base                        = ",theory_base
-if (xc_base!=''):     print "xc_base                            = ",xc_base
-if (basis_base!=''):  print "basis_base                         = ",basis_base
-if ((hasHZ) and (basisHZ_base!='')): print "basis_base                         = ",basis_base
-print "theory_property                    = ",theory_property
-print "xc_property                        = ",xc_property
-if (notonlyHZ): print "basis_property                     = ",basis_property
-if (hasHZ):    print "basisHZ_property                     = ",basisHZ_property
-print "charge,mult                        = ",charge,mult
-print "solvation type                     =",solvation_type
-print "calculation type                   =",calculation_type
+print()
+print("iupac                              =",iupac)
+print("mformula                           =",mformula)
+print("InChI                              =",InChI)
+print("InChIKey                           =",InChIKey)
+print("smiles                             =",smiles)
+print("cannonical smiles                  =",csmiles)
+print("extended smiles                    =",esmiles)
+print("program                            = ",program)
+print("theory                             = ",theory)
+print("xc                                 = ",xc)
+if (notonlyHZ): print("basis                              = ",basis)
+if (hasHZ):     print("basisHZ                              = ",basisHZ)
+if (theory_base!=''): print("theory_base                        = ",theory_base)
+if (xc_base!=''):     print("xc_base                            = ",xc_base)
+if (basis_base!=''):  print("basis_base                         = ",basis_base)
+if ((hasHZ) and (basisHZ_base!='')): print("basis_base                         = ",basis_base)
+print("theory_property                    = ",theory_property)
+print("xc_property                        = ",xc_property)
+if (notonlyHZ): print("basis_property                     = ",basis_property)
+if (hasHZ):     print("basisHZ_property                     = ",basisHZ_property)
+print("charge,mult                        = ",charge,mult)
+print("solvation type                     =",solvation_type)
+print("calculation type                   =",calculation_type)
 
 if reaction_hash !='': 
-    print "reaction_hash                      = ",reaction_hash
+    print("reaction_hash                      = ",reaction_hash)
     if reaction_gamma=='':
        reaction_gamma = 0.0
 if reaction_gamma!='': 
-   print "reaction_gamma                     = ",reaction_gamma
+   print("reaction_gamma                     = ",reaction_gamma)
    if reaction_kappa=='':
       reaction_kappa = 1.0
-if reaction_kappa!='': print "reaction_kappa                     = ",reaction_kappa
+if reaction_kappa!='': print("reaction_kappa                     = ",reaction_kappa)
 
 sqlinsert = "insert into " + table 
 sqlinsert += " (iupac,mformula,InChI,InChIKey,smiles,csmiles,esmiles,program,"
@@ -990,8 +985,8 @@ checklist.append(calculation_type)
 
 inserting = (smiles!='')
 
-print "len=",len(insertlist)
-print "sqlinsert=",sqlinsert
+print("len=",len(insertlist))
+print("sqlinsert=",sqlinsert)
 
 if (issqlite3):
    dbcon = sqlite3.connect(dbfile)
@@ -999,40 +994,39 @@ else:
    host = hup.split()[0]
    user = hup.split()[1]
    pss = hup.split()[2]
-   dbcon = MySQLdb.connect(host,user,pss,dbfile)
-   #dbcon = MySQLdb.connect('192.168.1.17','bylaska','bridge1port',dbfile)
+   dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
 with dbcon:
    cur = dbcon.cursor()
    cur.execute(sqlcheck,checklist)
    row = cur.fetchone()
-   print 'row=',row
+   print('row=',row)
    duplicate = (row[0]>0)
    if ((not duplicate) and (inserting)):
-       print "inserting into " + table
+       print("inserting into " + table)
        cur.execute(sqlinsert,insertlist)
 dbcon.close()
 
-print "duplicate=",duplicate
+print("duplicate=",duplicate)
 if (inserting) and (not duplicate):
-    print "Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,theory,xc,basis,charge,mult,solvation_type,calculation_type
+    print("Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,theory,xc,basis,charge,mult,solvation_type,calculation_type)
 else:
-    print "Not Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,theory,xc,basis,charge,mult,solvation_type,calculation_type
+    print("Not Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,theory,xc,basis,charge,mult,solvation_type,calculation_type)
 
-print
-print
+print()
+print()
 
 try:
    os.unlink(wrkdir + "/" + tmpsmi1)
 except:
-   print "chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpsmi1
+   print("chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpsmi1)
 
 try:
    os.unlink(wrkdir + "/" + tmpsmi2)
 except:
-   print "chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpsmi2
+   print("chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpsmi2)
 
 try:
    os.unlink(wrkdir + "/" + tmpxyz1)
 except:
-   print "chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpxyz1
+   print("chemdb_add_requested failed to unlink " + wrkdir + "/" + tmpxyz1)

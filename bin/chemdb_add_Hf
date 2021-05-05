@@ -1,21 +1,26 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,pexpect,getopt,random,operator
+import sys,os,time,pickle,math,urllib.request,pexpect,getopt,random,operator
+import pymysql as MySQLdb
 from math import *
 
+###################### PARAMETERS ###########################
+ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
 ############## machine parameters #########################
-babel      = "/usr/bin/babel"
-obabel     = "/usr/bin/obabel "
-wrkdir     = "/srv/arrows/Projects/Work"
-chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+#babel      = "/usr/bin/babel"
+obabel     = "/usr/local/bin/obabel "
+
+wrkdir     = ARROWS_HOME + "/Work"
+chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
 ddrand = random.randint(0,999999)
 tmpsmi1 = "tmpsmi1-%d.smi" % ddrand
 tmpsmi2 = "tmpsmi2-%d.smi" % ddrand
 tmpxyz1 = "tmpxyz1-%d.xyz" % ddrand
 ############## machine parameters #########################
 
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
-
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 
 periodic_table_charge = {
@@ -141,36 +146,49 @@ def pexpect_command(pcmd,mypassword):
       p=pexpect.spawn(pcmd,timeout=300)
       i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==0:
-          print "I say yes"
+          print("I say yes")
           p.sendline('yes')
           i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
       if i==1:
-          print "sending password",
+          print("sending password")
           p.sendline(mypassword)
           p.expect(pexpect.EOF)
       elif i>=2:
-          print "either received key or connection timeout"
+          print("either received key or connection timeout")
           pass
-      print p.before # print out the result
+      print(p.before) # print out the result
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
 
+
+##### geturlresult function ####
+#def geturlresult(url):
+#    try:
+#        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+#                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+#                                    )
+#        opener = urllib2.build_opener(proxy)
+#        urllib2.install_opener(opener)
+#        connection = urllib2.urlopen(url)
+#    except urllib2.HTTPError, e:
+#        return ""
+#    else:
+#        return connection.read().rstrip()
 
 #### geturlresult function ####
 def geturlresult(url):
-    try:
-        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib2.build_opener(proxy)
-        urllib2.install_opener(opener)
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = ""
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
 
 
 #############################################
@@ -247,7 +265,7 @@ def smiles2ascii(smiles):
       ascii = ""
       for ss in smiles.split('.'):
          cmd = obabel + ' --gen3d -:\"' + ss.strip() + '\" -oascii'
-         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          ascii  += result.replace("1 molecule converted","").rstrip() + "\n"
    except:
       ascii = ""
@@ -543,9 +561,9 @@ def xyz_molecular_formula(xyzfilename):
 #
 usage = \
 """
-Remote chemdb_add_Hf mysql  program
+chemdb_add_Hf mysql/sqlite3  program
 
-  Usage: chemdb_add_request -h hup_string -d database -t table -m nwmachine -p nwpasswrd esmiles 
+  Usage: chemdb_add_Hf -h hup_string -d database -t table -m nwmachine -p nwpasswrd esmiles 
 
   where esmiles = smiles Hf{13.4 kcal/mol} phase{g} method{Eric's experiment} reference{harry's article} ^{0} mult{1}
 
@@ -563,10 +581,11 @@ Remote chemdb_add_Hf mysql  program
 
 #Database defaults
 hup    = hup0
-dbfile = "TNT_Project"
+#dbfile = "TNT_Project"
+dbfile = dbfile0
 heat_formation_table = "heats_of_formation"
 
-print "chemdb_add_Hf mysql version"
+print("chemdb_add_Hf mysql/sqlite3 version")
 tt = time.localtime()
 dd = "-%d-%d-%d-%d:%d.%d" % (tt[0],tt[1],tt[2],tt[3],tt[4],tt[5])
 
@@ -586,24 +605,24 @@ for o, a in opts:
   if '-l' in o:
      listall = True
   if o in ("-x","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1):
-   print usage
+   print(usage)
    exit()
 
 esmiles = addspaces_esmiles(args[0].strip())
 
 if (hup=='sqlite3'):
    issqlite3 = True
-   print "sqlite3 db file =",dbfile
+   print("sqlite3 db file =",dbfile)
 else:
    issqlite3 = False
-   print "mysql db        =",dbfile
+   print("mysql db        =",dbfile)
 
-print "table name      =",heat_formation_table
-print "esmiles =",esmiles
+print("table name      =",heat_formation_table)
+print("esmiles =",esmiles)
 
 
 if (listall):
@@ -613,7 +632,7 @@ if (listall):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
 
    sqlist = "select iupac,mformula,InChI,InChIKey,smiles,csmiles,esmiles,synonyms,"
    sqlist += "cid,cas,kegg,charge,mult,Hf,phase,method,reference "
@@ -623,8 +642,7 @@ if (listall):
       cur.execute(sqlist)
       rows = cur.fetchall()
       for row in rows:
-         print row[1]," ",row[0]," ",row[13], " ",row[14]," ", row[6]," ",row[15]," ",row[16]
-   dbcon.close()
+         print(row[1]," ",row[0]," ",row[13], " ",row[14]," ", row[6]," ",row[15]," ",row[16])
    exit()
 
 
@@ -644,8 +662,8 @@ if 'method'    in esmiles: method = esmiles.split('method{')[1].split('}')[0]
 if 'reference' in esmiles: reference = esmiles.split('reference{')[1].split('}')[0]
 
 if (Hfunit==None):
-   print "No Heat of formation entered, exiting."
-   print usage
+   print("No Heat of formation entered, exiting.")
+   print(usage)
    exit()
 
 mult_test  = smiles2mult(smiles,charge)
@@ -697,23 +715,23 @@ if (charge==+2): iupac += " dication"
 if (charge==+3): iupac += " trication"
 if (charge==+4): iupac += " tetracation"
 
-print 
-print "iupac                              =",iupac
-print "mformula                           =",mformula
-print "InChI                              =",InChI
-print "smiles                             =",smiles
-print "cannonical smiles                  =",csmiles
-print "extended smiles                    =",esmiles
-print "synonyms                           =",synonyms
-print "cid                                =",cid
-print "cas                                =",cas
-print "kegg                               =",kegg
-print "charge,mult                        =",charge,mult
-print "Hfunit                             =",Hfunit
-print "Hf                                 =",Hf, " au"
-print "phase                              =",phase
-print "method                             =",method
-print "reference                          =",reference
+print()
+print("iupac                              =",iupac)
+print("mformula                           =",mformula)
+print("InChI                              =",InChI)
+print("smiles                             =",smiles)
+print("cannonical smiles                  =",csmiles)
+print("extended smiles                    =",esmiles)
+print("synonyms                           =",synonyms)
+print("cid                                =",cid)
+print("cas                                =",cas)
+print("kegg                               =",kegg)
+print("charge,mult                        =",charge,mult)
+print("Hfunit                             =",Hfunit)
+print("Hf                                 =",Hf, " au")
+print("phase                              =",phase)
+print("method                             =",method)
+print("reference                          =",reference)
 
 sqlinsert = "insert into " + heat_formation_table
 sqlinsert += " (iupac,mformula,InChI,InChIKey,smiles,csmiles,esmiles,synonyms,"
@@ -760,47 +778,41 @@ else:
    host = hup.split()[0]
    user = hup.split()[1]
    pss = hup.split()[2]
-   dbcon = MySQLdb.connect(host,user,pss,dbfile)
+   dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
    
 
 with dbcon:
    cur = dbcon.cursor()
    cur.execute(sqlcheck,checklist)
    row = cur.fetchone()
-   print 'row=',row
+   print('row=',row)
    duplicate = (row[0]>0)
    if (not duplicate):
-       print "inserting into " + heat_formation_table
+       print("inserting into " + heat_formation_table)
        cur.execute(sqlinsert,insertlist)
-dbcon.close()
 
-print "duplicate=",duplicate
+print("duplicate=",duplicate)
 if (not duplicate):
-    print "Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",charge,mult,Hf," method=",method," reference=",reference
+    print("Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",charge,mult,Hf," method=",method," reference=",reference)
 else:
-    print "Not Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",charge,mult,Hf," method=",method," reference=",reference
+    print("Not Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",charge,mult,Hf," method=",method," reference=",reference)
 
-print
-print
+print()
+print()
 
 ### remove temporary wrkdir files ###
 try:
    os.unlink(wrkdir + "/"+tmpsmi1)
 except:
-   print "chemdb_add_Hf Failed to remove " + wrkdir + "/"+ tmpsmi1
+   print("chemdb_add_Hf Failed to remove " + wrkdir + "/"+ tmpsmi1)
 
 try:
    os.unlink(wrkdir + "/"+tmpsmi2)
 except:
-   print "chemdb_add_Hf Failed to remove " + wrkdir + "/"+ tmpsmi2
+   print("chemdb_add_Hf Failed to remove " + wrkdir + "/"+ tmpsmi2)
 
 try:
    os.unlink(wrkdir + "/"+tmpxyz1)
 except:
-   print "chemdb_add_Hf Failed to remove " + wrkdir + "/"+ tmpxyz1
-
-
-
-
-
+   print("chemdb_add_Hf Failed to remove " + wrkdir + "/"+ tmpxyz1)
 

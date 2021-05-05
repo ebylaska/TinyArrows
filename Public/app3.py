@@ -2274,6 +2274,9 @@ def index():
 
 @app.route('/api/queue_nwchem/', methods=['GET'])
 def list_queue_nwchem():
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-l'
@@ -2281,6 +2284,8 @@ def list_queue_nwchem():
       calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       calcs = "arrows queue not found\n"
+  
+   htmlfile1 = templatedir + "/"+name
 
    html = "<html>\n"
    html += ArrowsHeader
@@ -2288,11 +2293,16 @@ def list_queue_nwchem():
    html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data = render_template(name)
+   return data
 
 
 @app.route('/api/queue_nwchem_html/', methods=['GET'])
 def list_queue_nwchem_html():
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-l'
@@ -2301,6 +2311,7 @@ def list_queue_nwchem_html():
    except:
       calcs = "arrows queue not found\n"
 
+   htmlfile1 = templatedir + "/"+name
 
    html = "<html>\n"
    html += ArrowsHeader
@@ -2310,16 +2321,16 @@ def list_queue_nwchem_html():
       if (len(ss)==0):
          html +=  ln + "\n"
       elif ss[0].isdigit():
-         restln = ln.split(ss[0])[1]
+         restln = " " + ln.strip().split(' ',1)[1]
          try:
             stime = ((time.time() - evalnum(restln.split()[-1])) > 2592000.0)  # approximately 30 days
          except:
             stime = True
          stime = stime or ("aerosol" in ln)
          isfinished = "yes" in restln.split()[1]
-         link   = "https://arrows.emsl.pnnl.gov/api/queue_nwchem_view/"+ss[0]
-         zzip   = "https://arrows.emsl.pnnl.gov/api/queue_nwchem_zip/"+ss[0]
-         dentr  = "https://arrows.emsl.pnnl.gov/api/queue_nwchem_delete/"+ss[0]
+         link   = ARROWS_API_HOME + "queue_nwchem_view/"+ss[0]
+         zzip   = ARROWS_API_HOME + "queue_nwchem_zip/"+ss[0]
+         dentr  = ARROWS_API_HOME + "queue_nwchem_delete/"+ss[0]
          hlink  = "<a href=\"" + link + "\">%s</a> " % ss[0]
          zlink  = "<a href=\"" + zzip + "\">%s</a>" % ("(zip)")
          zlink2 = "     "
@@ -2342,11 +2353,16 @@ def list_queue_nwchem_html():
    #html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data = render_template(name)
+   return data
 
 
 @app.route('/api/queue_nwchem_check/<qname>', methods=['GET'])
 def list_queue_nwchem_check(qname):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-l'
@@ -2355,6 +2371,7 @@ def list_queue_nwchem_check(qname):
    except:
       calcs = "arrows queue not found\n"
 
+   htmlfile1 = templatedir + "/"+name
 
    html = "<html>\n"
    if ("qsharp" in qname):
@@ -2400,11 +2417,9 @@ def list_queue_nwchem_check(qname):
    #html += calcs
    html += "</pre> </html>"
 
-   return html
-
-
-
-
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data = render_template(name)
+   return data
 
 
 
@@ -2438,6 +2453,9 @@ def add_queue_nwchem(filename):
 
 @app.route('/api/queue_nwchem_fetch/<jobid>', methods=['GET'])
 def fetch_queue_nwchem(jobid):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-f ' + jobid
@@ -2458,6 +2476,7 @@ def fetch_queue_nwchem(jobid):
    except:
       print("LOOKing for bad files!")
 
+   htmlfile1 = templatedir + "/"+name
 
    html = "<html>\n"
    html += ArrowsHeader
@@ -2465,11 +2484,16 @@ def fetch_queue_nwchem(jobid):
    html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data = render_template(name)
+   return data
 
 
 @app.route('/api/queue_nwchem_view/<jobid>', methods=['GET'])
 def view_queue_nwchemw(jobid):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-q ' + jobid
@@ -2490,6 +2514,7 @@ def view_queue_nwchemw(jobid):
    except:
       print("LOOKing for bad files!")
 
+   htmlfile1 = templatedir + "/"+name
 
    html = "<html>\n"
    html += ArrowsHeader
@@ -2497,7 +2522,9 @@ def view_queue_nwchemw(jobid):
    html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data = render_template(name)
+   return data
 
 
 @app.route('/api/queue_nwchem_zip/<jobid>', methods=['GET'])
@@ -2562,6 +2589,9 @@ def zip_queue_nwchem(jobid):
 
 @app.route('/api/queue_nwchem_delete/<jobid>', methods=['GET'])
 def delete_queue_nwchem(jobid):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue_nwchem + '-d ' + jobid
@@ -2570,16 +2600,23 @@ def delete_queue_nwchem(jobid):
    except:
       calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
 
+   htmlfile1 = templatedir + "/"+name
+
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data = render_template(name)
+   return data
 
 @app.route('/api/queue_nwchem_reset/<esmiles>', methods=['GET'])
 def queue_nwchem_add_reset(esmiles):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       esmiles = esmiles.replace("\"",'')
@@ -2590,13 +2627,18 @@ def queue_nwchem_add_reset(esmiles):
       result = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
       result = "queue_nwchem_reset = " + esmiles + " was not added to arrows queue.\n"
+
+   htmlfile1 = templatedir + "/"+name
+
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    html += result
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data = render_template(name)
+   return data
 
 
 
@@ -3237,7 +3279,7 @@ def arrows_periodic_draw_form():
    calcs = arrowsjobsrun()
    molcalcs = calculationscount()
    avisits = apivisited()
-   return render_template("Periodic-arrows.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("Periodic-arrows.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 @app.route('/api/periodic', methods=['POST'])
 def arrows_periodic_draw_post():

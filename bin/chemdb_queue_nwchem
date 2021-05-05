@@ -392,7 +392,7 @@ if (addqueue):
       #queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue_nwchem'})['count']
       #qqq = qnumber_collection.update({'queue':'chemdb_queue_nwchem'},{'$inc':{'count':1}},upsert=False,multi=False)
       if (qnumber_collection.find({'queue':'chemdb_queue_nwchem'}).count()>0):
-         queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue'})['count']
+         queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue_nwchem'})['count']
       else:
          queue_number00 = 1
          qqq = qnumber_collection.insert({'queue':'chemdb_queue_nwchem', 'count':1})
