@@ -53,12 +53,14 @@ nwpythonlib    = "/bin/nwpythonlib.py"
 obabel         = "/usr/local/bin/obabel "
 obrotamer       = "/usr/local/bin/obrotamer"
 
+chemdb_balance_reaction  = ARROWS_HOME + "/bin/chemdb_balance_reaction9f --arrows_api=" + ARROWS_API_HOME
+chemdb_queue             = ARROWS_HOME + "/bin/chemdb_queue --arrows_api=" + ARROWS_API_HOME
+
+solvatedsolute_esmiles   = ARROWS_HOME + "/bin/solvatedsolute_esmiles "
+
 esmiles2xyz              = ARROWS_HOME + "/bin/esmiles2xyz "
 esmilespmf2xyz           = ARROWS_HOME + "/bin/esmilespmf2xyz "
-chemdb_balance_reaction  = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
 remote_nwchem            = ARROWS_HOME + "/bin/submit_nwchem3"
-chemdb_queue             = ARROWS_HOME + "/bin/chemdb_queue "
-solvatedsolute_esmiles   = ARROWS_HOME + "/bin/solvatedsolute_esmiles "
 
 wrkdir     = ARROWS_HOME + "/Work"
 submitdir0 = ARROWS_HOME + "/TNTQ" 
