@@ -8,7 +8,8 @@ from math import *
 
 
 ############## machine parameters #########################
-ARROWS_HOME = '/Users/bylaska/Public/TinyArrows'
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
@@ -8322,7 +8323,8 @@ chemdb fetch reactions program
   -q requests_table = "name of requests_table"
   -f view frequencies
   -e submit missing esmiles
-  -h prints this message
+  --arrows_api=url change location of arrows api  url
+  --help prints this message
 
 """
 
@@ -8340,34 +8342,38 @@ nmr_scaling_table = "nmr_scaling"
 nmr_experiments_table = "nmr_experiments"
 heat_formation_table = "heats_of_formation"
 
-print("chemdb_fetch_reactions5 mysql version")
 tt      = time.localtime()
 
 viewfreq              = False
 submitmissingesmiles1 = False
-opts, args = getopt.getopt(sys.argv[1:], "h:d:t:n:q:efh")
+opts, args = getopt.getopt(sys.argv[1:], "h:d:t:n:q:ef",['help','arrows_api='])
 for o, a in opts:
-  if '-h' in o:
+  if o=='-h':
      hup = a
-  if '-d' in o:
+  if o=='-d':
      dbfile = a
-  if '-t' in o:
+  if o=='-t':
      table = a
-  if '-q' in o:
+  if o=='-q':
      requests_table = a
-  if '-n' in o:
+  if o=='-n':
      nmr_table = a
-  if '-f' in o:
+  if o=='-f':
      viewfreq = True
-  if '-e' in o:
+  if o=='-e':
      submitmissingesmiles1 = True
-  if o in ("-h","--help"):
+  if o=='--arrows_api':
+     ARROWS_API_HOME = a
+
+  if o in ("--help"):
     print(usage)
     exit()
 
 if (len(args)<3): 
    print(usage)
    exit()
+
+print("chemdb_fetch_reactions5 - mysql/sqlite3 version - arrows_api url=",ARROWS_API_URL)
 print(args[0])
 print(args[1])
 
