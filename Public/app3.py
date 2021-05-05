@@ -4,8 +4,12 @@ from flask import abort
 from werkzeug.utils import secure_filename
 import os,subprocess,urllib,time,random,requests,zipfile,math,yaml
 
-ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+###################### ARROWS Locations #######################
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
 ARROWS_API_HOME = 'http://localhost:5000/api/'
+###################### ARROWS Locations #######################
 
 #UPLOAD_FOLDER = '/tmp/'
 UPLOAD_FOLDER = ARROWS_HOME + '/Public/uploads/'
