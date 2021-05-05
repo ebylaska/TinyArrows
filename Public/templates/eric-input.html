@@ -2405,8 +2405,8 @@ ul, li {
 
 
         function submit_nwchemjob2() {
-           var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
+           var arrows_post_url = '{{ arrows_api }}upload/';
+           var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
            var textToSave0 = editor.getValue();
            var textToSave  = textToSave0
 
@@ -3606,8 +3606,8 @@ ul, li {
         }
 
         function solvateurltojsmol() {
-           var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
+           var arrows_post_url = '{{ arrows_api }}upload/';
+           var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
            document.getElementById('runmebanner4b').innerHTML= "Solvation calculation started.";
 
            var xyz = jmvar("data({1.1},\"xyz\")").trim();
@@ -3679,7 +3679,7 @@ ul, li {
 
 
         function arrows_fetchsmiles(url) {
-           url2 = "https://arrows.emsl.pnnl.gov/api/esmiles/\"" + url.trim() + "\"" ;
+           url2 = "{{ arrows_api }}esmiles/\"" + url.trim() + "\"" ;
            console.log(url2);
 
            var ajax2 = new XMLHttpRequest();
@@ -3721,9 +3721,9 @@ ul, li {
                 x = 1;
               }
               if (url.indexOf("http") == -1) {
-                 url2 = "https://arrows.emsl.pnnl.gov/api/esmiles2xyz/\"" + url + "\"" ;
+                 url2 = "{{ arrows_api }}esmiles2xyz/\"" + url + "\"" ;
                  //url  = "https://arrows.emsl.pnnl.gov/api/xyz/\"" + url + "\"" ;
-                 url  = "https://arrows.emsl.pnnl.gov/api/mol/\"" + url + "\"" ;
+                 url  = "{{ arrows_api }}mol/\"" + url + "\"" ;
               }
               console.log(url);
               if (url.trim().length>9) {
@@ -3929,7 +3929,7 @@ ul, li {
            var smiles = prompt("Please enter smiles:", "CCO");
            if (smiles.includes("http")) {
               alert("Running OSRA for " + smiles);
-              var url = "https://arrows.emsl.pnnl.gov/api/osra/'" + smiles + "'";
+              var url = "{{ arrows_api }}osra/'" + smiles + "'";
               var ajax = new XMLHttpRequest();
               ajax.onload = functionName;
               ajax.onerror = errorFunctionName;
@@ -7532,8 +7532,8 @@ ul, li {
         }
 
         function gen_reactions1() {
-           var arrows_post_url = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
            var mol = exMod().replace('{','').replace('}','');
            var reaction_hash0 = document.getElementById("reaction_hash").value;
            var mollist = mol.split("\n");
@@ -7677,8 +7677,8 @@ ul, li {
         }
 
         function gen_rhash1() {
-           var arrows_post_url = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
 
            var reaction_type = document.getElementById("reaction_type").value;
            var reaction_indexes = document.getElementById("reaction_indexes").value;
@@ -7765,8 +7765,8 @@ ul, li {
         }
 
         function gen_rhash2() {
-           var arrows_post_url0 = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url0 = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
            var reaction = document.getElementById("reaction_genhash00").value;
            if (reaction.trim().length>5) {
               var mol = "reaction_genhash{"+reaction+"}\n";
@@ -7807,8 +7807,8 @@ ul, li {
 
         function gen_bondings() {
            console.log("In gen_bondings");
-           var arrows_post_url = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
            var mol = exMod().replace('{','').replace('}','');
            var reaction_type    = document.getElementById("reaction_type").value;
            var reaction_indexes = document.getElementById("reaction_indexes").value;
@@ -7907,8 +7907,8 @@ ul, li {
         }
 
         function gen_reaction_path() {
-           var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
+           var arrows_post_url = '{{ arrows_api }}upload/';
+           var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
 
            var bondings = document.getElementById("reaction_bondings").value
            console.log("bondings=",bondings);
@@ -8292,9 +8292,9 @@ ul, li {
 </div-->
 
 <div class="linkbanner">
-   <a href="http://localhost:5000/api"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
-<a href="http://localhost:5000/api/periodic">3D Periodic Editor</a> &nbsp;
-   <a href="http://localhost:5000/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="http://localhost:5000/api/expert">Expert Editor</a> &nbsp;   <a href="http://localhost:5000/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="http://localhost:5000/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
+   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="{{ arrows_api }}periodic">3D Periodic Editor</a> &nbsp;
+   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Expert Editor</a> &nbsp;   <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
 </div>
 
 
@@ -8388,7 +8388,7 @@ ul, li {
        <input type="text" name="Label" id="queue_nwchem_label" size=45> 
     QWAIT:: <input type="text" name="Label" id="queue_wait_label">
     <input type="button" VALUE="Submit NWChem" onClick="submit_nwchemjob2()" title="Submit NWChem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-    <a href="https://arrows.emsl.pnnl.gov/api/queue_nwchem_check/nwchem">Check submited NWChem jobs</a>
+    <a href="{{ arrows_api }}queue_nwchem_check/nwchem">Check submited NWChem jobs</a>
     <br>
     <section class="marquee" style="color: red"> <b id="runmebanner3"> </b> </section>
     <section class="marquee" style="color: black"> <b id="runmebanner3b"> </b> </section>
@@ -9278,7 +9278,7 @@ ul, li {
     <h2>Enter an <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>, <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#ESMILES_Reactions_-_How_to_Calculate_Reaction_Energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
 
 
-    <form action="https://arrows.emsl.pnnl.gov/api/" id="JSMol-arrows-form" name="form" target="iframe_output" method="POST">
+    <form action="{{ arrows_api }}" id="JSMol-arrows-form" name="form" target="iframe_output" method="POST">
        <table>
           <tr>
              <!--td> <input type="text" name="smi" SIZE=120> </td-->
@@ -9432,7 +9432,7 @@ ul, li {
 
 
    <h2>Enter an <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>, <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#ESMILES_Reactions_-_How_to_Calculate_Reaction_Energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
-    <form action="https://arrows.emsl.pnnl.gov/api/" id="JSME-arrows-form" name="form2" target="iframe_output"  method="POST">
+    <form action="{{ arrows_api }}" id="JSME-arrows-form" name="form2" target="iframe_output"  method="POST">
        <table>
           <tr>
              <td> <input type="text" name="smi" SIZE=120 onkeydown="if (event.keyCode == 13) Confirm(this.form,2)"> </td>
@@ -10067,10 +10067,10 @@ function submit_cell(cell) {
    //var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'OC(O)C(O)OC(O)C(O)O --> OC1OC(O)C(O)OC1O + O ~ theory{pspw4} parse_output{hrxn(gas)}'";
    var arrows_get_url;
    if (reaction_str.includes("-->")) {
-      arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'" + reaction_str + "'";
+      arrows_get_url  = "{{ arrows_api }}reaction/'" + reaction_str + "'";
    } else {
       reaction_str = reaction_str.replace("~","");
-      arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/molecule/'" + reaction_str + "'";
+      arrows_get_url  = "{{ arrows_api }}molecule/'" + reaction_str + "'";
    }
    document.getElementById('runmebanner4c').innerHTML= "Arrows calculation started for " + reaction_str + " at " + cell[0];
    Text2Speech0("Arrows calculation started for cell " + cell[0]);
@@ -10465,8 +10465,8 @@ function queue_entry_clear() {
 }
 
 function queue_upload_files0(cur,filelist) {
-   var arrows_post_url  = "https://arrows.emsl.pnnl.gov/api/upload/";
-   var arrows_get_url   = "https://arrows.emsl.pnnl.gov/api/submit_output_nwchem/"
+   var arrows_post_url  = "{{ arrows_api }}upload/";
+   var arrows_get_url   = "{{ arrows_api }}submit_output_nwchem/"
    var nlist = filelist.length;
    if (cur<nlist) {
       filelist[cur].type = "text/plain";
@@ -10528,7 +10528,7 @@ function queue_upload_files0(cur,filelist) {
 function queue_upload_files() { queue_upload_files0(0,window.uploadFileList); }
 
 function queue_entry_download(qentry,qsecret) {
-   var arrows_queue_fetch_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_fetch/'
+   var arrows_queue_fetch_url  = '{{ arrows_api }}queue_nwchem_fetch/'
    var qq = qentry;
    if (qsecret.trim().length > 0) {
      qq += "_" + qsecret.trim();
@@ -10583,7 +10583,7 @@ function queue_nwchem_filter(text) {
          if (lines[i].includes(mt)) {
             var ll = lines[i].trim();
             var qentry   = ll.split("</a>")[0].split(">")[1];
-            var hreplace = "https://arrows.emsl.pnnl.gov/api/queue_nwchem_view/" + qentry;
+            var hreplace = "{{ arrows_api }}queue_nwchem_view/" + qentry;
             ll = ll.replace(hreplace,"javascript:queue_entry_set("+qentry+");");
             text2 += ll + "\n";
          }
@@ -10594,7 +10594,7 @@ function queue_nwchem_filter(text) {
 }
 
 function queue_nwchem_fetch() {
-   var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_check/nwchem';
+   var arrows_get_url  = '{{ arrows_api }}queue_nwchem_check/nwchem';
    var request = new XMLHttpRequest();
    request.open('GET', arrows_get_url, true);
    request.onload = function (e) {
