@@ -2755,7 +2755,7 @@ def arrows_draw_form():
    calcs = arrowsjobsrun()
    molcalcs = calculationscount()
    avisits = apivisited()
-   return render_template("JSME-arrows.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("JSME-arrows.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 @app.route('/api/', methods=['POST'])
 def arrows_draw_post():
@@ -2866,7 +2866,7 @@ def arrows_reaction_draw_form():
    calcs = arrowsjobsrun()
    molcalcs = calculationscount()
    avisits = apivisited()
-   return render_template("JSME-arrows-rxn.html", calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("JSME-arrows-rxn.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 @app.route('/api/rxn', methods=['POST'])
 def arrows_reaction_draw_post():
@@ -3072,7 +3072,7 @@ def arrows_qsharp_chem_draw_form():
    calcs = arrowsjobsrun()
    molcalcs = calculationscount()
    avisits = apivisited()
-   return render_template("Qsharp-chem-arrows.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("Qsharp-chem-arrows.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 
 @app.route('/api/qsharp_chem', methods=['POST'])
@@ -3176,7 +3176,7 @@ def arrows_expert_draw_form():
    calcs = arrowsjobsrun()
    molcalcs = calculationscount()
    avisits = apivisited()
-   return render_template("Expert-arrows.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("Expert-arrows.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 
 @app.route('/api/expert', methods=['POST'])
@@ -3496,7 +3496,7 @@ def arrows_aerosol_draw_form():
    calcs = arrowsjobsrun()
    molcalcs = calculationscount()
    avisits = apivisited()
-   return render_template("emsl-aerosols.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("emsl-aerosols.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 @app.route('/api/aerosol', methods=['POST'])
 def arrows_aerosol_draw_post():
@@ -3511,7 +3511,7 @@ def arrows_aerosol_eric_draw_form():
    calcs = arrowsjobsrun()
    molcalcs = calculationscount()
    avisits = apivisited()
-   return render_template("emsl-aerosols-eric.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("emsl-aerosols-eric.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 @app.route('/api/aerosol-eric', methods=['POST'])
 def arrows_aerosol_eric_draw_post():
@@ -3786,7 +3786,7 @@ def get_broombridge_queue(jobid):
 @app.route('/api/eric_input/')
 def eric_form():
    increment_apivisited()
-   return render_template("eric-input.html")
+   return render_template("eric-input.html",arrows_api=ARROWS_API_HOME)
 
 @app.route('/api/eric_input/', methods=['POST'])
 def eric_form_post():
@@ -3802,7 +3802,7 @@ def eric_form2():
    molcalcs = calculationscount()
    avisits = apivisited()
    #return render_template("eric-input2.html")
-   return render_template("eric-input2.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("eric-input2.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 @app.route('/api/eric_input2/', methods=['POST'])
 def eric_form2_post():
@@ -3818,7 +3818,7 @@ def dagrereaction_form():
    molcalcs = calculationscount()
    avisits = apivisited()
    #return render_template("eric-input2.html")
-   return render_template("dagre-rxn.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("dagre-rxn.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 
 

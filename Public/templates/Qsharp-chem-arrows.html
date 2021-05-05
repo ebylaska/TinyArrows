@@ -417,8 +417,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
         }
 
         function uploadFiles(url, files) {
-          var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-          var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/Eric_ljsd.nw';
+          var arrows_post_url = '{{ arrows_api }}upload/';
+          var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/Eric_ljsd.nw';
           var textToSave = editor.getValue();
 
           var xhr = new XMLHttpRequest();
@@ -441,8 +441,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
 
 
         function submit_nwchemjob() {
-           var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
+           var arrows_post_url = '{{ arrows_api }}upload/';
+           var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
            var textToSave = editor.getValue();
            var fileInput = document.getElementById("fileInput");
            console.log(fileInput.files); 
@@ -471,8 +471,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
         }
 
         function submit_nwchemjob2() {
-           var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
+           var arrows_post_url = '{{ arrows_api }}upload/';
+           var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
            var textToSave = editor.getValue();
          
            //var fileInput = document.getElementById("fileInput");
@@ -584,7 +584,7 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
         function loadurltojsmol() {
            var url = document.getElementById("urlToLoad2").value;
            if (url.indexOf("http") == -1) {
-              url = "https://arrows.emsl.pnnl.gov/api/xyz/\"" + url + "\"" ;
+              url = "{{ arrows_api }}xyz/\"" + url + "\"" ;
            }
            console.log(url);
            if (url.trim().length>9) {
@@ -742,7 +742,7 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
            var smiles = prompt("Please enter smiles:", "CCO");
            if (smiles.includes("http")) {
               alert("Running OSRA for " + smiles);
-              var url = "https://arrows.emsl.pnnl.gov/api/osra/'" + smiles + "'";
+              var url = "{{ arrows_api }}osra/'" + smiles + "'";
               var ajax = new XMLHttpRequest();
               ajax.onload = functionName;
               ajax.onerror = errorFunctionName;
@@ -2194,9 +2194,9 @@ task tce energy ignore`;
 </div-->
 
 <div class="linkbanner">
-   <a href="http://localhost:5000/api"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
-<a href="http://localhost:5000/api/periodic">3D Periodic Editor</a> &nbsp;
-   <a href="http://localhost:5000/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="http://localhost:5000/api/expert">Expert Editor</a> &nbsp;   <a href="http://localhost:5000/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="http://localhost:5000/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
+   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="{{ arrows_api }}periodic">3D Periodic Editor</a> &nbsp;
+   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Expert Editor</a> &nbsp;   <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
 </div>
 
 	<!-- RECOMMENDED if your web app will not function without JavaScript enabled -->
@@ -2227,7 +2227,7 @@ task tce energy ignore`;
           <p align="center"><a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Click here for the EMSL Arrows manual</a> </p>
         </td>
        </tr>
-       <tr>  <p> <a href="https://arrows.emsl.pnnl.gov/api">Switch to 2D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/3dbuilder">Switch to 3D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/expert">Switch to Expert Editor</a> &nbsp; </p>
+       <tr>  <p> <a href="{{ arrows_api }}">Switch to 2D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}3dbuilder">Switch to 3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Switch to Expert Editor</a> &nbsp; </p>
        </tr>
        </table-->
 
@@ -2352,7 +2352,7 @@ An example input deck can be loaded into the Editor by pressing the "Microsoft Q
 
 <p> (3) Enter a unique tag in the "Queue Label:" box below the editor.  This tag will help you keep track of the job in the NWChem Job Queue. </p>
 <p> (4) Press the "Submit NWChem" button. </p>
-<p> (5) Press the "Click here to check the status of submited NWChem Jobs" link.  Find the row containing your unique tag in the "label:" column and look to see if the job is finished.  You can refresh this page to update status table  or just re-enter <a href="https://arrows.emsl.pnnl.gov/api/queue_nwchem_check/qsharp">https://arrows.emsl.pnnl.gov/api/queue_nwchem_check/qsharp</a> into your brower's address bar. </p>
+<p> (5) Press the "Click here to check the status of submited NWChem Jobs" link.  Find the row containing your unique tag in the "label:" column and look to see if the job is finished.  You can refresh this page to update status table  or just re-enter <a href="{{ arrows_api }}queue_nwchem_check/qsharp">{{ arrows_api }}queue_nwchem_check/qsharp</a> into your brower's address bar. </p>
 <p> (6) Once your job is finished press the (zip) link in the row containing your job to  download the output files from your run.  The downloaded zip file should contain a YAML file. </p>
 
 </div>
@@ -2712,7 +2712,7 @@ An example input deck can be loaded into the Editor by pressing the "Microsoft Q
     <input type="button" title="submits job to nwchem queue" VALUE="Submit NWChem &#8629;" onClick="submit_nwchemjob2()"  style="font-family: sans-serif; font-size: 14px;"/>
     <!--input id="fileInput" type="file" style="font-family: sans-serif; font-size: 14px;"/--> 
     <section class="marquee" style="color: red"> <b id="runmebanner3"> </b> </section>
-    <p align="left"><a href="https://arrows.emsl.pnnl.gov/api/queue_nwchem_check/qsharp">Click here to check the status of submited NWChem Jobs</a> </p>
+    <p align="left"><a href="{{ arrows_api }}queue_nwchem_check/qsharp">Click here to check the status of submited NWChem Jobs</a> </p>
     <p> Once the job is finished in the above queue, a zip file containing output files, including a YAML file, from the NWChem job can be downloaded. </p>
 
     <input type="button" VALUE="Microsoft Quantum Template" onClick="quantum_template()"  title="Generates a template for a Microsft Quantum Development Kit NWChem calculation" style="font-family: sans-serif; font-size: 14px;"/>

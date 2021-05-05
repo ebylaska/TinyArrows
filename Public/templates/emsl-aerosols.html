@@ -1679,8 +1679,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
 
 
         function submit_nwchemjob2() {
-           var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
+           var arrows_post_url = '{{ arrows_api }}upload/';
+           var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
            var textToSave0 = editor.getValue();
            var textToSave  = textToSave0
 
@@ -2526,9 +2526,6 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
            x += "#transfer_files *.nw *.xyz *.ion_motion *.emotion *.fei *.cif *.hist *.gr *.dat *.meta_gaussians *.cube\n";
            x += "#bad_files md_xs\n";
            x += "#\n";
-           //var curdir  = "we31869.emsl.pnl.gov:/media/seagate2/Projects/Other/"+mformula+"-aimdmm";
-           //curdir  = prompt("Please enter curdir:", curdir);
-           //x += "#curdir " + curdir + "\n"
            x += "#\n";
            var permdir_tag = document.getElementById("permdir_tag").value.trim();
            x += "#permdir " + mformula + "-aimdmm" + permdir_tag + "\n";
@@ -2546,8 +2543,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
         }
 
         function solvateurltojsmol() {
-           var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
+           var arrows_post_url = '{{ arrows_api }}upload/';
+           var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
            document.getElementById('runmebanner4b').innerHTML= "Solvation calculation started.";
 
            var xyz = jmvar("data({1.1},\"xyz\")").trim();
@@ -2638,9 +2635,9 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
                 x = 1;
               }
               if (url.indexOf("http") == -1) {
-                 url2 = "https://arrows.emsl.pnnl.gov/api/esmiles2xyz/\"" + url + "\"" ;
+                 url2 = "{{ arrows_api }}esmiles2xyz/\"" + url + "\"" ;
                  //url  = "https://arrows.emsl.pnnl.gov/api/xyz/\"" + url + "\"" ;
-                 url  = "https://arrows.emsl.pnnl.gov/api/mol/\"" + url + "\"" ;
+                 url  = "{{ arrows_api }}mol/\"" + url + "\"" ;
               }
               console.log(url);
               if (url.trim().length>9) {
@@ -2839,7 +2836,7 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
            var smiles = prompt("Please enter smiles:", "CCO");
            if (smiles.includes("http")) {
               alert("Running OSRA for " + smiles);
-              var url = "https://arrows.emsl.pnnl.gov/api/osra/'" + smiles + "'";
+              var url = "{{ arrows_api }}osra/'" + smiles + "'";
               var ajax = new XMLHttpRequest();
               ajax.onload = functionName;
               ajax.onerror = errorFunctionName;
@@ -3622,11 +3619,6 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
            x += "#transfer_files *.nw *.xyz *.ion_motion *.emotion *.fei *.cif *.hist *.gr *.dat *.meta_gaussians *.cube *.neb_epath *.neb_final_epath\n";
            x += "#bad_files md_xs\n";
            x += "#\n";
-           //var curdir  = "we31869.emsl.pnl.gov:/media/seagate2/Projects/Other/"+mformula;
-           //if (!iscif) {
-           //   curdir  = prompt("Please enter curdir:", curdir);
-           //}
-           //x += "#curdir " + curdir +"\n";
            x += "#\n";
            x += "#permdir " + mformula + permdir_tag + "\n";
            //x += "#deletescratch no\n";
@@ -3900,11 +3892,6 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
            x += "#transfer_files *.nw *.xyz *.ion_motion *.emotion *.fei *.cif *.hist *.gr *.dat *.meta_gaussians *.cube *.neb_epath *.neb_final_epath\n";
            x += "#bad_files md_xs\n";
            x += "#\n";
-           //var curdir  = "we31869.emsl.pnl.gov:/media/seagate2/Projects/Other/"+mformula;
-           //if (!iscif) {
-           //   curdir  = prompt("Please enter curdir:", curdir);
-           //}
-           //x += "#curdir " + curdir +"\n";
            x += "#\n";
            x += "#permdir " + mformula + permdir_tag + "\n";
            x += "#deletescratch no\n";
@@ -5259,8 +5246,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
         }
 
         function gen_reactions1() {
-           var arrows_post_url = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
            var mol = exMod().replace('{','').replace('}','');
            var reaction_hash0 = document.getElementById("reaction_hash").value;
            var mollist = mol.split("\n");
@@ -5319,8 +5306,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
 
 
         function check_rgamma() {
-           var arrows_post_url = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
            var mol = exMod().replace('{','').replace('}','');
            var reaction_hash0 = document.getElementById("reaction_hash").value;
            var check_indexes  = document.getElementById("reaction_indexes").value.split(" ");
@@ -5386,8 +5373,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
         }
 
         function gen_rhash1() {
-           var arrows_post_url = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
            var mol = exMod().replace('{','').replace('}','');
            var reaction_type = document.getElementById("reaction_type").value;
            var reaction_indexes = document.getElementById("reaction_indexes").value;
@@ -5427,8 +5414,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
         }
 
         function gen_rhash2() {
-           var arrows_post_url0 = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url0 = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
            var reaction = document.getElementById("reaction_genhash00").value;
            if (reaction.trim().length>5) {
               var mol = "reaction_genhash{"+reaction+"}\n";
@@ -5468,8 +5455,8 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
         }
 
         function gen_bondings() {
-           var arrows_post_url = "https://arrows.emsl.pnnl.gov/api/upload/";
-           var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           var arrows_post_url = "{{ arrows_api }}upload/";
+           var arrows_get_url  = "{{ arrows_api }}genhash/";
            var mol = exMod().replace('{','').replace('}','');
            var reaction_type    = document.getElementById("reaction_type").value;
            var reaction_indexes = document.getElementById("reaction_indexes").value;
@@ -5524,9 +5511,9 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
 </div-->
 
 <div class="linkbanner">
-   <a href="http://localhost:5000/api"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
-<a href="http://localhost:5000/api/periodic">3D Periodic Editor</a> &nbsp;
-   <a href="http://localhost:5000/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="http://localhost:5000/api/expert">Expert Editor</a> &nbsp;   <a href="http://localhost:5000/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="http://localhost:5000/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
+   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="{{ arrows_api }}periodic">3D Periodic Editor</a> &nbsp;
+   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Expert Editor</a> &nbsp;  <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
 </div>
 
 
@@ -5936,7 +5923,7 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
     Queue Label: <input type="text" name="Label" id="queue_nwchem_label" size=45> 
     QWAIT:: <input type="text" name="Label" id="queue_wait_label">
     <input type="button" VALUE="Submit NWChem" onClick="submit_nwchemjob2()" title="Submit NWChem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-    <a href="https://arrows.emsl.pnnl.gov/api/queue_nwchem_check/nwchem">Check submited NWChem jobs</a>
+    <a href="{{ arrows_api }}queue_nwchem_check/nwchem">Check submited NWChem jobs</a>
     <br>
     <section class="marquee" style="color: red"> <b id="runmebanner3"> </b> </section>
     <section class="marquee" style="color: black"> <b id="runmebanner3b"> </b> </section>
@@ -7214,10 +7201,10 @@ function submit_cell(cell) {
    //var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'OC(O)C(O)OC(O)C(O)O --> OC1OC(O)C(O)OC1O + O ~ theory{pspw4} parse_output{hrxn(gas)}'";
    var arrows_get_url;
    if (reaction_str.includes("-->")) {
-      arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'" + reaction_str + "'";
+      arrows_get_url  = "{{ arrows_api }}reaction/'" + reaction_str + "'";
    } else {
       reaction_str = reaction_str.replace("~","");
-      arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/molecule/'" + reaction_str + "'";
+      arrows_get_url  = "{{ arrows_api }}molecule/'" + reaction_str + "'";
    }
    document.getElementById('runmebanner4c').innerHTML= "Arrows calculation started for " + reaction_str + " at " + cell[0];
 

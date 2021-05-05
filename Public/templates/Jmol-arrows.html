@@ -380,47 +380,6 @@
         }
 
 
-
-//        function loadurltojsmol(append) {
-//           var append2 = append;
-//           var urllist = document.getElementById("urlToLoad2").value.split(" + ");
-//           console.log(urllist);
-//           for (var i=0; i<urllist.length; ++i) {
-//              var x;
-//              var url = urllist[i];
-//              var res = url.split(" ");
-//              if (/^\+?(0|[1-9]\d*)$/.test(res[0])){
-//                x = parseInt(res[0]);
-//                url = res.slice(1).join(" ");
-//              }
-//             else {
-//                x = 1;
-//              }
-//              if (url.indexOf("http") == -1) {
-//                 url = "https://arrows.emsl.pnnl.gov/api/mol/\"" + url + "\"" ;
-//              }
-//              console.log(url);
-//              if (url.trim().length>9) {
-//                var ajax = new XMLHttpRequest();
-//                 ajax.open("GET", url, false); // third parameter is async flag
-//                 ajax.send();
-//                 var textFromUrl = ajax.responseText;
-//                 for (var j=0; j<x; ++j){
-//                    if (append2) {
-//                       var xyzdat = "\"append\"|" + textFromUrl.trim().replace(/\n/g,' | ') + "|end \"append\";";
-//                       jms("set appendNew false; data "+xyzdat + "select all; select within(molecule,(*)[0]); minimize select selected; select {*}[0];");
-//                    }
-//                    else {
-//                       var xyzdat = "\"model arrows\"|" +textFromUrl.trim().replace(/\n/g,' | ') + "|end \"model arrows\";";
-//                       jms("load data "+xyzdat  + "select all; select within(molecule,(*)[0]); minimize select selected; select {*}[0];");
-//                       append2 = true;
-//                    }
-//                 }
-//              }
-//           }
-//        }
-
-
         function loadurltojsmol(append) {
            var append2 = append;
            var urllist = document.getElementById("urlToLoad2").value.split(" + ");
@@ -438,9 +397,9 @@
                 x = 1;
               }
               if (url.indexOf("http") == -1) {
-                 url2 = "https://arrows.emsl.pnnl.gov/api/esmiles2xyz/\"" + url + "\"" ;
+                 url2 = "{{ arrows_api }}esmiles2xyz/\"" + url + "\"" ;
                  //url  = "https://arrows.emsl.pnnl.gov/api/xyz/\"" + url + "\"" ;
-                 url  = "https://arrows.emsl.pnnl.gov/api/mol/\"" + url + "\"" ;
+                 url  = "{{ arrows_api }}mol/\"" + url + "\"" ;
               }
               console.log(url);
               if (url.trim().length>9) {
@@ -626,7 +585,7 @@
            var smiles = prompt("Please enter smiles:", "CCO");
            if (smiles.includes("http")) {
               alert("Running OSRA for " + smiles);
-              var url = "https://arrows.emsl.pnnl.gov/api/osra/'" + smiles + "'";
+              var url = "{{ arrows_api }}osra/'" + smiles + "'";
               var ajax = new XMLHttpRequest();
               ajax.onload = functionName;
               ajax.onerror = errorFunctionName;
@@ -1988,9 +1947,9 @@
 </div-->
 
 <div class="linkbanner">
-   <a href="http://localhost:5000/api"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
-<a href="http://localhost:5000/api/periodic">3D Periodic Editor</a> &nbsp;
-   <a href="http://localhost:5000/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="http://localhost:5000/api/expert">Expert Editor</a> &nbsp;   <a href="http://localhost:5000/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="http://localhost:5000/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
+   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="{{ arrows_api }}periodic">3D Periodic Editor</a> &nbsp;
+   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Expert Editor</a> &nbsp; <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
 </div>
 
 
