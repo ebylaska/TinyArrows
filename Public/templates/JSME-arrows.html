@@ -448,7 +448,10 @@
     <form action="." name="form"  method="POST">
        <table>
           <tr>
-             <td> <input type="text" name="smi" SIZE=120 onkeydown="if (event.keyCode == 13) Confirm(this.form)"> </td>
+             <td> <input type="text" name="smi" SIZE=100 
+                   style="font-family: sans-serif; font-size: 20px;" 
+                   onkeydown="if (event.keyCode == 13) Confirm(this.form)"> 
+            </td>
              <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
              <td> <input type="button" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
           </tr>

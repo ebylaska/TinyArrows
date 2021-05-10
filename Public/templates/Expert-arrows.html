@@ -2480,7 +2480,7 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
        <table>
           <tr>
              <!--td> <input type="text" name="smi" SIZE=120> </td-->
-             <td> <textarea  name="smi" rows="10" cols="140"></textarea></td>
+             <td> <textarea  name="smi" rows="10" cols="100" style="font-family: sans-serif; font-size: 20px;"></textarea></td>
              <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
              <td> <input type="button" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
           </tr>
@@ -2990,7 +2990,10 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
     <form action="." name="form2" method="POST">
        <table>
           <tr>
-             <td> <input type="text" name="smi" SIZE=120 onkeydown="if (event.keyCode == 13) Confirm(this.form)"> </td>
+             <td> <input type="text" name="smi" SIZE=100 
+                   style="font-family: sans-serif; font-size: 20px;" 
+                   onkeydown="if (event.keyCode == 13) Confirm(this.form)"> 
+             </td>
              <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
              <td> <input type="button" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
           </tr>
