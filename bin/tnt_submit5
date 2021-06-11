@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 import pymongo
 import sys,os,time,pickle,urllib.request,getopt,subprocess,random,operator,datetime

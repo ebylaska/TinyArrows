@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 #import sys,os,time,pickle,math,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
 import sys,os,time,pickle,math,urllib.request,getopt,subprocess,pexpect,random,operator,pymongo,json
