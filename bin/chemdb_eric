@@ -18,8 +18,8 @@ qnumber_collection               = arrows_db.queue_number
 
 ############## machine parameters #########################
 UPLOAD_FOLDER    = '/srv/arrows/Public/uploads/'
-babel            = "/usr//bin/babel"
-obabel           = "/usr/bin/obabel "
+babel            = "/usr/bin/env babel"
+obabel           = "/usr/bin/env obabel "
 esmiles2xyz      = "/srv/arrows/bin/esmiles2xyz "
 tnt_submit       = "/srv/arrows/bin/tnt_submit5 -f "
 chemdb_add_nwout = "/srv/arrows/bin/chemdb_add_nwout7 "

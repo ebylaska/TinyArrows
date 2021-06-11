@@ -5,8 +5,8 @@ from math import *
 
 
 ############## machine parameters #########################
-babel              = "/usr/bin/babel"
-obabel             = "/usr/bin/obabel "
+babel              = "/usr/bin/env babel"
+obabel             = "/usr/bin/env obabel "
 esmiles2xyz        = "/srv/arrows/bin/esmiles2xyz "
 chemdb_add_request = "/srv/arrows/bin/chemdb_add_request "
 chemdb_predict_reaction  = "/srv/arrows/bin/chemdb_predict_reaction "
@@ -19,7 +19,7 @@ queue_nwchem_em    = "/srv/arrows/bin/queue_nwchem_em "
 wrkdir             = "/srv/arrows/Projects/Work"
 arrowslogo         = wrkdir + "/arrowslogo2.html"
 arrowslogosvg      = wrkdir + "/arrowslogo2.svg"
-gnuplot            = "/usr/bin/gnuplot "
+gnuplot            = "/usr/bin/env gnuplot "
 chemdbfile         = "/srv/arrows/bin/.chemdb-en"
 #with open('/srv/arrows/bin/.chemdb','r') as f:
 #   hup0            = f.readline().strip()

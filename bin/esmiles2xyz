@@ -10,8 +10,8 @@ from math import *
 ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 #babel     = "/usr/local/bin/babel"
-obabel    = "/usr/local/bin/obabel "
-obrotamer = "/usr/local/bin/obrotamer "
+obabel    = "/usr/bin/env obabel "
+obrotamer = "/usr/bin/env obrotamer "
 
 mysmiles2xyz = ARROWS_HOME + "/bin/mysmiles2xyz "
 chemdbfile   = ARROWS_HOME + "/bin/.chemdb-en"

@@ -8,7 +8,7 @@ from numpy.fft import *
 
 
 #################### machine specifics ######################
-obabel     = "/usr/local/bin/obabel"
+obabel     = "/usr/bin/env obabel"
 curdir         = os.getcwd()
 #################### machine specifics ######################
 

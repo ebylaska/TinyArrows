@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import sys,os,time,pickle,math,MySQLdb,urllib2,pexpect,getopt,subprocess,random,operator,re,yaml
 from math import *
@@ -9,8 +9,8 @@ from numpy.fft import *
 
 
 ############## machine parameters #########################
-babel       = "/usr/bin/babel"
-obabel      = "/usr/bin/obabel "
+babel       = "/usr/bin/env babel"
+obabel      = "/usr/bin/env obabel "
 myxyz2smiles = "/srv/arrows/bin/myxyz2smiles "
 esmiles2xyz = "/srv/arrows/bin/esmiles2xyz "
 #tnt_submit  = "/srv/arrows/bin/tnt_submit4 "

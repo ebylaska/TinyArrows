@@ -12,7 +12,7 @@ ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 #babel              = "/usr/bin/babel"
-obabel             = "/usr/local/bin/obabel "
+obabel             = "/usr/bin/env obabel "
 esmiles2xyz        = ARROWS_HOME + "/bin/esmiles2xyz "
 
 chemdb_add_request = ARROWS_HOME + "/bin/chemdb_add_request "

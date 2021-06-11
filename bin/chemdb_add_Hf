@@ -10,7 +10,7 @@ ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ############## machine parameters #########################
 #babel      = "/usr/bin/babel"
-obabel     = "/usr/local/bin/obabel "
+obabel     = "/usr/bin/env obabel "
 
 wrkdir     = ARROWS_HOME + "/Work"
 chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"

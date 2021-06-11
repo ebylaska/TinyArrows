@@ -7,9 +7,9 @@ import subprocess
 #nwchem    = "/usr/local/bin/mpirun -np 2 /Users/bylaska/bin/nwchem "
 nwchem    = "/srv/arrows/bin/nwchem "
 esmiles2xyz = "/srv/arrows/bin/esmiles2xyz "
-babel     = "/usr/local/bin/babel"
-obabel    = "/usr/local/bin/obabel "
-obrotamer = "/usr/local/bin/obrotamer"
+babel     = "/usr/bin/env babel"
+obabel    = "/usr/bin/env obabel "
+obrotamer = "/usr/bin/env obrotamer"
 chemdbfile         = "/srv/arrows/bin/.chemdb-en"
 
 curdir         = os.getcwd()

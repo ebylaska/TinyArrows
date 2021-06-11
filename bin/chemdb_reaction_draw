@@ -8,7 +8,7 @@ from PIL import ImageFont
 from PIL import ImageDraw
 
 ############## machine parameters #########################
-obabel         = "/usr/bin/obabel "
+obabel         = "/usr/bin/env obabel "
 esmiles2xyz    = "/srv/arrows/bin/esmiles2xyz "
 wrkdir         = "/srv/arrows/Projects/Work"
 ddrand = random.randint(0,999999)

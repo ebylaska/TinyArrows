@@ -44,7 +44,7 @@ esmiles_queue_collection = arrows_db.esmiles_queue_collection
 
 ############## machine parameters #########################
 #babel              = "/usr/bin/babel"
-obabel             = "/usr/local/bin/obabel "
+obabel             = "/usr/bin/env obabel "
 
 esmiles2xyz        = ARROWS_HOME + "/bin/esmiles2xyz "
 wrkdir             = ARROWS_HOME + "/Work"

@@ -15,9 +15,9 @@ ARROWS_API_HOME = 'http://localhost:5000/api/'
 
 #################### machine specifics ######################
 #babel              = "/usr/bin/babel"
-obabel             = "/usr/local/bin/obabel "
-obgrep             = "/usr/local/bin/obgrep "
-gnuplot            = "/usr/local/bin/gnuplot "
+obabel             = "/usr/bin/env obabel "
+obgrep             = "/usr/bin/env obgrep "
+gnuplot            = "/usr/bin/env gnuplot "
 
 chemdb_balance_reaction = ARROWS_HOME + "/bin/chemdb_balance_reaction9f "
 chemdb_predict_reaction = ARROWS_HOME + "/bin/chemdb_predict_reaction "

@@ -10,7 +10,7 @@ from math import *
 ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ############## machine parameters #########################
-obabel       = "/usr/local/bin/obabel"
+obabel       = "/usr/bin/env obabel"
 
 esmiles2xyz = ARROWS_HOME + "/bin/esmiles2xyz "
 wrkdir      = ARROWS_HOME + "/Work"

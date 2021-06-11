@@ -48,7 +48,7 @@ qnumber_collection               = arrows_db.queue_number
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
-obabel           = "/usr/local/bin/obabel "
+obabel           = "/usr/bin/env obabel "
 
 tnt_submit       = ARROWS_HOME + "/bin/tnt_submit5 -f "
 

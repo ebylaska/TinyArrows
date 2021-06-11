@@ -11,7 +11,7 @@ ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
-gnuplot  = "/usr/local/bin/gnuplot "
+gnuplot  = "/usr/bin/env gnuplot "
 ddrand  = random.randint(0,999999)
 wrkdir  = ARROWS_HOME + "/Work"
 chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
