@@ -19,7 +19,7 @@ export FOR011=$1.log	## logfile
 export FOR012=$1.arc	## archive/summary file
 
 echo starting mopac7 job $1
-/home/bylaska/Codes/mopac7-1.11/src/mopac7
+/home/arrows/Public/TinyArrows/compute-bin/mopac7
 echo mopac7 job $1 finished
 
 if test -f SHUTDOWN

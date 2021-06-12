@@ -5,8 +5,10 @@ from math import *
 
 
 ############## machine parameters #########################
-mopac     = "/home/bylaska/bin/run_mopac7 "
-wrkdir    = "/Users/bylaska/Projects/Work"
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
+mopac     = ARROWS_HOME + "/compute-bin/run_mopac7 "
+wrkdir    = ARROWSS_HOME + "/Work"
 ############## machine parameters #########################
 
 
