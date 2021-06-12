@@ -1,0 +1,228 @@
+#!/usr/local/bin/python3
+import os,sys,subprocess,urllib,requests,getopt
+
+#arrows_queue_url       = 'http://arrows.emsl.pnl.gov:5000/arrows/api/v1.0/queue/'
+#arrows_queue_fetch_url = 'http://arrows.emsl.pnl.gov:5000/arrows/api/v1.0/queue_fetch/'
+arrows_queue_url        = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem/'
+arrows_queue_fetch_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_fetch/'
+arrows_queue_delete_url = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_delete/'
+arrows_queue_reset_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_reset/'
+
+############## machine parameters #########################
+curdir      = os.getcwd()
+machinename = 'we34304'
+############## machine parameters #########################
+
+def arrows_unqueue(qdir,queue_entry):
+   os.chdir(qdir)
+   rr = requests.get(arrows_queue_fetch_url + "%s" % queue_entry)
+   ss = rr.text
+   nwoutfilename = ss.split("nwchem_output")[1].split("\n")[0].strip()
+   tt = '#chemdb_queue_nwchem - version 1.0'
+   ss = ss[ss.find(tt)+len(tt):]
+   uu = '</pre>'
+   ss = ss[:ss.rfind(uu)].strip()
+   files = ss.split("=================NEXT FILE:")
+   print("Generated = " + nwoutfilename + "  directory = " + qdir + "  queue_entry = " + queue_entry)
+   with open(nwoutfilename,'w') as f1:
+      f1.write(files[0])
+   for ff in files[1:]:
+      ss = ff.split(":NEXT FILE===================")
+      fname = ss[0].strip()
+      fname = fname.rstrip(fname[fname.rfind("-"):]).rsplit("/")[-1]
+      print("Generated = " + fname + "  directory = " + qdir + "  queue_entry = " + queue_entry)
+      with open(fname,'w') as f1:
+         f1.write(ss[1].strip())
+
+   ### remove entry from queue ###
+   rr = requests.get(arrows_queue_delete_url + "%s" % queue_entry)
+   #print rr.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip()
+
+   os.chdir(curdir)
+
+
+############################# main program ###################################
+usage = \
+"""
+fetch_nwchem_input
+
+  Usage: fetch_arrows_input -d queue_entry -q -e queue_entry -m machinetype -l label -r reset_search -h 
+
+  -q showq
+  -u unqueue
+  -a unqueue all directories
+  -b unqueue subdirectories
+  -h help
+
+"""
+
+print()
+print("#fetch_arrows_input - version 1.0")
+print()
+
+showq       = True
+deleteq     = False
+queue_entry = -1
+dqueue_entry = -1
+machinetype = ''
+labeltype = ''
+resetq = False
+reset_search = ''
+unqueue = False
+alldirs  = False
+bdirs  = False
+opts, args = getopt.getopt(sys.argv[1:], "d:e:m:l:r:quabh")
+for o, a in opts:
+  if '-q' in o:
+     showq   = True
+  if '-u' in o:
+     unqueue = True
+  if '-a' in o:
+     unqueue  = True
+     alldirs  = True
+  if '-b' in o:
+     unqueue  = True
+     bdirs    = True
+  if '-d' in o:
+     dqueue_entry = a
+     deleteq     = True
+  if '-e' in o:
+     queue_entry = a
+     showq       = False
+  if '-m' in o:
+     machinetype = a
+     showq       = False
+  if '-l' in o:
+     labeltype = a
+     showq       = False
+  if '-r' in o:
+     reset_search = a
+     resetq      = True
+     showq       = False
+
+  if o in ("-h","--help"):
+    print(usage)
+    exit()
+
+
+if resetq:
+   rr = requests.get(arrows_queue_url).text.split("label::")[1].strip()
+   for ln in rr.split('\n'):
+      if reset_search in ln:
+         ss = ln.split()
+         q = ss[0]
+         fetched = int(ss[1])
+         finished = ("yes" in ss[2])
+         if (fetched>0) and (not finished):
+            print(ln)
+            try:
+               qq = requests.get(arrows_queue_reset_url + "%s" % q)
+               print(qq.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip())
+            except:
+               print(" - API Failed")
+   exit()
+
+if unqueue:
+   rr = requests.get(arrows_queue_url).text.split("label::")[1]
+   print()
+   print("Unqueueing on " + machinename)
+   print()
+   qremoving  = "queue_entry  fetched finished  stopped eap_calculation  machine_type    queue_name  label::\n"
+   qremaining = "queue_entry  fetched finished  stopped eap_calculation  machine_type    queue_name  label::\n"
+   for ln in rr.split('\n'):
+      if ("submit_machine:" in ln) and (":submit_machine" in ln) and ("submit_dir:" in ln) and (":submit_dir" in ln) and (machinename in ln):
+         ss = ln.split()
+         q = ss[0]
+         finished = ("yes" in ss[2])
+         mname = ln.split("submit_machine:")[1].split(":submit_machine")[0]
+         mdir  = ln.split("submit_dir:")[1].split(":submit_dir")[0]
+         if (mname==machinename) and ((mdir==curdir) or (bdirs and (curdir in mdir)) or alldirs):
+            if (finished):
+               qremoving += ln + "\n"
+               arrows_unqueue(mdir,q)
+            else:
+               qremaining += ln + "\n"
+   print()
+   print("Unqueued the following entries on " + machinename)
+   print()
+   print(qremoving.split('</pre>')[0].strip())
+   print()
+   print()
+   print("Queue contains the following entries on " + machinename)
+   print()
+   print(qremaining.split('</pre>')[0].strip())
+   print()
+   exit()
+
+if showq:
+   try:
+      rr = requests.get(arrows_queue_url)
+      print(rr.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip())
+   except:
+      print(" - API Failed")
+
+if machinetype!='':
+   try:
+      rr = requests.get(arrows_queue_url)
+      fmax = 999999
+      qmax = -1
+      for ln in rr.text.split('\n'):
+         if machinetype in ln:
+            ss = ln.split()
+            f = eval(ss[1])
+            q = ss[0]
+            if f<fmax:
+               fmax = f
+               qmax = q
+      queue_entry = qmax
+   except:
+      print(" - API Failed")
+
+if labeltype!='':
+   try:
+      rr = requests.get(arrows_queue_url)
+      fmax = 999999
+      qmax = -1
+      for ln in rr.text.split('\n'):
+         if labeltype in ln:
+            ss = ln.split()
+            f = eval(ss[1])
+            q = ss[0]
+            if f<fmax:
+               fmax = f
+               qmax = q
+      queue_entry = qmax
+   except:
+      print(" - API Failed")
+
+if (queue_entry!=-1):
+   try:
+      rr = requests.get(arrows_queue_fetch_url + "%s" % queue_entry)
+      ss = rr.text
+      tt = '#chemdb_queue_nwchem - version 1.0'
+      ss = ss[ss.find(tt)+len(tt):]
+      uu = '</pre>'
+      ss = ss[:ss.rfind(uu)].strip()
+      files = ss.split("=================NEXT FILE:")
+      print(files[0])
+      for ff in files[1:]:
+         ss = ff.split(":NEXT FILE===================")
+         fname = ss[0].strip()
+         fname = fname.rstrip(fname[fname.rfind("-"):]).rsplit("/")[-1]
+         print("generated " + fname)
+         with open(fname,'w') as f1:
+            f1.write(ss[1].strip())
+      
+      #print rr.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip()
+   except:
+      print(" - API Failed")
+
+
+if (dqueue_entry!=-1):
+   try:
+      rr = requests.get(arrows_queue_delete_url + "%s" % dqueue_entry)
+      print(rr.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip())
+   except:
+      print(" - API Failed")
+print()
+
