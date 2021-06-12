@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-import sys,os,time,pickle,math,urllib2,getopt,subprocess
+import sys,os,time,pickle,math,getopt,subprocess
 from math import *
 
 
@@ -8,7 +8,7 @@ from math import *
 ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
 mopac     = ARROWS_HOME + "/compute-bin/run_mopac7 "
-wrkdir    = ARROWSS_HOME + "/Work"
+wrkdir    = ARROWS_HOME + "/Work"
 ############## machine parameters #########################
 
 
@@ -142,11 +142,11 @@ opts, args = getopt.getopt(sys.argv[1:], "h")
 
 for o, a in opts:
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1):
-   print usage
+   print(usage)
    exit()
 
 filename = args[0]
@@ -170,23 +170,23 @@ geometry = geometry.strip()
 
 
 #SINGLET DOUBLE TRIPLET QUARTET QUINTET SEXTET SEPTET
-print "============================== echo of input deck =============================="
-print data
-print "================================================================================"
-print
-print "MOPACKER JOB STARTED"
-print "hostname        = we19993.emsl.pnl.gov"
-print "nproc           = 1"
-print "MOPACKER filename = "+filename
-print "MOPACKER theory   = "+theory.lower()
-print "MOPACKER charge   = "+charge
-print "MOPACKER mult     = "+mult
-print "Charge           : " + charge
-print "Spin multiplicity: " + mult
-print "MOPACKER swnc     = "+swnc
-print "MOPACKER INITIAL GEOMETRY: "
-print geometry
-print ":MOPACKER INITIAL GEOMETRY"
+print("============================== echo of input deck ==============================")
+print(data)
+print("================================================================================")
+print()
+print("MOPACKER JOB STARTED")
+print("hostname        = TinyArrows Debian Docker container")
+print("nproc           = 1")
+print("MOPACKER filename = "+filename)
+print("MOPACKER theory   = "+theory.lower())
+print("MOPACKER charge   = "+charge)
+print("MOPACKER mult     = "+mult)
+print("Charge           : " + charge)
+print("Spin multiplicity: " + mult)
+print("MOPACKER swnc     = "+swnc)
+print("MOPACKER INITIAL GEOMETRY: ")
+print(geometry)
+print(":MOPACKER INITIAL GEOMETRY")
 mult = eval(mult)
 ADDMULT = ""
 if mult==2: ADDMULT = " DOUBLET "
@@ -200,10 +200,10 @@ if mult==9: ADDMULT = " NONET "
 
 total_time = 0.0
 for job in swnc:
-   print "job="+job
+   print("job="+job)
    
    if job=='o':
-      print "MOPACKER GEOMETRY OPTIMIZATION"
+      print("MOPACKER GEOMETRY OPTIMIZATION")
       with open("myjobo.dat","w") as ff:
          ff.write(theory.upper() + " GEO-OK T=2.5D PRECISE CHARGE=" + charge.strip()+ADDMULT+" DEBUG &\n")
          ff.write("VERBOSE GRAD COMPFG MMOK\n\n")
@@ -212,7 +212,7 @@ for job in swnc:
             ff.write(ss[0]+" "+ss[1]+" 1 "+ss[2]+" 1 "+ss[3]+" 1\n")
       cmdo = mopac + "myjobo"
       resulto = subprocess.check_output(cmdo,shell=True)
-      print resulto
+      print(resulto)
 
       heat   = resulto.split("FINAL HEAT OF FORMATION =")[1].split()[0].strip()
       energy = resulto.split("TOTAL ENERGY            =")[1].split()[0].strip()
@@ -220,8 +220,8 @@ for job in swnc:
       core   = resulto.split("CORE-CORE REPULSION     =")[1].split()[0].strip()
       total_time += eval(resulto.split("TOTAL CPU TIME:")[1].split()[0].strip())
 
-      print "@ Step       Energy      Delta E   Gmax     Grms     Xrms     Xmax   Walltime"
-      print "@ ---- ---------------- -------- -------- -------- -------- -------- --------"
+      print("@ Step       Energy      Delta E   Gmax     Grms     Xrms     Xmax   Walltime")
+      print("@ ---- ---------------- -------- -------- -------- -------- -------- --------")
       tmp = resulto.split("CYCLE:")
       tmp = tmp[1:]
       tt = 0.0
@@ -229,7 +229,7 @@ for job in swnc:
          gnorm = 0.0
          de1 = 0.0
          e1 = eval(energy)/27.2116 
-         print "@  %3d  %15.8f %8.1e %8.5f %8.5f %8.5f %8.5f %8.1f" % (1,e1,de1,gnorm,gnorm,0.0,0.0,tt)
+         print("@  %3d  %15.8f %8.1e %8.5f %8.5f %8.5f %8.5f %8.1f" % (1,e1,de1,gnorm,gnorm,0.0,0.0,tt))
       for cc in tmp:
          ll = cc.split('\n')[0]
          ss = ll.split()
@@ -241,17 +241,17 @@ for job in swnc:
          gnorm = eval(ll.split("GRAD.:")[1].split("HEAT:")[0])/(27.2116*23.06)
          e1 = eval(energy)/27.2116 - (eval(heat)-ee)/(27.2116*23.06)
          de1 =  (eval(heat)-ee)/(27.2116*23.06)
-         print "@  %3d  %15.8f %8.1e %8.5f %8.5f %8.5f %8.5f %8.1f" % (ncycle,e1,de1,gnorm,gnorm,0.0,0.0,tt)
+         print("@  %3d  %15.8f %8.1e %8.5f %8.5f %8.5f %8.5f %8.1f" % (ncycle,e1,de1,gnorm,gnorm,0.0,0.0,tt))
 
-      print
-      print "MOPACKER HEAT OF FORMATION = " + heat
-      print "MOPACKER TOTAL ENERGY = " + energy
-      print "MOPACKER ELECTRONIC ENERGY = " + elec
-      print "MOPACKER CORE-CORE REPULSION ENERGY = " + core
+      print()
+      print("MOPACKER HEAT OF FORMATION = " + heat)
+      print("MOPACKER TOTAL ENERGY = " + energy)
+      print("MOPACKER ELECTRONIC ENERGY = " + elec)
+      print("MOPACKER CORE-CORE REPULSION ENERGY = " + core)
 
       ### print eigenvalues ###
-      print 
-      print "DFT Final Molecular Orbital Analysis"
+      print()
+      print("DFT Final Molecular Orbital Analysis")
       eigs = resulto.split("EIGENVALUES")[1].split("NET ATOMIC CHARGES AND DIPOLE CONTRIBUTIONS")[0].strip().split()
       nfilled = eval(resulto.split("NO. OF FILLED LEVELS    =")[1].split('\n')[0].strip())
       if ("AND NO. OF OPEN LEVELS  =") in resulto:
@@ -269,9 +269,9 @@ for job in swnc:
             occ = 1.0
          else:
             occ = 0.0
-         print "Vector %5d  Occ=%.6e  E=%.6e" % (count,occ,e)
-      print
-      print
+         print("Vector %5d  Occ=%.6e  E=%.6e" % (count,occ,e))
+      print()
+      print()
 
       ### update geometry ###
       tmp = resulto.split("NO.       ATOM               X         Y         Z")[-1].strip()
@@ -281,11 +281,11 @@ for job in swnc:
          ss = ll.split()
          geometry += ss[1] + " " + ss[2] + " " + ss[3] + " " + ss[4] + "\n"
       geometry = geometry.strip()
-      print "Optimization converged"
-      print "MOPACKER OPTIMIZED GEOMETRY:"
-      print
-      print "  No.       Tag          Charge          X              Y              Z"
-      print " ---- ---------------- ---------- -------------- -------------- --------------"
+      print("Optimization converged")
+      print("MOPACKER OPTIMIZED GEOMETRY:")
+      print()
+      print("  No.       Tag          Charge          X              Y              Z")
+      print(" ---- ---------------- ---------- -------------- -------------- --------------")
       nion = 0
       for ll in geometry.split('\n'):
          nion += 1
@@ -295,15 +295,15 @@ for job in swnc:
          x = eval(ss[1])
          y = eval(ss[2])
          z = eval(ss[3])
-         print "%5d %2s %10.4f %16.8f %16.8f %16.8f" % (nion,mysymbol,mycharge,x,y,z)
-      print 
-      print 
-      print ":MOPACKER OPTIMIZED GEOMETRY"
+         print("%5d %2s %10.4f %16.8f %16.8f %16.8f" % (nion,mysymbol,mycharge,x,y,z))
+      print()
+      print()
+      print(":MOPACKER OPTIMIZED GEOMETRY")
 
 
 
    if job=='v':
-      print "MOPACKER VIBRATION CALCULATION"
+      print("MOPACKER VIBRATION CALCULATION")
       with open("myjobv.dat","w") as ff:
          ff.write(theory.upper() + " GEO-OK T=2.5D PRECISE CHARGE=" + charge.strip()+ADDMULT+" DEBUG VERBOSE &\n")
          ff.write("GRAD FORCE THERMO(300,300) ROT=1 COMPFG MMOK\n\n")
@@ -312,7 +312,7 @@ for job in swnc:
             ff.write(ss[0]+" "+ss[1]+" 0 "+ss[2]+" 0 "+ss[3]+" 0\n")
       cmdv = mopac + "myjobv"
       resultv = subprocess.check_output(cmdv,shell=True)
-      print resultv
+      print(resultv)
       total_time += eval(resultv.split("TOTAL CPU TIME:")[1].split()[0].strip())
       tmp = resultv.split("TOT.")[1].split('\n')[0].strip()
       try:
@@ -324,9 +324,9 @@ for job in swnc:
       except:
          entropy  = 0.0
       linear = "MOLECULE IS LINEAR" in resultv
-      print "Thermal correction to Enthalpy   = %8.3f kcal/mol  ( %10.6f au)" % (enthalpy,enthalpy/(27.2116*23.06))
-      print "Total Entropy                    = %8.3f cal/mol-K" % entropy
-      print
+      print("Thermal correction to Enthalpy   = %8.3f kcal/mol  ( %10.6f au)" % (enthalpy,enthalpy/(27.2116*23.06)))
+      print("Total Entropy                    = %8.3f cal/mol-K" % entropy)
+      print()
       freqblob0 = resultv.split("NORMAL COORDINATE ANALYSIS")[1].split("MASS-WEIGHTED COORDINATE ANALYSIS")[0]
       freqblob = ''
       for ll in freqblob0.split('\n'):
@@ -360,8 +360,8 @@ for job in swnc:
       freqs0[-2] = 0.0
       freqs0[-1] = 0.0
       if (not linear): freqs0[-6] = 0.0
-      #print "freqs=",freqs
-      #print "freqdat=",freqdat
+      #print("freqs=",freqs)
+      #print("freqdat=",freqdat)
       freqs   = []
       freqdat = []
       for i in range(len(freqs0)):
@@ -402,25 +402,25 @@ for job in swnc:
             for ii in range(iistart,iiend):
                str2 += " %11.5f" % freqdat[ii][jj]
             str2 += "\n"
-         print
-         print str0
-         print
-         print str1
-         print
-         print str2.rstrip()
+         print()
+         print(str0)
+         print()
+         print(str1)
+         print()
+         print(str2.rstrip())
          iistart += 6
 
-      print
-      print
+      print()
+      print()
       mode = 0
       ii   = 0
       for f in freqs:
          if (f<0.0):
             mode += 1
-            print "==============================================================================="
-            print "Negative Nuclear Hessian Mode %4d  Eigenvalue = %9.2f cm**(-1)" % (mode,f)
-            print " -------------------------------------------------------------------------------"
-            print "Raw step length:  0.280 angstroms ;  The Raw step for this mode is:"
+            print("===============================================================================")
+            print("Negative Nuclear Hessian Mode %4d  Eigenvalue = %9.2f cm**(-1)" % (mode,f))
+            print(" -------------------------------------------------------------------------------")
+            print("Raw step length:  0.280 angstroms ;  The Raw step for this mode is:")
             nion = 0
             for ll in geometry.split('\n'):
                nion += 1
@@ -430,13 +430,13 @@ for job in swnc:
                x =  freqdat[ii][3*(nion-1)]
                y =  freqdat[ii][3*(nion-1)+1]
                z =  freqdat[ii][3*(nion-1)+2]
-               print "%5d %2s %10.4f %16.8f %16.8f %16.8f" % (nion,mysymbol,mycharge,x,y,z)
-            print 
-            print 
+               print("%5d %2s %10.4f %16.8f %16.8f %16.8f" % (nion,mysymbol,mycharge,x,y,z))
+            print()
+            print()
             str =  "Geometry after  100.0% step for mode" 
             str += "%3d; Step length =  0.280 angstroms" % mode
-            print str
-            print "Maximum component (any atom: x,y, or z) displacement:  0.137"
+            print(str)
+            print("Maximum component (any atom: x,y, or z) displacement:  0.137")
             nion = 0
             for ll in geometry.split('\n'):
                nion += 1
@@ -446,13 +446,13 @@ for job in swnc:
                x = eval(ss[1]) + freqdat[ii][3*(nion-1)]
                y = eval(ss[2]) + freqdat[ii][3*(nion-1)+1]
                z = eval(ss[3]) + freqdat[ii][3*(nion-1)+2]
-               print "%5d %2s %10.4f %16.8f %16.8f %16.8f" % (nion,mysymbol,mycharge,x,y,z)
-            print 
-            print 
+               print("%5d %2s %10.4f %16.8f %16.8f %16.8f" % (nion,mysymbol,mycharge,x,y,z))
+            print()
+            print()
             str =  "Geometry after -100.0% step for mode" 
             str += "%3d; Step length =  0.280 angstroms" % mode
-            print str
-            print "Maximum component (any atom: x,y, or z) displacement:  0.137"
+            print(str)
+            print("Maximum component (any atom: x,y, or z) displacement:  0.137")
             nion = 0
             for ll in geometry.split('\n'):
                nion += 1
@@ -462,9 +462,9 @@ for job in swnc:
                x = eval(ss[1]) - freqdat[ii][3*(nion-1)]
                y = eval(ss[2]) - freqdat[ii][3*(nion-1)+1]
                z = eval(ss[3]) - freqdat[ii][3*(nion-1)+2]
-               print "%5d %2s %10.4f %16.8f %16.8f %16.8f" % (nion,mysymbol,mycharge,x,y,z)
-            print 
-            print 
+               print("%5d %2s %10.4f %16.8f %16.8f %16.8f" % (nion,mysymbol,mycharge,x,y,z))
+            print()
+            print()
          ii += 1
 
       #### Generate IR Spectra Table ####
@@ -474,10 +474,10 @@ for job in swnc:
       freqdipole = []
       for ll in resultv.split("FREQ.")[1:]:
          freqdipole.append(eval(ll.split()[0]))
-      print " ----------------------------------------------------------------------------"
-      print " Normal Eigenvalue ||           Projected Infra Red Intensities"
-      print "  Mode   [cm**-1]  || [atomic units] [(debye/angs)**2] [(KM/mol)] [arbitrary]"
-      print " ------ ---------- || -------------- ----------------- ---------- -----------"
+      print(" ----------------------------------------------------------------------------")
+      print(" Normal Eigenvalue ||           Projected Infra Red Intensities")
+      print("  Mode   [cm**-1]  || [atomic units] [(debye/angs)**2] [(KM/mol)] [arbitrary]")
+      print(" ------ ---------- || -------------- ----------------- ---------- -----------")
       j = 0
       for f in freqs:
          j += 1
@@ -488,18 +488,18 @@ for job in swnc:
             td = tdipole[ii]
          else:
             td = 0.0
-         print "%6d  %10.3f || %12.6f %12.3f %12.3f %12.3f" % (j,f,td,td,td,td)
-      print " ----------------------------------------------------------------------------"
-      print
-      print
+         print("%6d  %10.3f || %12.6f %12.3f %12.3f %12.3f" % (j,f,td,td,td,td))
+      print(" ----------------------------------------------------------------------------")
+      print()
+      print()
 
-      print "Task  times  cpu: %10.1fs    wall: %10.1fs" % (total_time,total_time)
+      print("Task  times  cpu: %10.1fs    wall: %10.1fs" % (total_time,total_time))
 
 
 
 
    if job=='c':
-      print "MOPACKER COSMO CALCULATION"
+      print("MOPACKER COSMO CALCULATION")
       with open("myjobc.dat","w") as ff:
          ff.write(theory.upper() + " GEO-OK T=2.5D PRECISE CHARGE=" + charge.strip()+ADDMULT+" DEBUG &\n")
          ff.write("VERBOSE GRAD COMPFG EPS=78.4 MMOK\n\n")
@@ -508,7 +508,7 @@ for job in swnc:
             ff.write(ss[0]+" "+ss[1]+" 0 "+ss[2]+" 0 "+ss[3]+" 0\n")
       cmdc = mopac + "myjobc"
       resultc = subprocess.check_output(cmdc,shell=True)
-      print resultc
+      print(resultc)
       total_time += eval(resultc.split("TOTAL CPU TIME:")[1].split()[0].strip())
 
       cosmo_heat   = resultc.split("FINAL HEAT OF FORMATION =")[1].split()[0].strip()
@@ -516,28 +516,28 @@ for job in swnc:
       cosmo_elec   = resultc.split("ELECTRONIC ENERGY       =")[1].split()[0].strip()
       cosmo_core   = resultc.split("CORE-CORE REPULSION     =")[1].split()[0].strip()
       cosmo_diel   = resultc.split("DIELECTRIC ENERGY       =")[1].split()[0].strip()
-      print " dielectric constant -eps-     =  78.40"
-      print "MOPACKER COSMO HEAT OF FORMATION = " + cosmo_heat
-      print "MOPACKER COSMO TOTAL ENERGY = " + cosmo_energy
-      print "MOPACKER COSMO ELECTRONIC ENERGY = " + cosmo_elec
-      print "MOPACKER COSMO CORE-CORE REPULSION ENERGY = " + cosmo_core
-      print "MOPACKER COSMO DIELECTRIC ENERGY = " + cosmo_diel
+      print(" dielectric constant -eps-     =  78.40")
+      print("MOPACKER COSMO HEAT OF FORMATION = " + cosmo_heat)
+      print("MOPACKER COSMO TOTAL ENERGY = " + cosmo_energy)
+      print("MOPACKER COSMO ELECTRONIC ENERGY = " + cosmo_elec)
+      print("MOPACKER COSMO CORE-CORE REPULSION ENERGY = " + cosmo_core)
+      print("MOPACKER COSMO DIELECTRIC ENERGY = " + cosmo_diel)
       try:
          cosmo = (eval(energy) - eval(cosmo_energy))/27.2116
       except:
          cosmo = 0.0
-      print
-      print "                COSMO solvation results"
-      print "                -----------------------"
-      print
-      print "                gas phase energy = %20.10f" % (eval(energy)/27.2116)
-      print "                sol phase energy = %20.10f" % (eval(cosmo_energy)/27.2116)
-      print "(electrostatic) solvation energy = %20.10f ( %8.2f kcal/mol)" % (cosmo,cosmo*27.2116*23.06)
-      print
+      print()
+      print("                COSMO solvation results")
+      print("                -----------------------")
+      print()
+      print("                gas phase energy = %20.10f" % (eval(energy)/27.2116))
+      print("                sol phase energy = %20.10f" % (eval(cosmo_energy)/27.2116))
+      print("(electrostatic) solvation energy = %20.10f ( %8.2f kcal/mol)" % (cosmo,cosmo*27.2116*23.06))
+      print()
 
       ### print eigenvalues ###
-      print 
-      print "DFT Final Molecular Orbital Analysis"
+      print()
+      print("DFT Final Molecular Orbital Analysis")
       eigs = resultc.split("EIGENVALUES")[1].split("NET ATOMIC CHARGES AND DIPOLE CONTRIBUTIONS")[0].strip().split()
       nfilled = eval(resultc.split("NO. OF FILLED LEVELS    =")[1].split('\n')[0].strip())
       if ("AND NO. OF OPEN LEVELS  =") in resulto:
@@ -558,13 +558,13 @@ for job in swnc:
             occ = 1.0
          else:
             occ = 0.0
-         print "Vector %5d  Occ=%.6e  E=%.6e" % (count,occ,e)
-      print
-      print
+         print("Vector %5d  Occ=%.6e  E=%.6e" % (count,occ,e))
+      print()
+      print()
 
 
 
-print "MOPACKER JOB FINISHED"
-print "Total times  cpu: %10.1fs    wall: %10.1fs" % (total_time,total_time)
+print("MOPACKER JOB FINISHED")
+print("Total times  cpu: %10.1fs    wall: %10.1fs" % (total_time,total_time))
     
 
