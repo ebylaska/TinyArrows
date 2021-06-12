@@ -1,14 +1,19 @@
-#!/usr/bin/python
-import os,sys,subprocess,urllib2,requests,getopt,glob
+#!/usr/bin/env python3
+import os,sys,subprocess,requests,getopt,glob
 
+#############################################################################
 #nwchem         = "/usr/bin/mpirun -np 2 /home/bylaska/bin/nwchem "
-mopacker       = "/home/bylaska/bin/mopacker "
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
+mopacker       = ARROWS_HOME + "/compute-bin/mopacker "
 inputfilename  = "mopacarrows.nw"
 outputfilename = "mopacarrows.out"
-mymachinename  = "Eric Bylaska - we19993.emsl.pnl.gov"
-wrkdir1        = "/home/bylaska/Projects/Work/RUNARROWS1"
-wrkdir2        = "/home/bylaska/Projects/Work/RUNARROWS2"
-lockfilename   = "/home/bylaska/Projects/Work/runarrows.lock"
+mymachinename  = "Eric Bylaska - TinyArrows Debian docker container"
+
+wrkdir0        = ARROWS_HOME + "/Work/MOPAC"
+wrkdir1        = wrkdir0 + "/RUNARROWS1"
+wrkdir2        = wrkdir0 + "/RUNARROWS2"
+lockfilename   = wrkdir0 + "/runarrows.lock"
 
 
 #arrows_queue_url       = 'http://arrows.emsl.pnl.gov:5000/api/queue/'
@@ -20,9 +25,9 @@ ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo' ])
 arrows_post_url    = 'https://arrows.emsl.pnnl.gov/api/upload/'
 arrows_get_url     = 'https://arrows.emsl.pnnl.gov/api/submit_output/'
 
-#def allowed_file(filename):
-#    return '.' in filename and \
-#           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+#############################################################################
+
 
 def allowed_file(filename):
     allowed = False
@@ -31,6 +36,23 @@ def allowed_file(filename):
        if a in suffix: allowed = True
     return '.' in filename and allowed
 
+
+### Create Directories ###
+if (not os.path.exists(wrkdir0)):
+   try:
+      os.mkdir(wrkdir0)
+   except:
+      print(wrkdir0 + " directory exists!")
+if (not os.path.exists(wrkdir1)):
+   try:
+      os.mkdir(wrkdir1)
+   except:
+      print(wrkdir1 + " directory exists!")
+if (not os.path.exists(wrkdir2)):
+   try:
+      os.mkdir(wrkdir2)
+   except:
+      print(wrkdir2 + " directory exists!")
 
 
 ############################# main program ###################################
@@ -44,9 +66,9 @@ run_mopacarrows
 
 """
 
-print
-print "#run_mopacarrows - version 1.0"
-print
+print()
+print("#run_mopacarrows - version 1.0")
+print()
 
 inputdeck0 = ''
 showq       = True
@@ -67,16 +89,16 @@ for o, a in opts:
      showq       = False
 
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 
 if showq:
    try:
       rr = requests.get(arrows_queue_url)
-      print rr.text.split('#chemdb_queue - version 1.0')[1].split('</pre>')[0].strip()
+      print(rr.text.split('#chemdb_queue - version 1.0')[1].split('</pre>')[0].strip())
    except:
-      print " - API Failed"
+      print(" - API Failed")
    exit()
 
 
@@ -84,7 +106,7 @@ if showq:
 if os.path.isfile(lockfilename):
    with open(lockfilename,'r') as lfile: aa = lfile.read()
    if 'iamlocked0' not in aa:
-      print "currently locked by " + lockfilename
+      print("currently locked by " + lockfilename)
       exit()
 
 
@@ -104,7 +126,7 @@ if machinetype!='':
                   qmax = q
       if (fmax==0): queue_entry = qmax
    except:
-      print " - API Failed"
+      print(" - API Failed")
 
 if (queue_entry!=-1):
    try:
@@ -124,7 +146,7 @@ if os.path.isfile(lockfilename):
    if 'iamlocked0' in aa:
       with open(lockfilename,'w') as lfile: lfile.write("iamlocked\n")
    else:
-      print "currently locked by " + lockfilename
+      print("currently locked by " + lockfilename)
       exit()
 else:
    with open(lockfilename,'w') as lfile: lfile.write("iamlocked0\n")
@@ -137,19 +159,19 @@ os.chdir(wrkdir)
 inputdeck = inputdeck0 + "\n"
 
 #### generate the input deck ####
-print "Generating input deck " + wrkdir + "/" + inputfilename
+print("Generating input deck " + wrkdir + "/" + inputfilename)
 with open(wrkdir + "/" + inputfilename,'w') as ff:
    ff.write(inputdeck)
 
 
-print
-print "Running mopac. Generating output deck " + wrkdir + "/" + outputfilename
+print()
+print("Running mopac. Generating output deck " + wrkdir + "/" + outputfilename)
 
 try:
    cmd4    = mopacker + wrkdir + "/" + inputfilename + " > " + wrkdir + "/" + outputfilename
    result4 = subprocess.check_output(cmd4,shell=True,stderr=subprocess.STDOUT)
 except:
-   print "Failed running mopacjob!"
+   print("Failed running mopacjob!")
 
 #### Add MYMACHINENAME to outputfilename ####
 with open(wrkdir + "/" + outputfilename,'r') as ff: aa = ff.read()
@@ -166,37 +188,37 @@ for filename in nwfilenames:
       datafiles.append(filename)
       datafiles_names += filename[filename.rfind('/')+1:] + " "
    else:
-      print " - filename="+filename + " has bad suffix or does not exist."
+      print(" - filename="+filename + " has bad suffix or does not exist.")
 
 datafiles_names = datafiles_names.strip()
-print "datafiles_names= ",datafiles_names
-print "datafiles= ",datafiles
+print("datafiles_names= ",datafiles_names)
+print("datafiles= ",datafiles)
 
 for filename in datafiles:
-   print " - uploading " + filename
+   print(" - uploading " + filename)
    ofile = open(filename,'r')
    files = {'file': ofile}
    try:
       r = requests.post(arrows_post_url, files=files)
-      #print "POST return=",r.text
+      #print("POST return=",r.text)
    finally:
       ofile.close()
 
-#print "datafiles_names="+datafiles_names
+#print("datafiles_names="+datafiles_names)
 try:
    rr = requests.get(arrows_get_url + "\"" + datafiles_names + "\"")
-   print " - API return=",rr.text
+   print(" - API return=",rr.text)
 except:
-   print " - API Failed"
+   print(" - API Failed")
 
 #### Remove datafiles in current wrkdir ####
 allfilenames = glob.glob(wrkdir + "/*")
 for filename in allfilenames:
-   print "unlinking "+ filename
+   print("unlinking "+ filename)
    try:
       os.unlink(filename)
    except:
-      print "run_mopacarrows Failed to remove " + filename
+      print("run_mopacarrows Failed to remove " + filename)
 
 
 ### remove lockfilename ###
@@ -213,8 +235,8 @@ else:
 try:
    if removelock:
       os.unlink(lockfilename)
-      print "unlinking "+ lockfilename
+      print("unlinking "+ lockfilename)
 except:
-   print "run_mopacarrows: failed to remove " + lockfilename
+   print("run_mopacarrows: failed to remove " + lockfilename)
 
-print "Finished!"
+print("Finished!")
