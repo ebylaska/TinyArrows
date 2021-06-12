@@ -169,7 +169,7 @@ print("Running mopac. Generating output deck " + wrkdir + "/" + outputfilename)
 
 try:
    cmd4    = mopacker + wrkdir + "/" + inputfilename + " > " + wrkdir + "/" + outputfilename
-   result4 = subprocess.check_output(cmd4,shell=True,stderr=subprocess.STDOUT)
+   result4 = subprocess.check_output(cmd4,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 except:
    print("Failed running mopacjob!")
 

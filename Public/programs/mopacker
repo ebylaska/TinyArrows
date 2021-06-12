@@ -211,7 +211,7 @@ for job in swnc:
             ss = ll.split()
             ff.write(ss[0]+" "+ss[1]+" 1 "+ss[2]+" 1 "+ss[3]+" 1\n")
       cmdo = mopac + "myjobo"
-      resulto = subprocess.check_output(cmdo,shell=True)
+      resulto = subprocess.check_output(cmdo,shell=True).decode("utf-8")
       print(resulto)
 
       heat   = resulto.split("FINAL HEAT OF FORMATION =")[1].split()[0].strip()
@@ -311,7 +311,7 @@ for job in swnc:
             ss = ll.split()
             ff.write(ss[0]+" "+ss[1]+" 0 "+ss[2]+" 0 "+ss[3]+" 0\n")
       cmdv = mopac + "myjobv"
-      resultv = subprocess.check_output(cmdv,shell=True)
+      resultv = subprocess.check_output(cmdv,shell=True).decode("utf-8")
       print(resultv)
       total_time += eval(resultv.split("TOTAL CPU TIME:")[1].split()[0].strip())
       tmp = resultv.split("TOT.")[1].split('\n')[0].strip()
@@ -507,7 +507,7 @@ for job in swnc:
             ss = ll.split()
             ff.write(ss[0]+" "+ss[1]+" 0 "+ss[2]+" 0 "+ss[3]+" 0\n")
       cmdc = mopac + "myjobc"
-      resultc = subprocess.check_output(cmdc,shell=True)
+      resultc = subprocess.check_output(cmdc,shell=True).decode("utf-8")
       print(resultc)
       total_time += eval(resultc.split("TOTAL CPU TIME:")[1].split()[0].strip())
 
