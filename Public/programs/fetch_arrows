@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 import os,sys,subprocess,urllib,requests,getopt
 
 #arrows_queue_url       = 'http://arrows.emsl.pnl.gov:5000/arrows/api/v1.0/queue/'
