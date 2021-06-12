@@ -1,0 +1,220 @@
+#!/usr/bin/python
+import os,sys,subprocess,urllib2,requests,getopt,glob
+
+#nwchem         = "/usr/bin/mpirun -np 2 /home/bylaska/bin/nwchem "
+mopacker       = "/home/bylaska/bin/mopacker "
+inputfilename  = "mopacarrows.nw"
+outputfilename = "mopacarrows.out"
+mymachinename  = "Eric Bylaska - we19993.emsl.pnl.gov"
+wrkdir1        = "/home/bylaska/Projects/Work/RUNARROWS1"
+wrkdir2        = "/home/bylaska/Projects/Work/RUNARROWS2"
+lockfilename   = "/home/bylaska/Projects/Work/runarrows.lock"
+
+
+#arrows_queue_url       = 'http://arrows.emsl.pnl.gov:5000/api/queue/'
+#arrows_queue_fetch_url = 'http://arrows.emsl.pnl.gov:5000/api/queue_fetch/'
+arrows_queue_url       = 'https://arrows.emsl.pnnl.gov/api/queue/'
+arrows_queue_fetch_url = 'https://arrows.emsl.pnnl.gov/api/queue_fetch/'
+
+ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo' ])
+arrows_post_url    = 'https://arrows.emsl.pnnl.gov/api/upload/'
+arrows_get_url     = 'https://arrows.emsl.pnnl.gov/api/submit_output/'
+
+#def allowed_file(filename):
+#    return '.' in filename and \
+#           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+def allowed_file(filename):
+    allowed = False
+    suffix = filename.rsplit('.', 1)[1]
+    for a in ALLOWED_EXTENSIONS:
+       if a in suffix: allowed = True
+    return '.' in filename and allowed
+
+
+
+############################# main program ###################################
+usage = \
+"""
+run_mopacarrows 
+
+  Usage: run_mopacarrows -q -e queue_entry -m machinetype -h 
+
+  -h help
+
+"""
+
+print
+print "#run_mopacarrows - version 1.0"
+print
+
+inputdeck0 = ''
+showq       = True
+queue_entry = -1
+machinetype = 'mopac'
+machines = ['mopac']
+opts, args = getopt.getopt(sys.argv[1:], "e:m:qh")
+for o, a in opts:
+  if '-q' in o:
+     showq       = True
+  if '-e' in o:
+     machinetype = ''
+     queue_entry = eval(a)
+     showq       = False
+  if '-m' in o:
+     machinetype = a
+     machines = a.split()
+     showq       = False
+
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+
+if showq:
+   try:
+      rr = requests.get(arrows_queue_url)
+      print rr.text.split('#chemdb_queue - version 1.0')[1].split('</pre>')[0].strip()
+   except:
+      print " - API Failed"
+   exit()
+
+
+#### checkfor lockfile ####
+if os.path.isfile(lockfilename):
+   with open(lockfilename,'r') as lfile: aa = lfile.read()
+   if 'iamlocked0' not in aa:
+      print "currently locked by " + lockfilename
+      exit()
+
+
+if machinetype!='':
+   try:
+      rr = requests.get(arrows_queue_url)
+      fmax = 999999
+      qmax = -1
+      for ln in rr.text.split('\n'):
+         for mach in machines:
+            if mach in ln:
+               ss = ln.split()
+               f = eval(ss[2])
+               q = eval(ss[0])
+               if f<fmax:
+                  fmax = f
+                  qmax = q
+      if (fmax==0): queue_entry = qmax
+   except:
+      print " - API Failed"
+
+if (queue_entry!=-1):
+   try:
+      rr = requests.get(arrows_queue_fetch_url + "%d" % queue_entry)
+      inputdeck0 = rr.text.split('#chemdb_queue - version 1.0')[1].split('</pre>')[0].strip()
+   except:
+      inputdeck0 = ''
+
+if (inputdeck0==''):
+   exit()
+
+
+### set lockfile ###
+if os.path.isfile(lockfilename):
+   wrkdir = wrkdir2
+   with open(lockfilename,'r') as lfile: aa = lfile.read()
+   if 'iamlocked0' in aa:
+      with open(lockfilename,'w') as lfile: lfile.write("iamlocked\n")
+   else:
+      print "currently locked by " + lockfilename
+      exit()
+else:
+   with open(lockfilename,'w') as lfile: lfile.write("iamlocked0\n")
+   wrkdir = wrkdir1
+
+
+#### change directory to wrkdir ####
+os.chdir(wrkdir)
+
+inputdeck = inputdeck0 + "\n"
+
+#### generate the input deck ####
+print "Generating input deck " + wrkdir + "/" + inputfilename
+with open(wrkdir + "/" + inputfilename,'w') as ff:
+   ff.write(inputdeck)
+
+
+print
+print "Running mopac. Generating output deck " + wrkdir + "/" + outputfilename
+
+try:
+   cmd4    = mopacker + wrkdir + "/" + inputfilename + " > " + wrkdir + "/" + outputfilename
+   result4 = subprocess.check_output(cmd4,shell=True,stderr=subprocess.STDOUT)
+except:
+   print "Failed running mopacjob!"
+
+#### Add MYMACHINENAME to outputfilename ####
+with open(wrkdir + "/" + outputfilename,'r') as ff: aa = ff.read()
+aa +="\n\n# MYMACHINENAME: " + mymachinename + " :MYMACHINENAME\n"
+with open(wrkdir + "/" + outputfilename,'w') as ff: ff.write(aa)
+
+
+nwfilenames = glob.glob(wrkdir + "/*.out") + glob.glob(wrkdir + "/*.cube")
+
+datafiles = []
+datafiles_names = ''
+for filename in nwfilenames:
+   if allowed_file(filename) and os.path.exists(filename):
+      datafiles.append(filename)
+      datafiles_names += filename[filename.rfind('/')+1:] + " "
+   else:
+      print " - filename="+filename + " has bad suffix or does not exist."
+
+datafiles_names = datafiles_names.strip()
+print "datafiles_names= ",datafiles_names
+print "datafiles= ",datafiles
+
+for filename in datafiles:
+   print " - uploading " + filename
+   ofile = open(filename,'r')
+   files = {'file': ofile}
+   try:
+      r = requests.post(arrows_post_url, files=files)
+      #print "POST return=",r.text
+   finally:
+      ofile.close()
+
+#print "datafiles_names="+datafiles_names
+try:
+   rr = requests.get(arrows_get_url + "\"" + datafiles_names + "\"")
+   print " - API return=",rr.text
+except:
+   print " - API Failed"
+
+#### Remove datafiles in current wrkdir ####
+allfilenames = glob.glob(wrkdir + "/*")
+for filename in allfilenames:
+   print "unlinking "+ filename
+   try:
+      os.unlink(filename)
+   except:
+      print "run_mopacarrows Failed to remove " + filename
+
+
+### remove lockfilename ###
+try:
+   with open(lockfilename,'r') as lfile: aa = lfile.read()
+except:
+   aa = 'iamlocked0'
+
+if 'iamlocked0' in aa:
+   removelock = True
+else:
+   removelock = False
+   with open(lockfilename,'w') as lfile: lfile.write("iamlocked0\n")
+try:
+   if removelock:
+      os.unlink(lockfilename)
+      print "unlinking "+ lockfilename
+except:
+   print "run_mopacarrows: failed to remove " + lockfilename
+
+print "Finished!"
