@@ -1,0 +1,26 @@
+default_args: Cu 3.68 Cu16-fractional :default_args
+
+Set text bulk_name $arg1;
+Set number bulk_a $arg2;
+Set text bulk_type fcc;
+Set radio bulk_cubic true;
+Set text queue_nwchem_jobname $arg2;
+Set text queue_nwchem_curdir0 erichome:/Projects/CCS/$arg1-Slabs;
+Set text queue_nwchem_projectname $arg3;
+
+Generate bulk crystal; 
+
+Set text surface_scaling 0.66666667 0.66666667 2.0;
+Set number surface_nzplane 4;
+Set radio surface_alignc true;
+Set radio queue_nwchem_jobdate true;
+Set radio queue_nwchem_jobdeletescratch true;
+Generate surface;
+
+center fractional;
+center unit cell;
+
+jsmol to editor;
+
+fractional-job.arrows_script;
+

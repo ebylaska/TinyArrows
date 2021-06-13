@@ -1,0 +1,20 @@
+default_args: Cu 3.68 :default_args
+
+Set text bulk_name $arg1;
+Set number bulk_a $arg2;
+Set text bulk_type fcc;
+Set radio bulk_cubic true;
+
+Generate bulk crystal; 
+
+Set text surface_scaling 1.333333334 1.333333334 2.0;
+Set number surface_nzplane 4;
+Set radio surface_alignc true;
+Generate surface;
+
+center fractional;
+center unit cell;
+
+jsmol to editor;
+
+unit cell on;

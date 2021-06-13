@@ -1,0 +1,16 @@
+
+
+Set number nwchemvirt 8;
+Set number nwchemfractional_orbitals 8;
+Set text bandpspw pspw;
+Set text nwchemoptimizer scf;
+Set text nwchemfractional Gaussian;
+Set number nwchemfractional_alpha 0.15;
+Set number nwchemkerker 1.0;
+
+change format;
+change fractional;
+change optimizer;
+
+format nwchem;
+

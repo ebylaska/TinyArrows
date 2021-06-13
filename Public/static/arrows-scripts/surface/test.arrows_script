@@ -1,0 +1,16 @@
+default_args: Cu 3.68 Cu64-fractional :default_args
+
+Set text bulk_name $arg1;
+Set number bulk_a $arg2;
+Set text bulk_type fcc;
+Set radio bulk_cubic true;
+Set text queue_nwchem_jobname $arg2;
+Set text queue_nwchem_curdir0 erichome:/Projects/CCS/$arg1-Slabs;
+Set text queue_nwchem_projectname $arg3;
+
+surface/gen114-fcc111.arrows_script $arg1 $arg2;
+supercell 4 4 1;
+jsmol to editor;
+
+fractional-job.arrows_script;
+

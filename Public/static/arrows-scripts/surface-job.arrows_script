@@ -1,0 +1,11 @@
+
+
+Set number nwchemnp_dim3 5;
+Set text bandpspw pspw-band;
+Set text nwchemoptimizer scf;
+Set text nwchemfractional Gaussian;
+Set number nwchemfractional_alpha 0.15;
+
+format nwchem;
+change format;
+change fractional;

@@ -1,0 +1,13 @@
+
+
+Set number nwchemvirt 8;
+Set number nwchemnp_dim1 -1;
+Set number nwchemnp_dim2 -1;
+Set number nwchemnp_dim3 -1;
+Set text bandpspw pspw;
+Set text nwchemoptimizer lmbfgs grassman;
+Set text nwchemfractional No fractional;
+change format;
+change fractional;
+
+format nwchem;

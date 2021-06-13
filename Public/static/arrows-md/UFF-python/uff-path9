@@ -1,0 +1,2026 @@
+#!/usr/bin/python
+import os,sys,getopt,math,copy,random
+
+
+
+#import uff_potential
+############################################
+#                                          #
+#          uff_potential class             #
+#                                          #
+############################################
+class uff_potential:
+   def __init__(self,nion,symbol,amatrix):
+
+      neighbors1 = []
+      for i in range(nion):
+         ineighbors = []
+         for j in range(nion):
+            if (amatrix[i+j*nion]>0) and (i!=j):
+               ineighbors.append(j)
+         neighbors1.append(ineighbors)
+
+      neighbors12 = []
+      for i in range(nion):
+         ineighbors = []
+         ineighbors += neighbors1[i]
+         for j in neighbors1[i]:
+            ineighbors += neighbors1[j]
+         neighbors12.append(list(set(ineighbors)))
+
+      ### figure out UFF atom types ###
+      isaromatictype = []
+      atype = []
+      ufftype = []
+      for ii in range(nion):
+         qq = amatrix[ii+ii*nion]
+         nb = numberbonds(nion,amatrix,ii)
+         nc = numberconnections(nion,amatrix,ii)
+         at = False
+
+         if (periodic_table_charge[symbol[ii]]==1):
+            if (nb>1):
+               aa = "[#1D2]"
+            else:
+               aa = "[#1]"
+         elif (periodic_table_charge[symbol[ii]]==5):
+            if (nb==4):
+               aa = "[#5D4]"
+            else:
+               aa = "[#5]"
+         elif (periodic_table_charge[symbol[ii]]==6):
+            aa = "[#6]"
+            if (nc==4) and (nb==4) and (qq==0):
+               aa = "[#6]"
+            elif (nc==3) and (nb==4) and (qq==0):
+               if isaromatic(nion,symbol,amatrix,ii):
+                  aa = "[c]" 
+                  at = True
+               else:
+                  aa = "[C^2]" 
+            elif (nc==3) and (nb==3):
+               if isneighborSP2(nion,symbol,amatrix,ii):
+                  aa = "[CA1]"
+               elif (qq==+1):
+                  aa = "[C+1]"
+               else:
+                  aa = "[C-1]"
+            elif (nc==2) and (nb==4) and (qq==0):
+               aa = "[C^1]"
+         
+         elif (periodic_table_charge[symbol[ii]]==7):
+            aa = "[#7]"
+            if (nc==3) and (nb==3) and (qq==0):
+               aa = "[#7]"
+            elif (nc==2) and (nb==3) and (qq==0):
+               if isaromatic(nion,symbol,amatrix,ii):
+                  aa = "[n]" 
+                  at = True
+               else:
+                  aa = "[N^2]" 
+            elif (nc==3) and (nb==4) and (qq==0):
+               aa = "[N^2]"
+            elif (nc==1) and (nb==3) and (qq==0):
+               aa = "[N^1]"
+
+         elif (periodic_table_charge[symbol[ii]]==8):
+            aa = "[#8]"
+            if (nc==1) and (nb==2) and (qq==0):
+               aa = "[O^2]" 
+            elif (nc==2) and (nb==2) and (qq==0):
+               if isaromatic(nion,symbol,amatrix,ii):
+                  aa = "[o]" 
+                  at = True
+               else:
+                  aa = "[#8]" 
+
+         elif (periodic_table_charge[symbol[ii]]==15):
+            aa = "[#15]"
+            if (nc==3) and (nb==3) and (qq==0):
+               aa = "[#15]"
+            elif (nc==2) and (nb==3) and (qq==0):
+               if isaromatic(nion,symbol,amatrix,ii):
+                  aa = "[p]" 
+                  at = True
+               else:
+                  aa = "[P^2]" 
+            elif (nc==3) and (nb==4) and (qq==0):
+               aa = "[P^2]"
+            elif (nc==1) and (nb==3) and (qq==0):
+               aa = "[P^1]"
+
+         elif (periodic_table_charge[symbol[ii]]==16):
+            aa = "[#16]"
+            if (nc==1) and (nb==2) and (qq==0):
+               aa = "[S^2]" 
+            elif (nc==2) and (nb==2) and (qq==0):
+               if isaromatic(nion,symbol,amatrix,ii):
+                  aa = "[s]" 
+                  at = True
+               else:
+                  aa = "[#16]" 
+
+         elif (periodic_table_charge[symbol[ii]]==22):
+            if (nb==4):
+               aa = "[#22D3]"
+            else:
+               aa = "[#22]"
+         elif (periodic_table_charge[symbol[ii]]==26):
+            if (nb==4):
+               aa = "[#26D3]"
+            else:
+               aa = "[#26]"
+         elif (periodic_table_charge[symbol[ii]]==42):
+            if (nb==4):
+               aa = "[#42D3]"
+            else:
+               aa = "[#42]"
+         elif (periodic_table_charge[symbol[ii]]==74):
+            if (nb==4):
+               if (qq==6):
+                  aa = "[#74D3+6]"
+               else:
+                  aa = "[#74D3+4]"
+            else:
+               aa = "[#74]"
+         elif (periodic_table_charge[symbol[ii]]==75):
+            if (nb==4):
+               aa = "[#75D3]"
+            else:
+               aa = "[#75]"
+         else:
+            aa = "[#%d]" % periodic_table_charge[symbol[ii]]
+         atype.append(aa)
+         ufftype.append(smartuff[aa])
+         isaromatictype.append(at)
+
+      ### adjust amatrix to aromatic bondorders ###
+      border_matrix = list(amatrix)
+      for i in range(nion-1):
+         for j in range(i+1,nion):
+            if (((border_matrix[i+j*nion]>=1) and (border_matrix[i+j*nion]<=2)) and (isaromatictype[i] and isaromatictype[j])) or (border_matrix[i+j*nion]==1.5):
+               border_matrix[i+j*nion] = 5
+               border_matrix[j+i*nion] = 5
+
+      ### define katom ###
+      katom_type = list(set(ufftype))
+      nkatom_type = len(katom_type)
+      katom = []
+      for i in range(nion):
+         k = katom_type.index(ufftype[i])
+         katom.append(k)
+
+      ### fetch uff param data for each kind of atom ###
+      uffparam_type = []
+      for i in range(nkatom_type):
+         uffparam_type.append(uffparam[katom_type[i]])
+
+      ### generate spring constants, distances, angle potential constants,... using uff param data ###
+      # param Atom    r1      theta0  x1      D1      zeta    Z1      Vi      Uj      Xi      Hard    Radius
+      preuff = []
+      for i in range(nkatom_type):
+         #iparam = uffparam[katom_type[i]]
+         iparam = uffparam_type[i]
+         ri     = iparam[1]
+         thetai = iparam[2]
+         xi = iparam[3]
+         Di = iparam[4]
+         Zi = iparam[6]
+         Vi = iparam[7]
+         Ui = iparam[8]
+         Chii = iparam[9]
+         for j in range(i,nkatom_type):
+            #jparam = uffparam[katom_type[j]]
+            jparam = uffparam_type[j]
+            rj     = jparam[1]
+            thetaj = jparam[2]
+            xj = jparam[3]
+            Dj = jparam[4]
+            Zj = jparam[6]
+            Vj = jparam[7]
+            Uj = jparam[8]
+            Chij = jparam[9]
+         
+            rEN = ri * rj * (math.sqrt(Chii) - math.sqrt(Chij)) * (math.sqrt(Chii) - math.sqrt(Chij))/(Chii*ri + Chij*rj);
+
+            rBO10 = -0.1332*(ri + rj)*math.log(1.0);
+            rBO15 = -0.1332*(ri + rj)*math.log(1.5);
+            rBO20 = -0.1332*(ri + rj)*math.log(2.0);
+            rBO30 = -0.1332*(ri + rj)*math.log(3.0);
+            rBO40 = -0.1332*(ri + rj)*math.log(4.0);
+
+            rij10 = ri + rj + rBO10 - rEN
+            rij15 = ri + rj + rBO15 - rEN
+            rij20 = ri + rj + rBO20 - rEN
+            rij30 = ri + rj + rBO30 - rEN
+            rij40 = ri + rj + rBO40 - rEN
+
+            kij10 = 664.12*Zi*Zj/(rij10**3)
+            kij15 = 664.12*Zi*Zj/(rij15**3)
+            kij20 = 664.12*Zi*Zj/(rij20**3)
+            kij30 = 664.12*Zi*Zj/(rij30**3)
+            kij40 = 664.12*Zi*Zj/(rij40**3)
+
+            Vsp3 = math.sqrt(Vi*Vj)
+            Vsp2_10 = 5*math.sqrt(Ui*Uj)*(1.0+4.18*math.log(1.0))
+            Vsp2_15 = 5*math.sqrt(Ui*Uj)*(1.0+4.18*math.log(1.5))
+            Vsp2_20 = 5*math.sqrt(Ui*Uj)*(1.0+4.18*math.log(2.0))
+            Vsp2_30 = 5*math.sqrt(Ui*Uj)*(1.0+4.18*math.log(3.0))
+            Vsp2_40 = 5*math.sqrt(Ui*Uj)*(1.0+4.18*math.log(4.0))
+            print "Vs=",Vi,Vj,Ui,Uj," --> ",Vsp3,Vsp2_10,Vsp2_15,Vsp2_20,Vsp2_30,Vsp2_40
+            print "    --> ",math.sqrt(Ui*Uj),5*(1+4.18*math.log(1.5))
+
+            xij = 0.5*(xi+xj)
+            Dij = math.sqrt(Di*Dj)
+
+            data = (Dij,xij,rij10,rij20,rij30,rij40,rij15,kij10,kij20,kij30,kij40,kij15,Vsp3,Vsp2_10,Vsp2_20,Vsp2_30,Vsp2_40,Vsp2_15)
+            preuff.append(data)
+
+      ### set up bondstretch potentials ###
+      self.bondstretch = []
+      for i in range(nion-1):
+         for j in range(i+1,nion):
+            bij = border_matrix[i+j*nion]
+            if (bij>0):
+               rij = preuff[packindx(nkatom_type,katom[i],katom[j])][1+bij]
+               kij = preuff[packindx(nkatom_type,katom[i],katom[j])][6+bij]
+               self.bondstretch.append((i,j,rij,kij))
+            elif (bij<-10):
+               rij = preuff[packindx(nkatom_type,katom[i],katom[j])][1+1]
+               kij = preuff[packindx(nkatom_type,katom[i],katom[j])][6+1]
+               self.bondstretch.append((i,j,rij,kij))
+
+      ### set up anglebend potentials ###
+      self.anglebend = []
+      for j in range(nion):
+         ctheta0 = uffparam_type[katom[j]][12]
+         atype   = uffparam_type[katom[j]][0]
+         hybridization = 0
+         if (len(atype)>2):
+            if (atype[2]=='1'): hybridization=1
+            if (atype[2]=='2'): hybridization=3
+            if (atype[2]=='4'): hybridization=4
+            if (atype[2]=='6'): hybridization=4
+            if (atype=="Bi3+3"): hybridization=2
+            if (atype=="Po3+3"): hybridization=2
+         ic = 0
+         for i in neighbors1[j]:
+            for k in neighbors1[j][ic+1:]:
+               KIJK = uff_KIJK(nion,nkatom_type,katom,uffparam_type,preuff,border_matrix,i,j,k)
+               self.anglebend.append((i,j,k,hybridization,KIJK,ctheta0))
+            ic += 1
+
+      ### set up torsion potentials ###
+      self.torsion = []
+      for j in range(nion-1):
+         for k in range(j+1,nion):
+            if (amatrix[j+k*nion]>0) and (j!=k):
+               for i in neighbors1[j]:
+                  if (i!=j) and (i!=k):
+                     for l in neighbors1[k]:
+                        if (l!=i) and (l!=j) and (l!=k):
+                           (V,n,cnphi) = uff_torsion_KIJKL(nion,nkatom_type,katom,uffparam_type,preuff,border_matrix,i,j,k,l)
+                           self.torsion.append((i,j,k,l,V,n,cnphi))
+
+      ### set up inversion potentials ###
+      self.inversion = []
+      for i in range(nion):
+         ic = 0
+         for j in neighbors1[i]:
+            ic2 = 0
+            for k in neighbors1[i][ic+1:]:
+               for l in neighbors1[i][ic+ic2+2:]:
+                  (KIJKL,C0,C1,C2) = uff_inversion_KIJKL(katom,uffparam_type,i,j,k,l)
+                  if (abs(KIJKL)>1.0e-6):
+                     self.inversion.append((i,j,k,l,KIJKL,C0,C1,C2))
+               ic2 += 1
+            ic += 1
+
+      self.preuff      = preuff
+      self.nkatom_type = nkatom_type
+      self.katom       = katom
+      self.neighbors1  = neighbors1
+      self.neighbors12 = neighbors12
+      
+   #def uff_bondstretch(bondstretch,nion,rion):
+   ################################
+   #        Bond Stretch          #
+   ################################
+   def bondstretch_e(self,nion,rion):
+      E = 0.0
+      for bs in self.bondstretch:
+         i   = bs[0]
+         j   = bs[1]
+         rij = bs[2]
+         kij = bs[3]
+         dx  = rion[3*i]   - rion[3*j]
+         dy  = rion[3*i+1] - rion[3*j+1]
+         dz  = rion[3*i+2] - rion[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         E += 0.5*kij*(r-rij)**2
+      return E
+
+   def bondstretch_egrad(self,nion,rion):
+      E = 0.0
+      grad = [0.0]*3*nion
+      for bs in self.bondstretch:
+         i   = bs[0]
+         j   = bs[1]
+         rij = bs[2]
+         kij = bs[3]
+         dx  = rion[3*i]   - rion[3*j]
+         dy  = rion[3*i+1] - rion[3*j+1]
+         dz  = rion[3*i+2] - rion[3*j+2]
+         r = math.sqrt(dx*dx + dy*dy + dz*dz)
+         E += 0.5*kij*(r-rij)**2
+         dedr = kij*(r-rij)
+         grad[3*i]   += dedr*(dx/r)
+         grad[3*i+1] += dedr*(dy/r)
+         grad[3*i+2] += dedr*(dz/r)
+         grad[3*j]   -= dedr*(dx/r)
+         grad[3*j+1] -= dedr*(dy/r)
+         grad[3*j+2] -= dedr*(dz/r)
+      return (E,grad)
+
+   def vdot3(self,a,b):
+      c = [0.0]*3
+      c[0] = a[1]*b[2] - a[2]*b[1]
+      c[1] = a[2]*b[0] - a[0]*b[2]
+      c[2] = a[0]*b[1] - a[1]*b[0]
+      return c
+
+   def ddot3(self,a,b):
+      d = a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+      return d
+
+   ################################
+   #        Angle Bend            #
+   ################################
+   def anglebend_e(self,nion,rion):
+      E = 0.0
+      for ab in self.anglebend:
+         i = ab[0]
+         j = ab[1]
+         k = ab[2]
+         anglefunc = ab[3]
+         KIJK      = ab[4]
+         ctheta0   = ab[5]
+
+         dxij = rion[3*i]   - rion[3*j]
+         dyij = rion[3*i+1] - rion[3*j+1]
+         dzij = rion[3*i+2] - rion[3*j+2]
+         rijsq = (dxij*dxij + dyij*dyij + dzij*dzij)
+         rij   = math.sqrt(rijsq)
+
+         dxkj = rion[3*k]   - rion[3*j]
+         dykj = rion[3*k+1] - rion[3*j+1]
+         dzkj = rion[3*k+2] - rion[3*j+2]
+         rkjsq =(dxkj*dxkj + dykj*dykj + dzkj*dzkj)
+         rkj = math.sqrt(rkjsq)
+         denom = rij*rkj
+         if (denom>1.0e-11):
+            ctheta = (dxij*dxkj + dyij*dykj + dzij*dzkj)/(denom)
+            if (ctheta>1.0):  ctheta = 1.0
+            if (ctheta<-1.0): ctheta = -1.0
+            stheta = math.sqrt(1.0 - ctheta**2)
+
+            ## linear coordination min=180 degrees ##
+            if   (anglefunc==1):
+               E += KIJK*(1.0+ctheta)
+
+            ## perpendicular coordination? min=90 degrees ##
+            elif (anglefunc==2):
+               c2theta = ctheta**2 - stheta**2
+               E += (0.25*KIJK)*(1.0+c2theta)
+
+            ## trigonal planar coordinationmin=120 degrees  ##
+            elif (anglefunc==3):
+               c3theta = ctheta**3 - 3*ctheta*stheta**2
+               E += (KIJK/9.0)*(1.0-c3theta)
+
+            ## square planar or octahdral coordination min=90 degrees ##
+            elif (anglefunc==4):
+               c4theta = ctheta**4 - 6*ctheta**2*stheta**2 + stheta**4
+               E += (KIJK/16.0)*(1.0-c4theta)
+
+            ## general angles ##
+            else:
+               c2theta = ctheta**2 - stheta**2
+               C2 = 1.0/(4.0*(1.0-ctheta0*ctheta0))
+               C1 = -4.0*C2*ctheta0
+               C0 = C2*(2.0*ctheta0**2 + 1.0)
+               E += KIJK*(C0 + C1*ctheta + C2*c2theta)
+
+      return E
+
+
+   #def uff_anglebend(anglebend,nion,rion):
+   def anglebend_egrad(self,nion,rion):
+      E = 0.0
+      grad = [0.0]*3*nion
+      for ab in self.anglebend:
+         i = ab[0]
+         j = ab[1]
+         k = ab[2]
+         anglefunc = ab[3]
+         KIJK      = ab[4]
+         ctheta0   = ab[5]
+
+         dxij = rion[3*i]   - rion[3*j]
+         dyij = rion[3*i+1] - rion[3*j+1]
+         dzij = rion[3*i+2] - rion[3*j+2]
+         rijsq = (dxij*dxij + dyij*dyij + dzij*dzij)
+         rij   = math.sqrt(rijsq)
+
+         dxkj = rion[3*k]   - rion[3*j]
+         dykj = rion[3*k+1] - rion[3*j+1]
+         dzkj = rion[3*k+2] - rion[3*j+2]
+         rkjsq =(dxkj*dxkj + dykj*dykj + dzkj*dzkj)
+         rkj = math.sqrt(rkjsq)
+         denom = rij*rkj
+         if (denom>1.0e-11):
+            ctheta = (dxij*dxkj + dyij*dykj + dzij*dzkj)/(denom)
+            if (ctheta>1.0):  ctheta = 1.0
+            if (ctheta<-1.0): ctheta = -1.0
+            stheta = math.sqrt(1.0 - ctheta**2)
+            #theta  = math.acos(ctheta)
+            #stheta = math.sin(theta)
+
+            ## linear coordination min=180 degrees ##
+            if   (anglefunc==1):
+               E += KIJK*(1.0+ctheta)
+               dEdtheta = -KIJK*stheta
+
+            ## perpendicular coordination? min=90 degrees ##
+            elif (anglefunc==2):
+               c2theta = ctheta**2 - stheta**2
+               s2theta = 2.0*stheta*ctheta;
+               E += (0.25*KIJK)*(1.0+c2theta)
+               dEdtheta = -0.5*KIJK*s2theta
+
+            ## trigonal planar coordinationmin=120 degrees  ##
+            elif (anglefunc==3):
+               c3theta = ctheta**3 - 3*ctheta*stheta**2
+               s3theta = stheta*(3.0-4.0*stheta*stheta)
+               E += (KIJK/9.0)*(1.0-c3theta)
+               dEdtheta = (KIJK/3.0)*s3theta
+
+            ## square planar or octahdral coordination min=90 degrees ##
+            elif (anglefunc==4):
+               c4theta = ctheta**4 - 6*ctheta**2*stheta**2 + stheta**4
+               s4theta = ctheta*stheta*(4.0-8.0*stheta*stheta) 
+               E += (KIJK/16.0)*(1.0-c4theta)
+               dEdtheta = (KIJK/4.0)*s4theta
+
+            ## general angles ##
+            else:
+               c2theta = ctheta**2 - stheta**2
+               s2theta = 2.0*stheta*ctheta;
+               #print "general angle=",ctheta,stheta,c2theta,s2theta
+               #C2 = 1.0/(4.0*stheta0**2)
+               #stheta02 = (1.0 - ctheta0*ctheta0)
+               #C2 = 1.0/(4.0*stheta02)
+               if ((abs(1.0-ctheta0*ctheta0))>1e-6):
+                  C2 = 1.0/(4.0*(1.0-ctheta0*ctheta0))
+                  C1 = -4.0*C2*ctheta0
+                  C0 = C2*(2.0*ctheta0**2 + 1.0)
+                  E += KIJK*(C0 + C1*ctheta + C2*c2theta)
+                  dEdtheta = -KIJK*(C1*stheta + 2.0*C2*s2theta)
+               else:
+                  dEdtheta = 0.0
+               #E += KIJK*(C0 + C1*ctheta)
+               #dEdtheta = -KIJK*(C1*stheta)
+               #E += KIJK*(C0 + C2*c2theta)
+               #dEdtheta = -KIJK*(2.0*C2*s2theta)
+               #print "Eangle=",i,j,k,E,ctheta,dEdtheta
+               #print "invstheta=",invstheta
+
+            if (stheta<1.0e-8): 
+               invstheta = 1.0/1.0e-8
+            else:
+               invstheta = 1.0/stheta
+            aa  = dEdtheta*invstheta
+            a11 =  aa*ctheta/rijsq
+            a12 = -aa/(denom)
+            a22 =  aa*ctheta/rkjsq
+
+            vx1 = a11*dxij + a12*dxkj
+            vx2 = a22*dxkj + a12*dxij
+
+            vy1 = a11*dyij + a12*dykj
+            vy2 = a22*dykj + a12*dyij
+
+            vz1 = a11*dzij + a12*dzkj
+            vz2 = a22*dzkj + a12*dzij
+
+            grad[3*i]   += vx1
+            grad[3*i+1] += vy1
+            grad[3*i+2] += vz1
+            grad[3*j]   -= (vx1 + vx2)
+            grad[3*j+1] -= (vy1 + vy2)
+            grad[3*j+2] -= (vz1 + vz2)
+            grad[3*k]   += vx2
+            grad[3*k+1] += vy2
+            grad[3*k+2] += vz2
+      return (E,grad)
+
+
+   #def uff_torsion(torsion,nion,rion):
+   ################################
+   #        Torsion               #
+   ################################
+   def torsion_e(self,nion,rion):
+      E = 0.0
+      r12 = [0.0]*3
+      r32 = [0.0]*3
+      r34 = [0.0]*3
+      for tor in self.torsion:
+         i = tor[0]
+         j = tor[1]
+         k = tor[2]
+         l = tor[3]
+         V = tor[4]
+         n = tor[5]
+         cnphi0 = tor[6]
+         #E += 0.5*V*(1-cos(n*phi_0)*cos(n*phi))#
+
+         for s in range(3):
+            r12[s] = rion[3*i+s] - rion[3*j+s] #b1
+            r32[s] = rion[3*k+s] - rion[3*j+s] #b2
+            r34[s] = rion[3*k+s] - rion[3*l+s] #b3
+
+         #n1=b1xb2
+         r52 = self.vdot3(r12,r32)
+         s52 = self.ddot3(r52,r52)
+
+         #n2=b2xb3
+         r63 = self.vdot3(r32,r34)
+         s63 = self.ddot3(r63,r63)
+
+         s5263 = self.ddot3(r52,r63)
+         s1263 = self.ddot3(r12,r63)
+         #print "s5263=",s52,s63,s5263,s5263/math.sqrt(s52*s63)
+         cphi = s5263/math.sqrt(s52*s63)
+         if (cphi>1.0):    cphi =  1.0
+         if (cphi<(-1.0)): cphi = -1.0
+         if (s1263<0.0):
+            phi = -math.acos(cphi)
+         else:
+            phi = math.acos(cphi)
+
+         #sphi  = math.sin(phi)
+         cnphi = math.cos(n*phi)
+
+         ### removed 1/2 because duplicate torsions not included ###
+         #E += 0.5*V*(1.0-cnphi0*cnphi)
+         E += V*(1.0-cnphi0*cnphi)
+
+      return E
+
+
+   def torsion_egrad(self,nion,rion):
+      E = 0.0
+      grad = [0.0]*3*nion
+      r12 = [0.0]*3
+      r32 = [0.0]*3
+      r34 = [0.0]*3
+      for tor in self.torsion:
+         i = tor[0]
+         j = tor[1]
+         k = tor[2]
+         l = tor[3]
+         V = tor[4]
+         n = tor[5]
+         cnphi0 = tor[6]
+         #E += 0.5*V*(1-cos(n*phi_0)*cos(n*phi))#
+
+         for s in range(3):
+            r12[s] = rion[3*i+s] - rion[3*j+s] #b1
+            r32[s] = rion[3*k+s] - rion[3*j+s] #b2
+            r34[s] = rion[3*k+s] - rion[3*l+s] #b3
+         
+         s32 = self.ddot3(r32,r32)
+
+         #n1=b1xb2
+         r52 = self.vdot3(r12,r32)
+         s52 = self.ddot3(r52,r52)
+
+         #n2=b2xb3
+         r63 = self.vdot3(r32,r34)
+         s63 = self.ddot3(r63,r63)
+
+         s5263 = self.ddot3(r52,r63)
+         s1263 = self.ddot3(r12,r63)
+         s1232 = self.ddot3(r12,r32)
+         s3432 = self.ddot3(r34,r32)
+
+         #print "s5263=",s52,s63,s5263,s5263/math.sqrt(s52*s63)
+         cphi = s5263/math.sqrt(s52*s63)
+         if (cphi>1.0):    cphi =  1.0
+         if (cphi<(-1.0)): cphi = -1.0
+         if (s1263<0.0):
+            #phi = -math.acos(s5263/math.sqrt(s52*s63))
+            phi = -math.acos(cphi)
+         else:
+            #phi = math.acos(s5263/math.sqrt(s52*s63))
+            phi = math.acos(cphi)
+
+         #sphi  = math.sin(phi)
+         cnphi = math.cos(n*phi)
+         snphi = math.sin(n*phi)
+
+         ### removed 1/2 because duplicate torsions not included ###
+         #E += 0.5*V*(1.0-cnphi0*cnphi)
+         E += V*(1.0-cnphi0*cnphi)
+         dEdphi = V*cnphi0*n*snphi
+
+         a1 = math.sqrt(s32)/s52
+         a2 = math.sqrt(s32)/s63
+         a3 = s1232/s32
+         a4 = s3432/s32
+         a31 = a3*a1
+         a31_1 = a31-a1
+         a42 = a4*a2
+         a42_2 = a42-a2
+
+         for s in range(3):
+            grad[3*i+s] += (a1*r52[s])*dEdphi
+            grad[3*j+s] += ( a31_1*r52[s] + a42*r63[s])*dEdphi
+            grad[3*k+s] += (-a42_2*r63[s] - a31*r52[s])*dEdphi
+            grad[3*l+s] += (-a2*r63[s])*dEdphi
+
+      return (E,grad)
+
+
+   #def uff_inversion(inversion,nion,rion):
+   ################################
+   #        Inversion             #
+   ################################
+   def inversion_e(self,nion,rion):
+      E = 0.0
+      for invrt in self.inversion:
+         i = invrt[0]
+         j = invrt[1]
+         k = invrt[2]
+         l = invrt[3]
+         KIJKL = invrt[4]
+         C0    = invrt[5]
+         C1    = invrt[6]
+         C2    = invrt[7]
+
+         dx_ij = rion[3*i]   - rion[3*j]
+         dy_ij = rion[3*i+1] - rion[3*j+1]
+         dz_ij = rion[3*i+2] - rion[3*j+2]
+         rij = math.sqrt(dx_ij*dx_ij+dy_ij*dy_ij+dz_ij*dz_ij)
+         dx_ij /= rij
+         dy_ij /= rij
+         dz_ij /= rij
+
+         dx_kj = rion[3*k]   - rion[3*j]
+         dy_kj = rion[3*k+1] - rion[3*j+1]
+         dz_kj = rion[3*k+2] - rion[3*j+2]
+         rkj = math.sqrt(dx_kj*dx_kj+dy_kj*dy_kj+dz_kj*dz_kj)
+         dx_kj /= rkj
+         dy_kj /= rkj
+         dz_kj /= rkj
+
+         dx_lj = rion[3*l]   - rion[3*j]
+         dy_lj = rion[3*l+1] - rion[3*j+1]
+         dz_lj = rion[3*l+2] - rion[3*j+2]
+         rlj = math.sqrt(dx_lj*dx_lj+dy_lj*dy_lj+dz_lj*dz_lj)
+         dx_lj /= rlj
+         dy_lj /= rlj
+         dz_lj /= rlj
+
+         #n1=-(b1xb2)
+         dx_ijk = -(dy_ij * dz_kj - dy_kj * dz_ij)
+         dy_ijk = -(dz_ij * dx_kj - dz_kj * dx_ij)
+         dz_ijk = -(dx_ij * dy_kj - dx_kj * dy_ij)
+         r_ijk = math.sqrt(dx_ijk*dx_ijk+dy_ijk*dy_ijk+dz_ijk*dz_ijk)
+         dx_ijk /= r_ijk
+         dy_ijk /= r_ijk
+         dz_ijk /= r_ijk
+
+         cgamma = dx_ijk*dx_lj+dy_ijk*dy_lj+dz_ijk*dz_lj
+         if (cgamma>1.0):  cgamma =  1.0
+         if (cgamma<-1.0): cgamma = -1.0
+         sgamma = max(math.sqrt(1.0-cgamma**2),1.0e-9)
+
+         c2gamma = 2.0*sgamma*sgamma-1.0
+
+         E += KIJKL*(C0 + C1*sgamma + C2*c2gamma)
+
+      return E
+
+
+
+   def inversion_egrad(self,nion,rion):
+      E = 0.0
+      grad = [0.0]*3*nion
+      for invrt in self.inversion:
+         i = invrt[0]
+         j = invrt[1]
+         k = invrt[2]
+         l = invrt[3]
+         KIJKL = invrt[4]
+         C0    = invrt[5]
+         C1    = invrt[6]
+         C2    = invrt[7]
+
+         dx_ij = rion[3*i]   - rion[3*j]
+         dy_ij = rion[3*i+1] - rion[3*j+1]
+         dz_ij = rion[3*i+2] - rion[3*j+2]
+         rij = math.sqrt(dx_ij*dx_ij+dy_ij*dy_ij+dz_ij*dz_ij)
+         dx_ij /= rij
+         dy_ij /= rij
+         dz_ij /= rij
+
+         dx_kj = rion[3*k]   - rion[3*j]
+         dy_kj = rion[3*k+1] - rion[3*j+1]
+         dz_kj = rion[3*k+2] - rion[3*j+2]
+         rkj = math.sqrt(dx_kj*dx_kj+dy_kj*dy_kj+dz_kj*dz_kj)
+         dx_kj /= rkj
+         dy_kj /= rkj
+         dz_kj /= rkj
+
+         dx_lj = rion[3*l]   - rion[3*j]
+         dy_lj = rion[3*l+1] - rion[3*j+1]
+         dz_lj = rion[3*l+2] - rion[3*j+2]
+         rlj = math.sqrt(dx_lj*dx_lj+dy_lj*dy_lj+dz_lj*dz_lj)
+         dx_lj /= rlj
+         dy_lj /= rlj
+         dz_lj /= rlj
+
+         #n1=-(b1xb2)
+         dx_ijk = -(dy_ij * dz_kj - dy_kj * dz_ij)
+         dy_ijk = -(dz_ij * dx_kj - dz_kj * dx_ij)
+         dz_ijk = -(dx_ij * dy_kj - dx_kj * dy_ij)
+         r_ijk = math.sqrt(dx_ijk*dx_ijk+dy_ijk*dy_ijk+dz_ijk*dz_ijk)
+         dx_ijk /= r_ijk
+         dy_ijk /= r_ijk
+         dz_ijk /= r_ijk
+
+         cgamma = dx_ijk*dx_lj+dy_ijk*dy_lj+dz_ijk*dz_lj
+         if (cgamma>1.0):  cgamma =  1.0
+         if (cgamma<-1.0): cgamma = -1.0
+         sgamma = max(math.sqrt(1.0-cgamma**2),1.0e-9)
+
+         ctheta = dx_ij*dx_kj+dy_ij*dy_kj+dz_ij*dz_kj
+         if (ctheta>1.0):  ctheta =  1.0
+         if (ctheta<-1.0): ctheta = -1.0
+         stheta = max(math.sqrt(1.0-ctheta**2),1.0e-9)
+
+         c2gamma = 2.0*sgamma*sgamma-1.0
+
+         E += KIJKL*(C0 + C1*sgamma + C2*c2gamma)
+
+         dE_dW = -KIJKL*(C1*cgamma-4.0*C2*cgamma*sgamma)
+
+         #t1 = rlj x rkj
+         t1x = dy_lj*dz_kj - dz_lj*dy_kj
+         t1y = dz_lj*dx_kj - dx_lj*dz_kj
+         t1z = dx_lj*dy_kj - dy_lj*dx_kj
+
+         #t2 = rij x rlj
+         t2x = dy_ij*dz_lj - dz_ij*dy_lj
+         t2y = dz_ij*dx_lj - dx_ij*dz_lj
+         t2z = dx_ij*dy_lj - dy_ij*dx_lj
+
+         #t3 = rkj x rij
+         t3x = dy_kj*dz_ij - dz_kj*dy_ij
+         t3y = dz_kj*dx_ij - dx_kj*dz_ij
+         t3z = dx_kj*dy_ij - dy_kj*dx_ij
+
+         term1 = sgamma*stheta
+         term2 = cgamma/(sgamma*stheta*stheta)
+
+         tg1x = (t1x/term1-(dx_ij-dx_kj*ctheta)*term2)/rij
+         tg1y = (t1y/term1-(dy_ij-dy_kj*ctheta)*term2)/rij
+         tg1z = (t1z/term1-(dz_ij-dz_kj*ctheta)*term2)/rij
+
+         tg3x = (t2x/term1-(dx_kj-dx_ij*ctheta)*term2)/rkj
+         tg3y = (t2y/term1-(dy_kj-dy_ij*ctheta)*term2)/rkj
+         tg3z = (t2z/term1-(dz_kj-dz_ij*ctheta)*term2)/rkj
+
+         tg4x = (t3x/term1-dx_lj*cgamma/sgamma)/rlj
+         tg4y = (t3y/term1-dy_lj*cgamma/sgamma)/rlj
+         tg4z = (t3z/term1-dz_lj*cgamma/sgamma)/rlj
+
+         grad[3*i]   += dE_dW*tg1x
+         grad[3*i+1] += dE_dW*tg1y
+         grad[3*i+2] += dE_dW*tg1z
+
+         grad[3*j]   -= dE_dW*(tg1x+tg3x+tg4x)
+         grad[3*j+1] -= dE_dW*(tg1y+tg3y+tg4y)
+         grad[3*j+2] -= dE_dW*(tg1z+tg3z+tg4z)
+
+         grad[3*k]   += dE_dW*tg3x
+         grad[3*k+1] += dE_dW*tg3y
+         grad[3*k+2] += dE_dW*tg3z
+
+         grad[3*l]   += dE_dW*tg4x
+         grad[3*l+1] += dE_dW*tg4y
+         grad[3*l+2] += dE_dW*tg4z
+
+      return (E,grad)
+
+ 
+   #def uff_LJ(preuff,nkatom_type,katom,neighbors1,neighbors12,nion,rion):
+   ################################
+   #        LJ                    #
+   ################################
+   def LJ_e(self,nion,rion):
+      E = 0.0
+      for i in range(nion-1):
+         for j in range(i+1,nion):
+            if (j not in self.neighbors1[i]) and (j not in self.neighbors12[i]):
+               Dij = self.preuff[packindx(self.nkatom_type,self.katom[i],self.katom[j])][0]
+               xij = self.preuff[packindx(self.nkatom_type,self.katom[i],self.katom[j])][1]
+               dx  = rion[3*i]  -rion[3*j]
+               dy  = rion[3*i+1]-rion[3*j+1]
+               dz  = rion[3*i+2]-rion[3*j+2]
+               r = math.sqrt(dx*dx + dy*dy + dz*dz)
+               s = xij/r
+               if (s>2.1225): s=2.1225
+               s6  = s**6
+               s12 = s6*s6
+               E += Dij*(-2.0*s6 + s12)
+      return E
+
+   def LJ_egrad(self,nion,rion):
+      E = 0.0
+      grad = [0.0]*3*nion
+      for i in range(nion-1):
+         for j in range(i+1,nion):
+            if (j not in self.neighbors1[i]) and (j not in self.neighbors12[i]):
+               Dij = self.preuff[packindx(self.nkatom_type,self.katom[i],self.katom[j])][0]
+               xij = self.preuff[packindx(self.nkatom_type,self.katom[i],self.katom[j])][1]
+               dx  = rion[3*i]  -rion[3*j]
+               dy  = rion[3*i+1]-rion[3*j+1]
+               dz  = rion[3*i+2]-rion[3*j+2]
+               r = math.sqrt(dx*dx + dy*dy + dz*dz)
+               s = xij/r
+               if (s>2.1225): s=2.1225
+               s6  = s**6
+               s12 = s6*s6
+               E += Dij*(-2.0*s6 + s12)
+               dedr = Dij*(12.0*s6 - 12.0*s12)/r
+               grad[3*i]   += dedr*(dx/r)
+               grad[3*i+1] += dedr*(dy/r)
+               grad[3*i+2] += dedr*(dz/r)
+               grad[3*j]   -= dedr*(dx/r)
+               grad[3*j+1] -= dedr*(dy/r)
+               grad[3*j+2] -= dedr*(dz/r)
+      return (E,grad)
+
+   def egrad(self,nion,rion):
+      (E1,grad1) = self.bondstretch_egrad(nion,rion)
+      (E2,grad2) = self.anglebend_egrad(nion,rion)
+      (E3,grad3) = self.torsion_egrad(nion,rion)
+      (E4,grad4) = self.inversion_egrad(nion,rion)
+      (E5,grad5) = self.LJ_egrad(nion,rion)
+      E = E1 + E2 + E3 + E4 + E5
+      grad = [0.0]*3*nion
+      for i in range(3*nion): grad[i] = grad1[i] + grad2[i] + grad3[i] + grad4[i] + grad5[i]
+      return (E,grad)
+
+   def eall(self,nion,rion):
+      E  = self.bondstretch_e(nion,rion)
+      E += self.anglebend_e(nion,rion)
+      E += self.torsion_e(nion,rion)
+      E += self.inversion_e(nion,rion)
+      E += self.LJ_e(nion,rion)
+      return E
+
+   def egrad_numerical(self,nion,rion):
+      E = self.eall(nion,rion)
+      grad = [0.0]*3*nion
+      delta = 0.000001
+      for i in range(3*nion):
+         rion[i] += delta
+         Ep = self.eall(nion,rion)
+         rion[i] -= 2*delta
+         Em = self.eall(nion,rion)
+         rion[i] += delta
+         grad[i] = (Ep-Em)/(2.0*delta)
+      return (E,grad)
+
+   def print_mol(self,nion,symbol,amatrix,rion):
+      nbonds = len(self.bondstretch)
+      eoln = '\n'
+      astr = eoln
+      astr += ' EMSLArrows0000000001A' + eoln + eoln
+      astr += '%3d %2d  0  0  0  0  0  0  0  0999 V2000' % (nion,nbonds) + eoln
+      for i in range(nion):
+         astr += " %9.4f %9.4f %9.4f %s" % (rion[3*i],rion[3*i+1],rion[3*i+2],symbol[i])
+         astr += "  0  0  0  0  0  0  0  0  0  0  0  0" + eoln
+      for bs in self.bondstretch:
+         i   = bs[0]
+         j   = bs[1]
+         aij = amatrix[i+j*nion]
+         astr += "%3d %2d %2d" % (i+1,j+1,aij)
+         astr += "  0  0  0  0" + eoln
+      astr += 'M  END' + eoln
+      astr += '$$$$' + eoln
+      return astr
+
+
+
+
+
+periodic_table_charge = { 'H'  : 1, 'He' : 2, 'Li' : 3, 'Be' : 4, 'B'  : 5, 'C'  : 6, 'N'  : 7, 'O'  : 8, 'F'  : 9, 'Ne' : 10, 'Na' : 11, 'Mg' : 12, 'Al' : 13, 'Si' : 14, 'P'  : 15, 'S'  : 16, 'Cl' : 17, 'Ar' : 18, 'K'  : 19, 'Ca' : 20, 'Sc' : 21, 'Ti' : 22, 'V'  : 23, 'Cr' : 24, 'Mn' : 25, 'Fe' : 26, 'Co' : 27, 'Ni' : 28, 'Cu' : 29, 'Zn' : 30, 'Ga' : 31, 'Ge' : 32, 'As' : 33, 'Se' : 34, 'Br' : 35, 'Kr' : 36, 'Rb' : 37, 'Sr' : 38, 'Y'  : 39, 'Zr' : 40, 'Nb' : 41, 'Mo' : 42, 'Tc' : 43, 'Ru' : 44, 'Rh' : 45, 'Pd' : 46, 'Ag' : 47, 'Cd' : 48, 'In' : 49, 'Sn' : 50, 'Sb' : 51, 'Te' : 52, 'I'  : 53, 'Xe' : 54, 'Cs' : 55, 'Ba' : 56, 'La' : 57, 'Ce' : 58, 'Pr' : 59, 'Nd' : 60, 'Pm' : 61, 'Sm' : 62, 'Eu' : 63, 'Gd' : 64, 'Tb' : 65, 'Dy' : 66, 'Ho' : 67, 'Er' : 68, 'Tm' : 69, 'Yb' : 70, 'Lu' : 71, 'Hf' : 72, 'Ta' : 73, 'W'  : 74, 'Re' : 75, 'Os' : 76, 'Ir' : 77, 'Pt' : 78, 'Au' : 79, 'Hg' : 80, 'Tl' : 81, 'Pb' : 82, 'Bi' : 83, 'Po' : 84, 'At' : 85, 'Rn' : 86, 'Fr' : 87, 'Ra' : 88, 'Ac' : 89, 'Th' : 90, 'Pa' : 91, 'U'  : 92, 'Np' : 93, 'Pu' : 94, 'Am' : 95, 'Cm' : 96, 'Bk' : 97, 'Cf' : 98, 'Es' : 99, 'Fm' : 100, 'Md' : 101, 'No' : 102, 'Lr' : 103, 'Rf' : 104, 'Ha' : 105, 'Sg' : 106, 'Bh' : 107, 'Hs' : 108, 'Mt' : 109 }
+
+table_smartuff = '''
+atom [#1]     H_          Generic hydrogen
+atom [#1D2]   H_b         Bridging hydrogen
+atom [#2]     He4+4       Helium
+atom [#3]     Li          Lithium
+atom [#4]     Be3+2       Generic Be
+atom [#5]     B_2         Trigonal planar boron
+atom [#5D4]   B_3         Tetrahedral boron
+atom [#6]     C_3         Generic sp3 C
+atom [C^2]    C_2         sp2 non-aromatic C=
+atom [C+1]    C_2+        trivalent C (cation)  // bh added Jmol 12.0.RC9
+atom [C-1]    C_3         trivalent C (anion)  // bh added Jmol 12.0.RC9
+atom [CA1]    C_2         allylic C (anion or cation) // bh added Jmol 12.0.RC9
+atom [C^1]    C_1         sp hybridized C
+atom [c]      C_R         aromatic C
+atom [#7]     N_3         Generic sp3 N
+atom [NA1]    N_2         allylic N or amide  // bh added Jmol 12.0.RC9
+atom [N^2]    N_2         sp2 non-aromatic N  // bh was [ND2], but this improperly treats N-oxides
+atom [N^1]    N_1         sp hybridized N     // bh was [ND1], but this is more specifically sp
+atom [n]      N_R         aromatic N
+atom [#8]     O_3         generic, sp3 hybridized O
+atom [O^2]    O_2         sp2 hybridized O  
+atom [O^1]    O_1         sp hybridized O
+atom [o]      O_R         aromatic O
+atom [#9]     F_          generic F
+atom [#10]    Ne4+4       
+atom [#11]    Na          
+atom [#12]    Mg3+2
+atom [#13]    Al3
+atom [#14]    Si3
+atom [#15+5]  P_3+5       formal charge +5
+#atom [#15]   P_3+q       Organometallic phosphine ligands
+atom [#15]    P_3+3       generic phosphorus
+atom [#16]    S_3+2       generic S
+atom [#16+4]  S_3+4       S+4
+atom [#16+6]  S_3+6       S+6
+atom [S^2]    S_2         non-aromatic sp2 S
+atom [s]      S_R         aromatic S
+atom [#17]    Cl
+atom [#18]    Ar4+4
+atom [#19]    K_
+atom [#20]    Ca6+2
+atom [#21]    Sc3+3
+atom [#22]    Ti6+4       generic Ti (6-valent)
+atom [#22D3]  Ti3+4
+atom [#23]    V_3+5
+atom [#24]    Cr6+3
+atom [#25]    Mn6+2
+atom [#26]    Fe6+2       generic Fe (6-valent)
+atom [#26D3]  Fe3+2
+atom [#27]    Co6+3
+atom [#28]    Ni4+2
+atom [#29]    Cu3+1
+atom [#30]    Zn3+2
+atom [#31]    Ga3+3
+atom [#32]    Ge3
+atom [#33]    As3+3
+atom [#34]    Se3+2
+atom [#35]    Br
+atom [#36]    Kr4+4
+atom [#37]    Rb
+atom [#38]    Sr6+2
+atom [#39]    Y_3+3
+atom [#40]    Zr3+4
+atom [#41]    Nb3+5
+atom [#42]    Mo6+6       generic Mo (6-valent)
+atom [#42D3]  Mo3+6       trivalent Mo
+atom [#43]    Tc6+5
+atom [#44]    Ru6+2
+atom [#45]    Rh6+3
+atom [#46]    Pd4+2
+atom [#47]    Ag1+1
+atom [#48]    Cd3+2
+atom [#49]    In3+3
+atom [#50]    Sn3
+atom [#51]    Sb3+3
+atom [#52]    Te3+2
+atom [#53]    I_
+atom [#54]    Xe4+4
+atom [#55]     Cs
+atom [#56]     Ba6+2
+atom [#57]     La3+3
+atom [#58]     Ce6+3
+atom [#59]     Pr6+3
+atom [#60]     Nd6+3
+atom [#61]     Pm6+3
+atom [#62]     Sm6+3
+atom [#63]     Eu6+3
+atom [#64]     Gd6+3
+atom [#65]     Tb6+3
+atom [#66]     Dy6+3
+atom [#67]     Ho6+3
+atom [#68]     Er6+3
+atom [#69]     Tm6+3
+atom [#70]     Yb6+3
+atom [#71]     Lu6+3
+atom [#72]     Hf3+4
+atom [#73]     Ta3+5
+atom [#74]     W_6+6       generic W (6-valent)
+atom [#74D3+4] W_3+4
+atom [#74D3+6] W_3+6
+atom [#75]     Re6+5       generic Re (6-valent)
+atom [#75D3]   Re3+7       trivalent Re
+atom [#76]     Os6+6
+atom [#77]     Ir6+3
+atom [#78]     Pt4+2
+atom [#79]     Au4+3
+atom [#80]     Hg1+2
+atom [#81]     Tl3+3
+atom [#82]     Pb3
+atom [#83]     Bi3+3
+atom [#84]     Po3+2
+atom [#85]     At
+atom [#86]     Rn4+4
+atom [#87]     Fr
+atom [#88]     Ra6+2
+atom [#89]     Ac6+3
+atom [#90]     Th6+4
+atom [#91]     Pa6+4
+atom [#92]     U_6+4
+atom [#93]     Np6+4
+atom [#94]     Pu6+4
+atom [#95]     Am6+4
+atom [#96]     Cm6+3
+atom [#97]     Bk6+3
+atom [#98]     Cf6+3
+atom [#99]     Es6+3
+atom [#100]    Fm6+3
+atom [#101]    Md6+3
+atom [#102]    No6+3
+atom [#103]    Lw6+3 '''
+smartuff = {}
+for ln in table_smartuff.strip().split('\n'):
+   ss = ln.split()
+   smartuff[ss[1]] = ss[2]
+
+
+#
+# param Atom	r1	theta0	x1	D1	zeta	Z1	Vi	Uj	Xi	Hard	Radius
+table_uffparam = '''
+param H_	0.354	180	2.886	0.044	12	0.712	0	0	4.528	6.9452	0.371
+param H_b	0.46	83.5	2.886	0.044	12	0.712	0	0	4.528	6.9452	0.371
+param He4+4	0.849	90	2.362	0.056	15.24	0.098	0	0	9.66	14.92	1.3
+param Li	1.336	180	2.451	0.025	12	1.026	0	2	3.006	2.386	1.557
+param Be3+2	1.074	109.47	2.745	0.085	12	1.565	0	2	4.877	4.443	1.24
+param B_3	0.838	109.47	4.083	0.18	12.052	1.755	0	2	5.11	4.75	0.822
+param B_2	0.828	120	4.083	0.18	12.052	1.755	0	2	5.11	4.75	0.822
+param C_3	0.757	109.47	3.851	0.105	12.73	1.912	2.119	2	5.343	5.063	0.759
+param C_R	0.729	120	3.851	0.105	12.73	1.912	0	2	5.343	5.063	0.759
+param C_2	0.732	120	3.851	0.105	12.73	1.912	0	2	5.343	5.063	0.759
+param C_2+	0.732	120	6.851	0.105	12.73	1.912	0	2	5.343	5.063	0.759
+param C_1	0.706	180	3.851	0.105	12.73	1.912	0	2	5.343	5.063	0.759
+param N_3	0.7	106.7	3.66	0.069	13.407	2.544	0.45	2	6.899	5.88	0.715
+param N_R	0.699	120	3.66	0.069	13.407	2.544	0	2	6.899	5.88	0.715
+param N_2	0.685	111.2	3.66	0.069	13.407	2.544	0	2	6.899	5.88	0.715
+param N_1	0.656	180	3.66	0.069	13.407	2.544	0	2	6.899	5.88	0.715
+param O_3	0.658	104.51	3.5	0.06	14.085	2.3	0.018	2	8.741	6.682	0.669
+param O_3_z	0.528	146	3.5	0.06	14.085	2.3	0.018	2	8.741	6.682	0.669
+param O_R	0.68	110	3.5	0.06	14.085	2.3	0	2	8.741	6.682	0.669
+param O_2	0.634	120	3.5	0.06	14.085	2.3	0	2	8.741	6.682	0.669
+param O_1	0.639	180	3.5	0.06	14.085	2.3	0	2	8.741	6.682	0.669
+param F_	0.668	180	3.364	0.05	14.762	1.735	0	2	10.874	7.474	0.706
+param Ne4+4	0.92	90	3.243	0.042	15.44	0.194	0	2	11.04	10.55	1.768
+param Na	1.539	180	2.983	0.03	12	1.081	0	1.25	2.843	2.296	2.085
+param Mg3+2	1.421	109.47	3.021	0.111	12	1.787	0	1.25	3.951	3.693	1.5
+param Al3	1.244	109.47	4.499	0.505	11.278	1.792	0	1.25	4.06	3.59	1.201
+param Si3	1.117	109.47	4.295	0.402	12.175	2.323	1.225	1.25	4.168	3.487	1.176
+param P_3+3	1.101	93.8	4.147	0.305	13.072	2.863	2.4	1.25	5.463	4	1.102
+param P_3+5	1.056	109.47	4.147	0.305	13.072	2.863	2.4	1.25	5.463	4	1.102
+param P_3+q	1.056	109.47	4.147	0.305	13.072	2.863	2.4	1.25	5.463	4	1.102
+param S_3+2	1.064	92.1	4.035	0.274	13.969	2.703	0.484	1.25	6.928	4.486	1.047
+param S_3+4	1.049	103.2	4.035	0.274	13.969	2.703	0.484	1.25	6.928	4.486	1.047
+param S_3+6	1.027	109.47	4.035	0.274	13.969	2.703	0.484	1.25	6.928	4.486	1.047
+param S_R	1.077	92.2	4.035	0.274	13.969	2.703	0	1.25	6.928	4.486	1.047
+param S_2	0.854	120	4.035	0.274	13.969	2.703	0	1.25	6.928	4.486	1.047
+param Cl	1.044	180	3.947	0.227	14.866	2.348	0	1.25	8.564	4.946	0.994
+param Ar4+4	1.032	90	3.868	0.185	15.763	0.3	0	1.25	9.465	6.355	2.108
+param K_	1.953	180	3.812	0.035	12	1.165	0	0.7	2.421	1.92	2.586
+param Ca6+2	1.761	90	3.399	0.238	12	2.141	0	0.7	3.231	2.88	2
+param Sc3+3	1.513	109.47	3.295	0.019	12	2.592	0	0.7	3.395	3.08	1.75
+param Ti3+4	1.412	109.47	3.175	0.017	12	2.659	0	0.7	3.47	3.38	1.607
+param Ti6+4	1.412	90	3.175	0.017	12	2.659	0	0.7	3.47	3.38	1.607
+param V_3+5	1.402	109.47	3.144	0.016	12	2.679	0	0.7	3.65	3.41	1.47
+param Cr6+3	1.345	90	3.023	0.015	12	2.463	0	0.7	3.415	3.865	1.402
+param Mn6+2	1.382	90	2.961	0.013	12	2.43	0	0.7	3.325	4.105	1.533
+param Fe3+2	1.27	109.47	2.912	0.013	12	2.43	0	0.7	3.76	4.14	1.393
+param Fe6+2	1.335	90	2.912	0.013	12	2.43	0	0.7	3.76	4.14	1.393
+param Co6+3	1.241	90	2.872	0.014	12	2.43	0	0.7	4.105	4.175	1.406
+param Ni4+2	1.164	90	2.834	0.015	12	2.43	0	0.7	4.465	4.205	1.398
+param Cu3+1	1.302	109.47	3.495	0.005	12	1.756	0	0.7	4.2	4.22	1.434
+param Zn3+2	1.193	109.47	2.763	0.124	12	1.308	0	0.7	5.106	4.285	1.4
+param Ga3+3	1.26	109.47	4.383	0.415	11	1.821	0	0.7	3.641	3.16	1.211
+param Ge3	1.197	109.47	4.28	0.379	12	2.789	0.701	0.7	4.051	3.438	1.189
+param As3+3	1.211	92.1	4.23	0.309	13	2.864	1.5	0.7	5.188	3.809	1.204
+param Se3+2	1.19	90.6	4.205	0.291	14	2.764	0.335	0.7	6.428	4.131	1.224
+param Br	1.192	180	4.189	0.251	15	2.519	0	0.7	7.79	4.425	1.141
+param Kr4+4	1.147	90	4.141	0.22	16	0.452	0	0.7	8.505	5.715	2.27
+param Rb	2.26	180	4.114	0.04	12	1.592	0	0.2	2.331	1.846	2.77
+param Sr6+2	2.052	90	3.641	0.235	12	2.449	0	0.2	3.024	2.44	2.415
+param Y_3+3	1.698	109.47	3.345	0.072	12	3.257	0	0.2	3.83	2.81	1.998
+param Zr3+4	1.564	109.47	3.124	0.069	12	3.667	0	0.2	3.4	3.55	1.758
+param Nb3+5	1.473	109.47	3.165	0.059	12	3.618	0	0.2	3.55	3.38	1.603
+param Mo6+6	1.467	90	3.052	0.056	12	3.4	0	0.2	3.465	3.755	1.53
+param Mo3+6	1.484	109.47	3.052	0.056	12	3.4	0	0.2	3.465	3.755	1.53
+param Tc6+5	1.322	90	2.998	0.048	12	3.4	0	0.2	3.29	3.99	1.5
+param Ru6+2	1.478	90	2.963	0.056	12	3.4	0	0.2	3.575	4.015	1.5
+param Rh6+3	1.332	90	2.929	0.053	12	3.5	0	0.2	3.975	4.005	1.509
+param Pd4+2	1.338	90	2.899	0.048	12	3.21	0	0.2	4.32	4	1.544
+param Ag1+1	1.386	180	3.148	0.036	12	1.956	0	0.2	4.436	3.134	1.622
+param Cd3+2	1.403	109.47	2.848	0.228	12	1.65	0	0.2	5.034	3.957	1.6
+param In3+3	1.459	109.47	4.463	0.599	11	2.07	0	0.2	3.506	2.896	1.404
+param Sn3	1.398	109.47	4.392	0.567	12	2.961	0.199	0.2	3.987	3.124	1.354
+param Sb3+3	1.407	91.6	4.42	0.449	13	2.704	1.1	0.2	4.899	3.342	1.404
+param Te3+2	1.386	90.25	4.47	0.398	14	2.882	0.3	0.2	5.816	3.526	1.38
+param I_	1.382	180	4.5	0.339	15	2.65	0	0.2	6.822	3.762	1.333
+param Xe4+4	1.267	90	4.404	0.332	12	0.556	0	0.2	7.595	4.975	2.459
+param Cs	2.57	180	4.517	0.045	12	1.573	0	0.1	2.183	1.711	2.984
+param Ba6+2	2.277	90	3.703	0.364	12	2.727	0	0.1	2.814	2.396	2.442
+param La3+3	1.943	109.47	3.522	0.017	12	3.3	0	0.1	2.8355	2.7415	2.071
+param Ce6+3	1.841	90	3.556	0.013	12	3.3	0	0.1	2.774	2.692	1.925
+param Pr6+3	1.823	90	3.606	0.01	12	3.3	0	0.1	2.858	2.564	2.007
+param Nd6+3	1.816	90	3.575	0.01	12	3.3	0	0.1	2.8685	2.6205	2.007
+param Pm6+3	1.801	90	3.547	0.009	12	3.3	0	0.1	2.881	2.673	2
+param Sm6+3	1.78	90	3.52	0.008	12	3.3	0	0.1	2.9115	2.7195	1.978
+param Eu6+3	1.771	90	3.493	0.008	12	3.3	0	0.1	2.8785	2.7875	2.227
+param Gd6+3	1.735	90	3.368	0.009	12	3.3	0	0.1	3.1665	2.9745	1.968
+param Tb6+3	1.732	90	3.451	0.007	12	3.3	0	0.1	3.018	2.834	1.954
+param Dy6+3	1.71	90	3.428	0.007	12	3.3	0	0.1	3.0555	2.8715	1.934
+param Ho6+3	1.696	90	3.409	0.007	12	3.416	0	0.1	3.127	2.891	1.925
+param Er6+3	1.673	90	3.391	0.007	12	3.3	0	0.1	3.1865	2.9145	1.915
+param Tm6+3	1.66	90	3.374	0.006	12	3.3	0	0.1	3.2514	2.9329	2
+param Yb6+3	1.637	90	3.355	0.228	12	2.618	0	0.1	3.2889	2.965	2.158
+param Lu6+3	1.671	90	3.64	0.041	12	3.271	0	0.1	2.9629	2.4629	1.896
+param Hf3+4	1.611	109.47	3.141	0.072	12	3.921	0	0.1	3.7	3.4	1.759
+param Ta3+5	1.511	109.47	3.17	0.081	12	4.075	0	0.1	5.1	2.85	1.605
+param W_6+6	1.392	90	3.069	0.067	12	3.7	0	0.1	4.63	3.31	1.538
+param W_3+4	1.526	109.47	3.069	0.067	12	3.7	0	0.1	4.63	3.31	1.538
+param W_3+6	1.38	109.47	3.069	0.067	12	3.7	0	0.1	4.63	3.31	1.538
+param Re6+5	1.372	90	2.954	0.066	12	3.7	0	0.1	3.96	3.92	1.6
+param Re3+7	1.314	109.47	2.954	0.066	12	3.7	0	0.1	3.96	3.92	1.6
+param Os6+6	1.372	90	3.12	0.037	12	3.7	0	0.1	5.14	3.63	1.7
+param Ir6+3	1.371	90	2.84	0.073	12	3.731	0	0.1	5	4	1.866
+param Pt4+2	1.364	90	2.754	0.08	12	3.382	0	0.1	4.79	4.43	1.557
+param Au4+3	1.262	90	3.293	0.039	12	2.625	0	0.1	4.894	2.586	1.618
+param Hg1+2	1.34	180	2.705	0.385	12	1.75	0	0.1	6.27	4.16	1.6
+param Tl3+3	1.518	120	4.347	0.68	11	2.068	0	0.1	3.2	2.9	1.53
+param Pb3	1.459	109.47	4.297	0.663	12	2.846	0.1	0.1	3.9	3.53	1.444
+param Bi3+3	1.512	90	4.37	0.518	13	2.47	1	0.1	4.69	3.74	1.514
+param Po3+2	1.5	90	4.709	0.325	14	2.33	0.3	0.1	4.21	4.21	1.48
+param At	1.545	180	4.75	0.284	15	2.24	0	0.1	4.75	4.75	1.47
+param Rn4+4	1.42	90	4.765	0.248	16	0.583	0	0.1	5.37	5.37	2.2
+param Fr	2.88	180	4.9	0.05	12	1.847	0	0	2	2	2.3
+param Ra6+2	2.512	90	3.677	0.404	12	2.92	0	0	2.843	2.434	2.2
+param Ac6+3	1.983	90	3.478	0.033	12	3.9	0	0	2.835	2.835	2.108
+param Th6+4	1.721	90	3.396	0.026	12	4.202	0	0	3.175	2.905	2.018
+param Pa6+4	1.711	90	3.424	0.022	12	3.9	0	0	2.985	2.905	1.8
+param U_6+4	1.684	90	3.395	0.022	12	3.9	0	0	3.341	2.853	1.713
+param Np6+4	1.666	90	3.424	0.019	12	3.9	0	0	3.549	2.717	1.8
+param Pu6+4	1.657	90	3.424	0.016	12	3.9	0	0	3.243	2.819	1.84
+param Am6+4	1.66	90	3.381	0.014	12	3.9	0	0	2.9895	3.0035	1.942
+param Cm6+3	1.801	90	3.326	0.013	12	3.9	0	0	2.8315	3.1895	1.9
+param Bk6+3	1.761	90	3.339	0.013	12	3.9	0	0	3.1935	3.0355	1.9
+param Cf6+3	1.75	90	3.313	0.013	12	3.9	0	0	3.197	3.101	1.9
+param Es6+3	1.724	90	3.299	0.012	12	3.9	0	0	3.333	3.089	1.9
+param Fm6+3	1.712	90	3.286	0.012	12	3.9	0	0	3.4	3.1	1.9
+param Md6+3	1.689	90	3.274	0.011	12	3.9	0	0	3.47	3.11	1.9
+param No6+3	1.679	90	3.248	0.011	12	3.9	0	0	3.475	3.175	1.9
+param Lw6+3	1.698	90	3.236	0.011	12	3.9	0	0	3.5	3.2	1.9 '''
+uffparam = {}
+for ln in table_uffparam.strip().split('\n'):
+   ss = ln.split()
+   uffparam[ss[1]] = (ss[1],eval(ss[2]),eval(ss[3]),eval(ss[4]),eval(ss[5]),eval(ss[6]),eval(ss[7]),eval(ss[8]),eval(ss[9]),eval(ss[10]),eval(ss[11]),eval(ss[12]),math.cos(eval(ss[3])*math.pi/180.0))
+
+
+
+
+def rotatepath(path,head):
+   n = path.index(head)
+   p = path[n:]+path[:n]
+
+   return p
+
+def addCycles(cycles1,cycles2):
+   cycles = cycles1
+   for p2 in cycles2:
+      n = p2.index(min(p2))
+      p = p2[n:]+p2[:n]
+      pinv = p[::-1]
+      n = pinv.index(min(pinv))
+      pinv = pinv[n:]+pinv[:n]
+      if (p not in cycles) and (pinv not in cycles):
+         cycles.append(p)
+
+   return cycles
+
+def findCycles0(nion,amatrix,path):
+   start_node = path[0]
+   next_node = None
+   subpath = []
+   cycles  = []
+
+   for j in range(nion):
+      if (amatrix[start_node+j*nion] > 0):
+         next_node = j
+         if (next_node not in path):
+            subpath = [next_node] + path
+            cycles2 = findCycles0(nion,amatrix,subpath)
+            cycles  = addCycles(cycles,cycles2)
+         elif (len(path)>2) and (next_node==path[-1]):
+            cycles = addCycles(cycles,[path])
+
+   return cycles
+
+def findCycles(nion,amatrix,start):
+    cycles  = []
+    cycles0 = findCycles0(nion,amatrix,[start])
+    for p0 in cycles0:
+       cycles.append(rotatepath(p0,start))
+
+    return cycles
+
+
+def numberbonds(nion,amatrix,ii):
+   nb = 0
+   for jj in range(nion):
+      if (jj!=ii):
+         nb += amatrix[ii+jj*nion]
+   return int(nb+0.5)
+
+def numberconnections(nion,amatrix,ii):
+   nc = 0
+   for jj in range(nion):
+      if (jj!=ii):
+         if (amatrix[ii+jj*nion]>0):
+            nc += 1
+   return nc
+
+def isneighborSP2(nion,symbols,amatrix,start):
+   sp2 = False
+   for j in range(nion):
+      if (amatrix[start+j*nion]>0):
+         nc = numberconnections(nion,amatrix,j)
+         nb = numberbonds(nion,amatrix,j)
+         qq = amatrix[j+j*nion]
+         if (nc==3) and (nb==4) and (qq==0):
+           sp2 = True
+   return sp2
+
+def isSP2(nion,symbols,amatrix,start):
+   sp2 = False
+   sy = symbols[start]
+   qq = amatrix[start+start*nion]
+   nc = numberconnections(nion,amatrix,start)
+   nb = numberbonds(nion,amatrix,start)
+   if (sy=="B") and (nc==3) and (nb==3) and (qq==0):
+      sp2 = True
+
+   if (sy=="C") and (nc==3) and (nb==4) and (qq==0):
+      sp2 = True
+   if (sy=="C") and (nc==3) and (nb==3) and (qq==-1):
+      sp2 = True
+   if (sy=="C") and (nc==2) and (nb==3) and (qq==+1):
+      sp2 = True
+
+   if (sy=="N") and (nc==2) and (nb==3) and (qq==0):
+      sp2 = True
+   if (sy=="N") and (nc==3) and (nb==5) and (qq==0):
+      sp2 = True
+
+   if (sy=="P") and (nc==2) and (nb==3) and (qq==0):
+      sp2 = True
+   if (sy=="P") and (nc==3) and (nb==3) and (qq==0):
+      sp2 = True
+   if (sy=="P") and (nc==3) and (nb==5) and (qq==0):
+      sp2 = True
+
+   if (sy=="O") and (nc==2) and (nb==2) and (qq==0):
+      sp2 = True
+   if (sy=="S") and (nc==2) and (nb==2) and (qq==0):
+      sp2 = True
+   if (sy=="Se") and (nc==2) and (nb==2) and (qq==0):
+      sp2 = True
+
+   return sp2
+
+def picountaromatic(nion,symbols,amatrix,start):
+   sy = symbols[start]
+   qq = amatrix[start+start*nion]
+   nc = numberconnections(nion,amatrix,start)
+   nb = numberbonds(nion,amatrix,start)
+   npi = 0
+   if (sy=="B") and (nc==3) and (nb==3) and (qq==-1):
+      npi = 1
+
+   if (sy=="C") and (nc==3) and (nb==4) and (qq==0):
+      npi = 1
+   if (sy=="C") and (nc==2) and (nb==3) and (qq==1):
+      npi = 1
+   if (sy=="C") and (nc==3) and (nb==3) and (qq==-1):
+      npi = 1
+
+   if (sy=="N") and (nc==2) and (nb==3) and (qq==0):
+      npi = 1
+   if (sy=="N") and (nc==3) and (nb==5) and (qq==0):
+      npi = 1
+
+   if (sy=="P") and (nc==2) and (nb==3) and (qq==0):
+      npi = 1
+   if (sy=="P") and (nc==3) and (nb==3) and (qq==0):
+      npi = 2
+   if (sy=="P") and (nc==3) and (nb==5) and (qq==0):
+      npi = 1
+
+   if (sy=="O") and (nc==2) and (nb==2) and (qq==0):
+      npi = 2
+   if (sy=="S") and (nc==2) and (nb==2) and (qq==0):
+      npi = 2
+   if (sy=="Se") and (nc==2) and (nb==2) and (qq==0):
+      npi = 2
+
+   return npi 
+
+def isaromatic(nion,symbols,amatrix,start):
+   aromatic = False
+   cycles = findCycles(nion,amatrix,start) 
+   for path in cycles:
+      npi = 0
+      sp2 = True
+      for i in path:
+         sp2 = sp2 and isSP2(nion,symbols,amatrix,i)
+         npi += picountaromatic(nion,symbols,amatrix,i)
+      if ((((npi/2)%2)==1) and sp2): aromatic = True
+
+   return aromatic
+
+def packindx(n,i,j):
+   if i<=j:
+      k = j + (2*n-1-i)*i/2
+   else:
+      k = i + (2*n-1-j)*j/2
+   return k
+
+
+#############################################
+#                                           #
+#               uff_KIJK                    #
+#                                           #
+#############################################
+
+def uff_KIJK(nion,nkatom_type,katom,uffparam_type,preuff,border_matrix,i,j,k):
+   bij = border_matrix[i+j*nion]
+   bjk = border_matrix[j+k*nion]
+   rij = preuff[packindx(nkatom_type,katom[i],katom[j])][1+bij]
+   rjk = preuff[packindx(nkatom_type,katom[j],katom[k])][1+bjk]
+   beta    = 664.12/(rij*rjk)
+   ctheta0 = uffparam_type[katom[j]][12]
+   Zi = uffparam_type[katom[i]][6]
+   Zk = uffparam_type[katom[k]][6]
+   rik = math.sqrt(rij*rij+rjk*rjk-2.0*rij*rjk*ctheta0)
+   #prefactor = beta*Zi*Zk/r13**5
+   prefactor = beta*Zi*Zk/rik**5
+   rterm = rij*rjk
+   innerbit = 3.0*rterm*(1.0-ctheta0*ctheta0)-rik*rik*ctheta0
+   KIJK = prefactor*rterm*innerbit
+
+   return KIJK
+
+#############################################
+#                                           #
+#            uff_torsion_KIJKL              #
+#                                           #
+#############################################
+def uff_torsion_KIJKL(nion,nkatom_type,katom,uffparam_type,preuff,bordermatrix,i,j,k,l):
+   bjk = bordermatrix[j+k*nion]
+   indx = packindx(nkatom_type,katom[j],katom[k])
+   ufftypei = uffparam_type[katom[i]][0]
+   ufftypej = uffparam_type[katom[j]][0]
+   ufftypek = uffparam_type[katom[k]][0]
+   ufftypel = uffparam_type[katom[l]][0]
+   group6j = (ufftypej[0:1]=="O_") or (ufftypej[0:1]=="S_") or (ufftypej[0:1]=="Se") or (ufftypej[0:1]=="Te") or (ufftypej[0:1]=="Po")
+   group6k = (ufftypek[0:1]=="O_") or (ufftypek[0:1]=="S_") or (ufftypek[0:1]=="Se") or (ufftypek[0:1]=="Te") or (ufftypek[0:1]=="Po")
+   group6 = group6j and group6k
+   hybridi = ''
+   hybridj = ''
+   hybridk = ''
+   hybridl = ''
+   if (len(ufftypei) > 2): hybridi = ufftypei[2]
+   if (len(ufftypej) > 2): hybridj = ufftypej[2]
+   if (len(ufftypek) > 2): hybridk = ufftypek[2]
+   if (len(ufftypel) > 2): hybridl = ufftypel[2]
+
+   sp2i = (hybridi=='2') or (hybridi=='R')
+   sp2j = (hybridj=='2') or (hybridj=='R')
+   sp2k = (hybridk=='2') or (hybridk=='R')
+   sp2l = (hybridl=='2') or (hybridl=='R')
+
+   #sp2i = (hybridi=='2')
+   #sp2j = (hybridj=='2')
+   #sp2k = (hybridk=='2')
+   #sp2l = (hybridl=='2')
+
+   sp3i = (hybridi=='3')
+   sp3j = (hybridj=='3')
+   sp3k = (hybridk=='3')
+   sp3l = (hybridl=='3')
+
+   sp2_sp2 = sp2j and sp2k
+   sp3_sp3 = sp3j and sp3k
+   sp3_sp2 = (sp3j and sp2k) or (sp2j and sp3k)
+   sp3_sp2_sp2 = (sp3j and sp2k and sp2l) or (sp2i and sp2j and sp3k)
+
+   if (sp3_sp3):
+      V      = preuff[indx][12]
+      cnphi0 = -1.0  #phi0=60
+      n = 3
+
+      if (group6 and (bjk==1)):
+         V2=6.8
+         V3=6.8
+         if (ufftypej[0:1]=="O_"): V2=2.0
+         if (ufftypek[0:1]=="O_"): V3=2.0
+         V      = math.sqrt(V2*V3)
+         cnphi0 = -1.0 #phi0=90
+         n = 2
+
+   elif (sp2_sp2):
+         V      = preuff[indx][12+bjk]
+         cnphi0 = 1.0  #phi0=180???
+         n = 2
+   else:
+      V      = 1.0
+      cnphi0 = 1.0 #phi0=0
+      n = 6
+      if (bjk==1):
+         if (group6j and sp3j and sp2k and (not group6k)) or (group6k and sp3k and sp2j and (not group6j)):
+            V      = preuff[indx][12+bjk]
+            cnphi0 = -1.0  #phi0=90
+            n = 2
+         elif sp3_sp2_sp2:
+            V      = 2.0
+            cnphi0 = -1.0  #phi0=180??
+            n = 3
+
+   return (V,n,cnphi0)
+
+#############################################
+#                                           #
+#           uff_inversion_KIJKL             #
+#                                           #
+#############################################
+        
+def uff_inversion_KIJKL(katom,uffparam_type,i,j,k,l):
+   ufftype = uffparam_type[katom[j]][0]
+   C0 = 0.0
+   C1 = 0.0
+   C2 = 0.0
+   KIJKL = 0.0
+   if (ufftype=='C_2') or (ufftype=='C_R'):
+      C0 = 1.0
+      C1 = -1.0
+      C2 = 0.0
+      ufftypei = uffparam_type[katom[i]][0]
+      ufftypek = uffparam_type[katom[k]][0]
+      ufftypel = uffparam_type[katom[l]][0]
+      if (ufftypei=="O_2") or (ufftypei=="O_2") or (ufftypei=="O_2"):
+         KIJKL = 50.0
+      else:
+         KIJKL = 6.0
+   elif (ufftype[0]=='N') or (ufftype[0]=='O'):
+      C0 = 1.0
+      C1 = -1.0
+      C2 = 0.0
+      KIJKL = 6.0
+   elif (ufftype[0]=='P'):
+      w0 = math.pi/180.0 * 84.4339
+      C2 = 1.0
+      C1 = -4.0*math.cos(w0)
+      C0 = -(C1*math.cos(w0) + C2*math.cos(2.0*w0))
+      KIJKL = 22.0/(3*(C0+C1+C2))
+   elif (ufftype[0:1]=='As'):
+      w0 = math.pi/180.0 * 86.9735
+      C2 = 1.0
+      C1 = -4.0*math.cos(w0)
+      C0 = -(C1*math.cos(w0) + C2*math.cos(2.0*w0))
+      KIJKL = 22.0/(3*(C0+C1+C2))
+   elif (ufftype[0:1]=='Sb'):
+      w0 = math.pi/180.0 * 87.7047
+      C2 = 1.0
+      C1 = -4.0*math.cos(w0)
+      C0 = -(C1*math.cos(w0) + C2*math.cos(2.0*w0))
+      KIJKL = 22.0/(3*(C0+C1+C2))
+   elif (ufftype[0:1]=='Bi'):
+      w0 = math.pi/180.0 * 90.0
+      C2 = 1.0
+      C1 = -4.0*math.cos(w0)
+      C0 = -(C1*math.cos(w0) + C2*math.cos(2.0 * w0))
+      KIJKL = 22.0/(3*(C0+C1+C2))
+
+   return (KIJKL,C0,C1,C2)
+
+
+
+
+
+
+covalentstr = '''
+H 32 0 0 0
+He 46 0 0 0
+Li 133 124 0 0
+Be 102 90 85 0
+B 85 78 73 0
+C 75 67 60 68
+N 71 60 54 0
+O 63 57 53 0
+F 64 59 53 0
+Ne 67 96 0 0
+Na 155 160 0 0
+Mg 139 132 127 0
+Al 126 113 111 0
+Si 116 107 102 0
+P 111 102 94 0
+S 103 94 95 0
+Cl 99 95 93 0
+Ar 96 107 96 0
+K 196 193 0 0
+Ca 171 147 133 0
+Sc 148 116 114 0
+Ti 136 117 108 0
+V 134 112 106 0
+Cr 122 111 103 0
+Mn 119 105 103 0
+Fe 116 109 102 0
+Co 111 103 96 0
+Ni 110 101 101 0
+Cu 112 115 120 0
+Zn 118 120 0 0
+Ga 124 116 121 0
+Ge 121 111 114 0
+As 121 114 106 0
+Se 116 107 107 0
+Br 114 109 110 0
+Kr 117 121 108 0
+Rb 210 202 0 0
+Sr 185 157 139 0
+Y 163 130 124 0
+Zr 154 127 121 0
+Nb 147 125 116 0
+Mo 138 121 113 0
+Tc 128 120 110 0
+Ru 125 114 103 0
+Rh 125 110 106 0
+Pd 120 117 112 0
+Ag 128 139 137 0
+Cd 136 144 0 0
+In 142 136 146 0
+Sn 140 130 132 0
+Sb 140 133 127 0
+Te 136 128 121 0
+I 133 129 125 0
+Xe 131 135 122 0
+Cs 232 196 0 0
+Ba 196 161 149 0
+La 180 139 139   0
+Ce 163 137 131 0
+Pr 176 138 128 0
+Nd 174 137 0 0
+Pm 173 135 0 0
+Sm 172 134 0 0
+Eu 168 134 0 0
+Gd 169 135 132 0
+Tb 168 135 0 0
+Dy 167 133 0 0
+Ho 166 133 0 0
+Er 165 133 0 0
+Tm 164 131 0 0
+Yb 170 129 0 0
+Lu 162 131 131   0
+Hf 152 128 122   0
+Ta 146 126 119   0
+W 137 120 115    0
+Re 131 119 110   0
+Os 129 116 109   0
+Ir 122 115 107   0
+Pt 123 112 110   0
+Au 124 121 123 0
+Hg 133 142 0 0
+Tl 144 142 150 0
+Pb 144 135 137 0
+Bi 151 141 135 0
+Po 145 135 129 0
+At 147 138 138 0
+Rn 142 145 133 0
+Fr 223 218 0 0
+Ra 201 173 159 0
+Ac 186 153 140 0
+Th 175 143 136   0
+Pa 169 138 129   0
+U 170 134 118 0
+Np 171 136 116 0
+Pu 172 135 0  0
+Am 166 135 0 0
+Cm 166 136 0 0
+Bk 168 139 0 0
+Cf 168 140 0 0
+Es 165 140 0 0
+Fm 167 0 0 0
+Md 173 139 0 0
+No 176 0 0  0
+Lr 161 141 0 0
+Rf 157 140 131 0
+Db 149 136 126 0
+Sg 143 128 121 0
+Bh 141 128 119 0
+Hs 134 125 118 0
+Mt 129 125 113 0
+Ds 128 116 112 0
+Rg 121 116 118   0
+Cn 122 137 130 0
+Uut 136 0 0 0
+Fl 143 0 0 0
+Uup 162  0 0 0
+Lv 175 0 0 0
+Uus 165 0 0 0
+Uuo 157  0 0 0
+'''
+rcovalent = {}
+for ln in covalentstr.strip().split('\n'):
+   ss = ln.split()
+   rcovalent[ss[0]] = (0.01*eval(ss[1]),0.01*eval(ss[2]),0.01*eval(ss[3]),0.01*eval(ss[4]))
+
+
+###########################################
+#                                         #
+#              bond_order                 #
+#                                         #
+###########################################
+def bond_order(rc1,rc2,r12):
+   dd = 0.0001
+   cov = (abs(r12-(rc1[0]+rc2[0]))/(rc1[0]+rc2[0]+dd),
+          abs(r12-(rc1[1]+rc2[1]))/(rc1[1]+rc2[1]+dd),
+          abs(r12-(rc1[2]+rc2[2]))/(rc1[2]+rc2[2]+dd),
+          abs(r12-(rc1[3]+rc2[3]))/(rc1[3]+rc2[3]+dd))
+   imin = 0
+   dmin = cov[0]
+   if (cov[1]<dmin):
+      dmin = cov[1]
+      imin = 1
+   if (cov[2]<dmin):
+      dmin = cov[2]
+      imin = 2
+   if (cov[3]<dmin):
+      dmin = cov[3]
+      imin = 3
+   b = 0
+   if (cov[imin]<0.10):
+      b = 1+imin
+      if (imin==3):
+         b = 1.5
+   return b
+
+
+
+##############################################
+#                                            #
+#            xyzsdf2amatrix                  #
+#                                            #
+##############################################
+
+def xyzsdf2amatrix(sdf):
+
+   ### parse mol, sdf file ###
+   if "V2000" in sdf:
+      nion  = eval(sdf.split("V2000")[0].split("\n")[-1].split()[0])
+      nbond = eval(sdf.split("V2000")[0].split("\n")[-1].split()[1])
+      print "nions =", nion
+      print "nbonds=", nbond
+      geom = "\n".join(sdf.split("V2000")[1].split("\n")[1:nion+1])
+      print "geom="
+      print  geom
+      bonding = "\n".join(sdf.split("V2000")[1].split("\n")[nion+1:nion+1+nbond])
+      print "bonding="
+      print bonding
+      amatrix = [0]*nion*nion
+      symbol = []
+      rxyz   = []
+      ### this will change in javascript - currently doesn't handle +4 charge
+      i = 0
+      for aa in geom.split("\n"):
+         ss = aa.split()
+         qq = eval(ss[5])
+         if (abs(qq)>1.0e-6):
+            qq = 4-qq
+            amatrix[i+i*nion] = qq
+         rxyz.append(eval(ss[0]))
+         rxyz.append(eval(ss[1]))
+         rxyz.append(eval(ss[2]))
+         symbol.append(ss[3])
+         i += 1
+
+   ### parse xyz file ###
+   else:
+      nbond = 0
+      nion = eval(sdf.split("\n")[0].strip())
+      print "nions =", nion
+      print "assuming xyz data"
+      amatrix = [0]*nion*nion
+      symbol = []
+      rxyz   = []
+      for aa in sdf.strip().split("\n")[2:]:
+         ss = aa.split()
+         symbol.append(ss[0])
+         rxyz.append(eval(ss[1]))
+         rxyz.append(eval(ss[2]))
+         rxyz.append(eval(ss[3]))
+      
+   ### build amatrix from geometry ###
+   if (nbond==0):
+      for i in range(nion):
+         for j in range(nion):
+            symi = symbol[i]
+            symj = symbol[j]
+            rci   = rcovalent[symbol[i]]
+            rcj   = rcovalent[symbol[j]]
+            dx = rxyz[3*i]   - rxyz[3*j]
+            dy = rxyz[3*i+1] - rxyz[3*j+1]
+            dz = rxyz[3*i+2] - rxyz[3*j+2]
+            r = math.sqrt(dx*dx + dy*dy + dz*dz)
+            if i!=j:
+               b = bond_order(rci,rcj,r)
+               if (b<1.0) and (symi==symj) and (r<(2.5*rci[0])): b = 1
+               amatrix[i+j*nion] = b
+
+   ### build amatrix from bonding data ###
+   else:
+      for bb in bonding.split("\n"):
+         ss = bb.split()
+         i = eval(ss[0])-1
+         j = eval(ss[1])-1
+         v = eval(ss[2])
+         amatrix[i+j*nion] = v
+         amatrix[j+i*nion] = v
+
+   return (nion,symbol,rxyz,amatrix)
+
+
+###########################################
+#                                         #
+#          simple_optimization            #
+#                                         #
+###########################################
+def simple_optimization(uff1,uff2,lmbda12,nion,rion0,maxiter=55001):
+   rion = copy.deepcopy(rion0)
+   grad = [0.0]*3*nion
+   ### do a crude optimization ###
+   eold = 9.0e9
+   alpha = 0.0001
+   acount = 0
+   it = 0
+   done = False
+   while (not done) and (it<maxiter):
+      (E1,grad1) = uff1.egrad(nion,rion)
+      (E2,grad2) = uff2.egrad(nion,rion)
+      E = (1.0-lmbda12)*E1 + lmbda12*E2
+      for i in range(3*nion): grad[i] = (1.0 - lmbda12)*grad1[i] + lmbda12*grad2[i]
+
+      if (E>eold):
+         alpha *= 0.1
+         acount = 0
+      else:
+         acount += 1
+         if (acount>100):
+            alpha *= 2
+            acount = 0
+
+      err = 0.0
+      for i in range(3*nion): err += grad[i]*grad[i]
+      print "optimize,lmbda,it,E,err,dE,alpha=",lmbda,lmbda12,it,E,err,E-eold,alpha
+
+      for i in range(3*nion):
+        rion[i] -= alpha*grad[i]
+      eold = E
+      done = (err<1.0e-3)
+      it +=1
+      if ((it%10000)==0): alpha = 0.0001
+
+   return (E,rion,grad)
+
+###########################################
+#                                         #
+#          simple_optimization1           #
+#                                         #
+###########################################
+def simple_optimization1(uff1,nion,rion0,maxiter=75001):
+   rion = copy.deepcopy(rion0)
+   grad = [0.0]*3*nion
+   ### do a crude optimization ###
+   eold = 9.0e9
+   alpha = 0.0001
+   acount = 0
+   it = 0
+   done = False
+   while (not done) and (it<maxiter):
+      (E,grad) = uff1.egrad(nion,rion)
+
+      if (E>eold):
+         alpha *= 0.1
+         acount = 0
+      else:
+         acount += 1
+         if (acount>100):
+            alpha *= 2
+            acount = 0
+
+      err = 0.0
+      for i in range(3*nion): err += grad[i]*grad[i]
+      if ((it%1000)==0): print "optimize0,lmbda,it,E,err,dE,alpha=",lmbda,it,E,err,E-eold,alpha
+
+      for i in range(3*nion):
+        rion[i] -= alpha*grad[i]
+      eold = E
+      done = (err<1.0e-3)
+      it +=1
+      if ((it%10000)==0): alpha = 0.0001
+
+   return (E,rion,grad)
+
+
+############################# main program ###################################
+usage = \
+"""
+uff-path9
+
+  Usage: uff-path9 -h -a xyzsdf_filename bondchange_string nbisections
+
+     where bondchange_string = "( ([i1,j1,b1],[i2,j2,b2],...), ([k1,l1,c1],[k2,l2,c2],...) )"
+     e.g. 
+      uff-path9 -a xyzsdf_filename "((),([1,4,1], [6,12,1]))" npath
+
+  -a append results to xyzsdf_filename
+  -m includemid
+  -s maxsteps
+  -h help
+
+"""
+
+print
+appending = False
+maxiter = 55001
+includemid = False
+
+opts, args = getopt.getopt(sys.argv[1:], "hams:")
+for o, a in opts:
+  if o in ("-a"): 
+     appending = True
+  if o in ("-m"): 
+     includemid = True
+  if o in ("-s"): 
+     maxiter = eval(a)
+  if o in ("-h","--help"):
+    print usage
+    exit()
+
+if (len(args)<3):
+   print usage
+   exit()
+
+
+filename  = args[0]
+bondchanges = eval(args[1])
+nbisection  = eval(args[2])
+if (len(args)>3):
+   xyzfilename = args[3]
+else:
+   xyzfilename = "final_path.xyz"
+
+### load xyz or mol file ###
+with open(filename,'r') as ff:  sdf  = ff.read()
+(nion,symbol,rion,amatrix)     = xyzsdf2amatrix(sdf)
+
+nstates = len(bondchanges)
+
+### Just optimize geometry ###
+if (nstates<2):
+   lmbda = 0.0
+   uff = uff_potential(nion,symbol,amatrix)
+   (E,rion,grad) = simple_optimization1(uff,nion,rion,maxiter)
+   print "Efinal=",E
+   print "rion=",rion
+   print "grad  =",grad
+   print "writing " + xyzfilename
+   pathstr = "%d\n\n" % nion
+   for ii in range(nion):
+      pathstr += "%s %f %f %f\n" % (symbol[ii],rion[3*ii],rion[3*ii+1],rion[3*ii+2])
+
+   print xyzfilename + ":"
+   print pathstr.strip()
+   print ":" + xyzfilename 
+   exit()
+
+
+
+### generate uff potentials ###
+uff = []
+for n in range(nstates):
+   amatrix1 = copy.deepcopy(amatrix)
+   for ab in bondchanges[n]: ## add bonds ##
+      i = ab[0] - 1
+      j = ab[1] - 1
+      b = ab[2]
+      amatrix1[i+j*nion] = b
+      amatrix1[j+i*nion] = b
+   uff.append(uff_potential(nion,symbol,amatrix1))
+
+### generate an initial path ###
+pathlmbda = []
+pathxyz = []
+pathe   = []
+lmbda = 0.0
+dnstates = 1.0/float(nstates-1)
+for n in range(nstates):
+   lmbda = n*dnstates
+   (E,rion,grad) = simple_optimization1(uff[n],nion,rion,maxiter)
+   pathlmbda.append(lmbda)
+   pathxyz.append(rion)
+   pathe.append(E)
+
+   if (n<(nstates-1)) and (includemid):
+      lmbda12 = 0.5*dnstates
+      lmbda += lmbda12
+      l = pmax = n
+      (E,rion,grad) = simple_optimization(uff[n],uff[n+1],lmbda12,nion,rion,maxiter)
+      pathlmbda.append(lmbda)
+      pathxyz.append(rion)
+      pathe.append(E)
+
+
+for b in range(nbisection):
+   demax = 0.0
+   pmax  = 0
+   npath = len(pathe)
+   for p in range(npath-1):
+      de = abs(pathe[p+1]-pathe[p])
+      if (de>demax):
+         demax = de
+         pmax  = p
+   
+   lmbda = (pathlmbda[pmax] + pathlmbda[pmax+1])/2.0
+   l = int(lmbda/dnstates)
+   print "l,lmbda,dnstates=",l,lmbda,dnstates,len(uff)
+   uff1 = uff[l]
+   uff2 = uff[l+1]
+   lmbda12 = lmbda - l*dnstates
+   print "pmax,lmbda,lmbda12,l=",pmax,lmbda,lmbda12,l,demax,abs(pathe[1] - pathe[0])
+   print "pathe=",pathe
+
+   (E,rion,grad)    = simple_optimization(uff1,uff2,lmbda12,nion,pathxyz[pmax])
+   (E1,rion1,grad1) = simple_optimization(uff1,uff2,lmbda12,nion,pathxyz[pmax+1])
+   if (E1<E):
+      E = E1
+      rion = rion1
+      grad = grad1
+
+   print "Efinal=",E
+   print "rion=",rion
+   print "grad  =",grad
+   pathlmbda.insert(pmax+1,lmbda)
+   pathxyz.insert(pmax+1,rion)
+   pathe.insert(pmax+1,E)
+
+
+pathstr = ''
+npath = len(pathxyz)
+for p in range(npath):
+   pathstr += "%d\n\n" % nion
+   for ii in range(nion):
+      pathstr += "%s %f %f %f\n" % (symbol[ii],pathxyz[p][3*ii],pathxyz[p][3*ii+1],pathxyz[p][3*ii+2])
+
+
+print
+print
+print xyzfilename + ":"
+print pathstr.strip()
+print ":" + xyzfilename 
+print
+print
+print "nstates=",nstates
+print "bondchanges=",bondchanges
+print "writing final_path.dat"
+print "finalpath.dat:"
+npath = len(pathe)
+for p in range(npath):
+   print "%f %f" % (pathlmbda[p],pathe[p])
+print ":finalpath.dat"
+

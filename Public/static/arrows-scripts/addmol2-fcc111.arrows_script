@@ -1,0 +1,28 @@
+default_args: Cu 3.68 7.5 carbon tetrachloride :default_args
+
+Set text bulk_name $arg1;
+Set number bulk_a $arg2;
+Set text bulk_type fcc;
+Set radio bulk_cubic true;
+
+Set text queue_nwchem_jobname $arg2-$arg3;
+Set text queue_nwchem_curdir0 erichome:/Projects/CCS/$arg1-Slabs;
+Set text queue_nwchem_projectname adsorb-$arg4-$arg5;
+
+
+Generate bulk crystal; 
+
+Set text surface_scaling 1.0 1.0 2.0;
+Set number surface_nzplane 4;
+set radio surface_alignc true;
+Generate surface;
+
+Set text translate_smiles 0 0 $arg3;
+
+Add smiles $arg4 $arg5;
+
+center unit cell;
+
+jsmol to editor;
+
+pspw-job.arrows_script;
