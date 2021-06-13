@@ -18,9 +18,9 @@ ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo', 'nw', 'eap', 'xyz', 'em
 
 tar                     = "/bin/tar -czf " 
 chemdb_fetch_reactions  = ARROWS_HOME + "/bin/chemdb_fetch_reactions5 --arrows_api=" + ARROWS_API_HOME + " -e "
-chemdb_fetch_reactions0 = ARROWS_HOME + "/bin/chemdb_fetch_reactions5 --arrows_api=" + ARROWS_API_HOME
-chemdb_queue            = ARROWS_HOME + "/bin/chemdb_queue --arrows_api=" + ARROWS_API_HOME
-chemdb_balance_reaction = ARROWS_HOME + "/bin/chemdb_balance_reaction9f --arrows_api=" + ARROWS_API_HOME
+chemdb_fetch_reactions0 = ARROWS_HOME + "/bin/chemdb_fetch_reactions5 --arrows_api=" + ARROWS_API_HOME + " "
+chemdb_queue            = ARROWS_HOME + "/bin/chemdb_queue --arrows_api=" + ARROWS_API_HOME + " "
+chemdb_balance_reaction = ARROWS_HOME + "/bin/chemdb_balance_reaction9f --arrows_api=" + ARROWS_API_HOME + " "
 tnt_submit              = ARROWS_HOME + "/bin/tnt_submit5 --arrows_api=" + ARROWS_API_HOME + " -f "
 
 chemdb_queue_nwchem     = ARROWS_HOME + "/bin/chemdb_queue_nwchem "
@@ -2501,7 +2501,7 @@ def view_queue_nwchemw(jobid):
    namecount += 1
    try:
       increment_apivisited()
-      cmd8 = chemdb_queue_nwchem + '-q ' + jobid
+      cmd8 = chemdb_queue_nwchem + ' -q ' + jobid
       #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
@@ -2536,7 +2536,7 @@ def view_queue_nwchemw(jobid):
 def zip_queue_nwchem(jobid):
    try:
       increment_apivisited()
-      cmd8 = chemdb_queue_nwchem + '-f ' + jobid
+      cmd8 = chemdb_queue_nwchem + ' -f ' + jobid
       #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
