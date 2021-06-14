@@ -3648,6 +3648,7 @@ def run_molecular_calculation(filename):
          time.sleep(0.1)
          print("Running chemdb_molcalc, molfilename=",molfilename)
          cmd7 = chemdb_molcalc + molfilename
+         print("HHHERAAA, cmd7=",cmd7)
          data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
          if len(data) == 0: data = " chemdb_molcalc did not generate data\n"
          #html = "<html>\n"
@@ -3783,7 +3784,6 @@ def get_broombridge_queue(jobid):
    return data
 
 
-
 @app.route('/api/eric_input/')
 def eric_form():
    increment_apivisited()
@@ -3795,6 +3795,7 @@ def eric_form_post():
     text = text.replace("\"","")
     text =  " ".join(text.split())
     return parsing_text(text)
+
 
 @app.route('/api/eric_input2/')
 def eric_form2():
@@ -3811,6 +3812,23 @@ def eric_form2_post():
     text = text.replace("\"","")
     text =  " ".join(text.split())
     return parsing_text(text)
+
+
+@app.route('/api/eric_input4/')
+def eric_form4():
+   increment_apivisited()
+   calcs = arrowsjobsrun()
+   molcalcs = calculationscount()
+   avisits = apivisited()
+   return render_template("eric-input4.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+
+@app.route('/api/eric_input4/', methods=['POST'])
+def eric_form4_post():
+    text = request.form['smi']
+    text = text.replace("\"","")
+    text =  " ".join(text.split())
+    return parsing_text(text)
+
 
 @app.route('/api/reaction_prediction/')
 def dagrereaction_form():

@@ -804,7 +804,7 @@ def esmiles_hasname(esmiles):
       try:
          smiles = esmiles.strip().split()[0]
          cmd = obabel + ' -:\"' + smiles + '\" -ocan'
-         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+         result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          #print("result=",result)
          if "0 molecules converted" in result:
             hasname = True
@@ -1160,7 +1160,7 @@ def esmiles2mult_set(smiles,charge,esmiles):
 def smiles2mult(smiles,q):
   #smiles2xyz(smiles,wrkdir + "/"+tmpxyz1)
   cmd = obabel + ' -h -:\"' + smiles + '\" -oxyz'
-  result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+  result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
   mult = 1
   pcharge = q
   count = 0
@@ -3080,7 +3080,8 @@ def f_reaction(mformulas,rps,coeffs):
 def f2_reaction(mformulas,rps,coeffs):
    f = f_reaction(mformulas,rps,coeffs)
    f2 = 0
-   for key,val in f.iteritems():
+   #for key,val in f.iteritems():
+   for key,val in f.items():
       f2 += val*val
 
    return f2
@@ -4026,7 +4027,8 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
    nbondsdestroyed = 0
    createbonds = []
    destroybonds = []
-   for key,val in bonds.iteritems():
+   #for key,val in bonds.iteritems():
+   for key,val in bonds.items():
       syms = key.split(':')
       print(syms[0]+ " " + syms[1] + "  val=",val)
       if (val>0): 
@@ -4231,22 +4233,37 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
          ### Note only psymb is used ###
          aa = genloops_reactants_string(nnodes,edges,redges,nredges,pedges,psymb)
          bb = genloops_products_string(nnodes,edges,pedges,npedges,redges,psymb)
+
+         l_dict={"bonding_reactants":bonding_reactants,"symbol_products":symbol_products,"adj_products":adj_products,"pedges":pedges,"enodes":enodes,"redges":redges,"reactiontype":reactiontype,"adj_reactants": adj_reactants,"nion":nion, "symbol_reactants":symbol_reactants,"bonding_products":bonding_products}
+
          print("into reactant loops")
-         exec(aa)
+         exec(aa,{"deepcopy":deepcopy,"bonding_string":bonding_string,"generate_reactionhash":generate_reactionhash}, l_dict)
          print("into product loops")
-         exec(bb)
+         exec(bb,{"deepcopy":deepcopy,"bonding_string":bonding_string,"generate_reactionhash":generate_reactionhash}, l_dict)
+
+         bstrings_reactants = l_dict['bstrings_reactants']
+         bstrings_products  = l_dict['bstrings_products']
+         indxs_reactants    = l_dict['indxs_reactants']
+
       elif (len(edges)>=nbondsinvolved):
          print("No symbol checking!")
          aa = genloops_reactants_string(nnodes,edges,redges,nredges,pedges)
          bb = genloops_products_string(nnodes,edges,pedges,npedges,redges)
+
+         l_dict={"bonding_reactants":bonding_reactants,"symbol_products":symbol_products,"adj_products":adj_products,"pedges":pedges,"enodes":enodes,"redges":redges,"reactiontype":reactiontype,"adj_reactants": adj_reactants,"nion":nion, "symbol_reactants":symbol_reactants,"bonding_products":bonding_products}
          print("into reactant loops")
-         exec(aa)
+         exec(aa,{"deepcopy":deepcopy,"bonding_string":bonding_string,"generate_reactionhash":generate_reactionhash}, l_dict)
          print("into product loops")
-         exec(bb)
+         exec(bb,{"deepcopy":deepcopy,"bonding_string":bonding_string,"generate_reactionhash":generate_reactionhash}, l_dict)
+
+         bstrings_reactants = l_dict['bstrings_reactants']
+         bstrings_products  = l_dict['bstrings_products']
+         indxs_reactants    = l_dict['indxs_reactants']
       else:
          print("not looking")
          bstrings_reactants = []
          bstrings_products = []
+
    
       bstrings_reaction = []
       #fstrings_reaction = []
@@ -5425,7 +5442,8 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
          dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
       with dbcon:
          cur = dbcon.cursor()
-         for bstring,indxsym in bstrings_reactants.iteritems():
+         #for bstring,indxsym in bstrings_reactants.iteritems():
+         for bstring,indxsym in bstrings_reactants.items():
             checklist = [reactionid]
             checklist += method
             checklist.append(bstring)
@@ -5663,11 +5681,17 @@ def findreaction_indexes(reactionhash,xyzfile):
    aa = findreaction_loops_string00(nnodes,edges,redges,nredges,pedges)
    print("into reactant loops")
    #print(aa)
-   exec(aa)
+
+   l_dict={"pedges":pedges,"enodes":enodes,"redges":redges,"reactiontype":reactiontype,"generate_reactionhash":generate_reactionhash,"symbol_hash":symbol_hash,"nion":nion,"adj_reactants":adj_reactants}
+   exec(aa,{"symbol_reactants":symbol_reactants,"deepcopy":deepcopy},l_dict)
+
+   bstrings_reactants = l_dict['bstrings_reactants']
+
    print("number of bstrings_reactions = ",len(bstrings_reactants))
 
    indexes = []
-   for bstring,indxsym in bstrings_reactants.iteritems():
+   #for bstring,indxsym in bstrings_reactants.iteritems():
+   for bstring,indxsym in bstrings_reactants.items():
       #print("bstring=",bstring)
       #print("indexes=",indxsym)
       if bstring==reactionhash:
@@ -5844,7 +5868,8 @@ def findproducts_indexes(reactionhash,xyzfile):
    print("number of bstrings_reactions = ",len(bstrings_products))
 
    indexes = []
-   for bstring,indxsym in bstrings_products.iteritems():
+   #for bstring,indxsym in bstrings_products.iteritems():
+   for bstring,indxsym in bstrings_products.items():
       #print("bstring=",bstring)
       #print("indexes=",indxsym)
       if bstring==reactionhash:
@@ -6365,7 +6390,7 @@ for esmiles in esmiles_reactants:
       inchikey = ''
    else:
       cmd    = esmiles2xyz + '\"' + esmiles2 + '\" ' + wrkdir+"/"+tmpxyz1
-      result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       if "inchikey =" in result: 
          inchikey = result.split("inchikey =")[1].split("\n")[0].strip()
       else:
@@ -6410,7 +6435,7 @@ for esmiles in esmiles_products:
       inchikey = ''
    else:
       cmd    = esmiles2xyz + '\"' + esmiles2 + '\" ' + wrkdir+"/"+tmpxyz1
-      result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       if "inchikey =" in result: 
          inchikey = result.split("inchikey =")[1].split("\n")[0].strip()
       else:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Routines to calculate the Accessible Surface Area of a set of atoms.
@@ -12,8 +12,10 @@ of Protein Atoms. Lysozyme and Insulin." JMB (1973) 79:351-371.
 import math,random,operator
 
 ############## machine parameters #########################
-esmiles2xyz = "/srv/arrows/bin/esmiles2xyz "
-wrkdir      = "/srv/arrows/Projects/Work"
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
+esmiles2xyz = ARROWS_HOME + "/bin/esmiles2xyz "
+wrkdir      = ARROWS_HOME + "/Work"
 ddrand = random.randint(0,999999)
 tmpxyz  = "tmpxyz-%d.xyz" % ddrand
 xyzfilename = wrkdir + "/" + tmpxyz
@@ -155,7 +157,7 @@ def xyz_molecular_formula(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -228,8 +230,8 @@ def find_neighbor_indices_periodic(atoms, probe, k,L):
     atom_k = atoms[k]
     #radius = vdw[atom_k[0]] + 2*probe
     radius = eval_dict(vdw,atom_k[0]) + 2*probe
-    indices = range(k)
-    #indices.extend(range(k+1, len(atoms)))
+    indices = list(range(k))
+    #indices.extend(list(range(k+1, len(atoms))))
     for i in indices:
         atom_i = atoms[i]
         x = atom_i[1] - atom_k[1]
@@ -255,8 +257,8 @@ def find_neighbor_indices(atoms, probe, k):
     neighbor_indices = []
     atom_k = atoms[k]
     radius = eval_dict(vdw,atom_k[0]) + probe + probe
-    indices = range(k)
-    indices.extend(range(k+1, len(atoms)))
+    indices = list(range(k))
+    indices.extend(list(range(k+1, len(atoms))))
     for i in indices:
         atom_i = atoms[i]
         dx = atom_i[1] - atom_k[1]
@@ -276,8 +278,8 @@ def find_kneighbor_indices(atoms, probe, k):
     neighbor_indices = []
     atom_k = atoms[k]
     radius = eval_dict(vdw,atom_k[0]) + probe + probe
-    indices = range(k)
-    #indices.extend(range(k+1, len(atoms)))
+    indices = list(range(k))
+    #indices.extend(list(range(k+1, len(atoms))))
     for i in indices:
         atom_i = atoms[i]
         dx = atom_i[1] - atom_k[1]
@@ -316,8 +318,8 @@ def calculate_asa(atoms, probe, n_sphere_point=960):
             y = point[1]*radius + atom_i[2]
             z = point[2]*radius + atom_i[3]
 
-            cycled_indices = range(j_closest_neighbor, n_neighbor)
-            cycled_indices.extend(range(j_closest_neighbor))
+            cycled_indices = list(range(j_closest_neighbor, n_neighbor))
+            cycled_indices.extend(list(range(j_closest_neighbor)))
 
             for j in cycled_indices:
                 atom_j = atoms[neighbor_indices[j]]
@@ -365,8 +367,8 @@ def calculate_sav(atoms, probe, n_sphere_point=960):
             y = point[1]*radius + atom_i[2]
             z = point[2]*radius + atom_i[3]
 
-            cycled_indices = range(j_closest_neighbor, n_neighbor)
-            cycled_indices.extend(range(j_closest_neighbor))
+            cycled_indices = list(range(j_closest_neighbor, n_neighbor))
+            cycled_indices.extend(list(range(j_closest_neighbor)))
 
             for j in cycled_indices:
                 atom_j = atoms[neighbor_indices[j]]
@@ -441,7 +443,7 @@ def generate_solventbox(nwater,solute,L,probe):
           atoms[ii+i][3] = z
           neighbor_indices = find_neighbor_indices_periodic(atoms, 5*probe, ii+i,L)
           #neighbor_indices = find_neighbor_indices(atoms, probe, ii+i)
-          neighbor_indices = range(ii+i)
+          neighbor_indices = list(range(ii+i))
 
           n_neighbor = len(neighbor_indices)
 
@@ -499,7 +501,7 @@ def main():
 
   opts, args = getopt.getopt(sys.argv[1:], "l:L:A:q:s:m:n:x:w:")
   if len(args) < 1:
-    print usage
+    print(usage)
     return
 
   #print "opts=",opts
@@ -516,12 +518,12 @@ def main():
      q    = 0
      mult = 1
      mformula = xyz_molecular_formula(xyzfilename)
-     print "#Fetched the following entry:"
-     print "#mformula = " + mformula
+     print("#Fetched the following entry:")
+     print("#mformula = " + mformula)
   else:
      cmd6 = esmiles2xyz + ' "' + esmiles.strip() + '" ' +xyzfilename
-     esmiles2xyzresult = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
-     for line in esmiles2xyzresult.split("\n"): print "#"+line
+     esmiles2xyzresult = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+     for line in esmiles2xyzresult.split("\n"): print("#"+line)
      q    = eval(esmiles2xyzresult.split("charge          =")[1].split("\n")[0].strip())
      mult = eval(esmiles2xyzresult.split("mult            =")[1].split("\n")[0].strip())
   molarity = 1
@@ -587,7 +589,7 @@ def main():
   for o, a in opts:
     if '-n' in o:
       n_sphere = int(a)
-      print "Points on sphere: ", n_sphere
+      print("Points on sphere: ", n_sphere)
     if '-m' in o:
       molarity = float(a)
     if o in ("-x","--xyz"):
@@ -603,7 +605,7 @@ def main():
       L3 = [float(eval(a)[0]),float(eval(a)[1]),float(eval(a)[2])]
       unitcell3  = True
     if o in ("-A"):
-      print a, eval(a)
+      print(a, eval(a))
       L9 = [float(eval(a)[0]),float(eval(a)[1]),float(eval(a)[2]),float(eval(a)[3]),float(eval(a)[4]),float(eval(a)[5]),float(eval(a)[6]),float(eval(a)[7]),float(eval(a)[8])]
       unitcell9  = True
     if o in ("-q"):
@@ -621,35 +623,35 @@ def main():
   vsolute = sum(savs)
   L = (vwater+vsolute)**0.33333333333
 
-  print 
+  print()
   if (henry): 
-     print "#################################"
-     print "# AIMD-MM Solvation Calculation #"
-     print "#################################"
+     print("#################################")
+     print("# AIMD-MM Solvation Calculation #")
+     print("#################################")
   else:
-     print "######################"
-     print "# AIMD-MM Simulation #"
-     print "######################"
-  print 
-  print "#Molarity = %.3f" % molarity
-  print "#ASA = %.1f angstrom squared." % sum(asas)
-  print "#SAV = %.1f angstrom cubed. (max %.1f) " % (sum(savs),vmax)
-  print "#charge of solute molecule  = %d" % solute_q
-  print "#multiplicity of solute molecule  = %d" % solute_mult
-  print "#size of solute molecule    = %d" % len(atoms)
-  print "#number of solute molecules = %d" % 1
-  print "#number of water molecules  = %d" % nwater
-  print "#volume of water molecules  = %.1f angstrom cubed." % vwater
-  print "#volume of solute molecules = %.1f angstrom cubed." % vsolute
-  print "#volume of unit cell       = %.1f angstrom cubed." % (vwater+vsolute)
-  print "#side length of water-only cubic cell = %.3f angstrom " % (vwater)**0.33333333333
-  print "#side length of cubic cell            = %.3f angstrom " % (vwater+vsolute)**0.33333333333
+     print("######################")
+     print("# AIMD-MM Simulation #")
+     print("######################")
+  print() 
+  print("#Molarity = %.3f" % molarity)
+  print("#ASA = %.1f angstrom squared." % sum(asas))
+  print("#SAV = %.1f angstrom cubed. (max %.1f) " % (sum(savs),vmax))
+  print("#charge of solute molecule  = %d" % solute_q)
+  print("#multiplicity of solute molecule  = %d" % solute_mult)
+  print("#size of solute molecule    = %d" % len(atoms))
+  print("#number of solute molecules = %d" % 1)
+  print("#number of water molecules  = %d" % nwater)
+  print("#volume of water molecules  = %.1f angstrom cubed." % vwater)
+  print("#volume of solute molecules = %.1f angstrom cubed." % vsolute)
+  print("#volume of unit cell       = %.1f angstrom cubed." % (vwater+vsolute))
+  print("#side length of water-only cubic cell = %.3f angstrom " % (vwater)**0.33333333333)
+  print("#side length of cubic cell            = %.3f angstrom " % (vwater+vsolute)**0.33333333333)
   if (unitcell):
      L = SC_length
-     print
-     print "#Unit Cell Input Option:"
-     print "#inputed side length of cubic cell    = %.3f angstrom " % L
-     print "#inputed volume of unit cell          = %.1f angstrom cubed." % (L*L*L)
+     print()
+     print("#Unit Cell Input Option:")
+     print("#inputed side length of cubic cell    = %.3f angstrom " % L)
+     print("#inputed volume of unit cell          = %.1f angstrom cubed." % (L*L*L))
   if (unitcell3):
      L = L3
      vol = L[0]*L[1]*L[2]
@@ -657,14 +659,14 @@ def main():
      tmolarity = (1660.55208/vwater)
      molarity *= tmolarity
      nwater = int(round(55.556/molarity))
-     print
-     print "#Unit Cell Input Option:"
-     print "#inputed side lengths of cubic cell   = %.3f %.3f %.3f angstrom " % (L[0],L[1],L[2])
-     print "#inputed volume of unit cell          = %.1f angstrom cubed." % (L[0]*L[1]*L[2])
-     print "#volume of solute molecules = %.1f angstrom cubed." % vsolute
-     print "#volume of water molecules  = %.1f angstrom cubed." % vwater
-     print "#effective molarity         = %.3f" % molarity
-     print "#number of water molecules  = %d" % nwater
+     print()
+     print("#Unit Cell Input Option:")
+     print("#inputed side lengths of cubic cell   = %.3f %.3f %.3f angstrom " % (L[0],L[1],L[2]))
+     print("#inputed volume of unit cell          = %.1f angstrom cubed." % (L[0]*L[1]*L[2]))
+     print("#volume of solute molecules = %.1f angstrom cubed." % vsolute)
+     print("#volume of water molecules  = %.1f angstrom cubed." % vwater)
+     print("#effective molarity         = %.3f" % molarity)
+     print("#number of water molecules  = %d" % nwater)
   if (unitcell9):
      L = L9
      x = L[4]*L[8] - L[5]*L[7]
@@ -675,29 +677,29 @@ def main():
      tmolarity = (1660.55208/vwater)
      molarity *= tmolarity
      nwater = int(round(55.556/molarity))
-     print
-     print "#Unit Cell Input Option:"
-     print "#inputed unitcell vectors:"
-     print "#     a1  = %.3f %.3f %.3f angstrom " % (L[0],L[1],L[2])
-     print "#     a2  = %.3f %.3f %.3f angstrom " % (L[3],L[4],L[5])
-     print "#     a3  = %.3f %.3f %.3f angstrom " % (L[6],L[7],L[8])
-     print "#inputed volume of unit cell          = %.1f angstrom cubed." % (abs(vol))
-     print "#volume of solute molecules = %.1f angstrom cubed." % vsolute
-     print "#volume of water molecules  = %.1f angstrom cubed." % vwater
-     print "#effective molarity         = %.3f" % molarity
-     print "#number of water molecules  = %d" % nwater
+     print()
+     print("#Unit Cell Input Option:")
+     print("#inputed unitcell vectors:")
+     print("#     a1  = %.3f %.3f %.3f angstrom " % (L[0],L[1],L[2]))
+     print("#     a2  = %.3f %.3f %.3f angstrom " % (L[3],L[4],L[5]))
+     print("#     a3  = %.3f %.3f %.3f angstrom " % (L[6],L[7],L[8]))
+     print("#inputed volume of unit cell          = %.1f angstrom cubed." % (abs(vol)))
+     print("#volume of solute molecules = %.1f angstrom cubed." % vsolute)
+     print("#volume of water molecules  = %.1f angstrom cubed." % vwater)
+     print("#effective molarity         = %.3f" % molarity)
+     print("#number of water molecules  = %d" % nwater)
     
 
   try:
      os.unlink(xyzfilename)
   except:
-     print "#solvatedsolute_emsiles unlinking " + xyzfilename
+     print("#solvatedsolute_emsiles unlinking " + xyzfilename)
 
 
   solventbox = generate_solventbox(nwater,atoms,L,1.0)
   angle = (109.45/180.0)*math.pi
 
-  print "#size of solvent box = %d" % len(solventbox)
+  print("#size of solvent box = %d" % len(solventbox))
   #print "solventbox:",solventbox
   newatoms = []
   for s in solventbox:

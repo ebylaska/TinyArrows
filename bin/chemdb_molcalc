@@ -240,7 +240,7 @@ try:
       inputdata = parsetosmiles(inputdata)
       cmd7 = tnt_submit + '\"' + inputdata + '\"'
 
-   data = subprocess.check_output(cmd7,shell=True)
+   data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
 
 except:
    data = "molecular_calculation failed!"
