@@ -3648,7 +3648,6 @@ def run_molecular_calculation(filename):
          time.sleep(0.1)
          print("Running chemdb_molcalc, molfilename=",molfilename)
          cmd7 = chemdb_molcalc + molfilename
-         print("HHHERAAA, cmd7=",cmd7)
          data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
          if len(data) == 0: data = " chemdb_molcalc did not generate data\n"
          #html = "<html>\n"
