@@ -572,8 +572,8 @@ exec(aaa)
 #### geturlresult function ####
 def geturlresult(url):
     try:
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError(e):
+        connection = urllib.urlopen(url)
+    except urllib.HTTPError(e):
         return ""
     else:
         return connection.read().rstrip()

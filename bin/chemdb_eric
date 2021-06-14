@@ -1,15 +1,46 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,pymongo,json
+import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator,pymongo,json
+import pymysql as MySQLdb
 import datetime,re
 from bson.objectid import ObjectId
 from math import *
 
+############## tinymongo ################
+import tinydb
+import tinymongo as tm
+from tinymongo.serializers import DateTimeSerializer
+from tinydb_serialization import SerializationMiddleware
+class TinyMongoClient(tm.TinyMongoClient):
+    @property
+    def _storage(self):
+        return tinydb.storages.JSONStorage
+class CustomClient(TinyMongoClient):
+    @property
+    def _storage(self):
+        serialization = SerializationMiddleware()
+        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
+        # register other custom serializers
+        return serialization
+############## tinymongo ################
+
+###################### PARAMETERS ###########################
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
+
 ####################### mongoDB #############################
-#uri = "mongodb://arrows:password@we17860.emsl.pnl.gov:27017"
-with open("/srv/arrows/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
-mongo_client                     = pymongo.MongoClient(uri)
-arrows_db                        = mongo_client.Arrows
+#uri = "mongodb://arrows:password@machine.gov:27017"
+with open(ARROWS_HOME + "/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
+if "mongodb:" in uri:
+   nosql_client = pymongo.MongoClient(uri)
+   ismongo      = True
+else:
+   nosql_client = CustomClient(uri)
+   ismongo      = False
+arrows_db                        = nosql_client.Arrows
 machinedata_collection           = arrows_db.nwchem_machinedata
 chemdb_queue_collection          = arrows_db.chemdb_queue_collection
 chemdb_finished_queue_collection = arrows_db.chemdb_finished_queue_collection
@@ -17,27 +48,31 @@ qnumber_collection               = arrows_db.queue_number
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
-UPLOAD_FOLDER    = '/srv/arrows/Public/uploads/'
-babel            = "/usr/bin/env babel"
-obabel           = "/usr/bin/env obabel "
-esmiles2xyz      = "/srv/arrows/bin/esmiles2xyz "
-tnt_submit       = "/srv/arrows/bin/tnt_submit5 -f "
-chemdb_add_nwout = "/srv/arrows/bin/chemdb_add_nwout7 "
-chemdb_cube2jvxl = "/srv/arrows/bin/chemdb_cube2jvxl "
 
-chemdbfile         = "/srv/arrows/bin/.chemdb-en"
+UPLOAD_FOLDER    = ARROWS_HOME + '/Public/uploads/'
+#babel            = "/usr/bin/env babel"
+obabel           = "/usr/bin/env obabel "
+esmiles2xyz      = ARROWS_HOME + "/bin/esmiles2xyz "
+tnt_submit       = ARROWS_HOME + "/bin/tnt_submit5 -f "
+chemdb_add_nwout = ARROWS_HOME + "/bin/chemdb_add_nwout7 "
+chemdb_cube2jvxl = ARROWS_HOME + "/bin/chemdb_cube2jvxl "
+
+chemdbfile         = ARROWS_HOME + "/bin/.chemdb-en"
 #with open('/srv/arrows/bin/.chemdb','r') as f:
 #   hup0            = f.readline().strip()
 #   archivemachine  = f.readline().strip()
 #   archivepassword = f.readline().strip()
 
-wrkdir           = "/srv/arrows/Work"
+wrkdir           = ARROWS_HOME + "/Work"
 tmpxyz1          = "chemdb_queue.xyz" 
 tmpinchi1        = "chemdb_queue.inchi" 
 curdir           = os.getcwd()
 ############## machine parameters #########################
 
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+#bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
+
+
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 
 
@@ -55,19 +90,33 @@ def isevalnum(s):
       return False
 
 
+##### geturlresult function ####
+#def geturlresult(url):
+#    try:
+#        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
+#                                      'https': 'https://squid-proxy.pnl.gov:3128'}
+#                                    )
+#        opener = urllib2.build_opener(proxy)
+#        urllib2.install_opener(opener)
+#        connection = urllib2.urlopen(url)
+#    except urllib2.HTTPError, e:
+#        return ""
+#    else:
+#        return connection.read().rstrip()
+
 #### geturlresult function ####
 def geturlresult(url):
-    try:
-        proxy = urllib2.ProxyHandler({'http': 'http://squid-proxy.pnl.gov:3128',
-                                      'https': 'https://squid-proxy.pnl.gov:3128'}
-                                    )
-        opener = urllib2.build_opener(proxy)
-        urllib2.install_opener(opener)
-        connection = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
-        return ""
-    else:
-        return connection.read().rstrip()
+   try:
+      the_page = ""
+      with urllib.request.urlopen(url) as response:
+         the_page = response.read().rstrip()
+   except:
+      the_page = ""
+
+   if isinstance(the_page,bytes): the_page = the_page.decode("utf-8")
+
+   return the_page
+
 
 
 def stripWARNINGS(str):
@@ -99,12 +148,12 @@ def pexpect_command(pcmd,mypassword):
           #print "either received key or connection timeout"
           pass
       #print p.before # print out the result
-      return p.before
+      return(p.before)
 
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
 
 
 
@@ -415,8 +464,8 @@ def xyz2smiles(xyzfile):
    try:
       smiles = ''
       smilefile = wrkdir + "/"+tmpinchi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      cmd6 = obabel + " -ixyz " + xyzfile + " -ocan -O" + smilefile
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(smilefile,'r')
       for line in ofile:
@@ -433,9 +482,9 @@ def xyz2InChI(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+ tmpinchi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchi -O" + inchifile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -451,9 +500,9 @@ def xyz2InChIKey(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+tmpinchi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchikey -O" + inchifile
       #os.system(cmd6)
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
       for line in ofile:
@@ -565,7 +614,7 @@ def theorysmiles2machinetype(theory,mformula):
    vachinetype = "toobig"
    hasmopac    = False
    vcharge = mformula2valencecharge(mformula)
-   print "mformula,vcharge=",mformula,vcharge
+   print("mformula,vcharge=",mformula,vcharge)
    if ('am1' in theory) or ('pm3' in theory) or ('mndo' in theory) or ('mindo3' in theory):
       vachinetype = 'mopac'
    elif ('ccsd(t)' in theory):
@@ -1238,7 +1287,7 @@ def xyzdat2jsmol(backgroundcolor,xyzdat,jobscript,cell=None):
    msg4 += '<br><font color="443322" size="2"><p><a href="http://wiki.jmol.org/index.php/JSmol">JSmol: an open-source HTML5 viewer for chemical structures in 3D</a></p></font><br>'
 
    if (nframes>frames_max):
-      print "jobscript=",jobscript
+      print("jobscript=",jobscript)
       externfile = jobscript.split("view=")[1].split()[0]
       link0 = "https://arrows.emsl.pnnl.gov/api/eric_view/view=" + externfile
       fs = 1; fe=frames_max
@@ -1279,7 +1328,7 @@ def gcube2jsmol(backgroundcolor,xyzdat):
       ff.write(xyzdat)
 
    cmd9 = chemdb_cube2jvxl + staticdir + xyzfilename0 + " " + staticdir + xyzfilename + " " + staticdir + jvxlfilename
-   result = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+   result = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
 
    msg4 = "</pre>\n"
    msg4 += '<script type=\"text/javascript\" src=\"{{url_for(\'static\', filename=\'jsmol/JSmol.min.js\')}}\"></script>\n'
@@ -2353,16 +2402,16 @@ chemdb_queue program
 """
 
 
-print
-print "#chemdb_eric - version 1.0"
-print
+print()
+print("#chemdb_eric - version 1.0")
+print()
 tt      = time.localtime()
 
 
 opts, args = getopt.getopt(sys.argv[1:], "hd")
 for o, a in opts:
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)>0):
@@ -2408,10 +2457,10 @@ if "list=" in jobscript:
    projectdir = projectdir.replace('//','/')
 
    cmd0 = "ssh " + machine + " ls " + projectdir 
-   print "command:",cmd0
+   print("command:",cmd0)
    result = pexpect_command(cmd0,passwd)
-   print
-   print "filenames:"
+   print()
+   print("filenames:")
    pp = projectdir.split('/')
    if (len(pp)>1):
       if (pp[1]!=''):
@@ -2420,12 +2469,12 @@ if "list=" in jobscript:
          projectdir0 = projectdir0.replace('//','/')
          link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'list=' + machinename + ':' + projectdir0 
          ref = "<a href=\"" + link + "\">%s</a>" % ".."
-         print ref
+         print(ref)
    for filename in result.strip().split():
       if '/' in filename:
          link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'list=' + machinename + ':' + projectdir + '/' + filename.rstrip('/')  
          ref = "<a href=\"" + link + "\">%s</a>" % filename
-         print ref
+         print(ref)
       elif ('xyz' in filename) or ('ion_motion' in filename) or ('cif' in filename) or (".out" in filename):
          link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'view=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
          link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'raw=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
@@ -2437,7 +2486,7 @@ if "list=" in jobscript:
          ref3= "<a href=\"" + link3 + "\">%s</a>" % "(download)"
          ref4= "<a href=\"" + link4 + "\">%s</a>" % "(raw_last)"
          ref5= "<a href=\"" + link5 + "\">%s</a>" % "(xyz_raw_last)"
-         print ref+ref2+ref4+ref5+ref3
+         print(ref+ref2+ref4+ref5+ref3)
       else:
          link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'view=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
          link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'raw=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
@@ -2445,7 +2494,7 @@ if "list=" in jobscript:
          ref = "<a href=\"" + link + "\">%s</a> " % filename
          ref2= "<a href=\"" + link2 + "\">%s</a>" % "(raw)"
          ref3= "<a href=\"" + link3 + "\">%s</a>" % "(download)"
-         print ref+ref2+ref3
+         print(ref+ref2+ref3)
 
 if ("viewproject=" in jobscript):
    project = jobscript.split("viewproject=")[1].split()[0]
@@ -2478,38 +2527,38 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
 
       datafile = externfile.split("/")[-1]
       wrkdir0 = wrkdir
-      print "DATAFILE="+datafile
+      print("DATAFILE="+datafile)
       link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'download=' + machinename + ':' + externfile 
       ref2= "<a href=\"" + link2 + "\">%s</a>" % ("download " + datafile)
-      print 
-      print ref2
-      print 
+      print()
+      print(ref2)
+      print() 
 
       cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir0
-      print "copying: " + cmd0
+      print("copying: " + cmd0)
       result = pexpect_command(cmd0,passwd)
-      print result
+      print(result)
 
    if ".nw" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as nwfile:
          nwinput = nwfile.read()
       msg4 = nwinput2jsmol("0x3BBC52",nwinput)
-      print msg4
-      print nwinput
+      print(msg4)
+      print(nwinput)
 
    elif ".out" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as nwfile:
          nwoutput = nwfile.read()
       msg4 = nwout2jsmol("0x3BBC52",nwoutput)
-      print msg4
-      print nwoutput
+      print(msg4)
+      print(nwoutput)
 
    elif ".xyz" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as xyzfile:
          xyzdat = xyzfile.read()
       
       msg4 = xyzdat2jsmol("0x3BBC52",xyzdat,jobscript)
-      print msg4
+      print(msg4)
 
    elif ".ion_motion" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as xyzfile:
@@ -2517,7 +2566,7 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
       
       #msg4 = xyzdat2jsmol("0x3BBC52",xyzdat,jobscript,"ion_motion")
       msg4 = xyzdat2jsmol("0x1AADD8",xyzdat,jobscript,"ion_motion")
-      print msg4
+      print(msg4)
 
    elif ".cif" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as xyzfile:
@@ -2525,68 +2574,68 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
       
       #msg4 = xyzdat2jsmol("0x3BBC52",xyzdat,jobscript,"cif")
       msg4 = xyzdat2jsmol("#FFFFFF",xyzdat,jobscript,"cif")
-      print msg4
+      print(msg4)
 
    elif ".cube" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as xyzfile:
          xyzdat = xyzfile.read()
       
       msg4 = gcube2jsmol("0x3BBC52",xyzdat)
-      print msg4
+      print(msg4)
 
    elif ".emotion" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = plotdatajs(edat)
-      print msg4
+      print(msg4)
 
    elif ".gr" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = gr_plotdatajs(edat,0,"Unfiltered",)
-      print msg4
+      print(msg4)
 
    elif ".cm.vdos" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = vdos_plotdatajs("cm-1",edat)
-      print msg4
+      print(msg4)
 
    elif ".THz.vdos" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = vdos_plotdatajs("THz",edat)
-      print msg4
+      print(msg4)
 
    elif ".vdos" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = vdos_plotdatajs("au",edat)
-      print msg4
+      print(msg4)
 
    elif ".hist" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = hist_plotdatajs(edat)
-      print msg4
+      print(msg4)
 
    elif (".dat" in datafile) and ("meta" in datafile):
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = data_plotdatajs(edat,"MetaDynamics")
-      print msg4
+      print(msg4)
 
    elif (".dat" in datafile):
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = xydata_plotdatajs(edat,"XY plot")
-      print msg4
+      print(msg4)
 
    elif (".neb_final_epath" in datafile):
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = xydata_plotdatajs("#Labels gamma E(au)\n" + edat,"NEB Pathway")
-      print msg4
+      print(msg4)
 
    elif (".neb_epath" in datafile):
       with open(wrkdir0+"/"+datafile,'r') as efile:
@@ -2610,31 +2659,31 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
             edat += y[i] + " "
          edat += "\n"
       msg4 = xydata_plotdatajs(edat,"NEB Pathways")
-      print msg4
+      print(msg4)
 
    elif ".dipole_powerspectrum" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = spectrum_plotdatajs(edat,"Dipole Power Spectrum")
-      print msg4
+      print(msg4)
 
    elif "POWER_SPECTRUM" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = spectrum_plotdatajs(edat,"Power Spectrum")
-      print msg4
+      print(msg4)
 
    elif "VELOCITY_SPECTRUM" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = spectrum_plotdatajs(edat,"Velocity Spectrum")
-      print msg4
+      print(msg4)
 
    elif "VEL_CORRELATION" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = correlation_plotdatajs(edat,"Velocity Correlation")
-      print msg4
+      print(msg4)
 
    elif "PAIR_DISTRIBUTION" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
@@ -2650,19 +2699,19 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
                edat += "%d  %s\n" % (ii,ln.split()[0])
                ii += 1
       msg4 = xydata_plotdatajs(edat,"metagaussians")
-      print msg4
+      print(msg4)
 
    elif ".dipole_correlation" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = correlation_plotdatajs(edat,"Dipole Correlation")
-      print msg4
+      print(msg4)
 
    elif ".dipole_motion" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
       msg4 = dipoles_plotdatajs(edat)
-      print msg4
+      print(msg4)
    elif ".tamd_data" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as efile:
          edat = efile.read()
@@ -2671,14 +2720,14 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
       msg4 += tamd_plotdatajs(edat,"TAMD - E versus theta",0,3,"collective variable","energy","chart2")
       msg4 += tamd_plotdatajs(edat,"TAMD - E versus ztamd",1,3,"ztamd","energy","chart3")
       msg4 += tamd_plotdatajs(edat,"TAMD - Espring versus ztamd",1,7,"ztamd","Espring","chart4")
-      print msg4
-      print edat
+      print(msg4)
+      print(edat)
 
 
    else:
       with open(wrkdir0+"/"+datafile,'r') as ofile:
          msg4 = ofile.read()
-      print msg4
+      print(msg4)
 
 if "download=" in jobscript:
    externfile0 = jobscript.split("download=")[1].split()[0]
@@ -2696,17 +2745,17 @@ if "download=" in jobscript:
    machine = entry['machine']
 
    datafile = externfile.split("/")[-1]
-   print "DATAFILE="+datafile
+   print("DATAFILE="+datafile)
    cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
-   print "copying: " + cmd0
+   print("copying: " + cmd0)
    result = pexpect_command(cmd0,passwd)
-   print result
-   print "DOWNLOAD FILE:"
+   print(result)
+   print("DOWNLOAD FILE:")
    
    with open(wrkdir+"/"+datafile,'r') as ofile:
       msg4 = ofile.read()
-   print msg4
-   print ":DOWNLOAD FILE"
+   print(msg4)
+   print(":DOWNLOAD FILE")
 
 
 if "raw=" in jobscript:
@@ -2725,17 +2774,17 @@ if "raw=" in jobscript:
    machine = entry['machine']
 
    datafile = externfile.split("/")[-1]
-   print "DATAFILE="+datafile
+   print("DATAFILE="+datafile)
    cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
-   print "copying: " + cmd0
+   print("copying: " + cmd0)
    result = pexpect_command(cmd0,passwd)
-   print result
-   print "RAW_DATA:"
+   print(result)
+   print("RAW_DATA:")
 
    with open(wrkdir+"/"+datafile,'r') as ofile:
       msg4 = ofile.read()
-   print msg4
-   print ":RAW_DATA"
+   print(msg4)
+   print(":RAW_DATA")
 
 if "raw_last=" in jobscript:
    externfile0 = jobscript.split("raw_last=")[1].split()[0]
@@ -2753,23 +2802,23 @@ if "raw_last=" in jobscript:
    machine = entry['machine']
 
    datafile = externfile.split("/")[-1]
-   print "DATAFILE="+datafile
+   print("DATAFILE="+datafile)
    cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
-   print "copying: " + cmd0
+   print("copying: " + cmd0)
    result = pexpect_command(cmd0,passwd)
-   print result
-   print "RAW_DATA:"
+   print(result)
+   print("RAW_DATA:")
 
    with open(wrkdir+"/"+datafile,'r') as ofile:
       msg4 = ofile.read()
    if ".out" in datafile:
       if "xyz_raw_last" in jobscript:
-         print nwout2cifxyz(msg4,False)
+         print(nwout2cifxyz(msg4,False))
       else:
-         print nwout2cifxyz(msg4,True)
+         print(nwout2cifxyz(msg4,True))
    else:
-      print lastframeprune(msg4)
-   print ":RAW_DATA"
+      print(lastframeprune(msg4))
+   print(":RAW_DATA")
 
 
 
@@ -2790,9 +2839,9 @@ if "raw_deposit=" in jobscript:
 
    datafile = externfile.split("/")[-1]
    cmd0 = "scp " + UPLOAD_FOLDER+datafile + " " + machine + ":" + externfile 
-   #print "copying: " + cmd0
+   #print("copying: " + cmd0)
    result0 = pexpect_command(cmd0,passwd)
-   #print result0
+   #print(result0)
    os.unlink(UPLOAD_FOLDER+datafile)
 
 
@@ -2819,4 +2868,4 @@ if "submit_nwchem3=" in jobscript:
    cmd0 = "ssh " + machine + " \"" + submit_nwchem3 + "\""
    result0 = pexpect_command(cmd0,passwd)
 
-   print result0
+   print(result0)
