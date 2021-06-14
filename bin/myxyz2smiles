@@ -1,10 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator,re
+import sys,os,time,pickle,math,getopt,subprocess,pexpect,random,operator,re
 from math import *
 
 ############## machine parameters #########################
-wrkdir             = "/srv/arrows/Projects/Work"
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
+wrkdir             = ARROWS_HOME + "/Work"
 ddrand = random.randint(0,999999)
 ############## machine parameters #########################
 
@@ -340,7 +343,7 @@ def generate_smiles(findx,indx,symbols,adjmat,visited,cycle,smilecount):
    children = []
    children_strings = []
 
-   all_indexes = range(nion)
+   all_indexes = list(range(nion))
    all_indexes.remove(indx)
    if (findx in all_indexes): all_indexes.remove(findx)
    for ii in all_indexes:
@@ -543,7 +546,7 @@ def xyztoadjmat(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -608,11 +611,11 @@ myxyz2smiles program
 opts, args = getopt.getopt(sys.argv[1:], "h")
 for o, a in opts:
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1): 
-   print usage
+   print(usage)
    exit()
 
 xyzfilename = args[0]
@@ -637,7 +640,7 @@ while (not done):
    string_products.append(smiles)
    done = sum(visited) >= nion
 
-print ".".join(string_products)
+print(".".join(string_products))
 
 
 
