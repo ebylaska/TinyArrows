@@ -190,7 +190,7 @@ if ((not os.path.isfile(filename)) or (regenerateimage)):
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
       ### fetch xyzdata ###
       with dbcon:

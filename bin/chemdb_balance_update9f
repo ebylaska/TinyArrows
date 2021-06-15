@@ -421,7 +421,7 @@ def listreactions_molecules(hup,dbfile,table):
       user = hup.split()[1]
       pss = hup.split()[2]
       #dbcon = MySQLdb.connect(host,user,pss,dbfile)
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()

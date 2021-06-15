@@ -1273,7 +1273,7 @@ def insert_abbreviation(hup,dbfile,abrev_table,abbreviation,
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
    
    with dbcon:
       cur = dbcon.cursor()
@@ -1320,7 +1320,7 @@ def nametosmiles_set(hup,dbfile,table,name,smiles):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -1361,7 +1361,7 @@ def nametosmiles(hup,dbfile,table,name):
       user = hup.split()[1]
       pss  = hup.split()[2]
       #dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4',cursorclass=MySQLdb.cursors.DictCursor)
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -1867,7 +1867,7 @@ else:
    user = hup.split()[1]
    pss = hup.split()[2]
    #dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
-   dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+   dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
 with dbcon:
    cur = dbcon.cursor()

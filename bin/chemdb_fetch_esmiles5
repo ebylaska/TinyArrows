@@ -398,7 +398,7 @@ def nametosmiles(name):
       user = hup.split()[1]
       pss  = hup.split()[2]
       #dbcon = MySQLdb.connect(host,user,pss,dbfile)
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -946,7 +946,7 @@ def fetch_table_columns(hup,dbfile,table):
       user = hup.split()[1]
       pss = hup.split()[2]
       #dbcon = MySQLdb.connect(host,user,pss,dbfile)
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -1127,7 +1127,7 @@ def fetch_esmiles(oprint,hup,dbfile,table,esmiles,submitrequest=True):
       user = hup.split()[1]
       pss = hup.split()[2]
       #dbcon = MySQLdb.connect(host,user,pss,dbfile)
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    rows2 = []
    with dbcon:

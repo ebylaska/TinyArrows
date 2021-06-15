@@ -13,14 +13,14 @@ from numpy.fft import *
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
 ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
-babel       = "/usr/bin/env babel"
+#babel       = "/usr/bin/env babel"
 obabel      = "/usr/bin/env obabel "
 myxyz2smiles = ARROWS_HOME + "/bin/myxyz2smiles "
 esmiles2xyz  = ARROWS_HOME + "/bin/esmiles2xyz "
 tnt_submit   = ARROWS_HOME + "/bin/tnt_submit5 "
 chemdb_queue = ARROWS_HOME + "/bin/chemdb_queue "
 chemdb_say   = ARROWS_HOME + "/bin/chemdb_say "
-wrkdir       = ARROWS_HOME + "/Projects/Work"
+wrkdir       = ARROWS_HOME + "/Work"
 calculationscountfilename  = ARROWS_HOME + "/Public/counters/calculationscount"
 chemdbfile     = ARROWS_HOME + "/bin/.chemdb-en"
 ddrand = random.randint(0,999999)
@@ -537,7 +537,7 @@ def xyz_bonding_strings(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -588,12 +588,12 @@ def xyz_bonding_strings(xyzfilename):
             else:
                key = symj.strip() + symi.strip()
 
-            if (bondcount.has_key(key)):
+            if (key in bondcount):
                bondcount[key] += 1
             else:
                bondcount[key] = 1
             covkey = key + "(%.1f)" % (adjmat[i][j])
-            if (covbondcount.has_key(covkey)):
+            if (covkey in covbondcount):
                covbondcount[covkey] += 1
             else:
                covbondcount[covkey] = 1
@@ -618,7 +618,7 @@ def xyz_bonding_strings(xyzfilename):
                   key = symj.strip() + symi.strip() + symk.strip()
                else:
                   key = symk.strip() + symi.strip() + symj.strip()
-               if (bond2count.has_key(key)):
+               if (key in bond2count):
                   bond2count[key] += 1
                else:
                   bond2count[key] = 1
@@ -635,7 +635,7 @@ def xyz_bonding_strings(xyzfilename):
             neighbors.append(symbol[j].strip())
       neighbors.sort()
       key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
-      if (neighborcount.has_key(key)):
+      if (key in neighborcount):
          neighborcount[key] += 1
       else:
          neighborcount[key] = 1
@@ -678,7 +678,7 @@ def xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2):
                key = symj.strip() + symi.strip() + symk.strip()
             else:
                key = symk.strip() + symi.strip() + symj.strip()
-            if (bond2count.has_key(key)):
+            if (key in bond2count):
                bond2count[key] += 1
             else:
                bond2count[key] = 1
@@ -699,7 +699,7 @@ def xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2):
             symk = symbol[k]
             syml = symbol[l]
             key = symk.strip() + symi.strip() + symj.strip() + syml.strip()
-            if (bond3count.has_key(key)):
+            if (key in bond3count):
                bond3count[key] += 1
             else:
                bond3count[key] = 1
@@ -720,7 +720,7 @@ def xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2):
                symk = symbol[k]
                syml = symbol[l]
                key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
-               if (bond3rcount.has_key(key)):
+               if (key in bond3rcount):
                   bond3rcount[key] += 1
                else:
                   bond3rcount[key] = 1
@@ -743,7 +743,7 @@ def xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2):
                   syml = symbol[l]
                   symm = symbol[m]
                   key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
-                  if (bond4rcount.has_key(key)):
+                  if (key in bond4rcount):
                      bond4rcount[key] += 1
                   else:
                      bond4rcount[key] = 1
@@ -769,7 +769,7 @@ def xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2):
                      symm = symbol[m]
                      syma = symbol[a]
                      key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
-                     if (bond5rcount.has_key(key)):
+                     if (key in bond5rcount):
                         bond5rcount[key] += 1
                      else:
                         bond5rcount[key] = 1
@@ -787,7 +787,7 @@ def xyz_bond_string0(mformula,symbol,n,adjmat,indx1,indx2):
             neighbors.append(symbol[j].strip())
       neighbors.sort()
       key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
-      if (neighborcount.has_key(key)):
+      if (key in neighborcount):
          neighborcount[key] += 1
       else:
          neighborcount[key] = 1
@@ -836,7 +836,7 @@ def xyz_bonddiff_string0(mformula,symbol,n,adjmat,indx1,indx2,indx3):
             symk = symbol[k]
             syml = symbol[l]
             key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
-            if (bond3count.has_key(key)):
+            if (key in bond3count):
                bond3count[key] += 1
             else:
                bond3count[key] = 1
@@ -858,7 +858,7 @@ def xyz_bonddiff_string0(mformula,symbol,n,adjmat,indx1,indx2,indx3):
             syml = symbol[l]
             symm = symbol[m]
             key = syml.strip() + symi.strip() + symj.strip() + symk.strip() + symm.strip()
-            if (bond4count.has_key(key)):
+            if (key in bond4count):
                bond4count[key] += 1
             else:
                bond4count[key] = 1
@@ -881,7 +881,7 @@ def xyz_bonddiff_string0(mformula,symbol,n,adjmat,indx1,indx2,indx3):
                syml = symbol[l]
                symm = symbol[m]
                key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
-               if (bond4rcount.has_key(key)):
+               if (key in bond4rcount):
                   bond4rcount[key] += 1
                else:
                   bond4rcount[key] = 1
@@ -907,7 +907,7 @@ def xyz_bonddiff_string0(mformula,symbol,n,adjmat,indx1,indx2,indx3):
                   symm = symbol[m]
                   syma = symbol[a]
                   key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
-                  if (bond5rcount.has_key(key)):
+                  if (key in bond5rcount):
                      bond5rcount[key] += 1
                   else:
                      bond5rcount[key] = 1
@@ -925,7 +925,7 @@ def xyz_bonddiff_string0(mformula,symbol,n,adjmat,indx1,indx2,indx3):
             neighbors.append(symbol[j].strip())
       neighbors.sort()
       key = symbol[i].strip() + "(" +  ",".join(neighbors) + ")"
-      if (neighborcount.has_key(key)):
+      if (key in neighborcount):
          neighborcount[key] += 1
       else:
          neighborcount[key] = 1
@@ -963,7 +963,7 @@ def xyz_bond_string(xyzfilename,indx1,indx2):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -1028,7 +1028,7 @@ def xyz_bonddiff_string(xyzfilename,indx1,indx2,indx3):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -1227,7 +1227,7 @@ def cannonicalsmiles(smiles):
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
 
-      cmd6 = babel + " -ismi " + smilefile + " -ocan " + smilefile2 
+      cmd6 = obabel + " -ismi " + smilefile + " -ocan -O" + smilefile2 
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       smiles2 = "nosmiles"
       sdat = []
@@ -1260,7 +1260,7 @@ def xyz2smiles(xyzfile):
       smiles = ''
       smilefile = wrkdir + "/"+tmpsmi1
       if (runbabel):
-         cmd6 = babel + " -ixyz " + xyzfile + " -ocan " + smilefile 
+         cmd6 = obabel + " -ixyz " + xyzfile + " -ocan -O" + smilefile 
          #cmd6 = obabel + " -ixyz " + xyzfile + " -ocan "
          result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
          sdat = []
@@ -1335,7 +1335,7 @@ def xyz2InChI(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchi " + inchifile 
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchi -O" + inchifile 
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
@@ -1352,7 +1352,7 @@ def xyz2InChIKey(xyzfile):
    inchi = ''
    try:
       inchifile = wrkdir + "/"+tmpsmi1
-      cmd6 = babel + " -ixyz " + xyzfile + " -oinchikey " + inchifile 
+      cmd6 = obabel + " -ixyz " + xyzfile + " -oinchikey -O" + inchifile 
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
@@ -1376,7 +1376,7 @@ def smiles2InChI(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchi " + inchifile 
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchi -O" + inchifile 
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
@@ -1399,7 +1399,7 @@ def smiles2InChIKey(smiles):
       ofile = open(smilefile,'w')
       ofile.write(smiles); ofile.write(eoln)
       ofile.close()
-      cmd6 = babel + " -ismi " + smilefile + " -oinchikey " + inchifile 
+      cmd6 = obabel + " -ismi " + smilefile + " -oinchikey -O" + inchifile 
       result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       sdat = []
       ofile = open(inchifile,'r')
@@ -1919,7 +1919,7 @@ def xyz_molecular_formula(xyzfilename):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -4236,7 +4236,8 @@ def insert_abbreviation(hup,dbfile,abrev_table,abbreviation,
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
    
    with dbcon:
       cur = dbcon.cursor()
@@ -4252,7 +4253,6 @@ def insert_abbreviation(hup,dbfile,abrev_table,abbreviation,
          if (not duplicate2):
             print("inserting into " + abrev_table)
             cur.execute(sqlinsert,insertlist)
-   dbcon.close()
 
 
 
@@ -4489,7 +4489,8 @@ def delete_esmiles(hup,dbfile,table,esmiles):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -4497,7 +4498,6 @@ def delete_esmiles(hup,dbfile,table,esmiles):
       rows = cur.fetchall()
       if (len(rows)>0):
          cur.execute(sqldelete,checklist)
-   dbcon.close()
 
 
 
@@ -4527,9 +4527,12 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
     #if (parse_jobfinished(outfile)):
     try:
 
+    
       with open(outfile,'r') as ff:
          aa = ff.read()
+     
       aa = aa.replace('#','')
+      
       with open(outfile_without_hash,'w') as ff:
          ff.write(aa)
 
@@ -4695,6 +4698,7 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
       #InChI2 = xyz2InChI(xyzfile)
       mformula = xyz_molecular_formula(xyzfile)
       (bonding_string, covalent_string) = xyz_bonding_strings(xyzfile)
+   
       osmiles   = parse_osmiles(outfile_without_hash)
       client    = parse_client(outfile_without_hash)
       postsmiles   = parse_postsmiles(outfile_without_hash)
@@ -5117,7 +5121,8 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
       with dbcon:
          cur = dbcon.cursor()
@@ -5128,7 +5133,11 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
          if ((not duplicate) and (inserting)):
              print("inserting into " + mytable)
              cur.execute(sqlinsert,insertlist)
-      dbcon.close()
+
+      print("dbfile=",dbfile)
+      print("hup=",hup)
+      print("sqlinsert =",sqlinsert)
+      print("INSERTLIST=",insertlist)
 
       #### insert into sql table ####
       print("duplicate=",duplicate)
@@ -5136,12 +5145,16 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
           text2speech("Hi. I just added " + mformula + " molecule calculated with " + theory + " slash " + xc + " slash " + basis + " to the " + mytable + " table in the " + dbfile  + " database.")
 
           print("Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,calculation_type,theory,xc,basis,charge,mult,energy,enthalpy,entropy,cosmo,ecd,ehd,ASA,SAV)
+
+         
           cmd0 = "scp " + outfile  + " " + nwfilename
+          if ((":" not in nwfilename) and (":" not in outfile)): cmd0 = cmd0.replace("scp","cp")
           print(cmd0)
           pexpect_command(cmd0,nwpassword)
 
           for bbb in nwdatacopy:
              cmd0 = "scp " + bbb[0]  + " " + bbb[1]
+             if ((":" not in bbb[1]) and (":" not in bbb[0])): cmd0 = cmd0.replace("scp","cp")
              print(cmd0)
              pexpect_command(cmd0,nwpassword)
 
@@ -5180,6 +5193,7 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
 
 
     #### resubmitjob if not jobok and not an energy only theory ###
+    print("THEORY=",theory)
     energyonlytheory = (theory=="mp2") or (theory=="ccsd(t)") or (theory=="qsharp_chem") or (theory=="ccsd") or (noresubmit)
     if ((not jobok) and (inserting) and (not energyonlytheory)):
        (hasxyz,xyz,vtag,mtag) = parse_bad_calculation_xyz(outfile_without_hash)
@@ -5991,7 +6005,8 @@ def insert_aimd_calculation(outfile,hup,dbfile,table,solute_table,nwpassword,nwm
             host = hup.split()[0]
             user = hup.split()[1]
             pss = hup.split()[2]
-            dbcon = MySQLdb.connect(host,user,pss,dbfile)
+            #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+            dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
          
          with dbcon:
             cur = dbcon.cursor()
@@ -6005,7 +6020,6 @@ def insert_aimd_calculation(outfile,hup,dbfile,table,solute_table,nwpassword,nwm
                if (insertsolute):
                   print("inserting geometry into " + solute_table)
                   cur.execute(sqlinsert2,insertlist2)
-         dbcon.close()
 
          print("duplicate=",duplicate)
          if (not duplicate):
@@ -6015,27 +6029,9 @@ def insert_aimd_calculation(outfile,hup,dbfile,table,solute_table,nwpassword,nwm
             for ff in dfilenames:
                if (os.path.isfile(ff[0])):
                   cmd0 = "scp " + ff[0]  + " " + ff[1]
+                  if ((":" not in ff[0]) and (":" not in ff[1])): cmd0 = cmd0.replace("scp","cp")
                   print(cmd0)
                   pexpect_command(cmd0,nwpassword)
-
-#            cmd0 = "scp " + outfile  + " " + nwfilename
-#            print(cmd0)
-#            pexpect_command(cmd0,nwpassword)
-#
-#            cmd1 =  "scp " + radial_distributions_filename  
-#            cmd1 += " " + radial_distributions_filename_archive
-#            print(cmd1)
-#            pexpect_command(cmd1,nwpassword)
-#
-#            cmd2 =  "scp " + hist_distributions_filename
-#            cmd2 += " " + hist_distributions_filename_archive
-#            print(cmd2)
-#            pexpect_command(cmd2,nwpassword)
-#
-#            for i in range(len(tsample)):
-#               cmdi = "scp " + tsample[i]  + " " + tsample_archive[i]
-#               print(cmdi)
-#               pexpect_command(cmdi,nwpassword)
 
          else:
             text2speech("Hi. The " + mformula + " molecule already exists in the " + table + " table in the " + dbfile  + " database. It was not added.")
@@ -6342,7 +6338,8 @@ def insert_nmr_calculation(outfile,hup,dbfile,table,bad_table,nwpassword,nwmachi
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
       with dbcon:
          cur = dbcon.cursor()
@@ -6353,7 +6350,6 @@ def insert_nmr_calculation(outfile,hup,dbfile,table,bad_table,nwpassword,nwmachi
          if ((not duplicate) and (inserting)):
              print("inserting into " + mytable)
              cur.execute(sqlinsert,insertlist)
-      dbcon.close()
 
 
       #### insert data to sql table ###
@@ -6363,6 +6359,7 @@ def insert_nmr_calculation(outfile,hup,dbfile,table,bad_table,nwpassword,nwmachi
 
           print("Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,calculation_type,theory,xc,basis,theory_property,xc_property,basis_property,charge,mult,energy,cosmo,ecd,ehd,ASA,SAV)
           cmd0 = "scp " + outfile  + " " + nwfilename
+          if ((":" not in nwfilename) and (":" not in outfile)): cmd0 = cmd0.replace("scp","cp")
           print(cmd0)
           pexpect_command(cmd0,nwpassword)
           delete_esmiles(hup,dbfile,requests_table,esmiles)
@@ -6432,11 +6429,6 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
       molecule_id = eval(homolumo_id)
       eigblob  = parse_eigblob(outfile_without_hash)
 
-      #for bbb in nwdatacopy:
-      #   cmd0 = "scp " + bbb[0]  + " " + bbb[1]
-      #   print(cmd0)
-      #   pexpect_command(cmd0,nwpassword)
-
 
       if (issqlite3):
          sqlcheck = "select mult,theory,data_filenames from " + table + " where Id=?;"
@@ -6460,7 +6452,8 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
       with dbcon:
          cur = dbcon.cursor()
          cur.execute(sqlcheck,checklist)
@@ -6485,6 +6478,7 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
          if (changed):
             for bbb in nwdatacopy:
                cmd0 = "scp " + bbb[0]  + " " + bbb[1]
+               if ((":" not in bbb[0]) and (":" not in bbb[1])): cmd0 = cmd0.replace("scp","cp")
                print(cmd0)
                pexpect_command(cmd0,nwpassword)
             data_filenames = data_filenames.strip()
@@ -6495,7 +6489,6 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
             if theory=="pspw" or theory=="pspw4" or theory=="paw" or theory=="paw4":
                cur.execute(sqlupdate2,updatelist2)
  
-      dbcon.close()
 
       print() 
       print("Updating HOMOLUMO id               = ",molecule_id)
@@ -6554,11 +6547,6 @@ def insert_hrotor(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nwma
       nwdatacopy.append((outfile,nwfilename))
       nwdatafiles = nwdatafiles.strip()
       
-      #for bbb in nwdatacopy:
-      #   cmd0 = "scp " + bbb[0]  + " " + bbb[1]
-      #   print cmd0
-      #   #pexpect_command(cmd0,nwpassword)
-
       if (issqlite3):
          sqlcheck = "select charge,mult,theory,data_filenames,hrotors_blob,xyz_blob,frequencies_blob from " + table + " where Id=?;"
       else:
@@ -6578,7 +6566,8 @@ def insert_hrotor(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nwma
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
       with dbcon:
          cur = dbcon.cursor()
          cur.execute(sqlcheck,checklist)
@@ -6612,6 +6601,7 @@ def insert_hrotor(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nwma
          if (not alreadyhasrotor) or hrotorreplacejob:
             for bbb in nwdatacopy:
                cmd0 = "scp " + bbb[0]  + " " + bbb[1]
+               if ((":" not in bbb[0]) and (":" not in bbb[1])): cmd0 = cmd0.replace("scp","cp")
                print(cmd0)
                pexpect_command(cmd0,nwpassword)
 
@@ -6647,7 +6637,6 @@ def insert_hrotor(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nwma
             print("hrotors_blob=")
             print(hrotors_blob)
  
-      dbcon.close()
 
       #print 
       #print "Updating HROTOR id                 = ",molecule_id
@@ -6678,13 +6667,14 @@ def update_calculationscount(hup,dbfile,table,countfilename):
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
       with dbcon:
          cur = dbcon.cursor()
          cur.execute(sqlcheck)
          row  = cur.fetchone()
          count = row[0]
-      dbcon.close()
+
       print("MOLECULECOUNT=",count)
 
       with open(countfilename,'w') as ff:

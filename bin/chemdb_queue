@@ -1254,7 +1254,11 @@ if (nwfile!=''):
       #   datafiles.append((dfile,data))
 
       if "# NWChemJobId:" in nwchemoutput:
-         id = ObjectId(nwchemoutput.split('NWChemJobId:')[1].split('\n')[0].strip())
+         if ismongo:
+            id = ObjectId(nwchemoutput.split('NWChemJobId:')[1].split('\n')[0].strip())
+         else:
+            id = nwchemoutput.split('NWChemJobId:')[1].split('\n')[0].strip()
+         print("ID=",id)
          delentry = {}
          delentry['_id']  = id
          print("deleting entry=",delentry)

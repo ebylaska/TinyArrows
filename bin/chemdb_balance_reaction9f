@@ -761,7 +761,7 @@ def nametosmiles(name):
       host = hup.split()[0]
       user = hup.split()[1]
       pss  = hup.split()[2]
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
@@ -4360,7 +4360,7 @@ def reactiontype_molecules2bstrings(hup,dbfile,table,molecules,reaction,energies
             host = hup.split()[0]
             user = hup.split()[1]
             pss = hup.split()[2]
-            dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+            dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
          with dbcon:
             cur = dbcon.cursor()
@@ -5398,7 +5398,7 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
       with dbcon:
          cur = dbcon.cursor()
       cur.execute(sqlcheck2,checklist2)
@@ -5439,7 +5439,7 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
          host = hup.split()[0]
          user = hup.split()[1]
          pss = hup.split()[2]
-         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+         dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
       with dbcon:
          cur = dbcon.cursor()
          #for bstring,indxsym in bstrings_reactants.iteritems():
@@ -6083,7 +6083,7 @@ def listreactions_molecules(hup,dbfile,table,inchikey=''):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
