@@ -130,7 +130,9 @@ def stripWARNINGS(str):
 
 def pexpect_command(pcmd,mypassword):
    if (mypassword=="nopassword"):
-      os.system(pcmd)
+      #os.system(pcmd)
+      result1 = subprocess.check_output(pcmd,shell=True).decode("utf-8")
+      print("pcmd= ",result1)
    else:
       ssh_newkey = 'Are you sure you want to continue connecting'
       # my ssh command line

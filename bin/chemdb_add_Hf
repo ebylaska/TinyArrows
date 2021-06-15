@@ -139,7 +139,9 @@ periodic_table_charge = {
 
 def pexpect_command(pcmd,mypassword):
    if (mypassword=="nopassword"):
-      os.system(pcmd)
+      #os.system(pcmd)
+      result1 = subprocess.check_output(pcmd,shell=True).decode("utf-8")
+      print("pcmd= ",result1)
    else:
       ssh_newkey = 'Are you sure you want to continue connecting'
       # my ssh command line
@@ -634,7 +636,7 @@ if (listall):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    sqlist = "select iupac,mformula,InChI,InChIKey,smiles,csmiles,esmiles,synonyms,"
    sqlist += "cid,cas,kegg,charge,mult,Hf,phase,method,reference "
@@ -780,7 +782,7 @@ else:
    host = hup.split()[0]
    user = hup.split()[1]
    pss = hup.split()[2]
-   dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,charset='utf8mb4')
+   dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
    
 
 with dbcon:
