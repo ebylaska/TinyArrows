@@ -2891,7 +2891,7 @@ def nwout2jsmol(backgroundcolor,datafiles,xyzdat):
    xx = random.randint(0,999999)
    nwoutfilename = "tmp/molecule-jsmol-%d.out" % xx
    cmd0 = "scp " + afilename + " " + staticdir + nwoutfilename
-   if ((":" not in afilename) and (":" not in nwoutfilename)): cmd0 = cmd0.replace("scp","cp")
+   if ((":/" not in afilename) and (":/" not in nwoutfilename)): cmd0 = cmd0.replace("scp","cp")
    pexpect_command(cmd0,archivepassword)
 
    restricted = True
@@ -3534,7 +3534,7 @@ def fetch_jobinfo(hup,dbfile,table,id):
       molecule = rows[0]
       msg  = "jobinfo: Id=%d, iupac=%s, filename=%s\n\n" % (id,molecule[1],molecule[28])
       cmd1 = "scp " + molecule[28] + " " + wrkdir +"/nwout.txt"
-      if (":" not in molecule[28]): cmd1 = cmd1.replace("scp","cp")
+      if (":/" not in molecule[28]): cmd1 = cmd1.replace("scp","cp")
       print("cmd1=",cmd1)
       pexpect_command(cmd1,archivepassword)
       offile = open(wrkdir+"/nwout.txt","r")
@@ -3602,7 +3602,7 @@ def fetch_nwout(hup,dbfile,table,id):
       msg += molecule[28]
       msg += "\n\n"
       cmd1 = "scp " + molecule[28] + " " + wrkdir +"/nwout.txt"
-      if (":" not in molecule[28]): cmd1 = cmd1.replace("scp","cp")
+      if (":/" not in molecule[28]): cmd1 = cmd1.replace("scp","cp")
       print("cmd1=",cmd1)
       pexpect_command(cmd1,archivepassword)
       cmd2 = "cat " + wrkdir +"/nwout.txt"
@@ -3683,7 +3683,7 @@ def cmd_nwdatafile(hup,dbfile,table,nwcmd):
                ## retrieve gname datafile ##
                if mycmd=="fetch":
                   cmd1 = "scp " + gname + " " + wrkdir +"/nwout.txt"
-                  if (":" not in gname): cmd1 = cmd1.replace("scp","cp")
+                  if (":/" not in gname): cmd1 = cmd1.replace("scp","cp")
                   print("cmd1=",cmd1)
                   if (".cube" not in gname):
                      pexpect_command(cmd1,archivepassword)
@@ -5856,7 +5856,7 @@ def fetch_esmiles_base_datafile(hup,dbfile,table,esmiles):
    datafile = wrkdir + "/" + tmpnwout
    molecule = rows[0]
    cmd1 = "scp " + molecule[28] + " " + datafile
-   if (":" not in molecule[28]): cmd1 = cmd1.replace("scp","cp")
+   if (":/" not in molecule[28]): cmd1 = cmd1.replace("scp","cp")
    print("cmd1=",cmd1)
    pexpect_command(cmd1,archivepassword)
    #with open(datafile,"r") as offile:

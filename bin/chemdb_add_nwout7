@@ -483,6 +483,7 @@ for ln in covalentstr.strip().split('\n'):
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
 exec(aaa)
+print(aaa)
 
 
 
@@ -5148,13 +5149,23 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
 
          
           cmd0 = "scp " + outfile  + " " + nwfilename
-          if ((":" not in nwfilename) and (":" not in outfile)): cmd0 = cmd0.replace("scp","cp")
+          if ((":/" not in nwfilename) and (":/" not in outfile)): 
+             cmd0 = cmd0.replace("scp","cp")
+             ppth = os.path.dirname(nwfilename)
+             if (not os.path.isdir(ppth)):
+                cmd9 = "mkdir -p " +  ppth
+                pexpect_command(cmd9,nwpassword)
           print(cmd0)
           pexpect_command(cmd0,nwpassword)
 
           for bbb in nwdatacopy:
              cmd0 = "scp " + bbb[0]  + " " + bbb[1]
-             if ((":" not in bbb[1]) and (":" not in bbb[0])): cmd0 = cmd0.replace("scp","cp")
+             if ((":/" not in bbb[1]) and (":/" not in bbb[0])): 
+                cmd0 = cmd0.replace("scp","cp")
+                ppth = os.path.dirname(bbb[1])
+                if (not os.path.isdir(ppth)):
+                   cmd9 = "mkdir -p " + ppth
+                   pexpect_command(cmd9,nwpassword)
              print(cmd0)
              pexpect_command(cmd0,nwpassword)
 
@@ -6029,7 +6040,12 @@ def insert_aimd_calculation(outfile,hup,dbfile,table,solute_table,nwpassword,nwm
             for ff in dfilenames:
                if (os.path.isfile(ff[0])):
                   cmd0 = "scp " + ff[0]  + " " + ff[1]
-                  if ((":" not in ff[0]) and (":" not in ff[1])): cmd0 = cmd0.replace("scp","cp")
+                  if ((":/" not in ff[0]) and (":/" not in ff[1])): 
+                     cmd0 = cmd0.replace("scp","cp")
+                     ppth = os.path.dirname(ff[1])
+                     if (not os.path.isdir(ppth)):
+                        cmd9 = "mkdir -p " + ppth
+                        pexpect_command(cmd9,nwpassword)
                   print(cmd0)
                   pexpect_command(cmd0,nwpassword)
 
@@ -6359,7 +6375,12 @@ def insert_nmr_calculation(outfile,hup,dbfile,table,bad_table,nwpassword,nwmachi
 
           print("Inserting ",iupac," ",mformula," ",smiles," ",csmiles," ",esmiles," ",program,calculation_type,theory,xc,basis,theory_property,xc_property,basis_property,charge,mult,energy,cosmo,ecd,ehd,ASA,SAV)
           cmd0 = "scp " + outfile  + " " + nwfilename
-          if ((":" not in nwfilename) and (":" not in outfile)): cmd0 = cmd0.replace("scp","cp")
+          if ((":/" not in nwfilename) and (":/" not in outfile)): 
+             cmd0 = cmd0.replace("scp","cp")
+             ppth = os.path.dirname(nwfilename)
+             if (not os.path.isdir(ppth)):
+                cmd9 = "mkdir -p " +  ppth
+                pexpect_command(cmd9,nwpassword)
           print(cmd0)
           pexpect_command(cmd0,nwpassword)
           delete_esmiles(hup,dbfile,requests_table,esmiles)
@@ -6478,7 +6499,12 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
          if (changed):
             for bbb in nwdatacopy:
                cmd0 = "scp " + bbb[0]  + " " + bbb[1]
-               if ((":" not in bbb[0]) and (":" not in bbb[1])): cmd0 = cmd0.replace("scp","cp")
+               if ((":/" not in bbb[0]) and (":/" not in bbb[1])): 
+                  cmd0 = cmd0.replace("scp","cp")
+                  ppth = os.path.dirname(bbb[1])
+                  if (not os.path.isdir(ppth)):
+                     cmd9 = "mkdir -p " + ppth
+                     pexpect_command(cmd9,nwpassword)
                print(cmd0)
                pexpect_command(cmd0,nwpassword)
             data_filenames = data_filenames.strip()
@@ -6601,7 +6627,12 @@ def insert_hrotor(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nwma
          if (not alreadyhasrotor) or hrotorreplacejob:
             for bbb in nwdatacopy:
                cmd0 = "scp " + bbb[0]  + " " + bbb[1]
-               if ((":" not in bbb[0]) and (":" not in bbb[1])): cmd0 = cmd0.replace("scp","cp")
+               if ((":/" not in bbb[0]) and (":/" not in bbb[1])): 
+                  cmd0 = cmd0.replace("scp","cp")
+                  ppth = os.path.dirname(bbb[1])
+                  if (not os.path.isdir(ppth)):
+                     cmd9 = "mkdir -p " + ppth
+                     pexpect_command(cmd9,nwpassword)
                print(cmd0)
                pexpect_command(cmd0,nwpassword)
 
