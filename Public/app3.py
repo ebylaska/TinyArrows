@@ -47,16 +47,16 @@ esmiles2xyzblocked = 0
 
 #headerfigure = ['<a href="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif"><img src="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif" alt="Arrows Banner Movie"> </a>', '<a href="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg"><img src="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif"><img src="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a>']
 
-headerfigure = ['<a href="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif"><img src="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif" alt="Arrows Banner Movie"> </a>', '<a href="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg"><img src="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif"><img src="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}" alt="Arrows Movie"> </a>']
+headerfigure = ['<a href="{{url_for(\'static\', filename=\'arrows-static/banner2.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/banner2.gif\')}}" alt="Arrows Banner Movie"> </a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/EMSL_banner.jpeg\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/EMSL_banner.jpeg\')}}" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/Surface-uprot.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}" alt="Arrows Movie"> </a>']
 
 ##### define the arrows logos #####
 ArrowsHeader = '''
-   <head> <meta http-equiv="content-type" content="text/html; charset=UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, target-densitydpi=device-dpi"> <meta charset="utf-8"><link rel="icon" type="image/png" sizes="32x32" href="https://dl.dropboxusercontent.com/s/r0gjpgxp8byjbzr/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="https://dl.dropboxusercontent.com/s/k0kyp30ale2pkod/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="https://dl.dropboxusercontent.com/s/0l0w2wk9wfxt4el/favicon-16x16.png"><style type="text/css"> </style> </head>
+   <head> <meta http-equiv="content-type" content="text/html; charset=UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, target-densitydpi=device-dpi"> <meta charset="utf-8"><link rel="icon" type="image/png" sizes="32x32" href="%sarrows-static/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="%sarrows-static/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="%sarrows-static/favicon-16x16.png"><style type="text/css"> </style> </head>
 
    <center> <font color="74A52B" size="+2"><p><b>Results from an EMSL Arrows Request</b></p></font></center>
    <center> <p>Making molecular modeling accessible by combining NWChem, databases, web APIs (<a href="%s">%s</a>), and email (arrows@emsl.pnnl.gov)</p> </center>
    <center> %s </center>
-''' % (ARROWS_API_HOME,ARROWS_API_HOME,headerfigure[3])
+''' % (ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,headerfigure[3])
 
 ArrowsHeader2 = '''
    <center> <font color="darkgreen" size="+2"><p><b> EMSL Arrows Microsoft Quantum Development Kit Queue</b></p></font></center>
@@ -1961,6 +1961,24 @@ def submit_queue():
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-s'
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
+   except:
+      calcs = "arrows queue not found\n"
+
+   html = "<html>\n"
+   html += ArrowsHeader
+   html += "<pre style=\"font-size:1.0em;color:black\">\n"
+   html += calcs
+   html += "</pre> </html>"
+
+   return html
+
+@app.route('/api/queue_prequeue/', methods=['GET'])
+def submit_queue_prequeue():
+   try:
+      increment_apivisited()
+      cmd8 = chemdb_queue + '-c'
       #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
       calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
    except:
