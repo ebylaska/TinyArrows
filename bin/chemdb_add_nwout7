@@ -483,7 +483,6 @@ for ln in covalentstr.strip().split('\n'):
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
 exec(aaa)
-print(aaa)
 
 
 
@@ -5135,10 +5134,10 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
              print("inserting into " + mytable)
              cur.execute(sqlinsert,insertlist)
 
-      print("dbfile=",dbfile)
-      print("hup=",hup)
-      print("sqlinsert =",sqlinsert)
-      print("INSERTLIST=",insertlist)
+      #print("dbfile=",dbfile)
+      #print("hup=",hup)
+      #print("sqlinsert =",sqlinsert)
+      #print("INSERTLIST=",insertlist)
 
       #### insert into sql table ####
       print("duplicate=",duplicate)

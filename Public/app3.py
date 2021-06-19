@@ -47,7 +47,7 @@ esmiles2xyzblocked = 0
 
 #headerfigure = ['<a href="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif"><img src="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif" alt="Arrows Banner Movie"> </a>', '<a href="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg"><img src="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif"><img src="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a>']
 
-headerfigure = ['<a href="{{url_for(\'static\', filename=\'arrows-static/banner2.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/banner2.gif\')}}" alt="Arrows Banner Movie"> </a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/EMSL_banner.jpeg\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/EMSL_banner.jpeg\')}}" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/Surface-uprot.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}" alt="Arrows Movie"> </a>']
+headerfigure = [ '<a href="{{url_for(\'static\', filename=\'arrows-static/banner2.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/banner2.gif\')}}" alt="Arrows Banner Movie"> </a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/EMSL_banner.jpeg\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/EMSL_banner.jpeg\')}}" alt="EMSL Computing Banner" height="162" width="450" border=0 /></a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/Surface-uprot.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/Surface-uprot.gif\')}}" alt="Arrows Movie" width="200" height="200"> </a>', '<a href="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}"><img src="{{url_for(\'static\', filename=\'arrows-static/ArrowsBeaker2.gif\')}}" alt="Arrows Movie"> </a>' ]
 
 ##### define the arrows logos #####
 ArrowsHeader = '''
@@ -1958,6 +1958,9 @@ def list_queue_html():
 
 @app.route('/api/queue_submit/', methods=['GET'])
 def submit_queue():
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-s'
@@ -1966,16 +1969,24 @@ def submit_queue():
    except:
       calcs = "arrows queue not found\n"
 
+   htmlfile1 = templatedir + "/"+name
+
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data =  render_template(name)
+
+   return data
 
 @app.route('/api/queue_prequeue/', methods=['GET'])
 def submit_queue_prequeue():
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
    try:
       increment_apivisited()
       cmd8 = chemdb_queue + '-c'
@@ -1984,13 +1995,18 @@ def submit_queue_prequeue():
    except:
       calcs = "arrows queue not found\n"
 
+   htmlfile1 = templatedir + "/"+name
+
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
    html += calcs
    html += "</pre> </html>"
 
-   return html
+   with open(htmlfile1,'w') as ff: ff.write(html)
+   data =  render_template(name)
+
+   return data
 
 
 @app.route('/api/queue_reset/<esmiles>', methods=['GET'])

@@ -1,18 +1,23 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-import sys,os,time,pickle,math,MySQLdb,urllib2,getopt,subprocess,pexpect,random,operator
+import sys,os,time,pickle,math,getopt,subprocess,pexpect,random,operator
+import pymysql as MySQLdb
 from math import *
 
 ############## machine parameters #########################
-wrkdir     = "/srv/arrows/Projects/Work"
-chemdbfile = "/srv/arrows/bin/.chemdb-en"
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+
+wrkdir     = ARROWS_HOME + "/Work"
+chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
+
 #tnt_submit = "/srv/arrows/bin/tnt_submit4 "
-tnt_submit = "/srv/arrows/bin/tnt_submit5 "
-chemdb_homolumo_image0 = "/srv/arrows/bin/chemdb_homolumo_image0 "
+tnt_submit             = ARROWS_HOME + "/bin/tnt_submit5 "
+chemdb_homolumo_image0 = ARROWS_HOME + "/bin/chemdb_homolumo_image0 "
 ############## machine parameters #########################
 
-bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
 
+bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08b`dgjc.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY/[\x08_pafgtck_afglc\x1e\x1e;\x1efffY0[\x08_pafgtcn_qqumpb\x1e;\x1efffY1[\x08"
 
 
 def pexpect_command(pcmd,mypassword):
@@ -41,7 +46,7 @@ def pexpect_command(pcmd,mypassword):
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
-exec aaa
+exec(aaa)
 
 ################################################
 #                                              #
@@ -49,14 +54,14 @@ exec aaa
 #                                              #
 ################################################
 def generate_homolumo_image0(molecule_id):
-   print "HELLO"
+   print("HELLO")
    header =  "Message from arrows..Failed to generate homolumo for id = %d" % molecule_id
    try:
       #os.system('say ' + "\'" + foo + "\'")
       #cmd3 = 'ssh bylaska@we24397.emsl.pnl.gov /Users/bylaska/bin/chemdb_homolumo_image0 %d'  % molecule_id
       #pexpect_command(cmd3,archivepassword)
       cmd6 = chemdb_homolumo_image0  + "%d"  % molecule_id
-      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+      result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    except:
       print('say ' + "\'" + header + "\'")
 
@@ -91,14 +96,14 @@ def resubmit_homolumo(hup,dbfile,table,id):
       host = hup.split()[0]
       user = hup.split()[1]
       pss = hup.split()[2]
-      dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      #dbcon = MySQLdb.connect(host,user,pss,dbfile)
+      dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
 
    with dbcon:
       cur = dbcon.cursor()
       cur.execute(sqlcheck,checklist)
       row = cur.fetchone()
-   dbcon.close()
-
+   
    ### id found? ###
    if (row[0]!=None):
       smiles = row[0]
@@ -130,9 +135,9 @@ def resubmit_homolumo(hup,dbfile,table,id):
       theoryok = ((theory=="pspw") or (theory=="pspw4") or (theory=="dft") or (theory=="hf") or (theory=="paw") or (theory=="paw4"))
 
       if theoryok:
-         print "cmd1=",cmd1
+         print("cmd1=",cmd1)
          try:
-            msg += subprocess.check_output(cmd1,shell=True)
+            msg += subprocess.check_output(cmd1,shell=True).decode("utf-8")
          except:
             msg += "\n\nresubmit_homolumo failed and job was not submitted\n\n"
       else:
@@ -145,7 +150,7 @@ def resubmit_homolumo(hup,dbfile,table,id):
    try:
       os.unlink(xyzfile)
    except:
-      print "resubmit_homolumo: Failed to remove " + xyzfile
+      print("resubmit_homolumo: Failed to remove " + xyzfile)
 
    return msg
 
@@ -179,20 +184,20 @@ for o, a in opts:
     nocubegen = False
     regeneratecubes = True
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<1):
-   print usage
+   print(usage)
    exit()
 
 arrows_id   = args[0]
 molecule_id = eval(arrows_id)
 
 if regeneratecubes:
-    print "Regenerating cubes. Submitting HOMOLUMO generation job."
+    print("Regenerating cubes. Submitting HOMOLUMO generation job.")
     msg = resubmit_homolumo(hup,dbfile,table,molecule_id)
-    print msg
+    print(msg)
     exit()
 
 a = molecule_id%10
@@ -206,7 +211,7 @@ myfilename  = "%d-homolumo.png" % molecule_id
 cmd1   = "scp " + imagedir + myfilename + " " + wrkdir + "/" + myfilename
 result = pexpect_command(cmd1,archivepassword)
 foundfile = os.path.isfile(wrkdir + "/" + myfilename)
-print "FOUNDFILE1=",foundfile,wrkdir+"/"+myfilename
+print("FOUNDFILE1=",foundfile,wrkdir+"/"+myfilename)
 
 if (not foundfile) or (regenerate_image): generate_homolumo_image0(molecule_id)
 
@@ -215,10 +220,10 @@ result = pexpect_command(cmd1,archivepassword)
 foundfile = os.path.isfile(wrkdir + "/" + myfilename)
 
 if foundfile and nocubegen:
-    print "HOMOLUMOImageFilename: " + wrkdir +"/"+myfilename + " :HOMOLUMOImageFilename"
+    print("HOMOLUMOImageFilename: " + wrkdir +"/"+myfilename + " :HOMOLUMOImageFilename")
 else:
-    print "HOMOLUMO was not found. Submitting HOMOLUMO generation job."
+    print("HOMOLUMO was not found. Submitting HOMOLUMO generation job.")
     msg = resubmit_homolumo(hup,dbfile,table,molecule_id)
-    print msg
+    print(msg)
 
 

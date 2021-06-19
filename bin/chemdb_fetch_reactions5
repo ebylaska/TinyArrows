@@ -9965,26 +9965,26 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
                if isinstance(row23,bytes): row23 = row23.decode("utf-8")
                if isinstance(row60,bytes): row60 = row60.decode("utf-8")
                if isinstance(row64,bytes): row64 = row64.decode("utf-8")
-               if (row[60] is not None) and ("mo_orbital_" in row60):
+               if (row[60] is not None) and ("mo_orbital_" in row60) and (os.path.isfile(row60)):
                   try:
-                     #msg5 += nwout2jsmol("0x3BBC52",row[60],row[23])
-                     msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)
+                     msg5 += nwout2jsmol("0x3BBC52",row[60],row[23])
+                     #msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)
                   except:
                      msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)
                      theory = row[9]
-                     #if (theory=="dft" or theory=="hf" or theory=="uhf"):
-                     #   resubmit_homolumo_Background(id)
+                     if (theory=="dft" or theory=="hf" or theory=="uhf"):
+                        resubmit_homolumo_Background(id)
                else:
                   msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)
                   theory = row[9]
-                  #if (theory=="dft" or theory=="hf" or theory=="uhf"):
-                  #   resubmit_homolumo_Background(id)
+                  if (theory=="dft" or theory=="hf" or theory=="uhf"):
+                     resubmit_homolumo_Background(id)
 
             elif (not useascii):
                pngfilename = wrkdir + "/%d-large.png" % (id)
                pngname     = "image-%d-large-%d" % (id,imagecount)
                imagecount += 1
-               #imagelist.append((pngfilename,pngname))
+               imagelist.append((pngfilename,pngname))
                cmd9 = chemdb_image0 + "-b %d" % id
                try:
                   result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
