@@ -53,8 +53,8 @@ nwpythonlib    = "/bin/nwpythonlib.py"
 obabel         = "/usr/bin/env obabel "
 obrotamer       = "/usr/bin/env obrotamer"
 
-chemdb_balance_reaction  = ARROWS_HOME + "/bin/chemdb_balance_reaction9f --arrows_api=" + ARROWS_API_HOME
-chemdb_queue             = ARROWS_HOME + "/bin/chemdb_queue --arrows_api=" + ARROWS_API_HOME
+chemdb_balance_reaction  = ARROWS_HOME + "/bin/chemdb_balance_reaction9f --arrows_api=" + ARROWS_API_HOME + " "
+chemdb_queue             = ARROWS_HOME + "/bin/chemdb_queue --arrows_api=" + ARROWS_API_HOME + " " 
 
 solvatedsolute_esmiles   = ARROWS_HOME + "/bin/solvatedsolute_esmiles "
 
@@ -3785,8 +3785,9 @@ if (submitthejob):
          tmp_esmiles += ' rotamer{true} '
       cmd1_submit = chemdb_queue +  '-a \"' + tmp_esmiles + '\"'
       if (vtag!=''): cmd1_submit += ' -v "' + vtag + '"'
+      print("cmd1_submit=",cmd1_submit)
       result1 = subprocess.check_output(cmd1_submit,shell=True).decode("utf-8")
-      print("cmd1_submit= ", result1)
+      print("cmd1_submit RESULT = ", result1)
       job['status']  = "submitted"
 
    ### submit to nwchem queue ###

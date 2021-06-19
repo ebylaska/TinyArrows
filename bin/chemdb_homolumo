@@ -23,8 +23,13 @@ bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x
 def pexpect_command(pcmd,mypassword):
    if (mypassword=="nopassword"):
       #os.system(pcmd)
-      result1 = subprocess.check_output(pcmd,shell=True).decode("utf-8")
-      print("pcmd= ",result1)
+      try:
+         result1 = subprocess.check_output(pcmd,shell=True).decode("utf-8")
+         print("pcmd= ",result1)
+      except:
+         print("cp command failed")
+         result1 = "failed"
+      return result1 
    else:
       ssh_newkey = 'Are you sure you want to continue connecting'
       # my ssh command line
@@ -41,8 +46,8 @@ def pexpect_command(pcmd,mypassword):
       elif i>=2:
           #print "either received key or connection timeout"
           pass
-      #print p.before # print out the result
-      #return p.before # return the result
+      print(p.before) # print out the result
+      return p.before  # return the result
 
 aaa = ''
 for b in bbb: aaa += chr(ord(b) + 2)
@@ -113,7 +118,7 @@ def resubmit_homolumo(hup,dbfile,table,id):
       charge = row[4]
       mult   = row[5]
       solvation_type = row[6]
-      xyz_blob       = row[7]
+      xyz_blob       = row[7].decode("utf-8")
       if ("ry" in basis.lower()):
           tt = basis.split()[0]
           uu = eval(tt)/2.0
@@ -209,6 +214,12 @@ imagedir = archivemachine+"/chemdb_homolumo/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
 myfilename  = "%d-homolumo.png" % molecule_id
 
 cmd1   = "scp " + imagedir + myfilename + " " + wrkdir + "/" + myfilename
+if ((":/" not in imagedir) and (":/" not in wrkdir)):
+   cmd1 = cmd1.replace("scp","cp")
+   ppth = wrkdir
+   if (not os.path.isdir(ppth)):
+      cmd9 = "mkdir -p " +  ppth
+      pexpect_command(cmd9,nwpassword)
 result = pexpect_command(cmd1,archivepassword)
 foundfile = os.path.isfile(wrkdir + "/" + myfilename)
 print("FOUNDFILE1=",foundfile,wrkdir+"/"+myfilename)
@@ -216,6 +227,11 @@ print("FOUNDFILE1=",foundfile,wrkdir+"/"+myfilename)
 if (not foundfile) or (regenerate_image): generate_homolumo_image0(molecule_id)
 
 cmd1   = "scp " + imagedir + myfilename + " " + wrkdir + "/" + myfilename
+if ((":/" not in imagedir) and (":/" not in wrkdir)):
+   cmd1 = cmd1.replace("scp","cp")
+   ppth = wrkdir
+   if (not os.path.isdir(ppth)):
+      cmd9 = "mkdir -p " +  ppth
 result = pexpect_command(cmd1,archivepassword)
 foundfile = os.path.isfile(wrkdir + "/" + myfilename)
 
