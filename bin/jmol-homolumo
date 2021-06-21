@@ -1,5 +1,5 @@
 #!/bin/csh
 
 
-java -jar /Users/bylaska/Codes/jmol-14.31.36/JmolData.jar -ion -g 355x355 -s $1 -q0 -w png:$2 
+java -jar $ARROWS_HOME/bin/JmolData.jar -ion -g 355x355 -s $1 -q0 -w png:$2 
 
