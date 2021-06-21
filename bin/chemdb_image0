@@ -132,18 +132,19 @@ b = (Id/10)%10
 c = (Id/100)%10
 d = (Id/1000)%10
 e = (Id/10000)%10
-dirmachine = dirmachine0 + "/" + archivemachine.split(":")[1]
+
+#dirmachine = dirmachine0 + "/" + archivemachine.split(":")[1]
 if largeimage:
    imagefile = archivemachine+"/chemdb_bigimage2/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
    imagefile += arrows_id.strip()+".png"
-   imagefiler = dirmachine+"/chemdb_bigimage2/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
-   imagefiler += arrows_id.strip()+".png"
+   #imagefiler = dirmachine+"/chemdb_bigimage2/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
+   #imagefiler += arrows_id.strip()+".png"
    filename = wrkdir + "/" + arrows_id.strip()+ "-large.png"
 else:
    imagefile = archivemachine+"/chemdb_image/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
    imagefile += arrows_id.strip()+".png"
-   imagefiler = dirmachine+"/chemdb_image/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
-   imagefiler += arrows_id.strip()+".png"
+   #imagefiler = dirmachine+"/chemdb_image/%d/%d/%d/%d/%d/" % (a,b,c,d,e)
+   #imagefiler += arrows_id.strip()+".png"
    filename = wrkdir + "/" + arrows_id.strip()+ ".png"
 
 
@@ -159,10 +160,16 @@ print("permanent imagefile =",imagefile)
 print("temporary imagefile =",filename)
 
 cmd0   = "scp " + imagefile + " " + filename
+if ((":/" not in imagefile) and (":/" not in filename)):
+   cmd0 = cmd0.replace("scp","cp")
+   ppth = os.path.dirname(filename)
+   if (not os.path.isdir(ppth)):
+      cmd9 = "mkdir -p " +  ppth
+      pexpect_command(cmd9,archivepassword)
 print("cmd0=",cmd0)
 try:
-   ##result = pexpect_command(cmd0,archivepassword)
-   result = "Turning off until March 1st"
+   result = pexpect_command(cmd0,archivepassword)
+   ##result = "Turning off until March 1st"
    
    if result is None:
       result = "Input/output error"
@@ -239,21 +246,27 @@ if ((not os.path.isfile(filename)) or (regenerateimage)):
                print("JMOL Failed to create PNG")
                exit()
 
-   #### delete file in archive ####
-   if (regenerateimage):
-      cmd1d   = "ssh " + sshmachine0 + " rm " + imagefiler
-      print("cmd1d",cmd1d)
-      try:
-         result = pexpect_command(cmd1d,archivepassword)
-      except:
-         print("cmd1d failed=",cmd1d)
+   ##### delete file in archive ####
+   #if (regenerateimage):
+   #   cmd1d   = "ssh " + sshmachine0 + " rm " + imagefiler
+   #   print("cmd1d",cmd1d)
+   #   try:
+   #      result = pexpect_command(cmd1d,archivepassword)
+   #   except:
+   #      print("cmd1d failed=",cmd1d)
 
    #### upload file ####
    cmd1   = "scp " + filename + " " + imagefile 
+   if ((":/" not in filename) and (":/" not in imagefile)):
+      cmd1 = cmd1.replace("scp","cp")
+      ppth = os.path.dirname(imagefile)
+      if (not os.path.isdir(ppth)):
+         cmd9 = "mkdir -p " +  ppth
+         pexpect_command(cmd9,archivepassword)
    print("cmd1",cmd1)
    try:
-      ##result = pexpect_command(cmd1,archivepassword)
-      result = "Upload turned off until March 1st."
+      result = pexpect_command(cmd1,archivepassword)
+      ##result = "Upload turned off until March 1st."
    except:
       print("cmd1 failed=",cmd1)
 

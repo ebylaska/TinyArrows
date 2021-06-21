@@ -3629,6 +3629,7 @@ def fetch_nwout(hup,dbfile,table,id):
 #                                           #
 #############################################
 def cmd_nwdatafile(hup,dbfile,table,nwcmd):
+
  try:
    if (hup=='sqlite3'):
       issqlite3 = True
@@ -3673,7 +3674,7 @@ def cmd_nwdatafile(hup,dbfile,table,nwcmd):
       if (len(rows)>0):
          molecule = rows[0]
          msg = "nwdatafile: %s Id=%d datafilename=%s\n\n" % (mycmd,id,datafilename)
-         dnames = molecule[1]
+         dnames = molecule[1].decode("utf-8")
          if (dnames is not None):
             gname = ''
             for nn in dnames.split():
@@ -3685,13 +3686,11 @@ def cmd_nwdatafile(hup,dbfile,table,nwcmd):
                   cmd1 = "scp " + gname + " " + wrkdir +"/nwout.txt"
                   if (":/" not in gname): cmd1 = cmd1.replace("scp","cp")
                   print("cmd1=",cmd1)
-                  if (".cube" not in gname):
-                     pexpect_command(cmd1,archivepassword)
-                     cmd2 = "cat " + wrkdir +"/nwout.txt"
-                     print("cmd2=",cmd2)
-                     result = subprocess.check_output(cmd2,shell=True).decode("utf-8")
-                  else:
-                     result = "Datafile access to cube files is temporarilly not available. This should be fixed by March 1st.\nWe're very sorry for the inconvenience."
+                  pexpect_command(cmd1,archivepassword)
+                  cmd2 = "cat " + wrkdir +"/nwout.txt"
+                  print("cmd2=",cmd2)
+                  result = subprocess.check_output(cmd2,shell=True).decode("utf-8")
+                     
                ## remove gname datafile from list ##
                if mycmd=="delete":
                   dnames1 = dnames.replace(gname,"")
@@ -3756,7 +3755,7 @@ def fetch_xyz(hup,dbfile,table,id):
    ### id found? ###
    if (len(rows)>0):
       #molecule = rows[0]
-      molecule023 = rows[0][23]
+      molecule023 = rows[0][23].decode("utf-8")
       if isinstance(molecule023,bytes): molecule023 = molecule023.decode("utf-8")
       msg = "xyz data for Id=%d\n\n" % id
       msg += "====== start xyzfile ======\n"
@@ -5517,11 +5516,12 @@ def fetch_eig(hup,dbfile,table,id):
       if (theory=="pspw" or theory=="pspw4" or theory=="dft" or theory=="hf" or theory=="uhf" or theory=="paw" or theory=="paw4"):
          cmd99 = chemdb_homolumo + "%d" % rows[0][0]
          try:
-            ##result99 = subprocess.check_output(cmd99,shell=True).decode("utf-8")
-            result99 = "\n\nchemdb_homolumo is currently turned off.  This should be fixed by March 1st.\n\n"
+            result99 = subprocess.check_output(cmd99,shell=True).decode("utf-8")
+            ##result99 = "\n\nchemdb_homolumo is currently turned off.  This should be fixed by March 1st.\n\n"
          except:
             result99 = "\n\nchemdb_homolumo failed and job was not submitted\n\n"
 
+         print("RESULT99=",result99)
          if "HOMOLUMOImageFilename:" in result99:
             homolumopng = result99.split("HOMOLUMOImageFilename:")[1].split(":HOMOLUMOImageFilename")[0].strip()
             pngname     = "homolumo-%d" % (rows[0][0])
@@ -9965,9 +9965,15 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
                if isinstance(row23,bytes): row23 = row23.decode("utf-8")
                if isinstance(row60,bytes): row60 = row60.decode("utf-8")
                if isinstance(row64,bytes): row64 = row64.decode("utf-8")
-               if (row[60] is not None) and ("mo_orbital_" in row60) and (os.path.isfile(row60)):
+
+               trymo = False
+               if ((row[60] is not None) and ("mo_orbital_" in row60)):
+                  for x in row60.split():
+                     if ("mo_orbital_" in x):
+                        trymo = os.path.isfile(x)
+               if (trymo): 
                   try:
-                     msg5 += nwout2jsmol("0x3BBC52",row[60],row[23])
+                     msg5 += nwout2jsmol("0x3BBC52",row60,row23)
                      #msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)
                   except:
                      msg5 += xyzdat2jsmol("0x3BBC52",row23,row64)

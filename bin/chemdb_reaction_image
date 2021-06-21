@@ -248,7 +248,7 @@ with dbcon:
 
 print("image_data=",image_data)
 
-#images = map(Image.open, filenames)
+#images = list(map(Image.open, filenames))
 mhmax  = max(mhall)
 shifty = [(mhmax-mhall[0])//2,(mhmax-mhall[1])//2]
 

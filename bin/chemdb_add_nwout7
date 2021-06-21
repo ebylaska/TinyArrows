@@ -6449,7 +6449,6 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
       molecule_id = eval(homolumo_id)
       eigblob  = parse_eigblob(outfile_without_hash)
 
-
       if (issqlite3):
          sqlcheck = "select mult,theory,data_filenames from " + table + " where Id=?;"
       else:
@@ -6474,13 +6473,16 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
          pss = hup.split()[2]
          #dbcon = MySQLdb.connect(host,user,pss,dbfile)
          dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
+
       with dbcon:
          cur = dbcon.cursor()
          cur.execute(sqlcheck,checklist)
          row  = cur.fetchone()
          mult   = row[0]
          theory = row[1]
-         data_filenames = row[2]
+         data_filenames = row[2].decode("utf-8")
+
+         print("HERA DATA_FILENAMES=",data_filenames)
          if (data_filenames==None): data_filenames = ""
          changed = False
          alreadyhasmoorbitals = "mo_orbital_" in data_filenames
@@ -6488,15 +6490,18 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
             data_filenames += " " + nwdatafiles0
             changed = True
             nwdatacopy += nwdatacopy0
+         print("HERB")
 
          alreadyhascubes = "cube" in data_filenames
          if (not alreadyhascubes):
             data_filenames += " " + nwdatafiles
             changed = True
             nwdatacopy += nwdatacopy1
+         print("HERC,change=",changed)
 
          if (changed):
             for bbb in nwdatacopy:
+               print("HERB bbb=",bbb)
                cmd0 = "scp " + bbb[0]  + " " + bbb[1]
                if ((":/" not in bbb[0]) and (":/" not in bbb[1])): 
                   cmd0 = cmd0.replace("scp","cp")
@@ -6601,12 +6606,12 @@ def insert_hrotor(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nwma
          charge = row[0]
          mult   = row[1]
          theory = row[2]
-         data_filenames = row[3]
-         hrotors_blob   = row[4]
+         data_filenames = row[3].decode("utf-8")
+         hrotors_blob   = row[4].decode("utf-8")
          if (data_filenames==None): data_filenames = ""
          if (hrotors_blob==None):   hrotors_blob = ""
-         xyz_blob       = row[5]
-         freq_blob      = row[6]
+         xyz_blob       = row[5].decode("utf-8")
+         freq_blob      = row[6].decode("utf-8")
          
          print("into hrotor_blob")
          hrotor_blob  = parse_hrotor_blob(outfile,xyz_blob,freq_blob)

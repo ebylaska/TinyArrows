@@ -237,19 +237,19 @@ for rr in (reactants,products):
 
 print "image_data=",image_data
 
-#images = map(Image.open, filenames)
+#images = list(map(Image.open, filenames))
 mhmax  = max(mhall)
 shifty = [(mhmax-mhall[0])/2,(mhmax-mhall[1])/2]
 
 #result = Image.new("RGBA", (800, mhmax), (250,250,250))
 result = Image.new("RGBA", (800, mhmax), (350,300,350))
 draw   = ImageDraw.Draw(result)
-font   = ImageFont.truetype(wrkdir+"/arial.ttf",20)
+font   = ImageFont.truetype(ARROWS_HOME+"/bin/arial.ttf",20)
 
 ### paste images ###
 for ii in image_data:
    if ii[0]=="image":
-      im = map(Image.open, [ii[3]])[0]
+      im = list(map(Image.open, [ii[3]]))[0]
       result.paste(im, (ii[1],ii[2]+shifty[ii[4]]))
 #result.save("hello.jpg")
 

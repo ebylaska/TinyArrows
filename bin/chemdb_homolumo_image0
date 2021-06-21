@@ -15,6 +15,8 @@ ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 jmol       = ARROWS_HOME + "/bin/jmol-homolumo "
 wrkdir     = ARROWS_HOME + "/Work"
 chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
+
+MYTIMEOUT = "/usr/local/bin/timeout " 
 ############## machine parameters #########################
 
 
@@ -135,7 +137,7 @@ with dbcon:
    row  = cur.fetchone()
    mult   = row[0]
    theory = row[1]
-   data_filenames = row[2]
+   data_filenames = row[2].decode("utf-8")
 
 
 
@@ -215,10 +217,12 @@ try:
       if ((":/" not in aa[0]) and (":/" not in aa[1])): 
          cmd0 = cmd0.replace("scp","cp")
          ppth = os.path.dirname(aa[1])
+         print("PPTH=",ppth)
          if (not os.path.isdir(ppth)):
             cmd9 = "mkdir -p " +  ppth
-            pexpect_command(cmd9,nwpassword)
+            pexpect_command(cmd9,archivepassword)
       print("cmd0=",cmd0)
+      print("ARCHIVEpass=",archivepassword)
       result = pexpect_command(cmd0,archivepassword)
       foundfile = os.path.isfile(aa[1])
       foundfiles = foundfiles and foundfile
@@ -236,19 +240,19 @@ try:
          cmd6 = jmol + sfilename + " " + aa[2]
          print("HELLO=",cmd6)
          try:
-            result1 = subprocess.check_output("/usr/bin/timeout 20 " + cmd6,shell=True).decode("utf-8")
+            result1 = subprocess.check_output(MYTIMEOUT + "20 " + cmd6,shell=True).decode("utf-8")
          except:
             print("Attempt 1 failed, trying 40 second timeout")
             try:
-               result2 = subprocess.check_output("/usr/bin/timeout 40 " + cmd6,shell=True).decode("utf-8")
+               result2 = subprocess.check_output(MYTIMEOUT + "40 " + cmd6,shell=True).decode("utf-8")
             except:
                print("Attempt 2 failed, trying 80 second timeout")
                try:
-                  result3 = subprocess.check_output("/usr/bin/timeout 80 " + cmd6,shell=True).decode("utf-8")
+                  result3 = subprocess.check_output(MYTIMEOUT + "80 " + cmd6,shell=True).decode("utf-8")
                except:
                   print("Attempt 3 failed, trying 160 second timeout")
                   try:
-                     result4 = subprocess.check_output("/usr/bin/timeout 160 " + cmd6,shell=True).decode("utf-8")
+                     result4 = subprocess.check_output(MYTIMEOUT + "160 " + cmd6,shell=True).decode("utf-8")
                   except:
                      print("JMOL Failed to create PNG")
                      print("chemdb_homolumo_image0: image generation not successful")
@@ -265,11 +269,11 @@ if (mult==1):
 else:
    result = Image.new("RGBA", (700, 720), (350,300,350))
 draw   = ImageDraw.Draw(result)
-font   = ImageFont.truetype(wrkdir+"/arial.ttf",20)
+font   = ImageFont.truetype(ARROWS_HOME+"/bin/arial.ttf",20)
 
 ### paste images ###
 for aa in cubefiles:
-   im = map(Image.open, [aa[2]])[0]
+   im = list(map(Image.open, [aa[2]]))[0]
    if ('lumo-restricted' in aa[2]): result.paste(im, (0,10))
    if ('homo-restricted' in aa[2]): result.paste(im, (0,370))
    if ('lumo-alpha' in aa[2]):      result.paste(im, (0,10))
@@ -299,7 +303,7 @@ if ((":/" not in wrkdir) and (":/" not in imagedir)):
    ppth = imagedir
    if (not os.path.isdir(ppth)):
       cmd9 = "mkdir -p " +  ppth
-      pexpect_command(cmd9,nwpassword)
+      pexpect_command(cmd9,archivepassword)
 print("cmd1=",cmd1)
 result = pexpect_command(cmd1,archivepassword)
 

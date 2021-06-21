@@ -248,7 +248,7 @@ shifty = [(mhmax-mhall[0])/2,(mhmax-mhall[1])/2]
 #result = Image.new("RGBA", (800, mhmax), (250,250,250))
 result = Image.new("RGBA", (800, mhmax), (350,300,350))
 draw   = ImageDraw.Draw(result)
-font   = ImageFont.truetype(wrkdir+"/arial.ttf",20)
+font   = ImageFont.truetype(ARROWS_HOME+"/bin/arial.ttf",20)
 
 ### paste images ###
 for ii in image_data:
