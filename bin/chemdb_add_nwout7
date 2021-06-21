@@ -6482,7 +6482,6 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
          theory = row[1]
          data_filenames = row[2].decode("utf-8")
 
-         print("HERA DATA_FILENAMES=",data_filenames)
          if (data_filenames==None): data_filenames = ""
          changed = False
          alreadyhasmoorbitals = "mo_orbital_" in data_filenames
@@ -6490,18 +6489,15 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
             data_filenames += " " + nwdatafiles0
             changed = True
             nwdatacopy += nwdatacopy0
-         print("HERB")
 
          alreadyhascubes = "cube" in data_filenames
          if (not alreadyhascubes):
             data_filenames += " " + nwdatafiles
             changed = True
             nwdatacopy += nwdatacopy1
-         print("HERC,change=",changed)
 
          if (changed):
             for bbb in nwdatacopy:
-               print("HERB bbb=",bbb)
                cmd0 = "scp " + bbb[0]  + " " + bbb[1]
                if ((":/" not in bbb[0]) and (":/" not in bbb[1])): 
                   cmd0 = cmd0.replace("scp","cp")
