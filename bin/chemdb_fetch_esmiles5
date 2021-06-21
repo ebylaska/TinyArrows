@@ -27,7 +27,9 @@ class CustomClient(TinyMongoClient):
 
 ###################### PARAMETERS ###########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
-ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
+MY_ENV                = os.environ.copy()
+MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
 ####################### mongoDB #############################
 #uri = "mongodb://arrows:password@machine.gov:27017"

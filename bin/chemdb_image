@@ -10,7 +10,9 @@ from PIL import ImageDraw
 
 ############## machine parameters #########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
-ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
+MY_ENV                = os.environ.copy()
+MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
 
 #TIMEOUT = '/usr/bin/timeout'
@@ -201,15 +203,15 @@ with dbcon:
             cmd6 = ARROWS_HOME + "/bin/jmol-medium %s %s %s" % (ARROWS_HOME + "/bin//jmol.script",xyzfile,filename)
          print("cmd6="+cmd6)
          try:
-            result1 = subprocess.check_output(TIMEOUT20 + cmd6,shell=True).decode("utf-8")
+            result1 = subprocess.check_output(TIMEOUT20 + cmd6,shell=True,env=MY_ENV).decode("utf-8")
          except:
             print("Attempt 1 failed, trying 40 second timeout")
             try:
-               result2 = subprocess.check_output(TIMEOUT40 + cmd6,shell=True).decode("utf-8")
+               result2 = subprocess.check_output(TIMEOUT40 + cmd6,shell=True,env=MY_ENV).decode("utf-8")
             except:
                print("Attempt 2 failed, trying 80 second timeout")
                try:
-                  result3 = subprocess.check_output(TIMEOUT80 + cmd6,shell=True).decode("utf-8")
+                  result3 = subprocess.check_output(TIMEOUT80 + cmd6,shell=True,env=MY_ENV).decode("utf-8")
                except:
                   print("JMOL Failed to create PNG")
                   exit()

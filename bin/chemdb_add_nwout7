@@ -11,7 +11,9 @@ from numpy.fft import *
 
 ############## machine parameters #########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
-ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
+MY_ENV                = os.environ.copy()
+MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
 #babel       = "/usr/bin/env babel"
 obabel      = "/usr/bin/env obabel "

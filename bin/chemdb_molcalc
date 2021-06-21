@@ -5,7 +5,9 @@ import os,sys,getopt,math,copy,random,subprocess,time,urllib.request,re
 
 ###################### PARAMETERS ###########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
-ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
+MY_ENV                = os.environ.copy()
+MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
 tnt_submit  = ARROWS_HOME + "/bin/tnt_submit5 -f "
 uff_path    = ARROWS_HOME + "/bin/uff-path9 -s 9101 "

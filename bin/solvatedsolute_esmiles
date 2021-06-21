@@ -12,7 +12,9 @@ of Protein Atoms. Lysozyme and Insulin." JMB (1973) 79:351-371.
 import math,random,operator
 
 ############## machine parameters #########################
-ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
+ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
+MY_ENV                = os.environ.copy()
+MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
 esmiles2xyz = ARROWS_HOME + "/bin/esmiles2xyz "
 wrkdir      = ARROWS_HOME + "/Work"
