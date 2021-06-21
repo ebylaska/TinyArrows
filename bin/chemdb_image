@@ -16,7 +16,10 @@ MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
 
 #TIMEOUT = '/usr/bin/timeout'
-TIMEOUT = '/usr/local/bin/gtimeout'
+#TIMEOUT = '/usr/local/bin/gtimeout'
+
+MYTIMEOUT = "/usr/local/bin/timeout "
+TIMEOUT  = MYTIMEOUT
 TIMEOUT20 ="DISPLAY=:10; " + TIMEOUT + " 20 "
 TIMEOUT40 ="DISPLAY=:10; " + TIMEOUT + " 40 "
 TIMEOUT80 ="DISPLAY=:10; " + TIMEOUT + " 80 "
@@ -174,11 +177,12 @@ with dbcon:
          cur = dbcon.cursor()
          cur.execute(sqlcheck,checklist)
          row = cur.fetchone()
-         xyzstring = row[0]
+         xyzstring = row[0].decode("utf-8")
          charge = row[1]
          mult   = row[2]
          erxn += (-1+2*count)*(row[3])*eval(reactant_coeff[i])
          hrxn += (-1+2*count)*(row[3]+row[4])*eval(reactant_coeff[i])
+         print("XYSTRING=",xyzstring)
 
          ### generate chargelabel
          chargelabel = ''
@@ -216,7 +220,7 @@ with dbcon:
                   print("JMOL Failed to create PNG")
                   exit()
          #os.system(cmd6)
-         print "Image Created"
+         print("Image Created")
 
          if (bigimage):
             if (x!=xstart):
@@ -312,6 +316,7 @@ else:
    points.append((415,mhmax/2))
    draw.polygon(points,fill=(0,0,200),outline=(0,0,0))
 
+print("MYFILENAME=",myfilename)
 
 result.save(myfilename)
 
@@ -322,9 +327,6 @@ for ii in image_data:
          os.unlink(ii[3])
       except:
          print("chemdb_image Failed to remove " + ii[3])
-
-
-
 
 
 

@@ -15,7 +15,9 @@ MY_ENV                = os.environ.copy()
 MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
 #TIMEOUT = '/usr/bin/timeout'
-TIMEOUT = '/usr/local/bin/gtimeout'
+#TIMEOUT = '/usr/local/bin/gtimeout'
+MYTIMEOUT = "/usr/local/bin/timeout "
+TIMEOUT   = MYTIMEOUT
 TIMEOUT20 ="DISPLAY=:10; " + TIMEOUT + " 20 "
 TIMEOUT40 ="DISPLAY=:10; " + TIMEOUT + " 40 "
 TIMEOUT80 ="DISPLAY=:10; " + TIMEOUT + " 80 "
@@ -26,6 +28,8 @@ chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
 sshmachine0 = "bylaska@archive.emsl.pnl.gov"
 dirmachine0 = "/archive/bylaska"
 shepng      = ARROWS_HOME + "/bin/she.png"
+
+SaveImages = False
 ############## machine parameters #########################
 
 
@@ -161,22 +165,25 @@ print("arrows_id        =",arrows_id)
 print("permanent imagefile =",imagefile)
 print("temporary imagefile =",filename)
 
-cmd0   = "scp " + imagefile + " " + filename
-if ((":/" not in imagefile) and (":/" not in filename)):
-   cmd0 = cmd0.replace("scp","cp")
-   ppth = os.path.dirname(filename)
-   if (not os.path.isdir(ppth)):
-      cmd9 = "mkdir -p " +  ppth
-      pexpect_command(cmd9,archivepassword)
-print("cmd0=",cmd0)
-try:
-   result = pexpect_command(cmd0,archivepassword)
-   ##result = "Turning off until March 1st"
+if (SaveImages):
+   cmd0   = "scp " + imagefile + " " + filename
+   if ((":/" not in imagefile) and (":/" not in filename)):
+      cmd0 = cmd0.replace("scp","cp")
+      ppth = os.path.dirname(filename)
+      if (not os.path.isdir(ppth)):
+         cmd9 = "mkdir -p " +  ppth
+         pexpect_command(cmd9,archivepassword)
+   print("cmd0=",cmd0)
+   try:
+      result = pexpect_command(cmd0,archivepassword)
+      ##result = "Turning off until March 1st"
    
-   if result is None:
+      if result is None:
+         result = "Input/output error"
+   except:
       result = "Input/output error"
-except:
-   result = "Input/output error"
+else:
+   result = "Turning off until March 1st"
 
 print("RESULT=",result)
 
@@ -208,7 +215,7 @@ if ((not os.path.isfile(filename)) or (regenerateimage)):
          cur = dbcon.cursor()
          cur.execute(sqlcheck,checklist)
          row = cur.fetchone()
-         xyzstring = row[0]
+         xyzstring = row[0].decode("utf-8")
    else:
       xyzstring = "1\n\nH 0.0 0.0 0.0\n"
 
@@ -258,19 +265,20 @@ if ((not os.path.isfile(filename)) or (regenerateimage)):
    #      print("cmd1d failed=",cmd1d)
 
    #### upload file ####
-   cmd1   = "scp " + filename + " " + imagefile 
-   if ((":/" not in filename) and (":/" not in imagefile)):
-      cmd1 = cmd1.replace("scp","cp")
-      ppth = os.path.dirname(imagefile)
-      if (not os.path.isdir(ppth)):
-         cmd9 = "mkdir -p " +  ppth
-         pexpect_command(cmd9,archivepassword)
-   print("cmd1",cmd1)
-   try:
-      result = pexpect_command(cmd1,archivepassword)
-      ##result = "Upload turned off until March 1st."
-   except:
-      print("cmd1 failed=",cmd1)
+   if (SaveImages):
+      cmd1   = "scp " + filename + " " + imagefile 
+      if ((":/" not in filename) and (":/" not in imagefile)):
+         cmd1 = cmd1.replace("scp","cp")
+         ppth = os.path.dirname(imagefile)
+         if (not os.path.isdir(ppth)):
+            cmd9 = "mkdir -p " +  ppth
+            pexpect_command(cmd9,archivepassword)
+      print("cmd1",cmd1)
+      try:
+         result = pexpect_command(cmd1,archivepassword)
+         ##result = "Upload turned off until March 1st."
+      except:
+         print("cmd1 failed=",cmd1)
 
 filesize = os.path.getsize(filename)
 print("filesize=",filesize)
