@@ -1,5 +1,10 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python3
 import os,sys,getopt,math,copy,random
+
+############## machine parameters #########################
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
+############## machine parameters #########################
 
 
 
@@ -227,8 +232,8 @@ class uff_potential:
             Vsp2_20 = 5*math.sqrt(Ui*Uj)*(1.0+4.18*math.log(2.0))
             Vsp2_30 = 5*math.sqrt(Ui*Uj)*(1.0+4.18*math.log(3.0))
             Vsp2_40 = 5*math.sqrt(Ui*Uj)*(1.0+4.18*math.log(4.0))
-            print "Vs=",Vi,Vj,Ui,Uj," --> ",Vsp3,Vsp2_10,Vsp2_15,Vsp2_20,Vsp2_30,Vsp2_40
-            print "    --> ",math.sqrt(Ui*Uj),5*(1+4.18*math.log(1.5))
+            print("Vs=",Vi,Vj,Ui,Uj," --> ",Vsp3,Vsp2_10,Vsp2_15,Vsp2_20,Vsp2_30,Vsp2_40)
+            print("    --> ",math.sqrt(Ui*Uj),5*(1+4.18*math.log(1.5)))
 
             xij = 0.5*(xi+xj)
             Dij = math.sqrt(Di*Dj)
@@ -476,7 +481,7 @@ class uff_potential:
             else:
                c2theta = ctheta**2 - stheta**2
                s2theta = 2.0*stheta*ctheta;
-               #print "general angle=",ctheta,stheta,c2theta,s2theta
+               #print("general angle=",ctheta,stheta,c2theta,s2theta)
                #C2 = 1.0/(4.0*stheta0**2)
                #stheta02 = (1.0 - ctheta0*ctheta0)
                #C2 = 1.0/(4.0*stheta02)
@@ -492,8 +497,8 @@ class uff_potential:
                #dEdtheta = -KIJK*(C1*stheta)
                #E += KIJK*(C0 + C2*c2theta)
                #dEdtheta = -KIJK*(2.0*C2*s2theta)
-               #print "Eangle=",i,j,k,E,ctheta,dEdtheta
-               #print "invstheta=",invstheta
+               #print("Eangle=",i,j,k,E,ctheta,dEdtheta)
+               #print("invstheta=",invstheta)
 
             if (stheta<1.0e-8): 
                invstheta = 1.0/1.0e-8
@@ -559,7 +564,7 @@ class uff_potential:
 
          s5263 = self.ddot3(r52,r63)
          s1263 = self.ddot3(r12,r63)
-         #print "s5263=",s52,s63,s5263,s5263/math.sqrt(s52*s63)
+         #print("s5263=",s52,s63,s5263,s5263/math.sqrt(s52*s63))
          cphi = s5263/math.sqrt(s52*s63)
          if (cphi>1.0):    cphi =  1.0
          if (cphi<(-1.0)): cphi = -1.0
@@ -614,7 +619,7 @@ class uff_potential:
          s1232 = self.ddot3(r12,r32)
          s3432 = self.ddot3(r34,r32)
 
-         #print "s5263=",s52,s63,s5263,s5263/math.sqrt(s52*s63)
+         #print("s5263=",s52,s63,s5263,s5263/math.sqrt(s52*s63))
          cphi = s5263/math.sqrt(s52*s63)
          if (cphi>1.0):    cphi =  1.0
          if (cphi<(-1.0)): cphi = -1.0
@@ -1704,14 +1709,14 @@ def xyzsdf2amatrix(sdf):
    if "V2000" in sdf:
       nion  = eval(sdf.split("V2000")[0].split("\n")[-1].split()[0])
       nbond = eval(sdf.split("V2000")[0].split("\n")[-1].split()[1])
-      print "nions =", nion
-      print "nbonds=", nbond
+      print("nions =", nion)
+      print("nbonds=", nbond)
       geom = "\n".join(sdf.split("V2000")[1].split("\n")[1:nion+1])
-      print "geom="
-      print  geom
+      print("geom=")
+      print(geom)
       bonding = "\n".join(sdf.split("V2000")[1].split("\n")[nion+1:nion+1+nbond])
-      print "bonding="
-      print bonding
+      print("bonding=")
+      print(bonding)
       amatrix = [0]*nion*nion
       symbol = []
       rxyz   = []
@@ -1733,8 +1738,8 @@ def xyzsdf2amatrix(sdf):
    else:
       nbond = 0
       nion = eval(sdf.split("\n")[0].strip())
-      print "nions =", nion
-      print "assuming xyz data"
+      print("nions =", nion)
+      print("assuming xyz data")
       amatrix = [0]*nion*nion
       symbol = []
       rxyz   = []
@@ -1806,7 +1811,7 @@ def simple_optimization(uff1,uff2,lmbda12,nion,rion0,maxiter=55001):
 
       err = 0.0
       for i in range(3*nion): err += grad[i]*grad[i]
-      print "optimize,lmbda,it,E,err,dE,alpha=",lmbda,lmbda12,it,E,err,E-eold,alpha
+      print("optimize,lmbda,it,E,err,dE,alpha=",lmbda,lmbda12,it,E,err,E-eold,alpha)
 
       for i in range(3*nion):
         rion[i] -= alpha*grad[i]
@@ -1845,7 +1850,7 @@ def simple_optimization1(uff1,nion,rion0,maxiter=75001):
 
       err = 0.0
       for i in range(3*nion): err += grad[i]*grad[i]
-      if ((it%1000)==0): print "optimize0,lmbda,it,E,err,dE,alpha=",lmbda,it,E,err,E-eold,alpha
+      if ((it%1000)==0): print("optimize0,lmbda,it,E,err,dE,alpha=",lmbda,it,E,err,E-eold,alpha)
 
       for i in range(3*nion):
         rion[i] -= alpha*grad[i]
@@ -1875,7 +1880,7 @@ uff-path9
 
 """
 
-print
+print()
 appending = False
 maxiter = 55001
 includemid = False
@@ -1889,11 +1894,11 @@ for o, a in opts:
   if o in ("-s"): 
      maxiter = eval(a)
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<3):
-   print usage
+   print(usage)
    exit()
 
 
@@ -1916,17 +1921,17 @@ if (nstates<2):
    lmbda = 0.0
    uff = uff_potential(nion,symbol,amatrix)
    (E,rion,grad) = simple_optimization1(uff,nion,rion,maxiter)
-   print "Efinal=",E
-   print "rion=",rion
-   print "grad  =",grad
-   print "writing " + xyzfilename
+   print("Efinal=",E)
+   print("rion=",rion)
+   print("grad  =",grad)
+   print("writing " + xyzfilename)
    pathstr = "%d\n\n" % nion
    for ii in range(nion):
       pathstr += "%s %f %f %f\n" % (symbol[ii],rion[3*ii],rion[3*ii+1],rion[3*ii+2])
 
-   print xyzfilename + ":"
-   print pathstr.strip()
-   print ":" + xyzfilename 
+   print(xyzfilename + ":")
+   print(pathstr.strip())
+   print(":" + xyzfilename )
    exit()
 
 
@@ -1978,12 +1983,12 @@ for b in range(nbisection):
    
    lmbda = (pathlmbda[pmax] + pathlmbda[pmax+1])/2.0
    l = int(lmbda/dnstates)
-   print "l,lmbda,dnstates=",l,lmbda,dnstates,len(uff)
+   print("l,lmbda,dnstates=",l,lmbda,dnstates,len(uff))
    uff1 = uff[l]
    uff2 = uff[l+1]
    lmbda12 = lmbda - l*dnstates
-   print "pmax,lmbda,lmbda12,l=",pmax,lmbda,lmbda12,l,demax,abs(pathe[1] - pathe[0])
-   print "pathe=",pathe
+   print("pmax,lmbda,lmbda12,l=",pmax,lmbda,lmbda12,l,demax,abs(pathe[1] - pathe[0]))
+   print("pathe=",pathe)
 
    (E,rion,grad)    = simple_optimization(uff1,uff2,lmbda12,nion,pathxyz[pmax])
    (E1,rion1,grad1) = simple_optimization(uff1,uff2,lmbda12,nion,pathxyz[pmax+1])
@@ -1992,9 +1997,9 @@ for b in range(nbisection):
       rion = rion1
       grad = grad1
 
-   print "Efinal=",E
-   print "rion=",rion
-   print "grad  =",grad
+   print("Efinal=",E)
+   print("rion=",rion)
+   print("grad  =",grad)
    pathlmbda.insert(pmax+1,lmbda)
    pathxyz.insert(pmax+1,rion)
    pathe.insert(pmax+1,E)
@@ -2008,19 +2013,19 @@ for p in range(npath):
       pathstr += "%s %f %f %f\n" % (symbol[ii],pathxyz[p][3*ii],pathxyz[p][3*ii+1],pathxyz[p][3*ii+2])
 
 
-print
-print
-print xyzfilename + ":"
-print pathstr.strip()
-print ":" + xyzfilename 
-print
-print
-print "nstates=",nstates
-print "bondchanges=",bondchanges
-print "writing final_path.dat"
-print "finalpath.dat:"
+print()
+print()
+print(xyzfilename + ":")
+print(pathstr.strip())
+print(":" + xyzfilename )
+print()
+print()
+print("nstates=",nstates)
+print("bondchanges=",bondchanges)
+print("writing final_path.dat")
+print("finalpath.dat:")
 npath = len(pathe)
 for p in range(npath):
-   print "%f %f" % (pathlmbda[p],pathe[p])
-print ":finalpath.dat"
+   print("%f %f" % (pathlmbda[p],pathe[p]))
+print(":finalpath.dat")
 
