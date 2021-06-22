@@ -12,6 +12,7 @@ from math import *
 ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
 MY_ENV                = os.environ.copy()
 MY_ENV["ARROWS_HOME"] = ARROWS_HOME
+HOMOLUMO_RESUBMIT_ON  = False
 
 ARROWS_API_HOME = 'http://localhost:5000/api/'
 
@@ -1198,13 +1199,14 @@ class text2speech_Threading(object):
         os.system(chemdb_say + "\'" + self.foo + "\'")
 
 def resubmit_homolumo_Background(myid):
-   cmd99 = chemdb_homolumo + "-g %d" % myid
-   cmd99args = shlex.split(cmd99)
-   try:
-      #result99 = subprocess.check_output(cmd99,shell=True)
-      p = subprocess.Popen(cmd99args,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-   except:
-      result99 = "\n\nchemdb_homolumo failed and job was not submitted\n\n"
+   if HOMOLUMO_RESUBMIT_ON:
+      cmd99 = chemdb_homolumo + "-g %d" % myid
+      cmd99args = shlex.split(cmd99)
+      try:
+         #result99 = subprocess.check_output(cmd99,shell=True)
+         p = subprocess.Popen(cmd99args,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+      except:
+         result99 = "\n\nchemdb_homolumo failed and job was not submitted\n\n"
 
 
 def subprocess_Background(cmd99):
@@ -9971,7 +9973,7 @@ while ((len(rstring.split("molecule:"))>1) and (not toolong) and (":molecule" in
                trymo = False
                if ((row[60] is not None) and ("mo_orbital_" in row60)):
                   for x in row60.split():
-                     if ("mo_orbital_" in x):
+                     if (("mo_orbital_" in x) and ("pnl.gov:" not in x)):
                         trymo = os.path.isfile(x)
                if (trymo): 
                   try:

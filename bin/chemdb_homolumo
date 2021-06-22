@@ -9,6 +9,7 @@ from math import *
 ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
 MY_ENV                = os.environ.copy()
 MY_ENV["ARROWS_HOME"] = ARROWS_HOME
+HOMOLUMO_RESUBMIT_ON  = False
 
 wrkdir     = ARROWS_HOME + "/Work"
 chemdbfile = ARROWS_HOME + "/bin/.chemdb-en"
@@ -80,6 +81,7 @@ def generate_homolumo_image0(molecule_id):
 #############################################
 
 def resubmit_homolumo(hup,dbfile,table,id):
+ if HOMOLUMO_RESUBMIT_ON:
    msg     = "resubmit_homolumo for Id=%d\n\n" % id
    vtag    = '"homolumoresubmitjob:%d:homolumoresubmitjob"' % id
    xyzfile = wrkdir + "/" + "homolumo-%d.xyz" % id
@@ -159,7 +161,10 @@ def resubmit_homolumo(hup,dbfile,table,id):
    except:
       print("resubmit_homolumo: Failed to remove " + xyzfile)
 
-   return msg
+ else:
+   msg = "resubmit_homolumo turned off\n\n"
+
+ return msg
 
 
 

@@ -6486,13 +6486,24 @@ def insert_homolumo(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nw
 
          if (data_filenames==None): data_filenames = ""
          changed = False
-         alreadyhasmoorbitals = "mo_orbital_" in data_filenames
+
+         # check for existing mo_orbital file
+         alreadyhasmoorbitals = False
+         if ("mo_orbital_" in data_filenames):
+            for x in data_filenames.split():
+               if (("mo_orbital_" in x) and ("pnl.gov:" not in x)):
+                  alreadyhasmoorbitals = True
          if (not alreadyhasmoorbitals):
             data_filenames += " " + nwdatafiles0
             changed = True
             nwdatacopy += nwdatacopy0
 
-         alreadyhascubes = "cube" in data_filenames
+         # check for existing cube files
+         alreadyhascubes = False
+         if ("cube" in data_filenames):
+            for x in data_filenames.split():
+               if (("cube" in x) and ("pnl.gov:" not in x)):
+                  alreadyhascubes = True
          if (not alreadyhascubes):
             data_filenames += " " + nwdatafiles
             changed = True
