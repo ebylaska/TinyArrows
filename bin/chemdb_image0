@@ -120,7 +120,7 @@ arrows_id = args[0]
 
 if ("SHE" in arrows_id):
    filename = wrkdir + "/SHE.png"
-   cmd6 = "/usr/bin/cp %s %s" % (shepng,filename)
+   cmd6 = "cp %s %s" % (shepng,filename)
    print("cmd6=",cmd6)
    try:
       result1 = subprocess.check_output(cmd6,shell=True).decode("utf-8")
