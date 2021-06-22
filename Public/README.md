@@ -1,10 +1,6 @@
 # Running Arrows
 From the Public directory run
 
-python app2.py
-
-or 
-
 python3 app3.py
 
 
