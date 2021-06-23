@@ -1,5 +1,5 @@
 # Running Arrows
-From the Public directory run
+From the TinyArrows/Public directory run
 
 python3 app3.py
 
