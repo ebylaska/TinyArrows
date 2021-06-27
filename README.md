@@ -2,7 +2,7 @@
 TinyArrows is a tiny version of EMSL Arrows
 
 ## Running Arrows
-cd Public
+cd TinyArrows/Public
 
 python3 app3.py
 
