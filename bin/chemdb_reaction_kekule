@@ -328,7 +328,7 @@ def xyzdat2mol(xyzdat):
 ############################# main program ###################################
 usage = \
 """
-Remote chemdb_reaction_kekule program - version 1.0
+Remote chemdb_reaction_kekule program - version 2.0
 
   Usage: chemdb_reaction_kekule esmiles_reaction
 
@@ -338,7 +338,7 @@ Remote chemdb_reaction_kekule program - version 1.0
 
 #Database defaults
 
-print("chemdb_reaction_kekule - version 1.0")
+print("chemdb_reaction_kekule - version 2.0")
 tt      = time.localtime()
 
 opts, args = getopt.getopt(sys.argv[1:], "h", ['help'])

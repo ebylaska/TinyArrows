@@ -2407,7 +2407,7 @@ chemdb_queue program
 
 
 print()
-print("#chemdb_eric - version 1.0")
+print("#chemdb_eric - version 2.0")
 print()
 tt      = time.localtime()
 

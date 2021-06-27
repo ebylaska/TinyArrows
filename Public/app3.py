@@ -2431,9 +2431,9 @@ def list_queue_nwchem_check(qname):
                stime = True
             stime = stime or ("aerosol" in ln)
             isfinished = "yes" in restln.split()[1]
-            link   = "https://arrows.emsl.pnnl.gov/api/queue_nwchem_view/"+ss[0]
-            zzip   = "https://arrows.emsl.pnnl.gov/api/queue_nwchem_zip/"+ss[0]
-            dentr  = "https://arrows.emsl.pnnl.gov/api/queue_nwchem_delete/"+ss[0]
+            link   = ARROWS_API_HOME + "queue_nwchem_view/"+ss[0]
+            zzip   = ARROWS_API_HOME + "queue_nwchem_zip/"+ss[0]
+            dentr  = ARROWS_API_HOME + "queue_nwchem_delete/"+ss[0]
             hlink  = "<a href=\"" + link + "\">%s</a> " % ss[0]
             zlink  = "<a href=\"" + zzip + "\">%s</a>" % ("(zip)")
             zlink2 = "     "
@@ -3002,7 +3002,7 @@ def arrows_3dbuilder_draw_form():
    calcs = arrowsjobsrun()
    molcalcs = calculationscount()
    avisits = apivisited()
-   return render_template("Jmol-arrows.html",calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+   return render_template("Jmol-arrows.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
 
 
 @app.route('/api/3dbuilder', methods=['POST'])

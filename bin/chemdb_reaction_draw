@@ -22,7 +22,7 @@ shepng         = "/srv/arrows/bin/she.png"
 ############################# main program ###################################
 usage = \
 """
-Remote chemdb_reaction_draw     program - version 1.0
+Remote chemdb_reaction_draw     program - version 2.0
 
   Usage: chemdb_reaction_draw esmiles_reaction pngfilename
 
@@ -32,7 +32,7 @@ Remote chemdb_reaction_draw     program - version 1.0
 
 #Database defaults
 
-print "chemdb_reaction_draw - version 1.0"
+print "chemdb_reaction_draw - version 2.0"
 tt      = time.localtime()
 
 opts, args = getopt.getopt(sys.argv[1:], "h")
