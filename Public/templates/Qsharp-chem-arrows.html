@@ -14,13 +14,13 @@
 <link rel="icon" type="image/png" sizes="96x96" href="https://dl.dropboxusercontent.com/s/k0kyp30ale2pkod/favicon-96x96.png">
 <link rel="icon" type="image/png" sizes="16x16" href="https://dl.dropboxusercontent.com/s/0l0w2wk9wfxt4el/favicon-16x16.png">
 
-<title>EMSL Arrows</title>
+<title>Tiny Arrows</title>
 
 <!-- Alternative locations for ace editor -->
 <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.3.1/ace.js" type="text/javascript" charset="utf-8"></script> -->
 <!--script src="https://unpkg.com/ace-builds@1.3.1/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script-->
 
-<!-- Location scripts for EMSL Arrows API -->
+<!-- Location scripts for Tiny Arrows API -->
 <script type="text/javascript" language="javascript" src="{{ url_for('static', filename='jsme-latest/jsme.nocache.js')}}"></script>
 <script type="text/javascript" language="javascript" src="{{ url_for('static', filename='jsmol/JSmol.min.js')}}"></script>
 <script src="https://unpkg.com/ace-builds@1.4.1/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -207,7 +207,7 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
             width: 750,
             height: 500,
             debug: false,
-            //File location for EMSL Arrows API
+            //File location for Tiny Arrows API
             j2sPath: "{{ url_for('static', filename='jsmol/j2s')}}",
 
             //File location for debugging and development
@@ -221,7 +221,7 @@ background-image: linear-gradient(#FEFEFE, #F1F1F1);
             disableInitialConsole: true,
             addSelectionOptions: true,
 
-            //File location for EMSL Arrows API
+            //File location for Tiny Arrows API
             serverURL: "{{ url_for('static', filename='jsmol/jsmol.php')}}",
 
             //File location for debugging and development
@@ -2194,9 +2194,9 @@ task tce energy ignore`;
 </div-->
 
 <div class="linkbanner">
-   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
-<a href="{{ arrows_api }}periodic">3D Periodic Editor</a> &nbsp;
-   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Expert Editor</a> &nbsp;   <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
+   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/TinyArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="{{ arrows_api }}periodic">Expert Periodic and Molecular Editor</a> &nbsp;
+   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Molecular Combo Editor</a> &nbsp;   <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
 </div>
 
 	<!-- RECOMMENDED if your web app will not function without JavaScript enabled -->
@@ -2206,8 +2206,8 @@ task tce energy ignore`;
     application to display correctly.</div>
     </noscript>
 
-    <center><font color="4A9FF9" size="+2"> <p><b>EMSL Arrows Builder for Microsoft Quantum Development Kit</b></p></font></center>
-    <p align="center">  <font color="1E1C2A" size="+1"> This webpage uses EMSL Arrows to generate input (YAML file) for a configuration interaction calculation (select-CI) with the Microsoft Quantum Development Kit.</font> <font color="red" size="+1"> For instructions on how to use this webpage, please click the “Instructions” tab below.</font></p>
+    <center><font color="4A9FF9" size="+2"> <p><b>Tiny Arrows Builder for Microsoft Quantum Development Kit</b></p></font></center>
+    <p align="center">  <font color="1E1C2A" size="+1"> This webpage uses Tiny Arrows to generate input (YAML file) for a configuration interaction calculation (select-CI) with the Microsoft Quantum Development Kit.</font> <font color="red" size="+1"> For instructions on how to use this webpage, please click the “Instructions” tab below.</font></p>
 
     <p align="center"><a href="https://docs.microsoft.com/en-us/quantum/libraries/chemistry/">Learn more about the Microsoft Quantum Development Kit chemistry library.</a></p>
     <p align="center"><a href="https://www.microsoft.com/en-us/quantum/development-kit">Click here for the Microsoft Quantum Development Kit webpage</a> </p>
@@ -2220,11 +2220,11 @@ task tce energy ignore`;
                                     {{ moleculecalculations }} Molecular calculations in database to date </p></font>
         </td>
         <td>
-         <center><font color="4A9FF9" size="+2"> <p><b>EMSL Arrows Builder for Microsoft Quantum Development Kit</b></p></font></center>
-         <p align="center">  <font color="1E1C2A" size="+1"> This webpage uses EMSL Arrows to generate input (YAML file) for a configuration interaction calculation (select-CI) with the Microsoft Quantum Development Kit.</font> <font color="red" size="+1"> For instructions on how to use this webpage, please click the “Instructions” tab below.</font></p>
+         <center><font color="4A9FF9" size="+2"> <p><b>Tiny Arrows Builder for Microsoft Quantum Development Kit</b></p></font></center>
+         <p align="center">  <font color="1E1C2A" size="+1"> This webpage uses Tiny Arrows to generate input (YAML file) for a configuration interaction calculation (select-CI) with the Microsoft Quantum Development Kit.</font> <font color="red" size="+1"> For instructions on how to use this webpage, please click the “Instructions” tab below.</font></p>
           <p align="center"><a href="https://docs.microsoft.com/en-us/quantum/libraries/chemistry/">Learn more about the Microsoft Quantum Development Kit chemistry library.</a></p>
           <p align="center"><a href="https://www.microsoft.com/en-us/quantum/development-kit">Click here for the Microsoft Quantum Development Kit webpage</a> </p>
-          <p align="center"><a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Click here for the EMSL Arrows manual</a> </p>
+          <p align="center"><a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Click here for the Tiny Arrows manual</a> </p>
         </td>
        </tr>
        <tr>  <p> <a href="{{ arrows_api }}">Switch to 2D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}3dbuilder">Switch to 3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Switch to Expert Editor</a> &nbsp; </p>
@@ -2241,11 +2241,11 @@ task tce energy ignore`;
 </div>
 
 <div id="Instructions" class="tabcontent">
-<p> This webpage uses EMSL Arrows to generate a YAML file containing the 1-electron and 2-electron integrals over a user defined select-CI orbital subspace.   This YAML file is used by the Microsoft Quantum Development Kit chemistry library for quantum chemistry simulations.</p>
+<p> This webpage uses Tiny Arrows to generate a YAML file containing the 1-electron and 2-electron integrals over a user defined select-CI orbital subspace.   This YAML file is used by the Microsoft Quantum Development Kit chemistry library for quantum chemistry simulations.</p>
 
 <p>  <a href="https://docs.microsoft.com/en-us/quantum/libraries/chemistry/">Learn more about the Microsoft Quantum Development Kit chemistry library.</a></p>
 
-<p> EMSL Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications.  With this webpage, a molecule can be entered into EMSL Arrows using either an <a href="https://nwchemgit.github.io/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a> string, a 2D molecular builder, a 3D molecular builder, or as a NWChem input deck.</p>
+<p> Tiny Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications.  With this webpage, a molecule can be entered into Tiny Arrows using either an <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a> string, a 2D molecular builder, a 3D molecular builder, or as a NWChem input deck.</p>
 
 <br>
 <h2> Arrows Entry - 2D Builder tab: Steps to running an Arrows job that produces a YAML file using the 2D Builder</h2>
@@ -2256,7 +2256,7 @@ task tce energy ignore`;
 
 <h3> Arrows input box options </h3>
 
-<p>The input to the Arrows input box is a combined string, "Molecule_Input keyword1{option1} keyword2{option2} keywordN{optionN}", which is called an "extended smiles" or "<a href="https://nwchemgit.github.io/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>" for short. The Molecule_Input can be specified using a variety of formats including a SMILES string, common names, iupac, kegg numbers, cas, pubchem ids, chemspider ids, InChI strings, and xyzdata. The keyword{option} tags are used to enter different calculation types for a molecule, e.g. use pspw theory, ccsd(t), or pbe0 exchange correlation functional.</p>
+<p>The input to the Arrows input box is a combined string, "Molecule_Input keyword1{option1} keyword2{option2} keywordN{optionN}", which is called an "extended smiles" or "<a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a>" for short. The Molecule_Input can be specified using a variety of formats including a SMILES string, common names, iupac, kegg numbers, cas, pubchem ids, chemspider ids, InChI strings, and xyzdata. The keyword{option} tags are used to enter different calculation types for a molecule, e.g. use pspw theory, ccsd(t), or pbe0 exchange correlation functional.</p>
 
 <p> You can use many of the buttons under the Arrows input to enter information directly into the text box.  Here are some options: </p>
 <p> (1) Press the “Append SMILES from JSME Editor” button to populate the Arrows text box with a SMILES string defined from the structure drawn in the JSME editor to the Arrows input.</p>
@@ -2275,7 +2275,7 @@ task tce energy ignore`;
 No molecule data for esmiles = Cc1ccccc1 theory{qsharp_chem} qsharp_chem_nroots{1} qsharp_chem_filling{4 2 2}
  - molecule not found : Cc1ccccc1 theory{qsharp_chem} qsharp_chem_nroots{1} qsharp_chem_filling{4 2 2} scheduled to be submitted.
 </pre>
-<p> When this happens EMSL Arrows will automatically submit a job to one of its queues and it will likely run and finish within a couple of hours. Once the job is finished you can re-enter the <a href="https://nwchemgit.github.io/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a> to the Arrows input. </p>
+<p> When this happens Tiny Arrows will automatically submit a job to one of its queues and it will likely run and finish within a couple of hours. Once the job is finished you can re-enter the <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a> to the Arrows input. </p>
 <p> If the data to complete the request is available, a link to the YAML file will be available in the "Molecular Calculation" section.  Folllow the instructions in the "Steps to fetching file from Arrows molecular output" section below for how to download the YAML file </p>
 
 <br>
@@ -2286,7 +2286,7 @@ No molecule data for esmiles = Cc1ccccc1 theory{qsharp_chem} qsharp_chem_nroots{
 <p> To try a simple example, just press the “Simple Example” buttons under the Arrows text box.  This will place a simple qsharp_theory example in the Arrows text box.  Then click the Run Arrows” button. You will see a message “Your Arrows job is running.  Please be patient for it to finish”.  When finished, a new webpage will appear.  Scroll down to the “Molecular Calculation” section.  Click either of the “Datafiles:” links to view or download the YAML file (Folllow the instructions in the "Steps to fetching file from Arrows molecular output" section below for how to download the YAML file.).  </p>
 
 <h3> Arrows input box options </h3>
-<p>The input to the Arrows input box is a combined string, "Molecule_Input keyword1{option1} keyword2{option2} keywordN{optionN}", which is called an "extended smiles" or "<a href="https://nwchemgit.github.io/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>" for short. The Molecule_Input can be specified using a variety of formats including a SMILES string, common names, iupac, kegg numbers, cas, pubchem ids, chemspider ids, InChI strings, and xyzdata. The keyword{option} tags are used to enter different calculation types for a molecule, e.g. use pspw theory, ccsd(t), or pbe0 exchange correlation functional.</p>
+<p>The input to the Arrows input box is a combined string, "Molecule_Input keyword1{option1} keyword2{option2} keywordN{optionN}", which is called an "extended smiles" or "<a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a>" for short. The Molecule_Input can be specified using a variety of formats including a SMILES string, common names, iupac, kegg numbers, cas, pubchem ids, chemspider ids, InChI strings, and xyzdata. The keyword{option} tags are used to enter different calculation types for a molecule, e.g. use pspw theory, ccsd(t), or pbe0 exchange correlation functional.</p>
  
 <p> You can use many of the buttons under the Arrows input to enter information directly into the text box.  Here are some options: </p>
 <p> (1) Press the “Append xyzdata{} from JSMol Editor” button to populate the Arrows input box with an xyzdata string defined from the structure drawn in the JSMol editor.</p>
@@ -2306,7 +2306,7 @@ No molecule data for esmiles = Cc1ccccc1 theory{qsharp_chem} qsharp_chem_nroots{
 No molecule data for esmiles = Cc1ccccc1 theory{qsharp_chem} qsharp_chem_nroots{1} qsharp_chem_filling{4 2 2}
  - molecule not found : Cc1ccccc1 theory{qsharp_chem} qsharp_chem_nroots{1} qsharp_chem_filling{4 2 2} scheduled to be submitted.
 </pre>
-<p> When this happens EMSL Arrows will automatically submit a job to one of its queues and it will likely run and finish within a couple of hours. Once the job is finished you can re-enter the <a href="https://nwchemgit.github.io/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a> to the Arrows input. </p>
+<p> When this happens Tiny Arrows will automatically submit a job to one of its queues and it will likely run and finish within a couple of hours. Once the job is finished you can re-enter the <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a> to the Arrows input. </p>
 <p> If the data to complete the request is available, a link to the YAML file will be available in the "Molecular Calculation" section.  Folllow the instructions in the "Steps to fetching file from Arrows molecular output" section below for how to download the YAML file.</p>
 
 <br>
@@ -2363,7 +2363,7 @@ An example input deck can be loaded into the Editor by pressing the "Microsoft Q
 
     <p> For help click on the "Instructions" tab above.</p>
 
-    <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows#ESMILES_Reactions_-_How_to_Calculate_Reaction_Energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button. </h2> 
+    <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows#esmiles-reactions-how-to-calculate-reaction-energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button. </h2> 
 
 
     <form action="." name="form" method="POST">
@@ -2372,7 +2372,7 @@ An example input deck can be loaded into the Editor by pressing the "Microsoft Q
              <!--td> <input type="text" name="smi" SIZE=120> </td-->
              <td> <textarea  name="smi" rows="10" cols="100" style="font-family: sans-serif; font-size: 20px;"></textarea></td>
              <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
-             <td> <input type="button" name="JSME-arrows" value="Run Arrows" title="Submit input to EMSL Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
+             <td> <input type="button" name="JSME-arrows" value="Run Arrows" title="Submit input to Tiny Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
           </tr>
           <tr>
              <td> <INPUT TYPE="button" VALUE="Append xyzdata{} from JSMol Editor" title="Add xyzdata from JSMol to Arrows input" onClick="appendXYZ2();txspressed('qsharp_chem')"> &nbsp;
@@ -2590,7 +2590,7 @@ An example input deck can be loaded into the Editor by pressing the "Microsoft Q
 
     <p> For help click on the "Instructions" tab above.</p>
 
-    <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows#Introduction_to_ESMILES_-_How_to_Change_Calculation_Theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows#ESMILES_Reactions_-_How_to_Calculate_Reaction_Energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
+    <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows#esmiles-reactions-how-to-calculate-reaction-energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
 
 
 
@@ -2600,7 +2600,7 @@ An example input deck can be loaded into the Editor by pressing the "Microsoft Q
              <!--td> <input type="text" name="smi" SIZE=120> </td-->
              <td> <textarea  name="smi" rows="10" cols="100" style="font-family: sans-serif; font-size: 20px;"></textarea></td>
              <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
-             <td> <input type="button" name="JSME-arrows" value="Run Arrows" title="Submit input to EMSL Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
+             <td> <input type="button" name="JSME-arrows" value="Run Arrows" title="Submit input to Tiny Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form)"></td>
           </tr>
           <tr>
              <td> <INPUT TYPE="button" VALUE="Append SMILES from JSME Editor" title="Add SMILES input from 2D molecular editor to Arrows input" onClick="appendSmiles();txspressed2('qsharp_chem')"> &nbsp;
@@ -2744,7 +2744,7 @@ An example input deck can be loaded into the Editor by pressing the "Microsoft Q
      Keywords: quantum chemistry calculations - quantum chemistry computations - quantum chemistry - molecular modeling calculations - molecular modeling computations - molecular modeling - chemical modeling - chemical reactions calculations - chemical reactions computations - chemical reactions - NWChem calculations - computational chemistry - NWChem 
 
 <br><br>
-<div align="right"><font color="298DB4"> EMSL Arrows API visited {{ visits }} times </font></div>
+<div align="right"><font color="298DB4"> Tiny Arrows API visited {{ visits }} times </font></div>
 
 
 <script type="text/javascript">
