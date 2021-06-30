@@ -181,11 +181,11 @@ functional.
 The following are examples of esmiles strings:
 
 Plane-Wave DFT calculation using LDA and a cutoff energy=30.0 Ry
-```markdown
+```
 c1ccccc1 theory{pspw} xc{lda} basis{30.0 Ry}
 ```
 MP2 calculation using 6-31G\* basis set
-```markdown
+```
 CCO theory{mp2} basis{6-31G*}
 ```
 CCSD(T) calculation of ethanol
@@ -193,7 +193,7 @@ CCSD(T) calculation of ethanol
 CCO theory{ccsd(t)} basis{6-31G*}
 ```
 Mopac PM3 calculation of caffeine
-```markdown
+```
 Caffeine theory{pm3}
 ```
 Aperiodic plane-wave DFT calculation of triplet cabon tetrachloride
@@ -201,11 +201,11 @@ Aperiodic plane-wave DFT calculation of triplet cabon tetrachloride
 C(Cl)(Cl)(Cl)Cl mult{3} theory{pspw4}  
 ```
 Gas-phase M06-2x/6-31+G\* calculation of benzene
-```markdown
+```
 benzene theory{dft} xc{m06-2x} solvation_type{none}
 ```
 Equivalent ESMILES for CCSD(T)/6-31G\* calculation of methanol
-```markdown
+```
 methyl alcohol theory{ccsd(t)} basis{6-31G*}  
 kegg=D02309 theory{ccsd(t)} basis{6-31G*}  
 cas=67-56-1 theory{ccsd(t)} basis{6-31G*}  
@@ -223,7 +223,7 @@ geometry\_generation, and calculation\_type.
 
 The default theory used is theory{dft}. The following theories are
 available:
-```markdown
+```
 -       dft        -- NWChem Gaussian DFT  
 -       pspw   -- NWChem Plane-Wave DFT (periodic boundary conditions, Γ point)  
 -       pspw4 -- NWChem Plane-Wave DFT (aperiodic boundary conditions)  
