@@ -160,72 +160,9 @@ computational and experimental tools combined with materials synthesis.
 
 ### Try out EMSL Arrows by sending the following simple emails to arrows@emsl.pnnl.gov
 
-<p>Returns b3lyp/6-311++G(2d,2p) results for the cinnamon flavored molecule.  <a href="mailto:arrows@emsl.pnnl.gov?Subject=Big%20Red%20Calculation&amp;body=Just%20send%20this%20email%20to%20arrows@emsl.pnnl.gov%20and%20arrows%20will%20send%20an%20email%20back%20with%20the%20results.%0A%0AArrows::%20%0A%0Amolecule:%20Cinnamaldehyde%20:molecule%20%0A%0A::Arrows" class="external text" rel="nofollow">Click here to run this example.</a>
-</p>
-```
----------------- mailto: arrows@emsl.pnnl.gov -----------------------  
-Arrows::  
-  
-molecule: Cinnamaldehyde :molecule  
-  
-::Arrows
-```
-<p><br />
-Using MP2 to calculate the reaction energy of a hydrolysis reaction for <a href="https://s-media-cache-ak0.pinimg.com/736x/03/ca/56/03ca566a8425b37e663bf1bd81ffe61b.jpg" class="external text" rel="nofollow">TNT</a>.
-<a href="mailto:arrows@emsl.pnnl.gov?Subject=TNT%20Hydrolysis%20MP2%20Calculation&amp;body=Just%20send%20this%20email%20to%20arrows@emsl.pnnl.gov%20and%20arrows%20will%20send%20an%20email%20back%20with%20the%20results.%0A%0AArrows::%20%0A%0Areaction:%20cid=8376%20+%20hydroxide%20--%3E%20O=N%28=O%29c1cc%28O%29c%28c%28c1%29N%28=O%29=O%29C%20+%20nitrite%20~%20theory%7Bmp2%7D%20:reaction%20%0A%0A::Arrows" class="external text" rel="nofollow">Click here to run this example.</a>
-</p>
-```
----------------- mailto: arrows@emsl.pnnl.gov -----------------------  
-Arrows::  
-   
-Reaction: cid=8376 + hydroxide --> O=N(=O)c1cc(O)c(c(c1)N(=O)=O)C + nitrite ~ theory{mp2} :Reaction  
-  
-::Arrows
-```
-Examples of [isodesmic reaction](Plane-Wave-Density-Functional-Theory#nwpw-tutorial-3-using-isodesmic-reaction-energies-to-estimate-gas-phase-thermodynamics)
-<a href="mailto:arrows@emsl.pnnl.gov?Subject=isodesmic%20reactions&amp;body=Just%20send%20this%20email%20to%20arrows@emsl.pnnl.gov%20and%20arrows%20will%20send%20an%20email%20back%20with%20the%20results.%0A%0AArrows::%20%0A%0Areaction:%20TNT%20+%203%20benzene%20--%3E%20toluene%20+%203%20nitrobenzene%20~%20theory%7Bmp2%7D%20:reaction%20%0A%20reaction:%20C%28Cl%29%28Cl%29%28Cl%29O%20+%20C%20--%3E%20C%28Cl%29%28Cl%29Cl%20+%20CO%20:reaction%20%0A%20reaction:%20%20C%28Cl%29%28Cl%29%28Cl%29O%20+%20C%20--%3E%20C%28Cl%29%28Cl%29Cl%20+%20CO%20~%20xc%7Bpbe%7D%20:reaction%20%0A%20reaction:%20%20C%28Cl%29%28Cl%29%28Cl%29O%20+%20C%20--%3E%20C%28Cl%29%28Cl%29Cl%20+%20CO%20~%20theory%7Bpspw%7D%20:reaction%20%0A%0A::Arrows" class="external text" rel="nofollow">Click here to to run this example.</a>
-```
----------------- mailto: arrows@emsl.pnnl.gov -----------------------  
-Arrows::  
-  
-Reaction: TNT + 3 benzene --> toluene + 3 nitrobenzene  ~ theory{mp2} :Reaction   
-Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO :Reaction  
-Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO ~ xc{pbe} :Reaction  
-Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO ~ theory{pspw} :Reaction  
-  
-::Arrows
-```
-Examples of reaction prediction capabilities in Arrows.
-<a href="mailto:arrows@emsl.pnnl.gov?Subject=predict%20reaction%20for%20methane&amp;body=Just%20send%20this%20email%20to%20arrows@emsl.pnnl.gov%20and%20arrows%20will%20send%20an%20email%20back%20with%20the%20results.%0A%0AArrows::%20%0A%0Apredict:%202%20methane%20:predict%20%0A%20%20%0A%0A::Arrows" class="external text" rel="nofollow">Click here to to run this example.</a>
 
-```
----------------- mailto: arrows@emsl.pnnl.gov -----------------------  
-Arrows::  
-  
-Predict: 2 methane   :Predict  
-  
-::Arrows
-```
-<a href="mailto:arrows@emsl.pnnl.gov?Subject=predict%20reaction&amp;body=Just%20send%20this%20email%20to%20arrows@emsl.pnnl.gov%20and%20arrows%20will%20send%20an%20email%20back%20with%20the%20results.%0A%0AArrows::%20%0A%0Apredict:%20TNT%20+%20hydroxide%20:predict%20%0A%20%20%0A%0A::Arrows" class="external text" rel="nofollow">Click here to to run this example.</a>
 
-```
----------------- mailto: arrows@emsl.pnnl.gov -----------------------  
-Arrows::  
-  
-Predict: TNT + hydroxide   :Predict  
-  
-::Arrows
-```
-Fetch an NWChem output deck from Arrows.
-<a href="mailto:arrows@emsl.pnnl.gov?Subject=fetch%20results%20for%20caffeine&amp;body=Just%20send%20this%20email%20to%20arrows@emsl.pnnl.gov%20and%20arrows%20will%20send%20an%20email%20back%20with%20the%20results.%0A%0AArrows::%20%0A%0Anwoutput:%20caffeine%20:nwoutput%20%0A%20%20%0A%0A::Arrows" class="external text" rel="nofollow">Click here to to run this example.</a>
-```
----------------- mailto: arrows@emsl.pnnl.gov -----------------------  
-Arrows::  
-  
-nwoutput: caffeine :nwoutput  
-  
-::Arrows
-```
+
 ## Try out the following web API links (Now Available for Alpha Testing)
 
 [EMSL Arrows API v1.0](http://arrows.emsl.pnnl.gov/api/)
@@ -248,27 +185,27 @@ Plane-Wave DFT calculation using LDA and a cutoff energy=30.0 Ry
 c1ccccc1 theory{pspw} xc{lda} basis{30.0 Ry}
 ```
 MP2 calculation using 6-31G\* basis set
-```
+```markdown
 CCO theory{mp2} basis{6-31G*}
 ```
 CCSD(T) calculation of ethanol
-```
+```markdown
 CCO theory{ccsd(t)} basis{6-31G*}
 ```
 Mopac PM3 calculation of caffeine
-```
+```markdown
 Caffeine theory{pm3}
 ```
 Aperiodic plane-wave DFT calculation of triplet cabon tetrachloride
-```
+```markdown
 C(Cl)(Cl)(Cl)Cl mult{3} theory{pspw4}  
 ```
 Gas-phase M06-2x/6-31+G\* calculation of benzene
-```
+```markdown
 benzene theory{dft} xc{m06-2x} solvation_type{none}
 ```
 Equivalent ESMILES for CCSD(T)/6-31G\* calculation of methanol
-```
+```markdown
 methyl alcohol theory{ccsd(t)} basis{6-31G*}  
 kegg=D02309 theory{ccsd(t)} basis{6-31G*}  
 cas=67-56-1 theory{ccsd(t)} basis{6-31G*}  
@@ -286,7 +223,7 @@ geometry\_generation, and calculation\_type.
 
 The default theory used is theory{dft}. The following theories are
 available:
-```
+```markdown
 -       dft        -- NWChem Gaussian DFT  
 -       pspw   -- NWChem Plane-Wave DFT (periodic boundary conditions, Γ point)  
 -       pspw4 -- NWChem Plane-Wave DFT (aperiodic boundary conditions)  
