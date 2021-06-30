@@ -4,37 +4,9 @@ You can use the [editor on GitHub](https://github.com/ebylaska/TinyArrows/edit/g
 
 Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
 
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
 ### Jekyll Themes
 
 Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/ebylaska/TinyArrows/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
 
 
 
@@ -145,22 +117,16 @@ NWChem theories:
 
   - Reaction thermodynamics for molecular systems
   - Reaction paths for molecular systems
-  - UV-vis, IR, Raman spectra for molecular systems, phonon  spectra for
+  - UV-vis, IR, Raman spectra for molecular systems, phonon pectra for
     materials systems
   - NMR spectra for molecular and materials systems
   - EXAFS spectra for molecular and materials systems
-  - Energetics, structures, and band structures of crystals using the
-     Crystal Open Database (COD ) numbers
-  - A variety of datafiles can be returned including XYZ files, CIF
-     files, NWChem output files
+  - Energetics, structures, and band structures of crystals using the Crystal Open Database (COD ) numbers
+  - A variety of datafiles can be returned including XYZ files, CIF files, NWChem output files
 
 We envision that as Arrows evolves it will be part of future closed
 cycles of chemical and materials discovery that requires integrated
 computational and experimental tools combined with materials synthesis.
-
-### Try out EMSL Arrows by sending the following simple emails to arrows@emsl.pnnl.gov
-
-
 
 
 ## Try out the following web API links (Now Available for Alpha Testing)
@@ -181,9 +147,11 @@ functional.
 The following are examples of esmiles strings:
 
 Plane-Wave DFT calculation using LDA and a cutoff energy=30.0 Ry
+  
 ```
 c1ccccc1 theory{pspw} xc{lda} basis{30.0 Ry}
 ```
+
 MP2 calculation using 6-31G\* basis set
 ```
 CCO theory{mp2} basis{6-31G*}
