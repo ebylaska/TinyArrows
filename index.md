@@ -125,13 +125,13 @@ tags. An example email is as follows:
 To: arrows@emsl.pnnl.gov   
 Subject: Calculate isodesmic reactions  
   
-Arrows::   
-Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO :Reaction  
-Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO ~ theory{pspw} :Reaction  
-Reaction:                        C(Cl)(Cl)(Cl)S + C  --> C(Cl)(Cl)Cl + CS :Reaction  
-Reaction:   C(Cl)(Cl)(Cl)S + C  --> C(Cl)(Cl)Cl + CS ~ theory{pm3} :Reaction  
-Reaction: TNT + 3 benzene --> toluene + 3 nitrobenzene ~ xc{pbe} :Reaction  
-::Arrows
+ Arrows::   
+ Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO :Reaction  
+ Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO ~ theory{pspw} :Reaction  
+ Reaction:                        C(Cl)(Cl)(Cl)S + C  --> C(Cl)(Cl)Cl + CS :Reaction  
+ Reaction:   C(Cl)(Cl)(Cl)S + C  --> C(Cl)(Cl)Cl + CS ~ theory{pm3} :Reaction  
+ Reaction: TNT + 3 benzene --> toluene + 3 nitrobenzene ~ xc{pbe} :Reaction  
+ ::Arrows
 ```
 
 The results returned by EMSL Arrows are a combination of text and
@@ -244,7 +244,7 @@ functional.
 The following are examples of esmiles strings:
 
 Plane-Wave DFT calculation using LDA and a cutoff energy=30.0 Ry
-```
+```markdown
 c1ccccc1 theory{pspw} xc{lda} basis{30.0 Ry}
 ```
 MP2 calculation using 6-31G\* basis set
@@ -364,7 +364,7 @@ xc\_property and xc\_base are defined to be the same as xc{}.
 The default solvation type is solvation\_type{COSMO}. The following
 solvation types are available with the Gaussian DFT, MP2 and CCSD(T)
 programs.
-```
+```markdown
 -       COSMO            -- The COSMO solvation model of Klampt and Shuurman (solvent=water)
 
 -       COSMO-SMD           -- The extended Minnesota COSMO solvation model of Cramer et al. (solvent=water)
@@ -372,7 +372,7 @@ programs.
 -       COSMO-SMD:solvent   -- where the solvent keyword is from Table of SMD solvent names below
 
 -       None                 -- Gas-phase calculation, no solvation model included in the calculations
-```
+
 
  The available  SMD `solvent` keywords are given  below:
 
@@ -560,6 +560,7 @@ programs.
 | p-xylene    | p-xylene                        |
 | xylenemx    | xylene (mixture)                |
   
+```
 <br/><br/> 
 
 When a solvent is specified by name, the descriptors for the solvent are
