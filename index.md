@@ -372,7 +372,7 @@ programs.
 -       COSMO-SMD:solvent   -- where the solvent keyword is from Table of SMD solvent names below
 
 -       None                 -- Gas-phase calculation, no solvation model included in the calculations
-
+```
 
  The available  SMD `solvent` keywords are given  below:
 
@@ -560,8 +560,7 @@ programs.
 | p-xylene    | p-xylene                        |
 | xylenemx    | xylene (mixture)                |
   
-```
-<br/><br/> 
+
 
 When a solvent is specified by name, the descriptors for the solvent are
 based on the Minnesota Solvent Descriptor Database:
