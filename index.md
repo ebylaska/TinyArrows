@@ -192,15 +192,15 @@ geometry\_generation, and calculation\_type.
 
 The default theory used is theory{dft}. The following theories are available:
 
-  - dft     -- NWChem Gaussian DFT  
-  - pspw    -- NWChem Plane-Wave DFT (periodic boundary conditions, Γ point)  
-  - pspw4   -- NWChem Plane-Wave DFT (aperiodic boundary conditions)  
-  - mp2     -- NWChem MP2 program  
-  - ccsd(t) -- NWChem CCSD(T)  
-  - pm3     -- Mopac7 PM3  
-  - am1     -- Mopac7 AM1  
-  - mindo   -- Mopac7 MINDO  
-  - mindo3  -- Mopac7 MINDO3
+   - dft     -- NWChem Gaussian DFT  
+   - pspw    -- NWChem Plane-Wave DFT (periodic boundary conditions, Γ point)  
+   - pspw4   -- NWChem Plane-Wave DFT (aperiodic boundary conditions)  
+   - mp2     -- NWChem MP2 program  
+   - ccsd(t) -- NWChem CCSD(T)
+   - pm3     -- Mopac7 PM3  
+   - am1     -- Mopac7 AM1  
+   - mindo   -- Mopac7 MINDO  
+   - mindo3  -- Mopac7 MINDO3
 
 The theory\_property{} is an optional keyword used to specify the theory
 used in an nmr calculation, and theory\_base{} is an optional keyword
@@ -223,9 +223,12 @@ Other common basis sets can be used such as cc-pvdz, 6-311G, 3-21G,
 6-31+G\*.
 
 For plane-wave basis sets the cutoff energy can changed by just entering
-the number in Hartrees or Rydbergs
+the number in Hartrees
 ```
 CCO theory{pspw] basis{50.0} 
+```
+or Rydbergs
+```
 CCO theory{pspw} basis{100 Ry}  
 ```
 The basis\_property{} is an optional keyword used to specify the basis
@@ -240,24 +243,20 @@ Only the Gaussian and plane-wave DFT programs utilize the xc{} keyword.
 The default exchange correlation functional used is xc{b3lyp}. The
 following exchange correlation functions are available with the Gaussian
 DFT and plane-wave DFT programs.
-```
--       lda       --  local density approximation (LDA) of S.J. Vosko, L. Wilk and M. Nusair, Can. J. Phys. 58, 1200 (1980)  
-   
--       pbe      -- The gradient corrected exchange correlation function of J.P. Perdew, K. Burke and M. Ernzerhof,   
-                       Phys. Rev. Lett. 77, 3865 (1996); 78 , 1396 (1997)  
-   
--       blyp     -- The gradient corrected exchange correlation function A.D. Becke, Phys. Rev. A 88, 3098 (1988) and   
-                       C. Lee, W. Yang and R. G. Parr, Phys. Rev. B 37, 785 (1988)  
-   
--       b3lyp   -- the hybrid exchange correlation function of A.D. Becke, J. Chem. Phys. 98, 5648 (1993)    
-                       and C. Lee, W. Yang and R. G. Parr, Phys. Rev. B 37, 785 (1988)  
-   
--       pbe0     -- the hybrid exchange correlation function of C.Adamo and V.Barone, J. Chem. Phys. 110, 6158 (1999)  
-   
--       m06-2x -- the hybrid meta exchange correlation function of Y. Zhao, D. G. Truhlar, J. Chem. Phys. 125, 194101 (2006).   
-                        Only available in Gaussian DFT program
-```
 
+   - lda
+      - The local density approximation (LDA) of S.J. Vosko, L. Wilk and M. Nusair, Can. J. Phys. 58, 1200 (1980)
+   - pbe
+      - The gradient corrected exchange correlation function of J.P. Perdew, K. Burke and M. Ernzerhof, Phys. Rev. Lett. 77, 3865 (1996); 78 , 1396 (1997)
+   - blyp
+      - The gradient corrected exchange correlation function A.D. Becke, Phys. Rev. A 88, 3098 (1988) and  C. Lee, W. Yang and R. G. Parr, Phys. Rev. B 37, 785 (1988)  
+   - b3lyp
+      - The hybrid exchange correlation function of A.D. Becke, J. Chem. Phys. 98, 5648 (1993) and C. Lee, W. Yang and R. G. Parr, Phys. Rev. B 37, 785 (1988)  
+   - pbe0
+      - the hybrid exchange correlation function of C.Adamo and V.Barone, J. Chem. Phys. 110, 6158 (1999)
+   - m06-2x
+      - The hybrid meta exchange correlation function of Y. Zhao, D. G. Truhlar, J. Chem. Phys. 125, 194101 (2006). Only available in Gaussian DFT program
+   
 The xc\_property{} is an optional keyword used to specify the exchange
 correlation potential used in an nmr calculation, and xc\_base{} is an
 optional keyword used to specify the exchange correlation potential of
@@ -267,17 +266,16 @@ xc\_property and xc\_base are defined to be the same as xc{}.
 ### ESMILES Options - solvation\_type{}
 
 The default solvation type is solvation\_type{COSMO}. The following
-solvation types are available with the Gaussian DFT, MP2 and CCSD(T)
-programs.
-```markdown
--       COSMO            -- The COSMO solvation model of Klampt and Shuurman (solvent=water)
+solvation types are available with the Gaussian DFT, MP2 and CCSD(T) programs.
 
--       COSMO-SMD           -- The extended Minnesota COSMO solvation model of Cramer et al. (solvent=water)
-
--       COSMO-SMD:solvent   -- where the solvent keyword is from Table of SMD solvent names below
-
--       None                 -- Gas-phase calculation, no solvation model included in the calculations
-```
+   - COSMO
+      - The COSMO solvation model of Klampt and Shuurman (solvent=water)
+   - COSMO-SMD
+      - The extended Minnesota COSMO solvation model of Cramer et al. (solvent=water)
+   - COSMO-SMD:solvent
+      - where the solvent keyword is from Table of SMD solvent names below
+   - None
+      - Gas-phase calculation, no solvation model included in the calculations
 
  The available  SMD `solvent` keywords are given  below:
 
