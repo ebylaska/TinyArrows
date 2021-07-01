@@ -171,10 +171,15 @@ benzene theory{dft} xc{m06-2x} solvation_type{none}
 Equivalent ESMILES for CCSD(T)/6-31G\* calculation of methanol
 ```
 methyl alcohol theory{ccsd(t)} basis{6-31G*}  
+
 kegg=D02309 theory{ccsd(t)} basis{6-31G*}  
+
 cas=67-56-1 theory{ccsd(t)} basis{6-31G*}  
+
 cid=887 theory{ccsd(t)} basis{6-31G*}  
+
 csid=864 theory{ccsd(t)} basis{6-31G*}  
+
 InChI=1S/CH4O/c1-2/h2H,1H3 theory{ccsd(t)} basis{6-31G*}  
 ```  
 
@@ -185,19 +190,18 @@ geometry\_generation, and calculation\_type.
 
 ### ESMILES Options - theory{}, theory\_property{} and theory\_base{}
 
-The default theory used is theory{dft}. The following theories are
-available:
-```
--       dft        -- NWChem Gaussian DFT  
--       pspw   -- NWChem Plane-Wave DFT (periodic boundary conditions, Γ point)  
--       pspw4 -- NWChem Plane-Wave DFT (aperiodic boundary conditions)  
--       mp2      -- NWChem MP2 program  
--       ccsd(t)  -- NWChem CCSD(T)  
--       pm3      -- Mopac7 PM3  
--       am1      -- Mopac7 AM1  
--       mindo   -- Mopac7 MINDO  
--       mindo3 -- Mopac7 MINDO3
-```
+The default theory used is theory{dft}. The following theories are available:
+
+  - dft     -- NWChem Gaussian DFT  
+  - pspw    -- NWChem Plane-Wave DFT (periodic boundary conditions, Γ point)  
+  - pspw4   -- NWChem Plane-Wave DFT (aperiodic boundary conditions)  
+  - mp2     -- NWChem MP2 program  
+  - ccsd(t) -- NWChem CCSD(T)  
+  - pm3     -- Mopac7 PM3  
+  - am1     -- Mopac7 AM1  
+  - mindo   -- Mopac7 MINDO  
+  - mindo3  -- Mopac7 MINDO3
+
 The theory\_property{} is an optional keyword used to specify the theory
 used in an nmr calculation, and theory\_base{} is an optional keyword
 used to specify the theory of the base calculation for an MP2 or CCSD(T)
