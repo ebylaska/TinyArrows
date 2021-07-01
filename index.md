@@ -1,4 +1,4 @@
-# TinyArrows (A Tiny version of EMSL Arrows) -  Evolution of Chemical and Materials Computation
+# TinyArrows (A Tiny Version of EMSL Arrows) -  Evolution of Chemical and Materials Computation
 
 We would like thank the DOD SERDP program and the DOE OS OBER EMSL
 project for providing support that helped with the initial development
