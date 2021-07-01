@@ -1,16 +1,4 @@
-## Welcome to GitHub Pages
-
-You can use the [editor on GitHub](https://github.com/ebylaska/TinyArrows/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
-
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/ebylaska/TinyArrows/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-
-
-# EMSL Arrows - Evolution of Chemical and Materials Computation
+# TinyArrows (A Tiny version of EMSL Arrows) -  Evolution of Chemical and Materials Computation
 
 We would like thank the DOD SERDP program and the DOE OS OBER EMSL
 project for providing support that helped with the initial development
@@ -101,14 +89,14 @@ C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO
  ```
 
 The results returned by TinyArrows are a combination of text and
-graphical output, e.g. output generated 
-
-<p><a href="Arrowsoutputimage001.png" class="image"><img alt="Arrowsoutputimage001.png" src="Arrowsoutputimage001.png" width="488" height="218" /></a>
-</p>
-from the following input.
- ```
+graphical output, e.g. entering 
+```
  TNT + 3 benzene --> toluene + 3 nitrobenzene ~ xc{pbe} 
- ```
+```
+into TinyArrows produces the following output.
+<p><a href="Arrowsoutputimage001.png" class="image"><img alt="Arrowsoutputimage001b.png" src="Arrowsoutputimage001b.png" width="900" height="325" /></a>
+</p>
+
 
 Currently TinyArrows is designed to calculate the following for all NWChem theories:
   
@@ -152,7 +140,7 @@ MP2 calculation using 6-31G\* basis set
 CCO theory{mp2} basis{6-31G*}
 ```
 CCSD(T) calculation of ethanol
-```markdown
+```
 CCO theory{ccsd(t)} basis{6-31G*}
 ```
 Mopac PM3 calculation of caffeine
@@ -160,7 +148,7 @@ Mopac PM3 calculation of caffeine
 Caffeine theory{pm3}
 ```
 Aperiodic plane-wave DFT calculation of triplet cabon tetrachloride
-```markdown
+```
 C(Cl)(Cl)(Cl)Cl mult{3} theory{pspw4}  
 ```
 Gas-phase M06-2x/6-31+G\* calculation of benzene
