@@ -109,16 +109,12 @@ Subject: Calculate isodesmic reactions
 The results returned by EMSL Arrows are a combination of text and
 graphical output.
 
-<p><a href="Arrowsoutputimage001.png" class="image"><img alt="Arrowsoutputimage001.png" src="Arrowsoutputimage001.png" width="488" height="218" /></a>
-</p><p>
 
-Currently EMSL Arrows is designed to calculate the following for all
-NWChem theories:
-
+Currently EMSL Arrows is designed to calculate the following for all NWChem theories:
+  
   - Reaction thermodynamics for molecular systems
   - Reaction paths for molecular systems
-  - UV-vis, IR, Raman spectra for molecular systems, phonon pectra for
-    materials systems
+  - UV-vis, IR, Raman spectra for molecular systems, phonon pectra for materials systems
   - NMR spectra for molecular and materials systems
   - EXAFS spectra for molecular and materials systems
   - Energetics, structures, and band structures of crystals using the Crystal Open Database (COD ) numbers
