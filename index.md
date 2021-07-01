@@ -25,6 +25,7 @@ before installing it? EMSL Arrows scientific service can help.
 A Web API to EMSL Arrows is now available for Alpha testing.
 Click on this [link](https://arrows.emsl.pnnl.gov/api).  
 
+
 For more information contact  [Eric Bylaska (eric.bylaska@pnnl.gov)](mailto:eric.bylaska@pnnl.gov?Subject=EMSL%20Arrows%20Question)
 
 <span style="background: #82BA57; border: solid 1px #a9a9a9; padding: 8px">
@@ -98,19 +99,25 @@ into TinyArrows produces the following output.
 </p>
 
 
-Currently TinyArrows is designed to calculate the following for all NWChem theories:
+Currently TinyArrows can be used to calculate the following for all NWChem theories:
   
   - Reaction thermodynamics for molecular systems
   - Reaction paths for molecular systems
-  - UV-vis, IR, Raman spectra for molecular systems, phonon pectra for materials systems
   - NMR spectra for molecular and materials systems
-  - EXAFS spectra for molecular and materials systems
   - Energetics, structures, and band structures of crystals using the Crystal Open Database (COD ) numbers
   - A variety of datafiles can be returned including XYZ files, CIF files, NWChem output files
 
 We envision that as TinyArrows evolves it will be part of future closed cycles of chemical and materials discovery 
 that requires integrated computational and experimental tools combined with materials synthesis.
 
+## Calculations using TinyArrows
+
+### Molecule
+### Reaction
+### NMR
+### Chemical Reaction Prediction
+### Generate NWChem Input Decks
+### Search Molecular Databases
 
 ## Try out the following web API links (Now Available for Alpha Testing)
 
