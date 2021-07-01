@@ -72,45 +72,38 @@ NWChem and other molecular modeling codes is that:
     and molecular theories, and they are hesitant to learn new codes and
     new molecular simulation techniques.
 
-The goal of this project is to provide EMSL users and DOE scientists and
-engineers with an open-source computational chemistry and materials tool
-called EMSL Arrows. EMSL Arrows is a software package that combines
-NWChem, SQL and NOSQL databases, and email (in the future also social
-networks, e.g. Twitter, Tumblr) that simplifies molecular and materials
-modeling and makes these modeling capabilities easier to use and more
-accessible to many scientists and engineers.
+TinyArrows is a software package that combines NWChem, SQL and NOSQL databases, and web applications 
+that simplifies molecular and materials modeling and makes these modeling capabilities easier to use and more
+accessible to many scientists and engineers and students.  TinyArrows is very simple to use. The user just 
+enters chemical reactions into one, of serveral available web applications, and then results are posted back 
+with thermodynamic, reaction pathway (kinetic), spectroscopy, and other results.
 
-EMSL Arrows is very simple to use. The user just emails chemical
-reactions to arrows@emsl.pnnl.gov and then an email is sent back with
-thermodynamic, reaction pathway (kinetic), spectroscopy, and other
-results.
-
-EMSL Arrows parses the email and then searches the database for the
-compounds in the reactions. If a compound isn't there, an NWChem
-calculation is setup and submitted to calculate it. Once the calculation
-is finished the results are entered into the database and then results
-are emailed back. This whole process is completely automated. To enter
+TinyArrows parses the input and then searches the database for the compounds in the reactions. If a compound isn't there, an NWChem
+calculation is setup and submitted to calculate it. Once the calculation is finished the results are entered into the database and the results
+are then available to be requested. This whole process is completely automated. To enter
 different calculation types (e.g. use pspw theory, or pbe0 exchange
 correlation functional) the SMILES is appended with keyword{options}
-tags. An example email is as follows:
+tags. Examples of inputs are as follows:
 ```
-To: arrows@emsl.pnnl.gov   
-Subject: Calculate isodesmic reactions  
-  
- Arrows::   
- Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO :Reaction  
- Reaction: C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO ~ theory{pspw} :Reaction  
- Reaction:                        C(Cl)(Cl)(Cl)S + C  --> C(Cl)(Cl)Cl + CS :Reaction  
- Reaction:   C(Cl)(Cl)(Cl)S + C  --> C(Cl)(Cl)Cl + CS ~ theory{pm3} :Reaction  
- Reaction: TNT + 3 benzene --> toluene + 3 nitrobenzene ~ xc{pbe} :Reaction  
- ::Arrows
-```
+C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO 
+ ```
+ ```
+ C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO ~ theory{pspw}
+ ```
+ ```
+ C(Cl)(Cl)(Cl)S + C  --> C(Cl)(Cl)Cl + CS
+ ```
+ ```
+ C(Cl)(Cl)(Cl)S + C  --> C(Cl)(Cl)Cl + CS ~ theory{pm3}
+ ```
+ ```
+ TNT + 3 benzene --> toluene + 3 nitrobenzene ~ xc{pbe} 
+ ```
 
-The results returned by EMSL Arrows are a combination of text and
+The results returned by TinyArrows are a combination of text and
 graphical output.
 
-
-Currently EMSL Arrows is designed to calculate the following for all NWChem theories:
+Currently TinyArrows is designed to calculate the following for all NWChem theories:
   
   - Reaction thermodynamics for molecular systems
   - Reaction paths for molecular systems
@@ -120,9 +113,8 @@ Currently EMSL Arrows is designed to calculate the following for all NWChem theo
   - Energetics, structures, and band structures of crystals using the Crystal Open Database (COD ) numbers
   - A variety of datafiles can be returned including XYZ files, CIF files, NWChem output files
 
-We envision that as Arrows evolves it will be part of future closed
-cycles of chemical and materials discovery that requires integrated
-computational and experimental tools combined with materials synthesis.
+We envision that as TinyArrows evolves it will be part of future closed cycles of chemical and materials discovery 
+that requires integrated computational and experimental tools combined with materials synthesis.
 
 
 ## Try out the following web API links (Now Available for Alpha Testing)
@@ -170,16 +162,21 @@ benzene theory{dft} xc{m06-2x} solvation_type{none}
 ```
 Equivalent ESMILES for CCSD(T)/6-31G\* calculation of methanol
 ```
-methyl alcohol theory{ccsd(t)} basis{6-31G*}  
-
+methyl alcohol theory{ccsd(t)} basis{6-31G*} 
+```
+```
 kegg=D02309 theory{ccsd(t)} basis{6-31G*}  
-
+```
+```
 cas=67-56-1 theory{ccsd(t)} basis{6-31G*}  
-
+```
+```
 cid=887 theory{ccsd(t)} basis{6-31G*}  
-
+```
+```
 csid=864 theory{ccsd(t)} basis{6-31G*}  
-
+```
+```
 InChI=1S/CH4O/c1-2/h2H,1H3 theory{ccsd(t)} basis{6-31G*}  
 ```  
 
@@ -192,15 +189,59 @@ geometry\_generation, and calculation\_type.
 
 The default theory used is theory{dft}. The following theories are available:
 
-   - dft     -- NWChem Gaussian DFT  
-   - pspw    -- NWChem Plane-Wave DFT (periodic boundary conditions, Γ point)  
-   - pspw4   -- NWChem Plane-Wave DFT (aperiodic boundary conditions)  
-   - mp2     -- NWChem MP2 program  
-   - ccsd(t) -- NWChem CCSD(T)
-   - pm3     -- Mopac7 PM3  
-   - am1     -- Mopac7 AM1  
-   - mindo   -- Mopac7 MINDO  
-   - mindo3  -- Mopac7 MINDO3
+   - dft
+      - NWChem Gaussian DFT  
+   - pspw
+      - NWChem Plane-Wave DFT (periodic boundary conditions, Γ point)  
+   - pspw4
+      - NWChem Plane-Wave DFT (aperiodic boundary conditions)  
+   - mp2
+      - NWChem MP2 program  
+   - ccsd(t)
+      - NWChem CCSD(T)
+   - pm3
+      - Mopac7 PM3  
+   - am1
+      - Mopac7 AM1  
+   - mindo
+      - Mopac7 MINDO  
+   - mindo3
+      - Mopac7 MINDO3
+
+Examples of calculating the beznene molecule with different DFT theories,
+```
+benzene theory{dft}
+```
+```
+benzene theory{pspw}
+```
+```
+benzene theory{pspw4}
+```
+```
+benzene theory{pspw}
+```
+MP2 and CCSD(T) theories, 
+```
+benzene theory{mp2}
+```
+```
+benzene theory{ccsd(t)}
+```
+and the semiempirical theories.
+```
+benzene theory{pm3}
+```
+```
+benzene theory{am1}
+```
+```
+benzene theory{mindo}
+```
+```
+benzene theory{mindo3}
+```
+
 
 The theory\_property{} is an optional keyword used to specify the theory
 used in an nmr calculation, and theory\_base{} is an optional keyword
