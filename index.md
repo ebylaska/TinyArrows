@@ -112,7 +112,7 @@ that requires integrated computational and experimental tools combined with mate
 
 ## Installing TinyArrows
 
-## Calculations using TinyArrows
+## Types of Calculations Currently Available and How to Run Them
 
 ### Molecule
 ### Reaction
