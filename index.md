@@ -101,7 +101,14 @@ C(Cl)(Cl)(Cl)O + C  --> C(Cl)(Cl)Cl + CO
  ```
 
 The results returned by TinyArrows are a combination of text and
-graphical output.
+graphical output, e.g. output generated 
+
+<p><a href="Arrowsoutputimage001.png" class="image"><img alt="Arrowsoutputimage001.png" src="Arrowsoutputimage001.png" width="488" height="218" /></a>
+</p>
+from the following input.
+ ```
+ TNT + 3 benzene --> toluene + 3 nitrobenzene ~ xc{pbe} 
+ ```
 
 Currently TinyArrows is designed to calculate the following for all NWChem theories:
   
