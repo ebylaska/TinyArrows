@@ -110,6 +110,8 @@ Currently TinyArrows can be used to calculate the following for all NWChem theor
 We envision that as TinyArrows evolves it will be part of future closed cycles of chemical and materials discovery 
 that requires integrated computational and experimental tools combined with materials synthesis.
 
+## Installing TinyArrows
+
 ## Calculations using TinyArrows
 
 ### Molecule
