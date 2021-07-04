@@ -12198,16 +12198,21 @@ function check_command(str) {
    }
    return ok; }
 
+function check_float(str) {
+   return (!isNaN(parseFloat(str))); // true
+}
+
 function check_not_commandorfloat(str) {
    var ok = false;
    if (isNaN(parseFloat(str))) {
       var xstr = str.trim();
-      if  ((!check_command(xstr)) && (xstr.length>0)) {
+      if  ((!check_command(xstr)) && (!check_float(xstr)) && (xstr.length>0)) {
          ok = true;
       }
    }
    return ok;
 }
+
 
 function gencellstr(i,j) {
    return String.fromCharCode(65+j) + i.toString();
