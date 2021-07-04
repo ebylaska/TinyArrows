@@ -7201,9 +7201,21 @@ function submit_cell(cell) {
    //var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'OC(O)C(O)OC(O)C(O)O --> OC1OC(O)C(O)OC1O + O ~ theory{pspw4} parse_output{hrxn(gas)}'";
    var arrows_get_url;
    if (reaction_str.includes("-->")) {
+      reaction_str = reaction_str.replace(/#/gi,"!");
+      //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'" + reaction_str + "'";
       arrows_get_url  = "{{ arrows_api }}reaction/'" + reaction_str + "'";
+   } else if (reaction_str.includes("submitesmiles")) {
+      var tt = "parse_output{" + reaction_str.split("parse_output{")[1].split("}")[0] + "}";
+      reaction_str = reaction_str.replace(tt,"");
+      reaction_str = reaction_str.replace("submitesmiles","");
+      reaction_str = reaction_str.replace("~","");
+      reaction_str = reaction_str.replace(/#/gi,"!");
+      //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/submitesmiles/'" + reaction_str + "'";
+      arrows_get_url  = "{{ arrows_api }}submitesmiles/'" + reaction_str + "'";
    } else {
       reaction_str = reaction_str.replace("~","");
+      reaction_str = reaction_str.replace(/#/gi,"!");
+      //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/molecule/'" + reaction_str + "'";
       arrows_get_url  = "{{ arrows_api }}molecule/'" + reaction_str + "'";
    }
    document.getElementById('runmebanner4c').innerHTML= "Arrows calculation started for " + reaction_str + " at " + cell[0];
@@ -7244,6 +7256,7 @@ function check_command(str) {
            (xstr=="g(aq)") ||
            (xstr=="solvation") ||
            (xstr=="delta_solvation") ||
+           (xstr=="submitesmiles") ||
            (xstr=="homo") ||
            (xstr=="alpha_homo") ||
            (xstr=="beta_homo") ||
@@ -7412,6 +7425,7 @@ table type: <select id="tabletype">
     <option value="Lowest Occp. alpha MO (eV):alpha_lumo">Alpha LUMO Energy (eV)</option>
     <option value="Highest Occp. beta MO (eV):beta_homo">Beta HOMO Energy (eV)</option>
     <option value="Lowest Occp. beta MO (eV):beta_lumo">Beta LUMO Energy (eV)</option>
+    <option value="SubmitEsmiles:submitesmiles">SubmitEsmiles</option>
 </select>
 column theories: <input type="theoryarray" id="columntheories"  size="55" value="theory{pspw4} : xc{pbe} : xc{b3lyp} : xc{m06-2x}">
 number table rows: <input type="number" id="nrowstable" size="9" min="1" max="1000" step="1" value="5">

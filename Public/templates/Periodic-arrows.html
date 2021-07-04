@@ -13876,16 +13876,22 @@ function submit_cell(cell) {
    // parsing standard hrxn etc.
    var arrows_get_url;
    if (reaction_str.includes("-->")) {
-      arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'" + reaction_str + "'";
+      reaction_str = reaction_str.replace(/#/gi,"!");
+      //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'" + reaction_str + "'";
+      arrows_get_url  = "{{ arrows_api }}reaction/'" + reaction_str + "'";
    } else if (reaction_str.includes("submitesmiles")) {
       var tt = "parse_output{" + reaction_str.split("parse_output{")[1].split("}")[0] + "}";
       reaction_str = reaction_str.replace(tt,"");
       reaction_str = reaction_str.replace("submitesmiles","");
       reaction_str = reaction_str.replace("~","");
-      arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/submitesmiles/'" + reaction_str + "'";
+      reaction_str = reaction_str.replace(/#/gi,"!");
+      //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/submitesmiles/'" + reaction_str + "'";
+      arrows_get_url  = "{{ arrows_api }}submitesmiles/'" + reaction_str + "'";
    } else {
       reaction_str = reaction_str.replace("~","");
-      arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/molecule/'" + reaction_str + "'";
+      reaction_str = reaction_str.replace(/#/gi,"!");
+      //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/molecule/'" + reaction_str + "'";
+      arrows_get_url  = "{{ arrows_api }}molecule/'" + reaction_str + "'";
    }
    document.getElementById('runmebanner4c').innerHTML= "Arrows calculation started for " + reaction_str + " at " + cell[0];
    Text2Speech0("Arrows calculation started for cell " + cell[0]);
