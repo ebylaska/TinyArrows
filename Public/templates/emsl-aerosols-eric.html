@@ -6797,14 +6797,14 @@ function submit_spreadsheet() {
                var jj = j-1;
                var colfound = false;
                var rowfound = false;
-               while ((jj>0) && (!colfound)) {
+               while ((jj>=0) && (!colfound)) {
                   if (check_not_commandorfloat(xx[i][jj])) {
                      colfound = true;
                   } else {
                      --jj;
                   }
                }
-               while ((ii>0) && (!rowfound)) {
+               while ((ii>=0) && (!rowfound)) {
                   if (check_not_commandorfloat(xx[ii][j])) {
                      rowfound = true;
                   } else {
