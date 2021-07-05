@@ -1,0 +1,13 @@
+comments: This script efines the job parameters :comments
+
+default_args: machine myaccount 32 6:01:00 secretcode myqueue_name :default_args
+
+
+Set text machine $arg1;
+Set text queue_account $arg2;
+Set number queue_ncpus $arg3;
+Set text queue_time $arg4;
+Set text queue_secret_code $arg5;
+Set text queue_name $arg6;
+Reset text queue_wait_label;
+

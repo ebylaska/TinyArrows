@@ -1,0 +1,31 @@
+comments: This script defines the input for a WHAM AIMD/MM simulation :comments
+
+default_args: "2,4-dinitroanisole + hydroxide --> DNAN-3-OH-" finegrid-pbe-DNAN-3-OH- erichome:/Projects/SERDP/WHAM-NEW3 7.5 0.10 10.0 1000 pbe :default_args
+
+Delete all models;
+Set text reaction_genhash00 $arg1;
+Set text queue_nwchem_projectname $arg2;
+Set number umbrella_spring $arg5;
+Set number umbrella_gamma $arg4;
+Set text xc_type $arg8;
+
+Set text queue_nwchem_jobname wham-rxn;
+Set text queue_nwchem_curdir0 $arg3;
+
+Set radio wham_posteriori true;
+
+Build reactants from chemical reactions;
+Turn off unit cell;
+Generate chemical reaction hash;
+Search reaction constraints using reaction hash;
+Generate wham model;
+Generate solvated wham input 1.0;
+
+Car-Parrinello
+     temperature{300.0} 
+     fake_mass{750.0} 
+     time_step{5.0} 
+      iloop{10} oloop{$arg7} 
+      stime0{$arg6}
+      motion_name{tequil};
+
