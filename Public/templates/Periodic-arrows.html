@@ -11441,7 +11441,7 @@ ul, li {
     <table>
        <tr>
          <td>curdir0:</td>
-         <td> <input type="text" name="Label" id="queue_nwchem_curdir0" size=145 value="erichome:/Projects/SERDP"> </td>
+         <td> <input type="text" name="Label" id="queue_nwchem_curdir0" size=145 value="mymachine:/Projects/Simulations"> </td>
        </tr>
        <tr>
           <td>permdir: </td> 
@@ -14674,7 +14674,7 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,max
       console.log("i=",i," rxn=",rxn);
       if ((parseFloat(rxn['energies'][it]) < max_energy) || show_bad_reactions) {
         var str   =  rxn['reaction'];
-        var rlink = "https://arrows.emsl.pnnl.gov/api/reaction/" + "\"" + str + "\"";
+        var rlink = "{{ arrows_api }}reaction/" + "\"" + str + "\"";
         document.getElementById("predictor_reactions").innerHTML += str.link(rlink) + "<br>";
 
          console.log("i=",i," in parsFloat",parseFloat(rxn['energies'][it]));
@@ -14689,14 +14689,14 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,max
             element.value += prespace + "    Reaction included!" + "\n";
             for (var j=0; j<rxn['metabolites'].length; ++j) {
                var mm = rxn['metabolites'][j];
-               var rlink2 = "https://arrows.emsl.pnnl.gov/api/molecule/" + "\"" + mm + "\"";
+               var rlink2 = "{{ arrows_api }}/molecule/" + "\"" + mm + "\"";
                var rlink2b = "javascript:jmsmiles0(" + "\'" + mm.split(/[ ,]+/)[0] + "\'" + ");" ;
                document.getElementById("predictor_metabolites").innerHTML += mm.link(rlink2) + " " + "(jsmol)".link(rlink2b) + "<br>";
             //   Analyze_reactants(nr,prespace,mm,reactant,max_energy,max_level,show_bad_reactions,element)
             }
             for (var j=0; j<rxn['new_reactants'].length; ++j) {
                var mm = rxn['new_reactants'][j];
-               var rlink2 = "https://arrows.emsl.pnnl.gov/api/molecule/" + "\"" + mm + "\"";
+               var rlink2 = "{{ arrows_api }}molecule/" + "\"" + mm + "\"";
                var rlink2b = "javascript:jmsmiles0(" + "\'" + mm.split(/[ ,]+/)[0] + "\'" + ");" ;
                document.getElementById("predictor_metabolites").innerHTML += mm.link(rlink2) + " " + "(jsmol)".link(rlink2b) + "<br>";
             }
@@ -14710,7 +14710,7 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,max
 //##### fetch_reactants #######
 function fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,max_level,show_bad_reactions,element) {
    console.log("start fetch_reactants, reactants_str=" + reactants_str);
-   var reaction_url = "https://arrows.emsl.pnnl.gov/api/reaction/";
+   var reaction_url = "{{ arrows_api }}reaction/";
    //if (reactants_str in window.dummy_dict) {
    //   nr.push(window.dummy_dict[reactants_str]);
    //   nr.push(rr);
