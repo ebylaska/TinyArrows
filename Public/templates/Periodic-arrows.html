@@ -13654,10 +13654,10 @@ myspreadsheet = jexcel(document.getElementById('jspreadsheet'), {
     toolbar:[
         { type:'i', content:'undo', onclick:function() { myspreadsheet.undo(); } },
         { type:'i', content:'redo', onclick:function() { myspreadsheet.redo(); } },
-        { type:'i', content:'save', onclick:function () { savecsvfile(); } },
-        { type:'i', content:'insert_drive_file', onclick:function () { loadcsvfile(); } },
-        { type:'i', content:'mood', onclick:function () { addjsmesmiles(); } },
-        { type:'i', content:'looks', onclick:function () {pushesmilesjsmol();}},
+        { type:'i', content:'download_for_offline', onclick:function () { savecsvfile(); } },
+        { type:'i', content:'upload_file', onclick:function () { loadcsvfile(); } },
+        { type:'i', content:'sentiment_satisfied_alt', onclick:function () { addjsmesmiles(); } },
+        { type:'i', content:'3d_rotation', onclick:function () {pushesmilesjsmol();}},
         { type:'i', content:'table_chart', onclick:function () {addtable_spreadsheet();}},
         { type:'i', content:'filter_2', onclick:function () { setprecision(); } },
         { type:'select', k:'font-family', v:['Arial','Verdana'] },
@@ -13895,6 +13895,7 @@ function submit_cell(cell) {
    }
    document.getElementById('runmebanner4c').innerHTML= "Arrows calculation started for " + reaction_str + " at " + cell[0];
    Text2Speech0("Arrows calculation started for cell " + cell[0]);
+   console.log("Running Web API ", arrows_get_url);
 
    var ajax = new XMLHttpRequest();
    ajax.open('GET', arrows_get_url, true);
