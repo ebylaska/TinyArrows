@@ -3540,24 +3540,6 @@ def arrows_aerosol_draw_post():
     text =  " ".join(text.split())
     return parsing_text(text)
 
-@app.route('/api/aerosol-eric')
-def arrows_aerosol_eric_draw_form():
-   increment_apivisited()
-   calcs = arrowsjobsrun()
-   molcalcs = calculationscount()
-   avisits = apivisited()
-   return render_template("emsl-aerosols-eric.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
-
-@app.route('/api/aerosol-eric', methods=['POST'])
-def arrows_aerosol_eric_draw_post():
-    text = request.form['smi']
-    text = text.replace("\"","")
-    text =  " ".join(text.split())
-    return parsing_text(text)
-
-
-
-
 
 
 
