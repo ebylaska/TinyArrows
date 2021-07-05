@@ -441,6 +441,12 @@ ul, li {
 
    function start_Thomas_command(txt0) {
       console.log("\nstart_Thomas_command:",txt0.trim());
+
+      if (txt0.includes("comments:") && txt0.includes(":comments")) {
+         let comment_txt0 = txt0.split("comments:")[1].split(":comments")[0];
+         txt0 = txt0.replace("comments:"+comment_txt0+":comments","");
+      }
+
       var txt = txt0.toLowerCase();
       if (txt.includes("switch") && txt.includes("3d") && txt.includes("builder")) {
           openCity(event, 'Arrows Periodic 3D Builder');
@@ -586,17 +592,25 @@ ul, li {
          let parse_txt = txt0;
          if (txt.includes("run script")) { parse_txt = parse_txt.split("run script")[1]; }
 
-         let program_args         = parse_txt.trim().split(/\s+/);
+         //let program_args         = parse_txt.trim().split(/\s+/);
+         let program_args         = splitargs(parse_txt.trim());
+
          let program_args_default = [];
          if (program_args.length>0) {
             let prog_name = document.getElementById("arrowsprogramurl").value.trim() + "/"+ program_args[0].trim();
             let prog = loadurldata(prog_name);
 
+            if (prog.includes("comments:") && prog.includes(":comments")) {
+               let comment_txt0 = prog.split("comments:")[1].split(":comments")[0];
+               prog = prog.replace("comments:"+comment_txt0+":comments","");
+            }
+
             if (prog.includes("default_args:") && prog.includes(":default_args")) {
                let program_args_txt0 = prog.split("default_args:")[1].split(":default_args")[0];
                prog = prog.replace("default_args:"+program_args_txt0+":default_args","");
                program_args_txt0    = program_args[0] + " " + program_args_txt0;
-               program_args_default = program_args_txt0.trim().split(/\s+/);
+               //program_args_default = program_args_txt0.trim().split(/\s+/);
+               program_args_default = splitargs(program_args_txt0.trim());
             }
             //console.log("program_args        :", program_args);
             //console.log("program_args_default:", program_args_default);
@@ -893,6 +907,25 @@ ul, li {
          finish_Thomas_command("Thomas no command");
       }
    }
+
+   function splitargs(myString) {
+      var myRegexp = /[^\s"]+|"([^"]*)"/gi;
+      var myArray = [];
+
+      do {
+         //Each call to exec returns the next regex match as an array
+         var match = myRegexp.exec(myString);
+         if (match != null)
+         {
+             //Index 1 in the array is the captured group if it exists
+             //Index 0 is the matched text, which we use if no captured group exists
+             myArray.push(match[1] ? match[1] : match[0]);
+         }
+      } while (match != null);
+
+      return myArray;
+   }
+
 
 
    function clearfinalTranscript() {
@@ -4697,13 +4730,6 @@ ul, li {
            var qtime   = document.getElementById("queue_time").value;
            var ncpus   = document.getElementById("queue_ncpus").value;
            var account = document.getElementById("queue_account").value;
-           if (account.length<2) {
-              if (machine.contains("cascade")) {
-                 account = "emslc51527";
-              } else if (machine.contains("constance")) {
-                 account = "br20_bylaska";
-              }
-           }
 
            //ncpus   = prompt("Please enter number cpus:", ncpus);
            var tmp = textFromUrl.split("simulation_cell")[1].split("end")[0].trim();
@@ -8379,6 +8405,53 @@ ul, li {
         }
 
 
+        // ****************************
+        // *                          *
+        // *       gen_whamdata       *
+        // *                          *
+        // ****************************
+        function gen_whamdata(tdata,ion_motion) {
+
+           var data  = "";
+
+           if (tdata.includes("bondings")                        &&
+               tdata.includes("nonfragment")                     &&
+               tdata.includes("### Adding reaction ###")         &&
+               document.getElementById("wham_posteriori").checked)   {
+
+              var bondings = "bondings " + tdata.split("bondings")[1].split("\n")[0].trim();
+
+              var rgamma   = parseFloat(document.getElementById("umbrella_gamma").value).toFixed(2);
+              var rkappa   = parseFloat(document.getElementById("umbrella_spring").value);
+
+              var projectname = document.getElementById("queue_nwchem_projectname").value.trim();
+              if (projectname.contains("myproject")) {
+                 projectname = prompt("Please enter projectname:", projectname);
+              }
+              var mformula = tdata.split("#mformula = ")[1].split("\n")[0].trim();
+              var jobname  = mformula+"-wham" + rgamma;
+
+              var curdir0 = document.getElementById("queue_nwchem_curdir0").value;
+              var curdir  = curdir0 + "/"+projectname+"/"+jobname
+
+              var winp        = curdir0 + "/"+projectname+"/" + mformula+"-wham.winp";
+              var wbias       = curdir0 + "/"+projectname+"/" + mformula+"-wham.bias_simulations";
+              var warchive    = curdir0 + "/"+projectname+"/" + mformula+"-wham.warchive";
+              var wion_motion = curdir  + "/" + ion_motion;
+
+              data += "\n";
+              data += "################### Posteriori WHAM Analysis ###################\n";
+              data += "#posteriori_add_window_wham  \n";
+              data += "#    " + winp        + "\n";
+              data += "#    " + wbias       + "\n";
+              data += "#    " + warchive    + "\n";
+              data += "#    " + wion_motion + "\n";
+              data += "#    " + bondings    + "\n";
+              data += "#end_posteriori_add_window_wham\n\n"
+           }
+
+           return data;
+        }
 
 
 
@@ -8570,6 +8643,8 @@ ul, li {
            var fei_filename = tequil + ".fei";
            var data  = editor.getValue(); // or session.getValue
 
+           var whamdata = gen_whamdata(data,ion_motion_filename);
+
            data += "\n\n";
            data += "### restart here ###\n";
            data += header;
@@ -8592,6 +8667,7 @@ ul, li {
               data += "task " + pspw + " car-parrinello\n";
               if (i<(nsteps-1)) {
                  data += "\n### restart here ###\n";
+                 data += whamdata
                  if (feff9) { data += header; }
               }
            }
@@ -10005,7 +10081,6 @@ ul, li {
                  console.log(" atoms=",atom);
                  if (bondings.contains("spring  bondings K gamma")) {
                     var index1 = bondings.split("spring  bondings K gamma")[1].split("\n")[0].trim().split(/[ ,]+/);
-                    console.log("HERC, index1=",index1);
                     var nb = index1.length/3;
                     var z,r,i,ii,jj,x1,y1,z1,r1;
                     z = 0.0;
@@ -11339,7 +11414,7 @@ ul, li {
     <input type="text" name="Label" id="queue_nwchem_label" size=45> 
     QWAIT:: <input type="text" name="Label" id="queue_wait_label">
     &nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="https://arrows.emsl.pnnl.gov/api/queue_nwchem_check/nwchem">Check submited jobs</a>
+    <a href="{{ arrows_api }}queue_nwchem_check/nwchem">Check submited jobs</a>
     <br>
     <section class="marquee" style="color: red"> <b id="runmebanner3"> </b> </section>
     <section class="marquee" style="color: black"> <b id="runmebanner3b"> </b> </section>
@@ -12152,6 +12227,7 @@ ul, li {
                    WHAM_gamma{<input type="number" id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10">}
                    <input type="button" VALUE="Generate WHAM model" onClick="gen_wham_model(dummy_callback)" title="Generate a new xyz model by morphing 3 point reaction path"/>
                    <input type="button" value="Generate solvated WHAM input" onClick="solvatewhaminput(-1.0,dummy_callback);" title="Load next xyz model into jsmol"/>
+                   posteriori analysis: <input type="radio" id="wham_posteriori" onClick="ClearRd(this,6)" title="Generate posteriori WHAM DATA block"/>
 
                  </form>
                </div>
@@ -12602,7 +12678,7 @@ ul, li {
     <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows#esmiles-reactions-how-to-calculate-reaction-energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
 
 
-    <form action="https://arrows.emsl.pnnl.gov/api/" id="JSMol-arrows-form" name="form" target="iframe_output" method="POST">
+    <form action="{{ arrows_api }}" id="JSMol-arrows-form" name="form" target="iframe_output" method="POST">
        <table>
           <tr>
              <!--td> <input type="text" name="smi" SIZE=120> </td-->
@@ -12965,7 +13041,7 @@ ul, li {
 
 
    <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows#esmiles-reactions-how-to-calculate-reaction-energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
-    <form action="https://arrows.emsl.pnnl.gov/api/" id="JSME-arrows-form" name="form2" target="iframe_output"  method="POST">
+    <form action="{{ arrows_api }}" id="JSME-arrows-form" name="form2" target="iframe_output"  method="POST">
        <table>
           <tr>
              <td> <input type="text" name="smi" SIZE=100 

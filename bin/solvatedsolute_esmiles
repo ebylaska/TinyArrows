@@ -9,7 +9,7 @@ Shrake, A., and J. A. Rupley. "Environment and Exposure to Solvent
 of Protein Atoms. Lysozyme and Insulin." JMB (1973) 79:351-371.
 """
 
-import math,random,operator
+import os,math,random,operator
 
 ############## machine parameters #########################
 ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
