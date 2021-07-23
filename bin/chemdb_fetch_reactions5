@@ -79,28 +79,28 @@ ih = random.randint(1,3)
 if (ih==1): ih=0
 
 ArrowsHeader0 = '''
-   <center> <font color="74A52B" size="+2"> <p><b>Results from an EMSL Arrows Calculation</b></p></font></center>
+   <center> <font color="74A52B" size="+2"> <p><b>Results from an Tiny Arrows Calculation</b></p></font></center>
    <table><tr>
-   <td> <center> <font color="298DB4"><p>EMSL Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email. </p></font></center>
+   <td> <center> <font color="298DB4"><p>Tiny Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email. </p></font></center>
    </td></tr></table>
    <font color="E8613B"><p> Molecular modeling software has previously been extremely complex, making it prohibative to all but experts in the field, yet even experts can struggle to perform calculations.  This service is designed to be used by experts and non-experts alike.  Experts can carry out and keep track of large numbers of complex calculations with diverse levels of theories present in their workflows.  Additionally, due to a streamlined and easy-to-use input, non-experts can carry out a wide variety of molecular modeling calculations previously not accessible to them.</p></font>
 ''' 
 
 ArrowsHeader = '''
-   <center> <font color="74A52B" size="+2"> <p><b>Results from an EMSL Arrows Calculation</b></p></font></center>
+   <center> <font color="74A52B" size="+2"> <p><b>Results from an Tiny Arrows Calculation</b></p></font></center>
    <table><tr>
    <td> %s </td>
-   <td> <center> <font color="298DB4"><p>EMSL Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email. </p></font></center>
+   <td> <center> <font color="298DB4"><p>Tiny Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email. </p></font></center>
    </td></tr></table>
    <font color="E8613B"><p> Molecular modeling software has previously been extremely complex, making it prohibative to all but experts in the field, yet even experts can struggle to perform calculations.  This service is designed to be used by experts and non-experts alike.  Experts can carry out and keep track of large numbers of complex calculations with diverse levels of theories present in their workflows.  Additionally, due to a streamlined and easy-to-use input, non-experts can carry out a wide variety of molecular modeling calculations previously not accessible to them.</p></font>
    %s
-''' % (headerfigure[4],'<a href="' + ARROWS_API_HOME + '/">Link back to EMSL Arrows API</a>')
+''' % (headerfigure[4],'<a href="' + ARROWS_API_HOME + '/">Link back to Tiny Arrows API</a>')
 
 ArrowsHeader_QDK = '''
-   <center> <font color="4A9FF9" size="+2"> <p><b>Results from an EMSL Arrows MQDK Calculation</b></p></font></center>
+   <center> <font color="4A9FF9" size="+2"> <p><b>Results from an Tiny Arrows MQDK Calculation</b></p></font></center>
    <table><tr>
    <td> %s </td>
-   <td> <center> <font color="298DB4"><p>EMSL Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email. </p></font></center>
+   <td> <center> <font color="298DB4"><p>Tiny Arrows is a revolutionary approach to materials and chemical simulations that uses NWChem and chemical computational databases to make materials and chemical modeling accessible via a broad spectrum of digital communications including posts to web APIs, social networks, and traditional email. </p></font></center>
    </td></tr></table>
    <font color="E8613B"><p>  This webpage contains a link to a (Microsoft Quantum Development Kit) YAML file, which has in it the 1-electron and 2-electron integrals over the requested select-CI orbital subspace. To fetch the YAML file scroll down the the "Molecular Calculation" section in the output and then in the "Datafiles:" subsection click on the (download) link next to the YAML file. </p></font>
    %s
@@ -118,7 +118,7 @@ with open(arrowslogosvg,'r') as f: alogosvg += f.read()
 alogosvg += '''
 
 <br>
-<a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">More information about EMSL Arrows</a>
+<a href="http://www.nwchem-sw.org/index.php/Tiny_Arrows#">More information about Tiny Arrows</a>
 <br>
 <br>
 <pre style=\"font-size:1.0em;color:darkgreen\">
@@ -193,7 +193,7 @@ KEYWORDs -
 
 alogo = '''
 <br>
-<a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">More information about EMSL Arrows</a>
+<a href="http://www.nwchem-sw.org/index.php/Tiny_Arrows#">More information about Tiny Arrows</a>
 <br>
 <br>
 </pre> <pre style=\"font-size:1.0em;color:darkgreen\">
@@ -208,7 +208,7 @@ alogo = '''
  Q h                                         @          `W          
  Q   ",                                      @            `k,       
  Q     `g      [Thermodynamics and Kinetics] @               RQ     
- h       `v..................................@     EMSL        KQ   
+ h       `v..................................@     Tiny        KQ   
 `k````````x``````````````````````````````````@```````````````````R  
  [      m        [  of Molecules and Solids] @    Arrows      ,#    
  [    4.                                     @              ,R      
@@ -292,7 +292,7 @@ KEYWORDs -
 alogowww = '''
 </pre>
 <br>
-<a href="%s">Link to EMSL Arrows API</a>
+<a href="%s">Link to Tiny Arrows API</a>
 <br>
 <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">More information about EMSL Arrows</a>
 <br>
