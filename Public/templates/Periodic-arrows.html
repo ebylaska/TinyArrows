@@ -3720,6 +3720,412 @@ ul, li {
         }
 
 
+        // ****************************
+        // *                          *
+        // *         newgenbulk       *
+        // *                          *
+        // ****************************
+        /*  Generate bulk crystal structures
+
+           a: Lattice constant.
+           b: Lattice constant. 
+           c: Lattice constant.
+           alpha: Angle in degrees for rhombohedral lattice. for mcl this value is used as beta
+           covera: c/a ratio used for hcp.  Default is ideal ratio: sqrt(8/3).
+           u: Internal coordinate for Wurtzite structure.
+           bt: crystal type  - sc, fcc, bcc, tetragonal, bct, hcp, rhombohedral, orthorhombic, mlc, diamond, zincblende, rocksalt, cesiumchloride, fluorite or wurtzite.
+           bn: chemical symbol names
+           bp: if true, construct primitive cell, otherwize orthorhomiccell
+           bc: if true, construct cubic unit cell if possible.
+        */
+        function newgenbulk(a,b,c,covera,alpha,u,bt,bn,bp,bc) {
+           var lattice,xyzdat;
+
+           //Simple Cube or Cesium Chloride
+           if ((bt=="sc")||(bt=="cesiumchloride")) {
+              var aa2 = a/2.0;
+              lattice = abcabg_to_lattice(a,a,a,90.0,90.0,90.0);
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              if (ss.length>1) { s2 = ss[1]; }
+              if (bt=="sc") {
+                 xyzdat = "1\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+              } else {
+                 xyzdat = "2\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + aa2.toFixed(6) + " " + aa2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+              }
+           }
+
+           //fcc,diamond,zincblende,rocksalt and primitive and not cubic  or fluorite
+           if ((((bt=="fcc")||(bt=="diamond")||(bt=="zincblende")||(bt=="rocksalt"))&&(bp)&&(!bc))||(bt=="fluorite")) {
+              var aa = a/2.0;
+              var zz = 0.0;
+              var a1 = aa.toFixed(6) + " " + aa.toFixed(6) + " " + zz.toFixed(6);
+              var a2 = aa.toFixed(6) + " " + zz.toFixed(6) + " " + aa.toFixed(6);
+              var a3 = zz.toFixed(6) + " " + aa.toFixed(6) + " " + aa.toFixed(6);
+              lattice = a1a2a3_to_lattice(string3_to_vec3(a1),string3_to_vec3(a2),string3_to_vec3(a3));
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              if (ss.length>1) { s2 = ss[1]; }
+              var s3 = s2;
+              if (ss.length>2) { s3 = ss[2]; }
+              if (bt=="fcc") {
+                 xyzdat = "1\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+              } else if ((bt=="zincblende") || (bt=="diamond")|| (bt=="rocksalt")) {
+                 if (bt=="rocksalt") {
+                    var aa2 = a/2.0;
+                    xyzdat = "2\n\n";
+                    xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                    xyzdat += s2.trim() + " " + aa2.toFixed(6) + " 0.0 0.0\n";
+                 } else {
+                    var aa4 = a/4.0;
+                    xyzdat = "2\n\n";
+                    xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                    xyzdat += s2.trim() + " " + aa4.toFixed(6) + " " + aa4.toFixed(6) + " " + aa4.toFixed(6) + "\n";
+                 }
+              } else {
+                 var aa4 = a/4.0;
+                 var aa34 = 3.0*a/4.0;
+                 xyzdat = "3\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + aa4.toFixed(6) + " " + aa4.toFixed(6) + " " + aa4.toFixed(6) + "\n";
+                 xyzdat += s3.trim() + " " + aa34.toFixed(6) + " " + aa34.toFixed(6) + " " + aa34.toFixed(6) + "\n";
+                 console.log("a1=",a1);
+                 console.log("a2=",a2);
+                 console.log("a3=",a3);
+              }
+           }
+
+           //fcc,diamond,zincblende,rocksalt and  orthorhombic and not cubic
+           if (((bt=="fcc")||(bt=="diamond")||(bt=="zincblende")||(bt=="rocksalt"))  && (!bp) && (!bc)) {
+              var bb = a/Math.sqrt(2.0);
+              var aa2 = a/2.0;
+              var aa4 = a/4.0;
+              var aa34 = 3*a/4.0;
+              var bb2 = bb/2.0;
+              var zz = 0.0;
+              lattice = abcabg_to_lattice(bb,bb,a,a,90.0,90.0,90.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              if (ss.length>1) { s2 = ss[1]; }
+              if (bt=="fcc") {
+                 xyzdat = "2\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + bb2.toFixed(6) + " " +  bb2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+              } else if ((bt=="diamond")||(bt=="zincblende")) {
+                 xyzdat = "4\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + bb2.toFixed(6) + " " +  zz.toFixed(6) + " " + aa4.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " " + bb2.toFixed(6) + " " +  bb2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + zz.toFixed(6) + " " +  bb2.toFixed(6) + " " + aa34.toFixed(6) + "\n";
+              } else {
+                 xyzdat = "4\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + bb2.toFixed(6) + " " +  bb2.toFixed(6) + " " + zz.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " " + bb2.toFixed(6) + " " +  bb2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + zz.toFixed(6) + " " +  zz.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+              }
+           }
+
+           //fcc,diamond,zincblende,rocksalt and cubic
+           if (((bt=="fcc")||(bt=="diamond")||(bt=="zincblende")||(bt=="rocksalt")) && bc) {
+              var aa2 = a/2.0;
+              var aa4 = a/4.0;
+              var aa34 = 3*a/4.0;
+              var zz = 0.0;
+              lattice = abcabg_to_lattice(a,a,a,90.0,90.0,90.0);
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              if (ss.length>1) { s2 = ss[1]; }
+              if (bt=="fcc") {
+                 xyzdat = "4\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " 0.0 " + aa2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + aa2.toFixed(6) + " 0.0 " + aa2.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + aa2.toFixed(6) + " " + aa2.toFixed(6) + " 0.0\n";
+              } else if ((bt=="diamond")||(bt=="zincblende")) {
+                 xyzdat = "8\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + aa4.toFixed(6) + " " + aa4.toFixed(6) + " " + aa4.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " 0.0 " + aa2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + aa4.toFixed(6) + " " + aa34.toFixed(6) + " " + aa34.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " " + aa2.toFixed(6) + " 0.0 " + aa2.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + aa34.toFixed(6) + " " + aa4.toFixed(6) + " " + aa34.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " " + aa2.toFixed(6) + " " + aa2.toFixed(6) + " 0.0\n";
+                 xyzdat += s2.trim() + " " + aa34.toFixed(6) + " " + aa34.toFixed(6) + " " + aa4.toFixed(6) + "\n";
+              } else {
+                 xyzdat = "8\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + aa2.toFixed(6) + " " + zz.toFixed(6) + " " + zz.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " 0.0 " + aa2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + aa2.toFixed(6) + " " + aa2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " " + aa2.toFixed(6) + " 0.0 " + aa2.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + zz.toFixed(6) + " " + zz.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " " + aa2.toFixed(6) + " " + aa2.toFixed(6) + " 0.0\n";
+                 xyzdat += s2.trim() + " " + zz.toFixed(6) + " " + aa2.toFixed(6) + " " + zz.toFixed(6) + "\n";
+              }
+           }
+
+           //bcc  and primitive and not cubic
+           if ((bt=="bcc") && (bp) && (!bc)) {
+              var aa = a/2.0;
+              var maa = -aa;
+              var a1 = maa.toFixed(6) + " " + aa.toFixed(6) + " " + aa.toFixed(6);
+              var a2 = aa.toFixed(6) + " " + maa.toFixed(6) + " " + aa.toFixed(6);
+              var a3 = aa.toFixed(6) + " " + aa.toFixed(6) + " " + maa.toFixed(6);
+              lattice = a1a2a3_to_lattice(string3_to_vec3(a1),string3_to_vec3(a2),string3_to_vec3(a3));
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              if (ss.length>1) { s2 = ss[1]; }
+              xyzdat = "1\n\n";
+              xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+           }
+
+           //bcc and not primitive and cubic
+           if ((bt=="bcc") && ((!bp) || bc)) {
+              var aa2 = a/2.0;
+              lattice = abcabg_to_lattice(a,a,a,90.0,90.0,90.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              if (ss.length>1) { s2 = ss[1]; }
+              xyzdat = "2\n\n";
+              xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+              xyzdat += s2.trim() + " " + aa2.toFixed(6) + " " +  aa2.toFixed(6) + " " + aa2.toFixed(6) + "\n";
+           }
+
+           //hcp,wurtzite and primitive
+           if (((bt=="hcp")||(bt=="wurtzite")) && (bp)) {
+              var maa = -a/2.0;
+              var zz = 0.0;
+              var ca = Math.sqrt(8.0/3.0)
+              if (c>1.0e-3) {
+                 ca = a/c;
+              }
+              var aa32 = a*Math.sqrt(3)/2.0;
+              var caa = ca*a;
+
+              var a1 = a.toFixed(6)   + " " + zz.toFixed(6)   + " " + zz.toFixed(6);
+              var a2 = maa.toFixed(6) + " " + aa32.toFixed(6) + " " + zz.toFixed(6);
+              var a3 = zz.toFixed(6) + " " + zz.toFixed(6)    + " " + caa.toFixed(6);
+              lattice = a1a2a3_to_lattice(string3_to_vec3(a1),string3_to_vec3(a2),string3_to_vec3(a3));
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              if (ss.length>1) { s2 = ss[1]; }
+              if (bt=="hcp") {
+                 var x = 0.0;
+                 var y = a * Math.sqrt(3.0)/3.0;
+                 var z = caa/2.0;
+                 xyzdat = "2\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+              } else {
+                 if (u<1.0e-3) { u = 0.25 + (1.0/3.0)/(ca*ca); }
+                 xyzdat = "4\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 var x = 1.0/3.0*a  + 2.0/3.0*maa  + (0.5-u)*zz;
+                 var y = 1.0/3.0*zz + 2.0/3.0*aa32 + (0.5-u)*zz;
+                 var z = 1.0/3.0*zz + 2.0/3.0*zz   + (0.5-u)*caa;
+                 xyzdat += s2.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+                 x = 1.0/3.0*a  + 2.0/3.0*maa  + (0.5)*zz;
+                 y = 1.0/3.0*zz + 2.0/3.0*aa32 + (0.5)*zz;
+                 z = 1.0/3.0*zz + 2.0/3.0*zz   + (0.5)*caa;
+                 xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+                 x = 0.0*a  + 0.0*maa  + (1.0-u)*zz;
+                 y = 0.0*zz + 0.0*aa32 + (1.0-u)*zz;
+                 z = 0.0*zz + 0.0*zz   + (1.0-u)*caa;
+                 xyzdat += s2.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+              }
+           }
+
+           //hcp,wurtzite and not primitive
+           if (((bt=="hcp")||(bt=="wurtzite")) && (!bp)) {
+              var zz = 0.0;
+              var ca = Math.sqrt(8.0/3.0)
+              if (c>1.0e-3) {
+                 ca = a/c;
+              }
+              var aa2  = a/2.0;
+              var aa32  = a*Math.sqrt(3.0)/2.0;
+              var aa36  = a*Math.sqrt(3.0)/6.0;
+              var aa323  = 2.0*a*Math.sqrt(3.0)/3.0;
+              var caa2 = ca*a/2.0;
+
+              lattice = abcabg_to_lattice(a,a*Math.sqrt(3.0),ca*a,90.0,90.0,90.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              if (ss.length>1) { s2 = ss[1]; }
+              if (bt=="hcp") {
+                 xyzdat = "4\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 xyzdat += s2.trim() + " " + aa2.toFixed(6) + " " +  aa32.toFixed(6) + " " + zz.toFixed(6) + "\n";
+                 xyzdat += s2.trim() + " " + aa2.toFixed(6) + " " +  aa36.toFixed(6) + " " + caa2.toFixed(6) + "\n";
+                 xyzdat += s1.trim() + " " + zz.toFixed(6) + " " +  aa323.toFixed(6) + " " + caa2.toFixed(6) + "\n";
+              } else {
+                 if (u<1.0e-3) { u = 0.25 + (1.0/3.0)/(ca*ca); }
+                 xyzdat = "8\n\n";
+                 xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+                 var x = 0.0*a;
+                 var y = 1/3.0*a*Math.sqrt(3.0);
+                 var z = (0.5-u)*ca*a;
+                 xyzdat += s2.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+                 x = 0.0*a; y = 1/3.0*a*Math.sqrt(3.0);   z = (0.5)*ca*a;
+                 xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+                 x = 0.0*a; y = 0.0*a*Math.sqrt(3.0);     z = (1.0-u)*ca*a;
+                 xyzdat += s2.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+                 x = 0.5*a; y = 0.5*a*Math.sqrt(3.0);     z = 0.0*ca*a;
+                 xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+                 x = 0.5*a; y = 5.0/6.0*a*Math.sqrt(3.0); z = (0.5-u)*ca*a;
+                 xyzdat += s2.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+                 x = 0.5*a; y = 5.0/6.0*a*Math.sqrt(3.0); z = (0.5)*ca*a;
+                 xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+                 x = 0.5*a; y = 0.5*a*Math.sqrt(3.0);     z = (1.0-u)*ca*a;
+                 xyzdat += s2.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+              }
+
+           }
+
+           //graphite lattice - rhombohedral -  primive
+           if ( (bt=="graphite") && (bp) && (!bc)) {
+              var d = Math.sqrt(3.0)/3.0*a;
+
+              var x = d*Math.sqrt(3.0)/2.0; var y = d*0.5; var z = c*0.5;
+              var a1 = x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6);
+              x = 0.0; y=d; z=c*0.5;
+              var a2 = x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6);
+              x = -d*Math.sqrt(3.0)/2.0; y= -d*0.5; z=c*0.5;
+              var a3 = x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6);
+              lattice = a1a2a3_to_lattice(string3_to_vec3(a1),string3_to_vec3(a2),string3_to_vec3(a3));
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              xyzdat = "2\n\n";
+              x = 0.0; y=0.0; z=0.0;
+              xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+              x = 0.0; y=0.0; z=c*0.5;
+              xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+           }
+
+           //graphite lattice - hexagonal - not primive
+           //a1 = a*[sqrt(3)/2, -1/2, 0]
+           //a2 = a*[0,            1, 0]
+           //a3 = c*[0,            0, 1]
+           // f1=0.333333, f2=0.666667, f3 = 0
+           // x = f1*a1x + f2*a2x + f3*a3x =  1/3*sqrt(3)/2*a  = sqrt(3)/6 * a
+           // y = f1*a1y + f2*a2y + f3*a3y = 1/3*(-1/2)*a + 2/3*1*a = 2/3 - 1/6 = 1/2 * a
+           // z = f1*a1z + f2*a2z + f3*a3z  = 0
+           // f1=0.666667, f2=0.333333, f3 = 0
+           // x = f1*a1x + f2*a2x + f3*a3x = (2/3)*sqrt(3)/2*a + (1/3)*0*a = sqrt(3)/3.0*a
+           // y = f1*a1y + f2*a2y + f3*a3y = (2/3)*(-1/2)*a + (1/3)*1*a = 0
+           // z = f1*a1z + f2*a2z + f3*a3z = 0
+           if ((bt=="graphite") && (!bp)) {
+              lattice = abcabg_to_lattice(a,a,c,90.0,90.0,120.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              var x = 0.0;     var y = 0.0;           var z = 0.0;
+              xyzdat = "4\n\n";
+              xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+              x = Math.sqrt(3.0)/6.0*a; y = a/2.0; z= 0.0;
+              xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+              x = 0.0;              y = 0.0; z = 0.5*c;
+              xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+              x = Math.sqrt(3.0)/3.0*a; y= 0.0; z= 0.5*c
+              xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+           }
+
+           //graphene, graphite-1layer lattice
+           //a1 = a*[sqrt(3)/2, -1/2, 0]
+           //a2 = a*[0,            1, 0]
+           //a3 = c*[0,            0, 1]
+           // f1=0.333333, f2=0.666667, f3 = 0
+           // x = f1*a1x + f2*a2x + f3*a3x =  1/3*sqrt(3)/2*a  = sqrt(3)/6 * a
+           // y = f1*a1y + f2*a2y + f3*a3y = 1/3*(-1/2)*a + 2/3*1*a = 2/3 - 1/6 = 1/2 * a
+           // z = f1*a1z + f2*a2z + f3*a3z  = 0
+           if (bt=="graphene") {
+              lattice = abcabg_to_lattice(a,a,c,90.0,90.0,120.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              var x = 0.0;     var y = 0.0; var z = 0.0;
+              xyzdat = "2\n\n";
+              xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+              x = (Math.sqrt(3.0)/6.0)*a; y = a/2.0;    z= 0.0
+              xyzdat += s1.trim() + " " + x.toFixed(6) + " " + y.toFixed(6) + " " + z.toFixed(6) + "\n";
+           }
+
+           if (bt=="bct") {
+              lattice = abcabg_to_lattice(a,b,c,90.0,90.0,90.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              xyzdat = "1\n\n";
+              xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+           }
+
+           if (bt=="mcl") {
+              lattice = abcabg_to_lattice(a,b,c,90.0,alpha,90.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              xyzdat = "1\n\n";
+              xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+           }
+
+           if (bt=="rhombohedral") {
+              lattice = abcabg_to_lattice(a,a,a,alpha,alpha,alpha);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              xyzdat = "1\n\n";
+              xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+           }
+
+           if (bt=="tetragonal") {
+              lattice = abcabg_to_lattice(a,a,c,90.0,90.0,90.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              xyzdat = "1\n\n";
+              xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+           }
+
+           if (bt=="orthorhombic") {
+              lattice = abcabg_to_lattice(a,b,c,90.0,90.0,90.0);
+
+              var ss = bn.trim().split(/[ ,]+/);
+              var s1 = ss[0];
+              var s2 = s1;
+              xyzdat = "1\n\n";
+              xyzdat += s1.trim() + " 0.0 0.0 0.0\n";
+           }
+           return [lattice,xyzdat];
+        }
+
+
 
 
         // ****************************
@@ -3755,9 +4161,9 @@ ul, li {
            if ((((bt=="fcc")||(bt=="diamond")||(bt=="zincblende")||(bt=="rocksalt"))&&(bp)&&(!bc))||(bt=="fluorite")) {
               var aa = a/2.0;
               var zz = 0.0;
-              a1 = aa.toFixed(6) + " " + aa.toFixed(6) + " " + zz.toFixed(6);
-              a2 = aa.toFixed(6) + " " + zz.toFixed(6) + " " + aa.toFixed(6);
-              a3 = zz.toFixed(6) + " " + aa.toFixed(6) + " " + aa.toFixed(6);
+              var a1 = aa.toFixed(6) + " " + aa.toFixed(6) + " " + zz.toFixed(6);
+              var a2 = aa.toFixed(6) + " " + zz.toFixed(6) + " " + aa.toFixed(6);
+              var a3 = zz.toFixed(6) + " " + aa.toFixed(6) + " " + aa.toFixed(6);
               lattice = a1a2a3_to_lattice(string3_to_vec3(a1),string3_to_vec3(a2),string3_to_vec3(a3));
 
               var ss = bn.trim().split(/[ ,]+/);
@@ -3866,9 +4272,9 @@ ul, li {
            if ((bt=="bcc") && (bp) && (!bc)) {
               var aa = a/2.0;
               var maa = -aa;
-              a1 = maa.toFixed(6) + " " + aa.toFixed(6) + " " + aa.toFixed(6);
-              a2 = aa.toFixed(6) + " " + maa.toFixed(6) + " " + aa.toFixed(6);
-              a3 = aa.toFixed(6) + " " + aa.toFixed(6) + " " + maa.toFixed(6);
+              var a1 = maa.toFixed(6) + " " + aa.toFixed(6) + " " + aa.toFixed(6);
+              var a2 = aa.toFixed(6) + " " + maa.toFixed(6) + " " + aa.toFixed(6);
+              var a3 = aa.toFixed(6) + " " + aa.toFixed(6) + " " + maa.toFixed(6);
               lattice = a1a2a3_to_lattice(string3_to_vec3(a1),string3_to_vec3(a2),string3_to_vec3(a3));
 
               var ss = bn.trim().split(/[ ,]+/);
@@ -3900,9 +4306,9 @@ ul, li {
               var aa32 = a*Math.sqrt(3)/2.0;
               var caa = ca*a;
 
-              a1 = a.toFixed(6)   + " " + zz.toFixed(6)   + " " + zz.toFixed(6);
-              a2 = maa.toFixed(6) + " " + aa32.toFixed(6) + " " + zz.toFixed(6);
-              a3 = zz.toFixed(6) + " " + zz.toFixed(6)    + " " + caa.toFixed(6);
+              var a1 = a.toFixed(6)   + " " + zz.toFixed(6)   + " " + zz.toFixed(6);
+              var a2 = maa.toFixed(6) + " " + aa32.toFixed(6) + " " + zz.toFixed(6);
+              var a3 = zz.toFixed(6) + " " + zz.toFixed(6)    + " " + caa.toFixed(6);
               lattice = a1a2a3_to_lattice(string3_to_vec3(a1),string3_to_vec3(a2),string3_to_vec3(a3));
 
               var ss = bn.trim().split(/[ ,]+/);
@@ -3991,21 +4397,28 @@ ul, li {
         // *                          *
         // ****************************
         function loadbulktojsmol() {
-           var a = parseFloat(document.getElementById("bulk_a").value);
-           var c = parseFloat(document.getElementById("bulk_c").value);
-           var u = parseFloat(document.getElementById("bulk_u").value);
+           var a      = parseFloat(document.getElementById("bulk_a").value);
+           var b      = parseFloat(document.getElementById("bulk_b").value);
+           var c      = parseFloat(document.getElementById("bulk_c").value);
+           var alpha  = parseFloat(document.getElementById("bulk_alpha").value);
+           var covera = parseFloat(document.getElementById("bulk_covera").value);
+           var u      = parseFloat(document.getElementById("bulk_u").value);
            var bt = document.getElementById("bulk_type").value;
            var bn = document.getElementById("bulk_name").value;
            var bp = document.getElementById("bulk_primitive").checked;
            var bc = document.getElementById("bulk_cubic").checked;
            console.log("a=",a);
+           console.log("b=",b);
            console.log("c=",c);
+           console.log("covera=",covera);
+           console.log("alpha=",alpha);
            console.log("u=",u);
            console.log("bt=",bt);
            console.log("bn=",bn);
            console.log("bc=",bc);
 
-           var latxyz = genbulk(a,c,u,bt,bn,bp,bc);
+           //var latxyz = genbulk(a,c,u,bt,bn,bp,bc);
+           var latxyz = newgenbulk(a,b,c,covera,alpha,u,bt,bn,bp,bc);
            var xyzdat = latxyz[1];
 
            document.getElementById("cell_a").value = latxyz[0][6][0];
@@ -4358,20 +4771,24 @@ ul, li {
         }
 
 
-        function geninterfacecell(bulk_a,bulk_c,bulk_u,bulk_type,bulk_name,bulk_primitive,bulk_cubic,
+        function geninterfacecell(bulk_a,bulk_b,bulk_c,bulk_covera,bulk_alpha,bulk_u,bulk_type,bulk_name,bulk_primitive,bulk_cubic,
                                   surface_a,surface_b,surface_c,surface_origin,surface_scaling,surface_vacuum,surface_tolerance) {
 
            var lat_a,lat_b,lat_u,bt,bn,bp,bc,latxyz;
            var tmp,atoms,i,ss,a,b,c,origin,scaling,vacuum,tolerance;
 
-           lat_a = parseFloat(document.getElementById(bulk_a).value);
-           lat_c = parseFloat(document.getElementById(bulk_c).value);
+           lat_a  = parseFloat(document.getElementById(bulk_a).value);
+           lat_b  = parseFloat(document.getElementById(bulk_b).value);
+           lat_c  = parseFloat(document.getElementById(bulk_c).value);
+           covera = parseFloat(document.getElementById(bulk_covera).value);
+           alpha  = parseFloat(document.getElementById(bulk_alpha).value);
            lat_u = parseFloat(document.getElementById(bulk_u).value);
            bt = document.getElementById(bulk_type).value;
            bn = document.getElementById(bulk_name).value;
            bp = document.getElementById(bulk_primitive).checked;
            bc = document.getElementById(bulk_cubic).checked;
-           latxyz = genbulk(lat_a,lat_c,lat_u,bt,bn,bp,bc);
+           //latxyz = genbulk(lat_a,lat_c,lat_u,bt,bn,bp,bc);
+           latxyz = newgenbulk(lat_a,lat_b,lat_c,covera,alpha,lat_u,bt,bn,bp,bc);
 
            tmp = latxyz[1].trim().split("\n");
            atoms = [];
@@ -4444,9 +4861,9 @@ ul, li {
 
 
         function geninterface() {
-           var cell1 = geninterfacecell("bulk1_a","bulk1_c","bulk1_u","bulk1_type","bulk1_name","bulk1_primitive","bulk1_cubic",
+           var cell1 = geninterfacecell("bulk1_a","bulk1_b","bulk1_c","bulk1_covera","bulk1_alpha","bulk1_u","bulk1_type","bulk1_name","bulk1_primitive","bulk1_cubic",
                                         "surface1_a","surface1_b","surface1_c","surface1_origin","surface1_scaling","surface1_vacuum","surface1_tolerance");
-           var cell2 = geninterfacecell("bulk2_a","bulk2_c","bulk2_u","bulk2_type","bulk2_name","bulk2_primitive","bulk2_cubic",
+           var cell2 = geninterfacecell("bulk2_a","bulk2_b","bulk2_c","bulk2_covera","bulk2_alpha","bulk2_u","bulk2_type","bulk2_name","bulk2_primitive","bulk2_cubic",
                                         "surface2_a","surface2_b","surface2_c","surface2_origin","surface2_scaling","surface2_vacuum","surface2_tolerance");
            var deltaz = parseFloat(document.getElementById("interface_delta").value);
 
@@ -8725,11 +9142,11 @@ ul, li {
            var stime  = 1.0e-12*stime0;
            var nsteps = parseInt((stime/itime))+1;
            var tau    = -(stime/2.41889e-17)/Math.log(mintemp/temp);
-           tequil     =  prompt("Simulated Annealing - Please enter annealing motion files label:", "annealing");
-           xyz_filename = tequil + ".xyz";
-           emotion_filename = tequil + ".emotion";
-           ion_motion_filename = tequil + ".ion_motion";
-           fei_filename = tequil + ".fei";
+           var tequil     =  prompt("Simulated Annealing - Please enter annealing motion files label:", "annealing");
+           var xyz_filename = tequil + ".xyz";
+           var emotion_filename = tequil + ".emotion";
+           var ion_motion_filename = tequil + ".ion_motion";
+           var fei_filename = tequil + ".fei";
 
            data += "\n\n";
            data += "### restart here ###\n";
@@ -10284,7 +10701,12 @@ ul, li {
            if (reaction.trim().length>5) {
               document.getElementById('apirunning').value += "+ running gen_rhash2\n";
               document.getElementById('runmebanner4p').innerHTML= "Generating reaction_hash from reaction";
+              var rtypeindx = document.getElementById("reaction_type").selectedIndex
               var mol = "reaction_genhash{"+reaction+"}\n";
+              if (rtypeindx>20) {
+                 mol = "user_reaction_type{" + document.getElementById("reaction_type").value + "} " + mol
+              }
+
               var textToSaveAsBlob = new Blob([mol], {type:"text/plain"});
               var textToSaveAsURL  = window.URL.createObjectURL(textToSaveAsBlob);
 
@@ -11272,6 +11694,25 @@ ul, li {
            }
         }
 
+        // **********************************
+        // *                                *
+        // *      add_select_option         *
+        // *                                *
+        // **********************************
+        function add_select_option(promptstr,defaultpromptstr,selectid) {
+           var newrxn  =  prompt(promptstr, defaultpromptstr);
+           newrxn = newrxn.trim();
+           if (newrxn.includes("-->")) {
+              if ((newrxn.split("-->")[0].length > 1) && (newrxn.split("-->"[1]>1))) {
+                 var ddl = document.getElementById(selectid);
+                 var option = document.createElement("OPTION");
+                 option.innerHTML = newrxn;
+                 option.value     = newrxn;
+                 ddl.options.add(option);
+              }
+           }
+        }
+
 </script>
 
 </head>
@@ -12184,7 +12625,9 @@ ul, li {
                                    <option>AB + CD --> ACB + D</option>
                                    <option>AC + BD --> A + B + CD</option>
                                    <option>ACB --> AB + C</option>
-                                 </select>}
+                                   <option disabled>──────────</option>
+                                 </select>
+                   <input type="button" class="button" id="sdd_reacton_type" value="add" onClick="add_select_option('Add reaction_type: ','','reaction_type');"/> }
                    reaction_indexes{<input type="text" id="reaction_indexes" SIZE=14>} 
                    <input type="button" class="button" id="reactiontab_to_metadynamics" value="Generate bondings WHAM input" onClick="bondings_metadynamics();evalcollective();"/> 
                    <br> 
@@ -12457,18 +12900,27 @@ ul, li {
                            <option value="sc">Simple Cubic</option>
                            <option value="fcc">Face-Centered Cubic</option>
                            <option value="bcc">Body-Centered Cubic</option>
+                           <option value="tetragonal">Tetragonal</option>
+                           <option value="bct">Body-Centered Tetragonal</option>
                            <option value="hcp">Hexagonal Closed Packed</option>
+                           <option value="rhombohedral">Rhombohedral</option>
+                           <option value="orthorhombic">Orthorhombic</option>
+                           <option value="mcl">Monoclinic Lattice</option>
                            <option value="diamond">Diamond</option>
                            <option value="zincblende">Zinc Blende</option>
                            <option value="rocksalt">Rock Salt</option>
                            <option value="cesiumchloride">Cesium Choride</option>
                            <option value="fluorite">Fluorite</option>
                            <option value="wurtzite">Wurtzite</option>
+                           <option value="graphite">Graphite</option>
                            <option value="graphene">Graphene</option>
                          </select>
                          <br>
                          lat_a: <input type="number" id="bulk_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
+                         lat_b: <input type="number" id="bulk_b" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
                          lat_c: <input type="number" id="bulk_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         c/a: <input type="number" id="bulk_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         alpha: <input type="number" id="bulk_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
                          lat_u: <input type="number" id="bulk_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
                          primitive: <input type="radio" id="bulk_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
                          cubic: <input type="radio" id="bulk_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/>
@@ -12526,18 +12978,27 @@ ul, li {
                            <option value="sc">Simple Cubic</option>
                            <option value="fcc">Face-Centered Cubic</option>
                            <option value="bcc">Body-Centered Cubic</option>
+                           <option value="tetragonal">Tetragonal</option>
+                           <option value="bct">Body-Centered Tetragonal</option>
                            <option value="hcp">Hexagonal Closed Packed</option>
+                           <option value="rhombohedral">Rhombohedral</option>
+                           <option value="orthorhombic">Orthorhombic</option>
+                           <option value="mcl">Monoclinic Lattice</option>
                            <option value="diamond">Diamond</option>
                            <option value="zincblende">Zinc Blende</option>
                            <option value="rocksalt">Rock Salt</option>
                            <option value="cesiumchloride">Cesium Choride</option>
                            <option value="fluorite">Fluorite</option>
                            <option value="wurtzite">Wurtzite</option>
+                           <option value="graphite">Graphite</option>
                            <option value="graphene">Graphene</option>
                          </select>
                          <br>
                          lat_a: <input type="number" id="bulk1_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
+                         lat_b: <input type="number" id="bulk1_b" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
                          lat_c: <input type="number" id="bulk1_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         c/a:   <input type="number" id="bulk1_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         alpha: <input type="number" id="bulk1_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
                          lat_u: <input type="number" id="bulk1_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
                          primitive: <input type="radio" id="bulk1_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
                          cubic: <input type="radio" id="bulk1_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/><br>
@@ -12573,18 +13034,27 @@ ul, li {
                            <option value="sc">Simple Cubic</option>
                            <option value="fcc">Face-Centered Cubic</option>
                            <option value="bcc">Body-Centered Cubic</option>
+                           <option value="tetragonal">Tetragonal</option>
+                           <option value="bct">Body-Centered Tetragonal</option>
                            <option value="hcp">Hexagonal Closed Packed</option>
+                           <option value="rhombohedral">Rhombohedral</option>
+                           <option value="orthorhombic">Orthorhombic</option>
+                           <option value="mcl">Monoclinic Lattice</option>
                            <option value="diamond">Diamond</option>
                            <option value="zincblende">Zinc Blende</option>
                            <option value="rocksalt">Rock Salt</option>
                            <option value="cesiumchloride">Cesium Choride</option>
                            <option value="fluorite">Fluorite</option>
                            <option value="wurtzite">Wurtzite</option>
-                           <option value="graphene">Graphene</option>
+                           <option value="graphite">Graphite</option>
+                           <option value="graphene">traphene</option>
                          </select>
                          <br>
                          lat_a: <input type="number" id="bulk2_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
+                         lat_b: <input type="number" id="bulk2_b" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
                          lat_c: <input type="number" id="bulk2_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         c/a:   <input type="number" id="bulk2_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         alpha: <input type="number" id="bulk2_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
                          lat_u: <input type="number" id="bulk2_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
                          primitive: <input type="radio" id="bulk2_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
                          cubic: <input type="radio" id="bulk2_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/><br>

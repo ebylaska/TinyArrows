@@ -3612,7 +3612,12 @@ def genhash_reaction(filename):
 
          if ("reaction_genhash{" in moldata):
             reaction_genhash0 = moldata.split('reaction_genhash{')[1].split('}')[0].strip()
-            cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash0.replace("==>","-->") + "\""
+            #cmd9 = chemdb_balance_reaction + "-x \"0 0 0 0 0 " + reaction_genhash0.replace("==>","-->") + "\""
+            cmd9 = chemdb_balance_reaction 
+            if ("user_reaction_type{" in moldata):
+               user_reaction_type = moldata.split('user_reaction_type{')[1].split('}')[0].strip()
+               cmd9 += "-m \"" + user_reaction_type + "\" "
+            cmd9 += "-x \"0 0 0 0 0 " + reaction_genhash0.replace("==>","-->") + "\""
             result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
             if "bstringsall =" in result9:
                bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
