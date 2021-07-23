@@ -12643,14 +12643,15 @@ ul, li {
                    <br>
                    <textarea  name="reaction_hash2" id="reaction_hash2" rows="5" cols="70"></textarea>
                    <br> <br>
-                   <input type="button" id="button_genrhash" VALUE="Generate chemical reaction hash" onClick="gen_rhash2(dummy_callback)" title="Generates reaction_hash using chemical reaction input"/>
+                   chemical reaction 
+                   <input type="button" VALUE="Use JSME reaction" onClick="loadreaction2dWindow('reaction_genhash00')" title=": reaction_genhash00 : Fetches chemical reaction from JSME editor"/>
+                   <br>
+                   <input type="text" id="reaction_genhash00" SIZE=83><br>
                    <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1)" 
                           title="Loads the reactants into jsmol from the chemical reaction input box"/>
+                   <input type="button" id="button_genrhash" VALUE="Generate chemical reaction hash" onClick="gen_rhash2(dummy_callback)" title="Generates reaction_hash using chemical reaction input"/>
                    <br><br>
-                   chemical reaction <br>
-                   <input type="text" id="reaction_genhash00" SIZE=60>
-                   <input type="button" VALUE="Use JSME reaction" onClick="loadreaction2dWindow('reaction_genhash00')" title="Fetches chemical reaction from JSME editor"/>
-                   <br><br>
+                   <br>
                    Auxiliary Penalty Functions <input type="button" VALUE="Resolve Variables" onClick="resolveauxvariables('auxiliary_functions',dummy_callback)" title="Fetches chemical reaction from JSME editor"/>
                    <br>
                    <textarea  name="auxiliary_functions" id="auxiliary_functions" rows="3" cols="70"></textarea>
