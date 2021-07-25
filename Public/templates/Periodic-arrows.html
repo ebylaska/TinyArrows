@@ -270,6 +270,28 @@ ul, li {
 
 <script type="text/javascript">
 
+   function cacheInput(el)       { /*console.log("cacheInput: el.value=", el.value);*/ localStorage.setItem(":inputcache:"+el.attributes["id"].value,el.value); }
+   function cacheInputbool(el,x) { /*console.log("cacheInputbool: x=", x);*/ localStorage.setItem(":inputboolcache:"+el.attributes["id"].value,x); }
+   function cacheLoadAll()  {
+      for (let i=0; i<localStorage.length; ++i) {
+         let key = localStorage.key(i);
+         console.log("cacheLoadAll: key=",key);
+         if (key.includes(":inputcache:")) {
+            let cachedVal = localStorage.getItem(key);
+            document.getElementById(key.replace(":inputcache:","")).value = cachedVal;
+            console.log("cacheLoadAll: key=",key, "cachedVal=",cachedVal);
+         }
+         if (key.includes(":inputboolcache:")) {
+            let cachedVal = localStorage.getItem(key);
+            if (cachedVal.includes("true")) {document.getElementById(key.replace(":inputboolcache:","")).checked = true; }
+         }
+      }
+   }
+
+
+
+
+
    var ThomasChecked = false;
    var finalTranscript = '';
 
@@ -4446,14 +4468,16 @@ ul, li {
 
 
 
-        var checkedRadio = [null,null,null,null,null];
+        var checkedRadio = [null,null,null,null,null,null,null];
         function ClearRd(ths,ii) {
            var f = 0.0;
            if (checkedRadio[ii] == ths) {
                ths.checked = false;
                checkedRadio[ii] = null;
+               cacheInputbool(ths,false);
            } else {
                checkedRadio[ii] = ths; 
+               cacheInputbool(ths,true);
            }
         }
         function defineslab(surface_cut,surface_a,surface_b,surface_c) {
@@ -4528,6 +4552,11 @@ ul, li {
               document.getElementById(surface_b).value = " 0.0  1.0 -1.0";
               document.getElementById(surface_c).value = "-1.0 -1.0 -1.0";
            }
+
+           cacheInput(document.getElementById(surface_cut));
+           cacheInput(document.getElementById(surface_a));
+           cacheInput(document.getElementById(surface_b));
+           cacheInput(document.getElementById(surface_c));
         }
 
         function cutslab(opt) {
@@ -11718,7 +11747,7 @@ ul, li {
 </head>
 
 
-<body onload="jmolOnLoad();">
+<body onload="jmolOnLoad();cacheLoadAll();">
 
 <!--div class="linkbanner">
    <a href="https://arrows.emsl.pnnl.gov/api"><img src="https://dl.dropboxusercontent.com/s/s5fof263qwxzcaq/EMSLArrows2019.png" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a> 
@@ -11813,7 +11842,7 @@ ul, li {
     <input type="button" VALUE="Submit NWChem" onClick="submit_nwchemjob2(dummy_callback)" title="Submit NWChem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
     <br><br>
     Machine:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    <input type="text" list="machinelist" id="machine" onChange="definesecret()" value="aerosol3"/>
+    <input type="text" oninput="cacheInput(this)" list="machinelist" id="machine" onChange="definesecret()" value="aerosol3"/>
              <datalist id="machinelist">
                 <option value="aerosol1">aerosol1</option>
                 <option value="aerosol2">aerosol2</option>
@@ -11828,20 +11857,20 @@ ul, li {
                 <option value="harsono">harsono</option>
                 <option value="erichome">erichome</option>
              </datalist>
-    ncpus: <input type="number" name="nLabel" id="queue_ncpus" size="6" min="1" max="1000000" step="1" value="32" onChange="changencpus()">
-    queue: <input type="text" list="queuelist" id="queue" onChange="changequeue()"/>
+    ncpus: <input type="number" name="nLabel" id="queue_ncpus" size="6" min="1" max="1000000" step="1" value="32" onChange="changencpus()" oninput="cacheInput(this)">
+    queue: <input type="text" list="queuelist" id="queue" onChange="changequeue()" oninput="cacheInput(this)"/>
              <datalist id="queuelist">
                 <option value="regular">regular</option>
                 <option value="debug">debug</option>
              </datalist>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    time: <input type="text" name="TLabel" id="queue_time" size="9" onChange="changeqtime()">
+    time: <input type="text" name="TLabel" id="queue_time" size="9" onChange="changeqtime()" oninput="cacheInput(this)">
     &nbsp;
-    account: <input type="text" name="Label" id="queue_account" onChange="changeqacount()">
+    account: <input type="text" name="Label" id="queue_account" onChange="changeqacount()" oninput="cacheInput(this)">
     &nbsp;&nbsp;&nbsp;
-    Secret Code: <input type="text" name="Label" id="queue_secret_code">
+    Secret Code: <input type="text" name="Label" id="queue_secret_code" oninput="cacheInput(this)">
     <br>
-    Arrows queue_name: <input type="text" list="queue_name_list" id="queue_name" onChange="changequeue()"/>
+    Arrows queue_name: <input type="text" list="queue_name_list" id="queue_name" onChange="changequeue()" oninput="cacheInput(this)"/>
                <datalist id="queue_name_list">
                 <option value="nwchem">nwchem</option>
                 <option value="geochem">geochem</option>
@@ -11882,22 +11911,22 @@ ul, li {
     <table>
        <tr>
          <td>curdir0:</td>
-         <td> <input type="text" name="Label" id="queue_nwchem_curdir0" size=145 value="mymachine:/Projects/Simulations"> </td>
+         <td> <input type="text" name="Label" id="queue_nwchem_curdir0" size=145 value="mymachine:/Projects/Simulations" oninput="cacheInput(this)"> </td>
        </tr>
        <tr>
           <td>permdir: </td> 
-          <td> <input type="text" name="Label" id="queue_nwchem_permdir" size=145 value="" onChange="changepermdir()"> </td>
+          <td> <input type="text" name="Label" id="queue_nwchem_permdir" size=145 value="" onChange="changepermdir()" oninput="cacheInput(this)"> </td>
        </tr>
        <tr>
           <td>curdir: </td>
-          <td> <input type="text" name="Label" id="queue_nwchem_curdir" size=145 value="" onChange="changecurdir()"> </td>
+          <td> <input type="text" name="Label" id="queue_nwchem_curdir" size=145 value="" onChange="changecurdir()" oninput="cacheInput(this)"> </td>
        </tr>
     </table>
 
     <h4> Simulation generation scripts and input</h4>
     <table>
        <tr>
-          <td> <select id="bandpspw" onchange="changebandpspw()">
+          <td> <select id="bandpspw" onchange="changebandpspw()" oninput="cacheInput(this)">
                 <option value="pspw">PSPW calculation</option>
                 <option value="pspw4">PSPW4 calculation</option>
                 <option value="dft">DFT calculation</option>
@@ -11907,7 +11936,7 @@ ul, li {
                 <option value="pspw-band">PSPW-BAND calculation</option>
               </select>
           </td>
-          <td> <select id="basis_type" onChange="changenwchemcutoff()">
+          <td> <select id="basis_type" onChange="changenwchemcutoff()" oninput="cacheInput(this)">
                 <option value="default">default</option>
                 <option value="def2-svp spherical">def2-svp spherical</option>
                 <option value="def2-tzvp spherical">def2-tzvp spherical</option>
@@ -11922,7 +11951,7 @@ ul, li {
                 <option value="120 Ry">120 Ry</option>
               </select>
           </td>
-          <td> <select id="xc_type">
+          <td> <select id="xc_type" oninput="cacheInput(this)">
                 <option value="default">default</option>
                 <option value="lda">lda</option>
                 <option value="pbe">pbe</option>
@@ -11943,7 +11972,7 @@ ul, li {
                 <option value="beef-vdw2">beef-vdw2</option>
               </select>
           </td>
-          <td> <select id="latticelocation">
+          <td> <select id="latticelocation" oninput="cacheInput(this)">
                 <option value="default">default</option>
                 <option value="Lattice in geometry block">Lattice in geometry block</option>
                 <option value="Lattice in NWPW block">Lattice in NWPW block</option>
@@ -11980,7 +12009,7 @@ ul, li {
        </tr>
     </table>
      
-    <select id="SMD_solvent_3" >
+    <select id="SMD_solvent_3" oninput="cacheInput(this)">
         <option value="h2o">water (default)</option>
         <option value="acetacid">acetic acid</option>
         <option value="acetone">acetone</option>
@@ -12161,7 +12190,7 @@ ul, li {
         <option value="p-xylene">p-xylene</option>
         <option value="xylenemx">xylene (mixture)</option>
      </select>
-     paw atoms: <input type="text" name="pawatoms" id="pawatoms" size=24 value = "" onChange="addpawatoms()">  
+     paw atoms: <input type="text" name="pawatoms" id="pawatoms" size=24 value = "" onChange="addpawatoms()" oninput="cacheInput(this)">  
      <select id="pspatomslibrary" onChange="addpawatoms()">
         <option value="development_psps">development_psps psp library</option>
         <option value="HGH_LDA">HGH_LDA psp library</option>
@@ -12170,45 +12199,45 @@ ul, li {
         <option value="pspw_new">pspw_new psp library</option>
         <option value="pspw_old">pspw_old psp library</option>
         <option value="pspw_default">pspw_default psp library</option>
-     </select>: <input type="text" name="pspatoms" id="pspatoms" size=24 value = "" onChange="addpawatoms()">  
+     </select>: <input type="text" name="pspatoms" id="pspatoms" size=24 value = "" onChange="addpawatoms()" oninput="cacheInput(this)">  
 
     <table>
        <tr>
-          <td> charge: <input type="number" name="nwchemcharge" id="nwchemcharge" size="3" min="-100" max="100" step="1" value="0" onChange="changenwchemcharge()">
-               multiplicity: <input type="number" name="nwchemmult" id="nwchemmult" size="3" min="1" max="100" step="1" value="1" onChange="changenwchemmult()"> 
-               virtual: <input type="number" name="nwchemvirt" id="nwchemvirt" size="3" min="0" max="100" step="1" value="0" onChange="changenwchemvirt()"> 
-               Ewald rcut: <input type="number" name="nwchemewald_rcut" id="nwchemewald_rcut" size="3" min="0.00" max="20.0" step="0.5" value="0" onChange="changenwchemewald_rcut()"> 
+          <td> charge: <input type="number" name="nwchemcharge" id="nwchemcharge" size="3" min="-100" max="100" step="1" value="0" onChange="changenwchemcharge()" oninput="cacheInput(this)">
+               multiplicity: <input type="number" name="nwchemmult" id="nwchemmult" size="3" min="1" max="100" step="1" value="1" onChange="changenwchemmult()" oninput="cacheInput(this)"> 
+               virtual: <input type="number" name="nwchemvirt" id="nwchemvirt" size="3" min="0" max="100" step="1" value="0" onChange="changenwchemvirt()" oninput="cacheInput(this)"> 
+               Ewald rcut: <input type="number" name="nwchemewald_rcut" id="nwchemewald_rcut" size="3" min="0.00" max="20.0" step="0.5" value="0" onChange="changenwchemewald_rcut()" oninput="cacheInput(this)"> 
                Ewald ncut: <input type="number" name="nwchemewald_ncut" id="nwchemewald_ncut" size="3" min="0" max="20" step="1" value="0" onChange="changenwchemewald_ncut()"> 
-               <select id="parallelmapping3" onChange="changeparallelmapping3()">
+               <select id="parallelmapping3" onChange="changeparallelmapping3()" oninput="cacheInput(this)">
                   <option value="default">default</option>
                   <option value="1d-slab">1d-slab</option>
                   <option value="2d-hilbert">2d-hilbert</option>
                   <option value="2d-hcurve" selected>2d-hcurve</option>
                </select>
-               np_dimensions: <input type="number" name="nwchemnp_dim1" id="nwchemnp_dim1" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()"> 
-                              <input type="number" name="nwchemnp_dim2" id="nwchemnp_dim2" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()"> 
+               np_dimensions: <input type="number" name="nwchemnp_dim1" id="nwchemnp_dim1" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()" oninput="cacheInput(this)"> 
+                              <input type="number" name="nwchemnp_dim2" id="nwchemnp_dim2" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()" oninput="cacheInput(this)"> 
                <div id="monkhorst_input_on">
-                              <input type="number" name="nwchemnp_dim3" id="nwchemnp_dim3" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()"> 
-               Monkhorst-Pack: <input type="number" name="nwchemmp1" id="nwchemmp1" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()">
-                               <input type="number" name="nwchemmp2" id="nwchemmp2" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()">
-                               <input type="number" name="nwchemmp3" id="nwchemmp3" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()"> 
-               dbz(len)_min: <input type="number" name="nwchemmpmin" id="nwchemmpmin" size="2" min="0" max="5" step="0.1" value="0.6" onChange="changenwchemmpmin()">
+                              <input type="number" name="nwchemnp_dim3" id="nwchemnp_dim3" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()" oninput="cacheInput(this)"> 
+               Monkhorst-Pack: <input type="number" name="nwchemmp1" id="nwchemmp1" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()" oninput="cacheInput(this)">
+                               <input type="number" name="nwchemmp2" id="nwchemmp2" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()" oninput="cacheInput(this)">
+                               <input type="number" name="nwchemmp3" id="nwchemmp3" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()" oninput="cacheInput(this)"> 
+               dbz(len)_min: <input type="number" name="nwchemmpmin" id="nwchemmpmin" size="2" min="0" max="5" step="0.1" value="0.6" onChange="changenwchemmpmin()" oninput="cacheInput(this)">
                </div>
           </td>
        </tr>
        <tr>
-          <td> <select id="nwchemoptimizer" onChange="changenwchemoptimizer()">
+          <td> <select id="nwchemoptimizer" onChange="changenwchemoptimizer()" oninput="cacheInput(this)">
                   <option value="lmbfgs grassman">Grassman lmbfgs</option>
                   <option value="cg grassman">Grassman cg</option>
                   <option value="lmbfgs stiefel">Stiefel lmfgs</option>
                   <option value="cg stiefel">Stiefel cg</option>
                   <option value="scf">scf</option>
                </select>
-               loop: <input type="number" name="nwcheminner_loop" id="nwcheminner_loop" size="1" min="1" max="1000" step="1" value="10" onChange="changenwcheminner_loop()">
-                     <input type="number" name="nwchemouter_loop" id="nwchemouter_loop" size="1" min="1" max="1000" step="10" value="100" onChange="changenwchemouter_loop()">
+               loop: <input type="number" name="nwcheminner_loop" id="nwcheminner_loop" size="1" min="1" max="1000" step="1" value="10" onChange="changenwcheminner_loop()" oninput="cacheInput(this)">
+                     <input type="number" name="nwchemouter_loop" id="nwchemouter_loop" size="1" min="1" max="1000" step="10" value="100" onChange="changenwchemouter_loop()" oninput="cacheInput(this)">
                <div id="scf_input_on">
                scf options:
-               <select id="nwchemscfopt">
+               <select id="nwchemscfopt" oninput="cacheInput(this)">
                   <option value="block-cg precondition">preconditioned block-cg</option>
                   <option value="cg precondition">preconditioned cg</option>
                   <option value="rmm-diis precondition">preconditioned rmm-diis</option>
@@ -12216,9 +12245,9 @@ ul, li {
                   <option value="cg">cg</option>
                   <option value="rmm-diis">rmm-diis</option>
                </select>
-               ks_iterations: <input type="number" name="nwcheminner_ksit" id="nwcheminner_ksit" size="1" min="1" max="1000" step="1" value="10" onChange="changenwcheminner_ksit()">
+               ks_iterations: <input type="number" name="nwcheminner_ksit" id="nwcheminner_ksit" size="1" min="1" max="1000" step="1" value="10" onChange="changenwcheminner_ksit()" oninput="cacheInput(this)">
                               <input type="number" name="nwchemouter_ksit" id="nwchemouter_ksit" size="1" min="1" max="1000" step="1" value="10" onChange="changenwchemouter_ksit()">
-               <select id="nwchemscfmixing">
+               <select id="nwchemscfmixing" oninput="cacheInput(this)">
                   <option value="diis">diis</option>
                   <option value="anderson">anderson</option>
                   <option value="broyden">broyden</option>
@@ -12228,8 +12257,8 @@ ul, li {
                   <option value="density">density mixing</option>
                   <option value="potential">potential mixing</option>
                </select>
-               ks_alpha: <input type="number" name="nwchemks_alpha" id="nwchemks_alpha" size="2" min="0.00" max="1.0" step="0.01" value="0.05" onChange="changenwchemks_alpha()"> 
-               kerker: <input type="number" name="nwchemkerker" id="nwchemkerker" size="2" min="0.00" max="100.0" step="0.50" value="0.00" onChange="changenwchemkerker()"> 
+               ks_alpha: <input type="number" name="nwchemks_alpha" id="nwchemks_alpha" size="2" min="0.00" max="1.0" step="0.01" value="0.05" onChange="changenwchemks_alpha()" oninput="cacheInput(this)"> 
+               kerker: <input type="number" name="nwchemkerker" id="nwchemkerker" size="2" min="0.00" max="100.0" step="0.50" value="0.00" onChange="changenwchemkerker()" oninput="cacheInput(this)"> 
                </div>
           </td>
        </tr>
@@ -12242,20 +12271,20 @@ ul, li {
                   <option value="Gaussian">Gaussian fractional</option>
                   <option value="Marzari-Vanderbilt">Marzari-Vanderbilt fractional</option>
                </select>
-               <div id="fractional_input_on"> temperature(K): <input type="number" name="nwchemkfractional_temperature" id="nwchemfractional_temperature" size="3" min="0.0" max="50000.0" step="10.0" value="300.0" onChange="changenwchemfractional_temperature()"> 
-               alpha: <input type="number" name="nwchemkfractional_alpha" id="nwchemfractional_alpha" size="2" min="0.00" max="1.00" step="0.01" value="0.25" onchange="changenwchemfractional_alpha()"> 
-               extra orbitals: <input type="number" name="nwchemkfractional_orbitals" id="nwchemfractional_orbitals" size="2" min="0" max="50" step="1" value="5" onchange="changenwchemfractional_orbitals()">  </div>
+               <div id="fractional_input_on"> temperature(K): <input type="number" name="nwchemkfractional_temperature" id="nwchemfractional_temperature" size="3" min="0.0" max="50000.0" step="10.0" value="300.0" onChange="changenwchemfractional_temperature()" oninput="cacheInput(this)"> 
+               alpha: <input type="number" name="nwchemkfractional_alpha" id="nwchemfractional_alpha" size="2" min="0.00" max="1.00" step="0.01" value="0.25" onchange="changenwchemfractional_alpha()" oninput="cacheInput(this)"> 
+               extra orbitals: <input type="number" name="nwchemkfractional_orbitals" id="nwchemfractional_orbitals" size="2" min="0" max="50" step="1" value="5" onchange="changenwchemfractional_orbitals()" oninput="cacheInput(this)">  </div>
 
-               <select id="nwchemefieldtype" onchange="changenwchemefieldtype()">
+               <select id="nwchemefieldtype" onchange="changenwchemefieldtype()" oninput="cacheInput(this)">
                   <option value="No efield">No efield</option>
                   <option value="periodic efield">periodic efield</option>
                   <option value="realspace efield">real space efield</option>
                   <option value="APC efield">APC efield</option>
                </select>: 
                <div id="efield_input_on"> 
-                  <input type="number" name="nwchemefield1" id="nwchemefield1" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()">
-                  <input type="number" name="nwchemefield2" id="nwchemefield2" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()">
-                  <input type="number" name="nwchemefield3" id="nwchemefield3" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()"> 
+                  <input type="number" name="nwchemefield1" id="nwchemefield1" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()" oninput="cacheInput(this)">
+                  <input type="number" name="nwchemefield2" id="nwchemefield2" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()" oninput="cacheInput(this)">
+                  <input type="number" name="nwchemefield3" id="nwchemefield3" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()" oninput="cacheInput(this)"> 
                </div>
           </td>
        </tr>
@@ -12431,12 +12460,12 @@ ul, li {
                             </tr>
                          </table>
                          <input type="button" class="button3" value="trans_selected"  onClick="jmreset()"/> 
-                         <input type="3array" id="translate_smiles"  size="21">
+                         <input type="3array" id="translate_smiles"  size="21" oninput="cacheInput(this)">
                          <input type="button" VALUE="Solvate" onClick="solvateurltojsmol()" title="Load xyz data from url into jsmol"/>
                          <br>
                          <input type="button" VALUE="Load esmiles" onClick="loadurltojsmol(false)" title="Load xyz data from url into jsmol"/>
                          <input type="button" VALUE="Append" onClick="loadurltojsmol(true)" title="Append xyz data from url into jsmol"/>
-                         <input type="url" id="urlToLoad2" SIZE=22/>
+                         <input type="url" id="urlToLoad2" SIZE=22 oninput="cacheInput(this)"/>
                          <br>
                          <b style="color: blue; font-size: 14px;" id="runmebanner4b"></b>
                          <br>
@@ -12444,7 +12473,7 @@ ul, li {
                          <input type="button" class="button2" value="MD Opt." onClick="myoptimizer()"/>
                          <input type="button" class="button2" value="MD Verlet" onClick="myverlet()"/>
                          <br>
-                         <textarea  name="MD_parameters" id="MD_parameters" rows="4" cols="40"></textarea>
+                         <textarea  name="MD_parameters" id="MD_parameters" rows="4" cols="40" oninput="cacheInput(this)"></textarea>
                          <br>
                          <input type="button" value="Next model" onClick="loadframe2jsmol(false,false)" title="Next xyzframe"/>
                          <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false)" title="Previous xyzframe"/>
@@ -12470,7 +12499,7 @@ ul, li {
                   <br> <br>
                   </tr>
                   <tr> 
-                     <td> <select id="colortype1" onchange="set_color_penalty('atomlist1','colortype1','penalty1a','penalty1b','penalty1c')">
+                     <td> <select id="colortype1" onchange="set_color_penalty('atomlist1','colortype1','penalty1a','penalty1b','penalty1c')" oninput="cacheInput(this)">
                           <option value="translucent green" selected="selected">translucent green</option>
                           <option value="translucent yellow">translucent yellow</option>
                           <option value="translucent red">translucent red</option>
@@ -12478,12 +12507,12 @@ ul, li {
                           <option value="translucent orange">translucent orange</option>
                           <option value="translucent grey">translucent grey</option>
                           </select>
-                          <select id="penalty1a">
+                          <select id="penalty1a" oninput="cacheInput(this)">
                           <option value="up" selected="selected">up</option>
                           <option value="down">down</option>
                           <option value="polyhedra">polyhedra</option>
                           </select>
-                          <select id="penalty1b">
+                          <select id="penalty1b" oninput="cacheInput(this)">
                           <option value="s">s</option>
                           <option value="p">p</option>
                           <option value="d" selected="selected">d</option>
@@ -12493,14 +12522,14 @@ ul, li {
                           <option value="octa">octa</option>
                           <option value="other">other</option>
                           </select>
-                          <input type="number" id="penalty1c" size="9" min="-10.000" max="10.000" step="0.01" value="-1.00"> 
+                          <input type="number" id="penalty1c" size="9" min="-10.000" max="10.000" step="0.01" value="-1.00" oninput="cacheInput(this)"> 
                      </td>
                   </tr> 
                   <tr>
-                     <td> atoms: <input type="atomarray" id="atomlist1"  size="70" value="" onchange="set_color_penalty('atomlist1','colortype1','penalty1a','penalty1b','penalty1c')"> <br><br></td>
+                     <td> atoms: <input type="atomarray" id="atomlist1"  size="70" value="" onchange="set_color_penalty('atomlist1','colortype1','penalty1a','penalty1b','penalty1c')" oninput="cacheInput(this)"> <br><br></td>
                   </tr>
                   <tr> 
-                     <td> <select id="colortype2" onchange="set_color_penalty('atomlist2','colortype2','penalty2a','penalty2b','penalty2c')">
+                     <td> <select id="colortype2" onchange="set_color_penalty('atomlist2','colortype2','penalty2a','penalty2b','penalty2c')" oninput="cacheInput(this)">
                           <option value="translucent green">translucent green</option>
                           <option value="translucent yellow" selected="selected">translucent yellow</option>
                           <option value="translucent red">translucent red</option>
@@ -12508,12 +12537,12 @@ ul, li {
                           <option value="translucent orange">translucent orange</option>
                           <option value="translucent grey">translucent grey</option>
                           </select>
-                          <select id="penalty2a">
+                          <select id="penalty2a" oninput="cacheInput(this)">
                           <option value="up">up</option>
                           <option value="down" selected="selected">down</option>
                           <option value="polyhedra">polyhedra</option>
                           </select>
-                          <select id="penalty2b">
+                          <select id="penalty2b" oninput="cacheInput(this)">
                           <option value="s">s</option>
                           <option value="p">p</option>
                           <option value="d" selected="selected">d</option>
@@ -12523,14 +12552,14 @@ ul, li {
                           <option value="octa">octa</option>
                           <option value="other">other</option>
                           </select>
-                           <input type="number" id="penalty2c" size="9" min="-10.000" max="10.000" step="0.01" value="-1.00"> 
+                           <input type="number" id="penalty2c" size="9" min="-10.000" max="10.000" step="0.01" value="-1.00" oninput="cacheInput(this)"> 
                      </td>
                   </tr> 
                   <tr> 
-                     <td> atoms: <input type="atomarray" id="atomlist2"  size="70" value="" onchange="set_color_penalty('atomlist2','colortype2','penalty2a','penalty2b','penalty2c')"><br><br> </td>
+                     <td> atoms: <input type="atomarray" id="atomlist2"  size="70" value="" onchange="set_color_penalty('atomlist2','colortype2','penalty2a','penalty2b','penalty2c')" oninput="cacheInput(this)"><br><br> </td>
                   </tr> 
                   <tr> 
-                     <td> <select id="colortype3" onchange="set_color_penalty('atomlist3','colortype3','penalty3a','penalty3b','penalty3c')">
+                     <td> <select id="colortype3" onchange="set_color_penalty('atomlist3','colortype3','penalty3a','penalty3b','penalty3c')" oninput="cacheInput(this)">
                           <option value="translucent 0.3 green">translucent green</option>
                           <option value="translucent 0.3 yellow">translucent yellow</option>
                           <option value="translucent 0.3 red" selected="selected">translucent red</option>
@@ -12538,12 +12567,12 @@ ul, li {
                           <option value="translucent 0.3 orange">translucent orange</option>
                           <option value="translucent 0.3 grey">translucent grey</option>
                           </select>
-                          <select id="penalty3a">
+                          <select id="penalty3a" oninput="cacheInput(this)">
                           <option value="up">up</option>
                           <option value="down">down</option>
                           <option value="polyhedra" selected="selected">polyhedra</option>
                           </select>
-                          <select id="penalty3b">
+                          <select id="penalty3b" oninput="cacheInput(this)">
                           <option value="s">s</option>
                           <option value="p">p</option>
                           <option value="d">d</option>
@@ -12553,14 +12582,14 @@ ul, li {
                           <option value="octa" selected="selected">octa</option>
                           <option value="other">other</option>
                           </select>
-                          <input type="number" id="penalty3c" size="9" min="-10.000" max="10.000" step="0.01" value="6"> 
+                          <input type="number" id="penalty3c" size="9" min="-10.000" max="10.000" step="0.01" value="6" oninput="cacheInput(this)"> 
                      </td>
                   </tr> 
                   <tr> 
-                     <td> atoms: <input type="atomarray" id="atomlist3"  size="70" value="" onchange="set_color_penalty('atomlist3','colortype3','penalty3a','penalty3b','penalty3c')"> <br><br></td>
+                     <td> atoms: <input type="atomarray" id="atomlist3"  size="70" value="" onchange="set_color_penalty('atomlist3','colortype3','penalty3a','penalty3b','penalty3c')" oninput="cacheInput(this)"> <br><br></td>
                   </tr> 
                   <tr> 
-                     <td> <select id="colortype4" onchange="set_color_penalty('atomlist4','colortype4','penalty4a','penalty4b','penalty4c')">
+                     <td> <select id="colortype4" onchange="set_color_penalty('atomlist4','colortype4','penalty4a','penalty4b','penalty4c')" oninput="cacheInput(this)">
                           <option value="translucent 0.3 green">translucent green</option>
                           <option value="translucent 0.3 yellow">translucent yellow</option>
                           <option value="translucent 0.3 red">translucent red</option>
@@ -12568,12 +12597,12 @@ ul, li {
                           <option value="translucent 0.3 orange">translucent orange</option>
                           <option value="translucent 0.3 grey">translucent grey</option>
                           </select>
-                          <select id="penalty4a">
+                          <select id="penalty4a" oninput="cacheInput(this)">
                           <option value="up">up</option>
                           <option value="down">down</option>
                           <option value="polyhedra" selected="selected">polyhedra</option>
                           </select>
-                          <select id="penalty4b">
+                          <select id="penalty4b" oninput="cacheInput(this)">
                           <option value="s">s</option>
                           <option value="p">p</option>
                           <option value="d">d</option>
@@ -12583,11 +12612,11 @@ ul, li {
                           <option value="octa" selected="selected">octa</option>
                           <option value="other">other</option>
                           </select>
-                          <input type="number" id="penalty4c" size="9" min="-10.000" max="10.000" step="0.01" value="6">
+                          <input type="number" id="penalty4c" size="9" min="-10.000" max="10.000" step="0.01" value="6" oninput="cacheInput(this)">
                      </td>
                   </tr> 
                   <tr> 
-                     <td> atoms: <input type="atomarray" id="atomlist4"  size="70" value="" onchange="set_color_penalty('atomlist4','colortype4','penalty4a','penalty4b','penalty4c')"> </td>
+                     <td> atoms: <input type="atomarray" id="atomlist4"  size="70" value="" onchange="set_color_penalty('atomlist4','colortype4','penalty4a','penalty4b','penalty4c')" oninput="cacheInput(this)"> </td>
                   </tr> 
                </table>
                </div>
@@ -12597,13 +12626,13 @@ ul, li {
                <p align="center" style="color:#102DB0"> Reaction Input </p>
                  <section class="marquee" style="color: red"> <b id="runmebanner4"> </b> </section>
                  <form style="font-size:14px; font-weight:bold">
-                   reaction_gamma{<input type="number" id="reaction_gamma" value="0.00" step="0.1" min="-100" max="+100">}
+                   reaction_gamma{<input type="number" id="reaction_gamma" value="0.00" step="0.1" min="-100" max="+100" title=": set number reaction_gamma :">}
                    <input type="button" VALUE="Update reaction gamma" onClick="check_rgamma()" title="Generate the reaction_gamma using current geometry and specified reaction_type and reaction indexes"/>
-                   min_gamma:<input type="number" id="min_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="1000.0"> 
-                   max_gamma:<input type="number" id="max_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="-1000.0"> 
+                   min_gamma:<input type="number" id="min_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="1000.0" title=": set number min_reaction_gamma :" oninput="cacheInput(this)"> 
+                   max_gamma:<input type="number" id="max_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="-1000.0" title=": set number max_reaction_gamma :" oninput="cacheInput(this)"> 
 
                    <br>
-                   reaction_type{<select id="reaction_type">
+                   reaction_type{<select id="reaction_type" title=": set text reaction_type :" oninput="cacheInput(this)">
                                    <option>None</option>
                                    <option>A + B --> AB</option>
                                    <option>AB --> A + B</option>
@@ -12628,25 +12657,25 @@ ul, li {
                                    <option disabled>──────────</option>
                                  </select>
                    <input type="button" class="button" id="sdd_reacton_type" value="add" onClick="add_select_option('Add reaction_type: ','','reaction_type');"/> }
-                   reaction_indexes{<input type="text" id="reaction_indexes" SIZE=14>} 
+                   reaction_indexes{<input type="text" id="reaction_indexes" SIZE=14 title=": set text reaction_indexes :">} 
                    <input type="button" class="button" id="reactiontab_to_metadynamics" value="Generate bondings WHAM input" onClick="bondings_metadynamics();evalcollective();"/> 
                    <br> 
                    reaction constraint<br>
-                   <textarea  name="reaction_bondings" id="reaction_bondings" rows="4" cols="70"></textarea>
+                   <textarea  name="reaction_bondings" id="reaction_bondings" rows="4" cols="70" title=": set text reaction_bondings :" oninput="cacheInput(this)"></textarea>
                    <br> <br>
                    reaction_hash <input type="button" VALUE="Generate reaction hash" onClick="gen_rhash1(dummy_callback)" title="Generate reaction_hash using current geometry, reaction_type and reaction_gamma inputs"/>
                    <b style="color: blue; font-size: 14px;" id="runmebanner4p"></b>
                    <br>
-                   <textarea  name="reaction_hash" id="reaction_hash" rows="5" cols="70"></textarea>
+                   <textarea  name="reaction_hash" id="reaction_hash" rows="5" cols="70" title="Thomas: set text reaction_hash :" oninput="cacheInput(this)"></textarea>
                    <br><br>
                    reaction constraint choices <input type="button" id="button_searchrconstraints" VALUE="Search reaction constaints using reaction hash" onClick="gen_reactions1(dummy_callback)" title="Searches for possible reaction constraints using the current geometry and reaction_hash"/>
                    <br>
-                   <textarea  name="reaction_hash2" id="reaction_hash2" rows="5" cols="70"></textarea>
+                   <textarea  name="reaction_hash2" id="reaction_hash2" rows="5" cols="70" title="Thomas: set text reaction_hash2 :" oninput="cacheInput(this)"></textarea>
                    <br> <br>
                    chemical reaction 
                    <input type="button" VALUE="Use JSME reaction" onClick="loadreaction2dWindow('reaction_genhash00')" title=": reaction_genhash00 : Fetches chemical reaction from JSME editor"/>
                    <br>
-                   <input type="text" id="reaction_genhash00" SIZE=83><br>
+                   <input type="text" id="reaction_genhash00" SIZE=83 title="Thomas: set text reaction_genhash00 :" oninput="cacheInput(this)"><br>
                    <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1)" 
                           title="Loads the reactants into jsmol from the chemical reaction input box"/>
                    <input type="button" id="button_genrhash" VALUE="Generate chemical reaction hash" onClick="gen_rhash2(dummy_callback)" title="Generates reaction_hash using chemical reaction input"/>
@@ -12654,24 +12683,24 @@ ul, li {
                    <br>
                    Auxiliary Penalty Functions <input type="button" VALUE="Resolve Variables" onClick="resolveauxvariables('auxiliary_functions',dummy_callback)" title="Fetches chemical reaction from JSME editor"/>
                    <br>
-                   <textarea  name="auxiliary_functions" id="auxiliary_functions" rows="3" cols="70"></textarea>
+                   <textarea  name="auxiliary_functions" id="auxiliary_functions" rows="3" cols="70" title="Thomas: set text axiliary_functons :" oninput="cacheInput(this)"></textarea>
                    <br> <br>
                    <input type="button" VALUE="Generate reaction path" onClick="gen_reaction_path()" title="Generates reaction path using the current geometry and reaction constraint"/>
-                   npath:<input type="number" id="reaction_npath" SIZE=9   min="2" max="1000" step="1" value="1"> 
+                   npath:<input type="number" id="reaction_npath" SIZE=9   min="2" max="1000" step="1" value="1" title="Thomas: set number reaction_npath :" oninput="cacheInput(this)"> 
                    <input type="button" value="Next model" onClick="loadframe2jsmol(false,false);check_rgamma();" title="Load next xyz model into jsmol"/>
                    <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false);check_rgamma();" title="Load previous xyz xyz model into jsmol"/>
                    <b style="color: blue; font-size: 14px;" id="model_label2">Model 1 out of 1</b> <br><br>
 
                    <input type="button" VALUE="Generate morphed model" onClick="gen_morph12()" title="Generate a new xyz model by morphing the two specified models"/>
-                   model 1:<input type="number" id="reaction_model1" SIZE=9   min="1" max="1000" step="1" value="1"> 
-                   model 2:<input type="number" id="reaction_model2" SIZE=9   min="1" max="1000" step="1" value="2"> 
-                   mixing:<input type="number" id="reaction_morph12" SIZE=9   min="0.00" max="1.00" step="0.01" value="0.00">
+                   model 1:<input type="number" id="reaction_model1" SIZE=9   min="1" max="1000" step="1" value="1" title=": set number reaction_model1 :"> 
+                   model 2:<input type="number" id="reaction_model2" SIZE=9   min="1" max="1000" step="1" value="2" title=": set number reaction_model2 :"> 
+                   mixing:<input type="number" id="reaction_morph12" SIZE=9   min="0.00" max="1.00" step="0.01" value="0.00" title="Thomas: set number reaction_morph12" oninput="cacheInput(this)">
                    <br><br>
-                   WHAM_spring{<input type="number" id="umbrella_spring" value="0.3000" min="0.0000" max="100.0000" step="0.0010">}
-                   WHAM_gamma{<input type="number" id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10">}
+                   WHAM_spring{<input type="number" id="umbrella_spring" value="0.3000" min="0.0000" max="100.0000" step="0.0010" title="Thomas: set number umbrella_spring :" oninput="cacheInput(this)">}
+                   WHAM_gamma{<input type="number" id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10" title="Thomas: set number umbrella_gamma :" oninput="cacheInput(this)">}
                    <input type="button" VALUE="Generate WHAM model" onClick="gen_wham_model(dummy_callback)" title="Generate a new xyz model by morphing 3 point reaction path"/>
-                   <input type="button" value="Generate solvated WHAM input" onClick="solvatewhaminput(-1.0,dummy_callback);" title="Load next xyz model into jsmol"/>
-                   posteriori analysis: <input type="radio" id="wham_posteriori" onClick="ClearRd(this,6)" title="Generate posteriori WHAM DATA block"/>
+                   <input type="button" value="Generate solvated WHAM input" onClick="solvatewhaminput(-1.0,dummy_callback);" title="Load next xyz model into jsmol" oninput="cacheInput(this)"/>
+                   posteriori analysis: <input type="radio" id="wham_posteriori" onClick="ClearRd(this,6)" title="Thomas: set radio wham_postiriori : Generate posteriori WHAM DATA block"/>
 
                  </form>
                </div>
@@ -12679,37 +12708,37 @@ ul, li {
                 <!-- collective input -->
                <div id="swapper-other3" style="display:none; border:2px dashed;  border-color: #102DB0; background-color: white; padding:10px;">
                   <p align="center" style="color:#102DB0"> Collective Variable Input </p>
-                  <select id="free_energy_type"  onChange="changefreeenergy()">
+                  <select id="free_energy_type"  onChange="changefreeenergy()" oninput="cacheInput(this)">
                      <option> Metadynamics </option>
                      <option>TAMD</option>
                      <option>PMF</option>
                   </select>
                    <div id="metainput" class="meta_div" style="display:block; border:1px dotted; border-color: #102DB0;"> 
                       <p align="center"> Metadynamics </p>
-                      update: <input type="number" id="meta_update" size="9" min="0" max="1000" step="1" value="10">
-                      print: <input type="number" id="meta_print" size="9" min="0" max="1000" step="1" value="100">
-                      print_shift: <input type="number" id="meta_print_shift" size="9" min="0" max="1000" step="1" value="1"><br>
-                      w: <input type="number" id="meta_w" size="9" min="0.00001" max="1.00000" step="0.00001" value="0.00100"> 
-                      sigma: <input type="number" id="meta_sigma" size="9" min="0.005" max="1.000" step="0.001" value="0.100"> <br>
-                      range: <input type="2array" id="meta_range" size="19"  value="">
-                      nrange: <input type="number" id="meta_nrange" size="9" min="1" max="5000" step="1" value="" > <br><br>
-                      boundary_w: <input type="number" id="meta_boundary_w" size="9" min="0.0001" max="10.0000" step="0.0001" value="0.0000"> 
-                      boundary_sigma: <input type="number" id="meta_boundary_sigma" size="9" min="0.005" max="1.000" step="0.001" value="0.000">
-                      tempered: <input type="number" id="meta_tempered" size="15" min="0.0" max="99000.0" step="1.0" value=""> <br><br>
+                      update: <input type="number" id="meta_update" size="9" min="0" max="1000" step="1" value="10" oninput="cacheInput(this)">
+                      print: <input type="number" id="meta_print" size="9" min="0" max="1000" step="1" value="100" oninput="cacheInput(this)">
+                      print_shift: <input type="number" id="meta_print_shift" size="9" min="0" max="1000" step="1" value="1" oninput="cacheInput(this)"><br>
+                      w: <input type="number" id="meta_w" size="9" min="0.00001" max="1.00000" step="0.00001" value="0.00100" oninput="cacheInput(this)"> 
+                      sigma: <input type="number" id="meta_sigma" size="9" min="0.005" max="1.000" step="0.001" value="0.100" oninput="cacheInput(this)"> <br>
+                      range: <input type="2array" id="meta_range" size="19"  value="" oninput="cacheInput(this)">
+                      nrange: <input type="number" id="meta_nrange" size="9" min="1" max="5000" step="1" value="" oninput="cacheInput(this)" > <br><br>
+                      boundary_w: <input type="number" id="meta_boundary_w" size="9" min="0.0001" max="10.0000" step="0.0001" value="0.0000" oninput="cacheInput(this)"> 
+                      boundary_sigma: <input type="number" id="meta_boundary_sigma" size="9" min="0.005" max="1.000" step="0.001" value="0.000" oninput="cacheInput(this)">
+                      tempered: <input type="number" id="meta_tempered" size="15" min="0.0" max="99000.0" step="1.0" value="" oninput="cacheInput(this)"> <br><br>
                    </div>
                    <div id="tamdinput" class="meta_div" style="display:none; border:1px dotted; border-color: #102DB0;"> 
                       <p align="center"> TAMD </p>
-                      update: <input type="number" id="tamd_update" size="9" min="0" max="1000" step="1" value="10">
-                      print: <input type="number" id="tamd_print" size="9" min="0" max="1000" step="1" value="100">
-                      print_shift: <input type="number" id="tamd_print_shift" size="9" min="0" max="1000" step="1" value="1"><br>
-                      gamma: <input type="number" id="tamd_gamma" size="15" min="0.000" max="10000.0" step="0.001" value="0.001">
-                      k: <input type="number" id="tamd_k" size="15" min="0.000" max="10000.000" step="0.010" value="0.050">
-                      mass: <input type="number" id="tamd_mass" size="15" min="0.0" max="10000.0" step="0.1" value="30.0"> <br>
-                      ztemp: <input type="number" id="tamd_ztemp" size="15" min="0.0" max="99000.0" step="1" value="1000.0">
-                      zinitial: <input type="2array" id="tamd_zinitial" size="19"  value=""> 
+                      update: <input type="number" id="tamd_update" size="9" min="0" max="1000" step="1" value="10" oninput="cacheInput(this)">
+                      print: <input type="number" id="tamd_print" size="9" min="0" max="1000" step="1" value="100" oninput="cacheInput(this)">
+                      print_shift: <input type="number" id="tamd_print_shift" size="9" min="0" max="1000" step="1" value="1" oninput="cacheInput(this)"><br>
+                      gamma: <input type="number" id="tamd_gamma" size="15" min="0.000" max="10000.0" step="0.001" value="0.001" oninput="cacheInput(this)">
+                      k: <input type="number" id="tamd_k" size="15" min="0.000" max="10000.000" step="0.010" value="0.050" oninput="cacheInput(this)">
+                      mass: <input type="number" id="tamd_mass" size="15" min="0.0" max="10000.0" step="0.1" value="30.0" oninput="cacheInput(this)"> <br>
+                      ztemp: <input type="number" id="tamd_ztemp" size="15" min="0.0" max="99000.0" step="1" value="1000.0" oninput="cacheInput(this)">
+                      zinitial: <input type="2array" id="tamd_zinitial" size="19"  value="" oninput="cacheInput(this)"> 
                       <input type="button" class="button" id="setzinitial" value="set zinitial" onClick="set_zinitial();"/>
                       zfixed: <input type="radio" id="tamd_zfixed" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/><br>
-                      range: <input type="2array" id="tamd_range" size="19"  value="">
+                      range: <input type="2array" id="tamd_range" size="19"  value="" oninput="cacheInput(this)">
                       nrange: <input type="number" id="tamd_nrange" size="9" min="1" max="5000" step="1" value="" > 
                    </div>
                    <div id="pmfinput" class="meta_div" style="display:none; border:1px dotted; border-color: #102DB0;"> 
@@ -12719,7 +12748,7 @@ ul, li {
                          <td> Auxiliary Potentials </td>
                       </tr>
                       <tr>
-                         <td> <textarea  id="auxpotentials" rows="20" cols="60"></textarea></td>
+                         <td> <textarea  id="auxpotentials" rows="20" cols="60" oninput="cacheInput(this)"></textarea></td>
                       </tr>
                       </table>
                       <br>
@@ -12731,7 +12760,7 @@ ul, li {
 
                    <br><input type="button" class="button" id="redrawcolors" value="Reset atom colors" onClick="jms('select *; color cpk;');"/> <br><br>
 
-                   coordinate_type{<select id="coordinate_type"  onChange="changecollectivecoords();evalcollective()">
+                   coordinate_type{<select id="coordinate_type"  onChange="changecollectivecoords();evalcollective()" oninput="cacheInput(this)">
                                    <option> None </option>
                                    <option>bond</option>
                                    <option>angle</option>
@@ -12747,58 +12776,58 @@ ul, li {
                                  </select>}
                    <br>
                    <div id="collective_bond" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (red): <input type="number" id="collective_bond_a1" size="9" min="1" max="50000" step="1" value=""  onChange="set_color_alist('translucent red','collective_bond_a1');evalcollective()"> 
-                      atom 2 index (green): <input type="number" id="collective_bond_a2" size="9" min="1" max="50000" step="1" value=""  onChange="set_color_alist('translucent green','collective_bond_a2');evalcollective()"> <br>
+                      atom 1 index (red): <input type="number" id="collective_bond_a1" size="9" min="1" max="50000" step="1" value=""  onChange="set_color_alist('translucent red','collective_bond_a1');evalcollective()" oninput="cacheInput(this)"> 
+                      atom 2 index (green): <input type="number" id="collective_bond_a2" size="9" min="1" max="50000" step="1" value=""  onChange="set_color_alist('translucent green','collective_bond_a2');evalcollective()" oninput="cacheInput(this)"> <br>
                    </div>
                    <div id="collective_angle" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (red): <input type="number" id="collective_angle_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_angle_a1')"> 
-                      atom 2 index (green): <input type="number" id="collective_angle_a2" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_angle_a2');evalcollective()"> <br>
-                      atom 3 index (blue): <input type="number" id="collective_angle_a3" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_angle_a3');evalcollective()"> <br>
+                      atom 1 index (red): <input type="number" id="collective_angle_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_angle_a1')" oninput="cacheInput(this)"> 
+                      atom 2 index (green): <input type="number" id="collective_angle_a2" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_angle_a2');evalcollective()" oninput="cacheInput(this)"> <br>
+                      atom 3 index (blue): <input type="number" id="collective_angle_a3" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_angle_a3');evalcollective()" oninput="cacheInput(this)"> <br>
                    </div>
                    <div id="collective_dihedral" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (red): <input type="number" id="collective_dihedral_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_dihedral_a1');evalcollective()"> 
-                      atom 2 index (green): <input type="number" id="collective_dihedral_a2" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_dihedral_a2');evalcollective()"> <br>
-                      atom 3 index (blue): <input type="number" id="collective_dihedral_a3" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_dihedral_a3');evalcollective()"> 
-                      atom 4 index (yellow): <input type="number" id="collective_dihedral_a4" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent yellow','collective_dihedral_a4');evalcollective()"> <br>
+                      atom 1 index (red): <input type="number" id="collective_dihedral_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_dihedral_a1');evalcollective()" oninput="cacheInput(this)"> 
+                      atom 2 index (green): <input type="number" id="collective_dihedral_a2" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_dihedral_a2');evalcollective()" oninput="cacheInput(this)"> <br>
+                      atom 3 index (blue): <input type="number" id="collective_dihedral_a3" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_dihedral_a3');evalcollective()" oninput="cacheInput(this)"> 
+                      atom 4 index (yellow): <input type="number" id="collective_dihedral_a4" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent yellow','collective_dihedral_a4');evalcollective()" oninput="cacheInput(this)"> <br>
                    </div>
                    <div id="collective_coord_number" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom indexes1: <input type="atomarray" id="collective_coord_number_indexes1"  size="70" value="" onChange="set_color_alist('translucent green','collective_coord_number_indexes1');evalcollective()"> <br>
-                      atom indexes2: <input type="atomarray" id="collective_coord_number_indexes2"  size="70" value="" onChange="set_color_alist('translucent blue','collective_coord_number_indexes2');evalcollective()"> <br>
-                      n12: <input type="number" id="collective_coord_number_n12" size="9" min="0.001" max="50000000.100" step="0.001" value="1.000" onChange="evalcollective()"> 
+                      atom indexes1: <input type="atomarray" id="collective_coord_number_indexes1"  size="70" value="" onChange="set_color_alist('translucent green','collective_coord_number_indexes1');evalcollective()" oninput="cacheInput(this)"> <br>
+                      atom indexes2: <input type="atomarray" id="collective_coord_number_indexes2"  size="70" value="" onChange="set_color_alist('translucent blue','collective_coord_number_indexes2');evalcollective()" oninput="cacheInput(this)"> <br>
+                      n12: <input type="number" id="collective_coord_number_n12" size="9" min="0.001" max="50000000.100" step="0.001" value="1.000" onChange="evalcollective()" oninput="cacheInput(this)"> 
                       Sprik: <input type="radio" id="collective_coord_number_sprik" onClick="ClearRd(this,1);evalcollective(); set_Sprik()" title="Sprik"  />
-                      n: <input type="number" id="collective_coord_number_n" size="9" min="0.001" max="50.100" step="0.001" value="6.000" onChange="evalcollective()" > 
-                      R0: <input type="number" id="collective_coord_number_r0" size="9" min="0.001" max="50.000" step="0.001" value="1.200" onChange="evalcollective()" > 
+                      n: <input type="number" id="collective_coord_number_n" size="9" min="0.001" max="50.100" step="0.001" value="6.000" onChange="evalcollective()" oninput="cacheInput(this)"> 
+                      R0: <input type="number" id="collective_coord_number_r0" size="9" min="0.001" max="50.000" step="0.001" value="1.200" onChange="evalcollective()" oninput="cacheInput(this)"> 
                       <div id="Sprik_m" style="display:block">
-                         m: <input type="number" id="collective_coord_number_m" size="9" min="0.001" max="50.100" step="0.001" value="12.000" onChange="evalcollective()"> 
+                         m: <input type="number" id="collective_coord_number_m" size="9" min="0.001" max="50.100" step="0.001" value="12.000" onChange="evalcollective()" oninput="cacheInput(this)"> 
                       </div>
                      <br>
                    </div>
                    <div id="collective_group_distance" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom indexes1: <input type="atomarray" id="collective_group_distance_indexes1"  size="70" value="" onChange="set_color_alist('translucent orange','collective_group_distance_indexes1');evalcollective()"> 
-                      atom indexes2: <input type="atomarray" id="collective_group_distance_indexes2"  size="70" value="" onChange="set_color_alist('translucent aqua','collective_group_distance_indexes2');evalcollective()"> 
-                      n: <input type="number" id="collective_group_distance_n" size="9" min="0.01" max="20.00" step="0.01" value="3.50" onChange="evalcollective()"> 
+                      atom indexes1: <input type="atomarray" id="collective_group_distance_indexes1"  size="70" value="" onChange="set_color_alist('translucent orange','collective_group_distance_indexes1');evalcollective()" oninput="cacheInput(this)"> 
+                      atom indexes2: <input type="atomarray" id="collective_group_distance_indexes2"  size="70" value="" onChange="set_color_alist('translucent aqua','collective_group_distance_indexes2');evalcollective()" oninput="cacheInput(this)"> 
+                      n: <input type="number" id="collective_group_distance_n" size="9" min="0.01" max="20.00" step="0.01" value="3.50" onChange="evalcollective()" oninput="cacheInput(this)"> 
                    </div>
                    <div id="collective_bondings" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      coef1 atom1a atom1a coef2 atom2a atom2b ...: <input type="atomarray" id="collective_bondings_coefindexes"  size="70" value="" onChange="set_color_bondings('collective_bondings_coefindexes');evalcollective()"> 
+                      coef1 atom1a atom1a coef2 atom2a atom2b ...: <input type="atomarray" id="collective_bondings_coefindexes"  size="70" value="" onChange="set_color_bondings('collective_bondings_coefindexes');evalcollective()" oninput="cacheInput(this)"> 
                    </div>
                    <div id="collective_X" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (red): <input type="number" id="collective_X_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_X_a1');evalcollective()"> 
+                      atom 1 index (red): <input type="number" id="collective_X_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_X_a1');evalcollective()" oninput="cacheInput(this)"> 
                    </div>
                    <div id="collective_Y" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (blue): <input type="number" id="collective_Y_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_Y_a1');evalcollective()"> 
+                      atom 1 index (blue): <input type="number" id="collective_Y_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_Y_a1');evalcollective()" oninput="cacheInput(this)"> 
                    </div>
                    <div id="collective_Z" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (green): <input type="number" id="collective_Z_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_Z_a1');evalcollective()"> 
+                      atom 1 index (green): <input type="number" id="collective_Z_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_Z_a1');evalcollective()" oninput="cacheInput(this)"> 
                    </div>
                    <div id="collective_n-plane" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index: <input type="number" id="collective_nplane_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent orange','collective_nplane_a1');evalcollective()" > <br>
-                      atom indexes: <input type="atomarray" id="collective_nplane_indexes"  size="70" value="" onChange="set_color_alist('translucent yellow','collective_nplane_indexes');evalcollective()"><br>
-                      normal: <input type="3array" id="collective_nplane_normal"  size="35" value="0.0 0.0 1.0" onChange="evalcollective()"> 
+                      atom 1 index: <input type="number" id="collective_nplane_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent orange','collective_nplane_a1');evalcollective()" oninput="cacheInput(this)"> <br>
+                      atom indexes: <input type="atomarray" id="collective_nplane_indexes"  size="70" value="" onChange="set_color_alist('translucent yellow','collective_nplane_indexes');evalcollective()" oninput="cacheInput(this)"><br>
+                      normal: <input type="3array" id="collective_nplane_normal"  size="35" value="0.0 0.0 1.0" onChange="evalcollective()" oninput="cacheInput(this)"> 
                    </div>
                    <div id="collective_bond_difference2" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (red): <input type="number" id="collective_bond_difference2_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_bond_difference2_a1')"> 
-                      atom 2 index (green): <input type="number" id="collective_bond_difference2_a2" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_bond_difference2_a2');evalcollective()"> <br>
-                      atom 3 index (blue): <input type="number" id="collective_bond_difference2_a3" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_bond_difference2_a3');evalcollective()"> <br>
+                      atom 1 index (red): <input type="number" id="collective_bond_difference2_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_bond_difference2_a1')" oninput="cacheInput(this)"> 
+                      atom 2 index (green): <input type="number" id="collective_bond_difference2_a2" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_bond_difference2_a2');evalcollective()" oninput="cacheInput(this)"> <br>
+                      atom 3 index (blue): <input type="number" id="collective_bond_difference2_a3" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_bond_difference2_a3');evalcollective()" oninput="cacheInput(this)"> <br>
                    </div>
    
 
@@ -12880,7 +12909,7 @@ ul, li {
                   </tr>
                </table>
 
-               Bulk Atoms and Frozen Atoms <br> <textarea  name="bulk_atoms" id="bulk_atoms" rows="3" cols="76"></textarea>
+               Bulk Atoms and Frozen Atoms <br> <textarea  name="bulk_atoms" id="bulk_atoms" rows="3" cols="76" oninput="cacheInput(this)"></textarea>
                </div>
 
 
@@ -12896,7 +12925,7 @@ ul, li {
                   </tr>
                   <tr>
                      <td>
-                        atoms: <input type="text" id="bulk_name" SIZE=9 value="Pt"/>
+                        atoms: <input type="text" id="bulk_name" SIZE=9 value="Pt" oninput="cacheInput(this)"/>
                         <select id="bulk_type">
                            <option value="sc">Simple Cubic</option>
                            <option value="fcc">Face-Centered Cubic</option>
@@ -12917,12 +12946,12 @@ ul, li {
                            <option value="graphene">Graphene</option>
                          </select>
                          <br>
-                         lat_a: <input type="number" id="bulk_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
-                         lat_b: <input type="number" id="bulk_b" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         lat_c: <input type="number" id="bulk_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         c/a: <input type="number" id="bulk_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         alpha: <input type="number" id="bulk_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         lat_u: <input type="number" id="bulk_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         lat_a: <input type="number" id="bulk_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000" oninput="cacheInput(this)">
+                         lat_b: <input type="number" id="bulk_b" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         lat_c: <input type="number" id="bulk_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         c/a: <input type="number" id="bulk_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         alpha: <input type="number" id="bulk_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         lat_u: <input type="number" id="bulk_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          primitive: <input type="radio" id="bulk_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
                          cubic: <input type="radio" id="bulk_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/>
                      </td>
@@ -12935,10 +12964,10 @@ ul, li {
                   </tr>
                   <tr>
                      <td>
-                        a(hkl): <input type="text" id="surface_a" SIZE=15 value="1.5 -1.5 0.0"/>
-                        b(hkl): <input type="text" id="surface_b" SIZE=15 value="0.0 1.5 -1.5"/>
-                        c(hkl): <input type="text" id="surface_c" SIZE=15 value="-1.0 -1.0 -1.0"/>
-                        <select id="surface_cut" onChange="defineslab('surface_cut','surface_a','surface_b','surface_c')">
+                        a(hkl): <input type="text" id="surface_a" SIZE=15 value="1.5 -1.5 0.0" oninput="cacheInput(this)"/>
+                        b(hkl): <input type="text" id="surface_b" SIZE=15 value="0.0 1.5 -1.5" oninput="cacheInput(this)"/>
+                        c(hkl): <input type="text" id="surface_c" SIZE=15 value="-1.0 -1.0 -1.0" oninput="cacheInput(this)"/>
+                        <select id="surface_cut" onChange="defineslab('surface_cut','surface_a','surface_b','surface_c')" oninput="cacheInput(this)">
                            <option value="sc100">SC100</option>
                            <option value="sc001">SC001</option>
                            <option value="sc111">SC111</option>
@@ -12955,12 +12984,12 @@ ul, li {
                            <option value="diamond111">diamond111</option>
                            <option value="graphene001">graphene001</option>
                          </select>
-                        <br> vacuum: <input type="number" id="surface_vacuum" size="9" min="0.500" max="30.000" step="0.01" value="10.000" onChange="jsmcellchange(1,1)">
-                        origin: <input type="text" id="surface_origin" SIZE=15 value="0.0 0.0 0.0"/>
-                        scaling: <input type="text" id="surface_scaling" SIZE=15 value="1.0 1.0 1.0"/>
-                        nzplane: <input type="number" id="surface_nzplane" SIZE=5 min="1" max="100" step="1" value=""/>
-                        <br>tolerance: <input type="number" id="surface_tolerance" size="9" min="-3.000" max="3.000" step="0.001" value="0.0010" onChange="jsmcellchange(1,1)">
-                        align c: <input type="radio" id="surface_alignc" onClick="ClearRd(this,1)" title="align c axis"/>
+                        <br> vacuum: <input type="number" id="surface_vacuum" size="9" min="0.500" max="30.000" step="0.01" value="10.000" onChange="jsmcellchange(1,1)" oninput="cacheInput(this)">
+                        origin: <input type="text" id="surface_origin" SIZE=15 value="0.0 0.0 0.0" oninput="cacheInput(this)"/>
+                        scaling: <input type="text" id="surface_scaling" SIZE=15 value="1.0 1.0 1.0" oninput="cacheInput(this)"/>
+                        nzplane: <input type="number" id="surface_nzplane" SIZE=5 min="1" max="100" step="1" value="" oninput="cacheInput(this)"/>
+                        <br>tolerance: <input type="number" id="surface_tolerance" size="9" min="-3.000" max="3.000" step="0.001" value="0.0010" onChange="jsmcellchange(1,1)" oninput="cacheInput(this)">
+                        align c: <input type="radio" id="surface_alignc" onClick="ClearRd(this,1)" title="align c axis" oninput="cacheInput(this)"/>
                      </td>
                   </tr>
                </table>
@@ -12974,8 +13003,8 @@ ul, li {
                   </tr>
                   <tr>
                      <td>
-                        Base atoms: <input type="text" id="bulk1_name" SIZE=9 value="Pt"/>
-                        <select id="bulk1_type">
+                        Base atoms: <input type="text" id="bulk1_name" SIZE=9 value="Pt" oninput="cacheInput(this)"/>
+                        <select id="bulk1_type" oninput="cacheInput(this)">
                            <option value="sc">Simple Cubic</option>
                            <option value="fcc">Face-Centered Cubic</option>
                            <option value="bcc">Body-Centered Cubic</option>
@@ -12995,18 +13024,18 @@ ul, li {
                            <option value="graphene">Graphene</option>
                          </select>
                          <br>
-                         lat_a: <input type="number" id="bulk1_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
-                         lat_b: <input type="number" id="bulk1_b" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
-                         lat_c: <input type="number" id="bulk1_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         c/a:   <input type="number" id="bulk1_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         alpha: <input type="number" id="bulk1_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         lat_u: <input type="number" id="bulk1_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         lat_a: <input type="number" id="bulk1_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000" oninput="cacheInput(this)">
+                         lat_b: <input type="number" id="bulk1_b" size="9" min="0.500" max="30.000" step="0.01" value="4.000" oninput="cacheInput(this)">
+                         lat_c: <input type="number" id="bulk1_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         c/a:   <input type="number" id="bulk1_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         alpha: <input type="number" id="bulk1_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         lat_u: <input type="number" id="bulk1_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          primitive: <input type="radio" id="bulk1_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
                          cubic: <input type="radio" id="bulk1_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/><br>
-                         a(hkl): <input type="text" id="surface1_a" SIZE=15 value="1.5 -1.5 0.0"/>
-                         b(hkl): <input type="text" id="surface1_b" SIZE=15 value="0.0 1.5 -1.5"/>
-                         c(hkl): <input type="text" id="surface1_c" SIZE=15 value="-1.0 -1.0 -1.0"/>
-                         <select id="surface1_cut" onChange="defineslab('surface1_cut','surface1_a','surface1_b','surface1_c')">
+                         a(hkl): <input type="text" id="surface1_a" SIZE=15 value="1.5 -1.5 0.0" oninput="cacheInput(this)"/>
+                         b(hkl): <input type="text" id="surface1_b" SIZE=15 value="0.0 1.5 -1.5" oninput="cacheInput(this)"/>
+                         c(hkl): <input type="text" id="surface1_c" SIZE=15 value="-1.0 -1.0 -1.0" oninput="cacheInput(this)"/>
+                         <select id="surface1_cut" onChange="defineslab('surface1_cut','surface1_a','surface1_b','surface1_c')" oninput="cacheInput(this)">
                            <option value="sc100">SC100</option>
                            <option value="sc001">SC001</option>
                            <option value="sc111">SC111</option>
@@ -13024,14 +13053,14 @@ ul, li {
                            <option value="graphene001">graphene001</option>
                          </select>
                          <br> 
-                         origin: <input type="text" id="surface1_origin" SIZE=15 value="0.0 0.0 0.0"/>
-                         scaling: <input type="text" id="surface1_scaling" SIZE=15 value="1.0 1.0 1.0"/>
+                         origin: <input type="text" id="surface1_origin" SIZE=15 value="0.0 0.0 0.0" oninput="cacheInput(this)"/>
+                         scaling: <input type="text" id="surface1_scaling" SIZE=15 value="1.0 1.0 1.0" oninput="cacheInput(this)"/>
                      </td>
                   </tr>
                   <tr>
                      <td>
                         <br> Adjunct atoms: <input type="text" id="bulk2_name" SIZE=9 value="Pt"/>
-                        <select id="bulk2_type">
+                        <select id="bulk2_type" oninput="cacheInput(this)">
                            <option value="sc">Simple Cubic</option>
                            <option value="fcc">Face-Centered Cubic</option>
                            <option value="bcc">Body-Centered Cubic</option>
@@ -13051,18 +13080,18 @@ ul, li {
                            <option value="graphene">traphene</option>
                          </select>
                          <br>
-                         lat_a: <input type="number" id="bulk2_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
-                         lat_b: <input type="number" id="bulk2_b" size="9" min="0.500" max="30.000" step="0.01" value="4.000">
-                         lat_c: <input type="number" id="bulk2_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         c/a:   <input type="number" id="bulk2_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         alpha: <input type="number" id="bulk2_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
-                         lat_u: <input type="number" id="bulk2_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000">
+                         lat_a: <input type="number" id="bulk2_a" size="9" min="0.500" max="30.000" step="0.01" value="4.000" oninput="cacheInput(this)">
+                         lat_b: <input type="number" id="bulk2_b" size="9" min="0.500" max="30.000" step="0.01" value="4.000" oninput="cacheInput(this)">
+                         lat_c: <input type="number" id="bulk2_c" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         c/a:   <input type="number" id="bulk2_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         alpha: <input type="number" id="bulk2_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
+                         lat_u: <input type="number" id="bulk2_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          primitive: <input type="radio" id="bulk2_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
                          cubic: <input type="radio" id="bulk2_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/><br>
-                         a(hkl): <input type="text" id="surface2_a" SIZE=15 value="1.5 -1.5 0.0"/>
-                         b(hkl): <input type="text" id="surface2_b" SIZE=15 value="0.0 1.5 -1.5"/>
-                         c(hkl): <input type="text" id="surface2_c" SIZE=15 value="-1.0 -1.0 -1.0"/>
-                         <select id="surface2_cut" onChange="defineslab('surface2_cut','surface2_a','surface2_b','surface2_c')">
+                         a(hkl): <input type="text" id="surface2_a" SIZE=15 value="1.5 -1.5 0.0" oninput="cacheInput(this)"/>
+                         b(hkl): <input type="text" id="surface2_b" SIZE=15 value="0.0 1.5 -1.5" oninput="cacheInput(this)"/>
+                         c(hkl): <input type="text" id="surface2_c" SIZE=15 value="-1.0 -1.0 -1.0" oninput="cacheInput(this)"/>
+                         <select id="surface2_cut" onChange="defineslab('surface2_cut','surface2_a','surface2_b','surface2_c')" oninput="cacheInput(this)">
                            <option value="sc100">SC100</option>
                            <option value="sc001">SC001</option>
                            <option value="sc111">SC111</option>
@@ -13080,13 +13109,13 @@ ul, li {
                            <option value="graphene001">graphene001</option>
                          </select>
                          <br>
-                         origin: <input type="text" id="surface2_origin" SIZE=15 value="0.0 0.0 0.0"/>
-                         scaling: <input type="text" id="surface2_scaling" SIZE=15 value="1.0 1.0 1.0"/>
+                         origin: <input type="text" id="surface2_origin" SIZE=15 value="0.0 0.0 0.0" oninput="cacheInput(this)"/>
+                         scaling: <input type="text" id="surface2_scaling" SIZE=15 value="1.0 1.0 1.0" oninput="cacheInput(this)"/>
                      </td>
                   </tr>
                   <tr>
                      <td>
-                         <br> interface distance delta: <input type="number" id="interface_delta" size="9" min="-10.00" max="10.00" step="0.01" value="0.00">
+                         <br> interface distance delta: <input type="number" id="interface_delta" size="9" min="-10.00" max="10.00" step="0.01" value="0.00" oninput="cacheInput(this)">
                      
                      </td>
                   </tr>
@@ -13106,12 +13135,12 @@ ul, li {
                      <td>
                         <table>
                         <tr>
-                            <td> symmetry: <input type="spacegroup" id="lattice_group"  size="15" value="P1" onChange="jsmcellchange(0,1)"> </td>
-                            <td> setting: <input type="spacegroup" id="lattice_group_setting"  size="5" value="1" onChange="jsmcellchange(0,1)"> </td>
+                            <td> symmetry: <input type="spacegroup" id="lattice_group"  size="15" value="P1" onChange="jsmcellchange(0,1)" oninput="cacheInput(this)"> </td>
+                            <td> setting: <input type="spacegroup" id="lattice_group_setting"  size="5" value="1" onChange="jsmcellchange(0,1)" oninput="cacheInput(this)"> </td>
                         </tr>
                         <tr>
                            <td> crystal system:
-                             <select id="crystal_system">
+                             <select id="crystal_system" oninput="cacheInput(this)">
                                 <option value="Triclinic">Triclinic</option>
                                 <option value="Monoclinic">Monoclinic</option>
                                 <option value="Orthorhombic">Orthorhombic</option>
@@ -13121,7 +13150,7 @@ ul, li {
                                 <option value="Cubic">Cubic</option>
                               </select>
                            </td>
-                            <td> group number: <input type="spacegroup" id="lattice_group_number"  size="5" value="1" onChange="jsmcellchange(0,1)"> </td>
+                            <td> group number: <input type="spacegroup" id="lattice_group_number"  size="5" value="1" onChange="jsmcellchange(0,1)" oninput="cacheInput(this)"> </td>
                         </tr>
                         </table>
                      </td>
@@ -13130,7 +13159,7 @@ ul, li {
                      <td> Symmetry Ops </td>
                   </tr>
                   <tr>
-                     <td> <textarea  id="symmetryops" rows="25" cols="40" onChange="jmsupdatesymmetry()">+x,+y,+z</textarea></td>
+                     <td> <textarea  id="symmetryops" rows="25" cols="40" onChange="jmsupdatesymmetry()" oninput="cacheInput(this)">+x,+y,+z</textarea></td>
                   </tr>
                </table>
                </div>
@@ -13153,7 +13182,7 @@ ul, li {
        <table>
           <tr>
              <!--td> <input type="text" name="smi" SIZE=120> </td-->
-             <td> <textarea  name="smi" rows="10" cols="80" style="font-family: sans-serif; font-size: 20px;"></textarea></td>
+             <td> <textarea  name="smi" rows="10" cols="80" style="font-family: sans-serif; font-size: 20px;" oninput="cacheInput(this)"></textarea></td>
              <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
              <td> <input type="button" name="JSMol-arrows-button" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form,1)"></td>
           </tr>
@@ -13261,7 +13290,7 @@ ul, li {
        <INPUT TYPE="button" VALUE="solvation_type{COSMO-SMD}"  id="COSMO-SMD"
               onClick="txspressed('COSMO-SMD',1)"
               style="background-color:#f8f8ff; color:#298DB4;">
-       <select id="SMD_solvent" onChange="document.getElementById('COSMO-SMD').value = document.getElementById('SMD_solvent').value;" >
+       <select id="SMD_solvent" onChange="document.getElementById('COSMO-SMD').value = document.getElementById('SMD_solvent').value;" oninput="cacheInput(this)">
                  <option value="solvation_type{COSMO-SMD}">water (default)</option>
                  <option value="solvation_type{COSMO-SMD:acetacid}">acetic acid</option>
                  <option value="solvation_type{COSMO-SMD:acetone}">acetone</option>
@@ -13517,7 +13546,7 @@ ul, li {
           <tr>
              <td> <input type="text" name="smi" SIZE=100 
                    style="font-family: sans-serif; font-size: 20px;" 
-                   onkeydown="if (event.keyCode == 13) Confirm(this.form,2)"> 
+                   onkeydown="if (event.keyCode == 13) Confirm(this.form,2)" oninput="cacheInput(this)"> 
              </td>
              <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
              <td> <input type="button" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form,2)"></td>
@@ -13601,7 +13630,7 @@ ul, li {
        <INPUT TYPE="button" VALUE="solvation_type{COSMO-SMD}"  id="COSMO-SMD_2"
               onClick="txspressed('COSMO-SMD',2)"
               style="background-color:#f8f8ff; color:#298DB4;">
-       <select id="SMD_solvent_2" onChange="document.getElementById('COSMO-SMD_2').value = document.getElementById('SMD_solvent_2').value;" >
+       <select id="SMD_solvent_2" onChange="document.getElementById('COSMO-SMD_2').value = document.getElementById('SMD_solvent_2').value;" oninput="cacheInput(this)">
                  <option value="solvation_type{COSMO-SMD}">water (default)</option>
                  <option value="solvation_type{COSMO-SMD:acetacid}">acetic acid</option>
                  <option value="solvation_type{COSMO-SMD:acetone}">acetone</option>
@@ -14690,7 +14719,7 @@ function savespreadtourl() {
 </script>
 
 <br>
-table type: <select id="tabletype">
+table type: <select id="tabletype" oninput="cacheInput(this)">
     <option value="Gas-Phase Energy (Hartrees):e(gas)">Gas-Phase Energy (Hartrees)</option>
     <option value="Gas-Phase Enthalpy (Hartrees):h(gas)">Gas-Phase Enthalpy (Hartrees)</option>
     <option value="Gas-Phase Free Energy (Hartrees):g(gas)">Gas-Phase Free Energy (Hartrees)</option>
@@ -14709,8 +14738,8 @@ table type: <select id="tabletype">
     <option value="Lowest Occp. beta MO (eV):beta_lumo">Beta LUMO Energy (eV)</option>
     <option value="SubmitEsmiles:submitesmiles">SubmitEsmiles</option>
 </select>
-column theories: <input type="theoryarray" id="columntheories"  size="55" value="theory{pspw4} : xc{pbe} : xc{b3lyp} : xc{m06-2x}">
-number table rows: <input type="number" id="nrowstable" size="9" min="1" max="1000" step="1" value="5">
+column theories: <input type="theoryarray" id="columntheories"  size="55" value="theory{pspw4} : xc{pbe} : xc{b3lyp} : xc{m06-2x}" oninput="cacheInput(this)">
+number table rows: <input type="number" id="nrowstable" size="9" min="1" max="1000" step="1" value="5" oninput="cacheInput(this)">
 <br> <br>
 <input type="button" VALUE="Submit Arrows" onClick="submit_spreadsheet()" title="Submit Arrows" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
 <input type="button" VALUE="Clear run" onClick="document.getElementById('runmebanner4d').innerHTML= ''" title="Clear run"/>
@@ -14725,7 +14754,7 @@ number table rows: <input type="number" id="nrowstable" size="9" min="1" max="10
 <input type="file" id="csvToLoad" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold">
 <br>
 <input type="button" VALUE="Save to url" onClick="savespreadtourl()" title="Save spreadsheet to url" style="background-color:#f8f8ff; color:darkred; font-size: 14px; font-weight:bold"/>
-<input type="url" id="urlToLoadspread" SIZE=120 style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold">
+<input type="url" id="urlToLoadspread" SIZE=120 style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold" oninput="cacheInput(this)">
 <input type="button" VALUE="Load from url" onClick="loadurltospread()" title="Load csv or json data from url into spreadsheet" style="background-color:#f8f8ff; color:darkgreen; font-size: 14px; font-weight:bold"/><br>
 
 <br>
@@ -14743,8 +14772,8 @@ number table rows: <input type="number" id="nrowstable" size="9" min="1" max="10
 <h4> Encode parsing url </h4>
 url string    :<input type="parsingstring" id="splitparsingurl" size="164" value=""> 
 <br><br>
-parsing string:<input type="parsingstring" id="splitparsing"  list="parsinglist" size="160" value=""> <br>
-     <datalist id="parsinglist">
+parsing string:<input type="parsingstring" id="splitparsing"  list="parsinglist" size="160" value="" oninput="cacheInput(this)"> <br>
+     <datalist id="parsinglist" oninput="cacheInput(this)">
                 <option value="split:@|-1:split split:eoln|0:split split::split split:spaces|1:split">optimized</option>
                 <option value="split:spring parameters (K0,gamma0):|-1:split split:eoln|0:split split::split split:spaces|1:split">gamma0</option>
                 <option value="split:gamma                        :|-1:split split:eoln|0:split split::split split:spaces|0:split">gamma</option>
@@ -14772,7 +14801,7 @@ parsing string:<input type="parsingstring" id="splitparsing"  list="parsinglist"
       style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/> 
 <!--input type="parsingstring" id="splitparsingresult"  size="80" value=""-->
 <br>
-<textarea name="splitparsingresult" id="splitparsingresult" rows="3" cols="172" style="color: blue; font-size: 12px;"></textarea><br>
+<textarea name="splitparsingresult" id="splitparsingresult" rows="3" cols="172" style="color: blue; font-size: 12px;" oninput="cacheInput(this)"></textarea><br>
 <input type="button" VALUE="copy to clipboard" 
        onClick="var textBox=document.getElementById('splitparsingresult');
                 textBox.select(); 
@@ -14814,8 +14843,8 @@ xdoc.close();
    <br>
    <div style="padding: 5px 5px 5px 5px; background-color:whitesmoke; color: #0900C4; font: Helvetica 12pt;border: 1px solid black;">
    <h2>Fetch Input Decks from Arrows </h2>
-    machine_type: <input type="text" list="machinelist" id="queue_machine_type" onChange="definesecret()" value=""/>
-    queue_name: <input type="text" id="queue_nwchem_name" value="nwchem"/>
+    machine_type: <input type="text" list="machinelist" id="queue_machine_type" onChange="definesecret()" value="" oninput="cacheInput(this)"/>
+    queue_name: <input type="text" id="queue_nwchem_name" value="nwchem" oninput="cacheInput(this)"/>
     <input type="button" VALUE="queue_nwchem" onClick="queue_nwchem_fetch()" title="queue_nwchem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
    <br>
    <br>
@@ -14828,8 +14857,8 @@ xdoc.close();
    <br>
    
    <input type="button" VALUE="Download queue_entry" onClick="queue_entry_download(document.getElementById('queue_entry').value, document.getElementById('queue_entry_secret').value)" title="qnwchem_dload" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-   <input type="text" id="queue_entry"/> 
-   Secret Code: <input type="text" name="queue_entry_secret" id="queue_entry_secret">
+   <input type="text" id="queue_entry" oninput="cacheInput(this)"/> 
+   Secret Code: <input type="text" name="queue_entry_secret" id="queue_entry_secret" oninput="cacheInput(this)">
    <br>
    <br>
    </div>
@@ -15318,19 +15347,19 @@ function runpredictor(esmiles,reactants,max_energy,energy_type,element) {
 <table>
    <tr>
       <td> esmiles:   </td>
-      <td> <input type="text" name="Label" id="predictor_esmiles"   size="80"> </td>
+      <td> <input type="text" name="Label" id="predictor_esmiles"   size="80" oninput="cacheInput(this)"> </td>
    </tr>
    <tr>
       <td> reactants: </td>
-      <td> <input type="text" name="Label" id="predictor_reactants" size="80"> </td>
+      <td> <input type="text" name="Label" id="predictor_reactants" size="80" oninput="cacheInput(this)"> </td>
    </tr>
 </table>
 <table>
    <tr>
       <td> max_energy: </td>
-      <td> <input type="number" name="Label" id="predictor_max_energy" size="20" value="30"> </td>
+      <td> <input type="number" name="Label" id="predictor_max_energy" size="20" value="30" oninput="cacheInput(this)"> </td>
       <td> energy_type: </td>
-      <td> <input type="number" name="Label" id="predictor_energy_type" size="2" value="0"> </td>
+      <td> <input type="number" name="Label" id="predictor_energy_type" size="2" value="0" oninput="cacheInput(this)"> </td>
    </tr>
 </table>
 <br>
@@ -15344,7 +15373,7 @@ function runpredictor(esmiles,reactants,max_energy,energy_type,element) {
    title="Run reaction prediction"/>
 <br>
 <br>
-<textarea  name="predictor_output" id="predictor_output" rows="33" cols="140"></textarea>
+<textarea  name="predictor_output" id="predictor_output" rows="33" cols="140" oninput="cacheInput(this)"></textarea>
 <br>
 <input type="button" VALUE="Clear metabolites and reactants"
    onClick='document.getElementById("predictor_reactions").innerHTML = ""; 
