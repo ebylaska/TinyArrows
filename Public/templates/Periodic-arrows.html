@@ -92,7 +92,7 @@
 <script type="text/javascript" language="javascript" src="{{ url_for('static',filename='arrows-md/bylaska.md.js')}}"></script>
 
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
    blink, .blink {
    animation: blinker 1s linear infinite;
@@ -263,6 +263,7 @@ ul, li {
     overflow-y:auto;
     border-style: ridge;
 }
+
 
 </style>
 
@@ -1700,6 +1701,7 @@ ul, li {
               document.getElementById("cell_gamma").value = gamma;
               document.getElementById("showcell0").value = "Unit cell on";
               document.getElementById("showcell").value = "Unit cell on";
+              document.getElementById("showcell1").value = "Unit cell on";
               document.getElementById("centercell").value = "Origin";
               document.getElementById("centercell0").value = "Origin";
               console.log("alpha=",alpha);
@@ -2201,11 +2203,13 @@ ul, li {
               jms0(scpt);
               document.getElementById("showcell").value = "Unit cell off";
               document.getElementById("showcell0").value = "Unit cell off";
+              document.getElementById("showcell1").value = "Unit cell off";
               if (centeron) { jms0("unitcell {-0.5 -0.5 -0.5};"); }
            } else {
               jms0("unitcell OFF;");
               document.getElementById("showcell").value = "Unit cell on";
               document.getElementById("showcell0").value = "Unit cell on";
+              document.getElementById("showcell1").value = "Unit cell on";
            }
         }
 
@@ -3048,7 +3052,17 @@ ul, li {
         }
 
 
+
+        // ****************************
+        // *                          *
+        // *        myoptimizer       *
+        // *                          *
+        // ****************************
         function myoptimizer() {
+
+           /* fetch md parameters */
+           var mdparam = document.getElementById("MD_parameters").value;
+
            var molecule_str = exMod();
            let ismol = true;
            let tmp   = molecule_str.split("V2000")[0].split("\n");
@@ -3056,10 +3070,17 @@ ul, li {
            if (tmp.length==4) {
               nion  = eval(tmp[tmp.length-1].trim().split(/\s+/)[0]);
            }
-           if (nion>90) {
+           if ((nion>90) || (mdparam.includes("lj"))) {
               ismol = false;
               molecule_str = exModXYZ();
+              nion = parseInt(molecule_str.split("\n")[0].trim());
            }
+           var orient = jmvar("script('show orientation')");
+           orient =  "reset; " + orient.split("reset;")[1];
+           jms(orient);
+           jsmcellchange(false,true);
+
+
            var cellon = document.getElementById("showcell").value =="Unit cell off";
            let a1 = [30.0, 0.0, 0.0];
            let a2 = [ 0.0,30.0, 0.0];
@@ -3071,53 +3092,80 @@ ul, li {
            }
            let it_out = 1;
            let it_in  = 120;
-           let mdalpha = 1.0e-4;
+           let mdtime_step = 51.8;
            let mdtol   = 1.0e-7;
-           var mdparam = document.getElementById("MD_parameters").value;
            if (mdparam.includes("outer_iterations")) {
               it_out = parseInt(mdparam.split("outer_iterations")[1].split(";")[0].trim());
            }
            if (mdparam.includes("inner_iterations")) {
               it_in = parseInt(mdparam.split("inner_iterations")[1].split(";")[0].trim());
            }
-           if (mdparam.includes("alpha")) {
-              mdalpha = parseFloat(mdparam.split("alpha")[1].split(";")[0].trim());
+           if (mdparam.includes("time_step")) {
+              mdtime_step = parseFloat(mdparam.split("time_step")[1].split(";")[0].trim());
            }
            if (mdparam.includes("tolerance")) {
               mdtol = parseFloat(mdparam.split("tolerance")[1].split(";")[0].trim());
            }
+           let mdappend = mdparam.includes("mdappend");
+
+           if (mdappend) {loadframe2jsmol(true,false);}
+
+
+           console.log("MDPARAM:");
+           console.log("mdparam=",mdparam);
            console.log("it_in=", it_in, " it_out=",it_out);
            console.log("cellon=",cellon);
-           console.log("alpha=",mdalpha);
+           console.log("time_step=",mdtime_step);
            console.log("tolerance=",mdtol);
+           console.log("mdappend=",mdappend);
            var xyzdat;
+           jms0("set refreshing TRUE;");
            for (let i=0; i<(it_out-1); ++i) {
-              molecule_str = xyzsdf_minimize(molecule_str,mdparam,it_in,mdalpha,mdtol,ismol,false,cellon,a1,a2,a3);
+              setTimeout(function(){
+                 orient = jmvar("script('show orientation')");
+                 orient = "reset; " + orient.split("reset;")[1];
+                 molecule_str = xyzsdf_minimize(molecule_str,mdparam,it_in,mdtime_step,mdtol,ismol,false,cellon,a1,a2,a3);
+                 if (ismol) {
+                    xyzdat = "\"model editor\"|" + molecule_str + "|end \"model editor\"";
+                 } else {
+                    xyzdat = "\"model editor\"|" + molecule_str.trim().replace(/\n/g,' | ') + "|end \"model editor\"";
+                 }
+                 jms("load data "+xyzdat);
+                 jms(orient);
+                 if (cellon) { jsmcellchange(false,true); }
+                 jms("refresh;");
+              }, 100);
+           }
+
+
+           setTimeout(function(){
+              orient = jmvar("script('show orientation')");
+              orient = "reset; " + orient.split("reset;")[1];
+              molecule_str = xyzsdf_minimize(molecule_str,mdparam,it_in,mdtime_step,mdtol,ismol,true,cellon,a1,a2,a3);
               if (ismol) {
                  xyzdat = "\"model editor\"|" + molecule_str + "|end \"model editor\"";
               } else {
                  xyzdat = "\"model editor\"|" + molecule_str.trim().replace(/\n/g,' | ') + "|end \"model editor\"";
               }
-              console.log("outer iteration:",i," inner_iterations:",it_in);
               jms("load data "+xyzdat);
+              jms(orient);
               if (cellon) { jsmcellchange(false,true); }
               jms("refresh;");
-           }
+           }, 100);
 
-           molecule_str = xyzsdf_minimize(molecule_str,mdparam,it_in,mdalpha,mdtol,ismol,true,cellon,a1,a2,a3);
-           if (ismol) {
-              xyzdat = "\"model editor\"|" + molecule_str + "|end \"model editor\"";
-           } else {
-              xyzdat = "\"model editor\"|" + molecule_str.trim().replace(/\n/g,' | ') + "|end \"model editor\"";
-           }
-           jms("load data "+xyzdat);
-           if (cellon) { jsmcellchange(false,true); }
-           jms("refresh;");
+           let mditerations = parseInt(document.getElementById('md_banner').innerHTML.replace("iterations").trim());
+           mditerations    += it_in*it_out;
+           document.getElementById('md_banner').innerHTML=mditerations.toString() + " iterations";
 
            //console.log("XYZDAT=",xyzdat);
         }
 
 
+        // ****************************
+        // *                          *
+        // *    submit_nwchemjob2     *
+        // *                          *
+        // ****************************
         function submit_nwchemjob2(callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
@@ -4455,6 +4503,7 @@ ul, li {
 
            document.getElementById("showcell").value = "Unit cell off";
            document.getElementById("showcell0").value = "Unit cell off";
+           document.getElementById("showcell1").value = "Unit cell off";
            document.getElementById("centercell").value = "Center";
            document.getElementById("centercell0").value = "Center";
            document.getElementById("bulk_atoms").value = "1-"+xyzdat.split("\n")[0].trim();
@@ -4800,11 +4849,18 @@ ul, li {
         }
 
 
+
+        // ****************************************
+        // *                                      *
+        // *         geninterfacecell             *
+        // *                                      *
+        // ****************************************
         function geninterfacecell(bulk_a,bulk_b,bulk_c,bulk_covera,bulk_alpha,bulk_u,bulk_type,bulk_name,bulk_primitive,bulk_cubic,
                                   surface_a,surface_b,surface_c,surface_origin,surface_scaling,surface_vacuum,surface_tolerance) {
 
            var lat_a,lat_b,lat_u,bt,bn,bp,bc,latxyz;
            var tmp,atoms,i,ss,a,b,c,origin,scaling,vacuum,tolerance;
+           console.log("GENINTERFACECELL!");
 
            lat_a  = parseFloat(document.getElementById(bulk_a).value);
            lat_b  = parseFloat(document.getElementById(bulk_b).value);
@@ -4818,6 +4874,19 @@ ul, li {
            bc = document.getElementById(bulk_cubic).checked;
            //latxyz = genbulk(lat_a,lat_c,lat_u,bt,bn,bp,bc);
            latxyz = newgenbulk(lat_a,lat_b,lat_c,covera,alpha,lat_u,bt,bn,bp,bc);
+
+           console.log("geninterfacecell lat_a =", lat_a);
+           console.log("geninterfacecell lat_b =", lat_b);
+           console.log("geninterfacecell lat_c =", lat_c);
+           console.log("geninterfacecell covera=", covera);
+           console.log("geninterfacecell alpha=", alpha);
+           console.log("geninterfacecell lat_u =", lat_u);
+           console.log("geninterfacecell bt = ", bt);
+           console.log("geninterfacecell bn = ", bn);
+           console.log("geninterfacecell bp = ", bp);
+           console.log("geninterfacecell bc = ", bc);
+           console.log("geninterfacecell latxyz = ", latxyz);
+
 
            tmp = latxyz[1].trim().split("\n");
            atoms = [];
@@ -4848,6 +4917,7 @@ ul, li {
            a[0] *= scaling[0]; a[1] *= scaling[0]; a[2] *= scaling[0];
            b[0] *= scaling[1]; b[1] *= scaling[1]; b[2] *= scaling[1];
            c[0] *= scaling[2]; c[1] *= scaling[2]; c[2] *= scaling[2];
+
            var cutatomscell = cutslab0(atoms,latxyz[0][0],latxyz[0][1],latxyz[0][2],a,b,c,origin,vacuum,tolerance);
            atoms = cutatomscell[0];
            var aa1 = cutatomscell[1];
@@ -4862,6 +4932,7 @@ ul, li {
 
            return [atoms,aa1,aa2,aa3];
         }
+
 
         function howcloseatom(atoms,x,y,z,a1,a2,a3) {
            var d2 = 9.9e9;
@@ -4890,11 +4961,15 @@ ul, li {
 
 
         function geninterface() {
+           console.log("HERA");
            var cell1 = geninterfacecell("bulk1_a","bulk1_b","bulk1_c","bulk1_covera","bulk1_alpha","bulk1_u","bulk1_type","bulk1_name","bulk1_primitive","bulk1_cubic",
                                         "surface1_a","surface1_b","surface1_c","surface1_origin","surface1_scaling","surface1_vacuum","surface1_tolerance");
            var cell2 = geninterfacecell("bulk2_a","bulk2_b","bulk2_c","bulk2_covera","bulk2_alpha","bulk2_u","bulk2_type","bulk2_name","bulk2_primitive","bulk2_cubic",
                                         "surface2_a","surface2_b","surface2_c","surface2_origin","surface2_scaling","surface2_vacuum","surface2_tolerance");
            var deltaz = parseFloat(document.getElementById("interface_delta").value);
+           console.log("CELL1=",cell1);
+           console.log("CELL2=",cell2);
+           console.log("deltaz=",deltaz)
 
            var atoms1 = cell1[0];
            var aa1    = cell1[1];
@@ -4950,6 +5025,7 @@ ul, li {
            document.getElementById("lattice_a1").value = a1;
            document.getElementById("lattice_a2").value = a2;
            document.getElementById("lattice_a3").value = a3;
+           console.log("HERB");
 
            var xyzdat = atoms1.length + atoms2.length + "\n\n";
            for (var i=0; i<atoms1.length; ++i) {
@@ -4962,6 +5038,7 @@ ul, li {
                                      + " " + atoms2[i][2].toFixed(6)
                                      + " " + (atoms2[i][3]+deltaz).toFixed(6) + "\n";
            }
+           console.log("XYZdat=",xyzdat);
            var scpt = "load data \"model editor\"|" + xyzdat.trim().replace(/\n/g,' | ') + "|end \"model editor\"";
            jms(scpt);
            jsmcellchange(false,true);
@@ -5029,6 +5106,7 @@ ul, li {
            document.getElementById("lattice_a3").value = vec3_to_string3(a3);
            document.getElementById("showcell").value   = "Unit cell off";
            document.getElementById("showcell0").value   = "Unit cell off";
+           document.getElementById("showcell1").value   = "Unit cell off";
            //document.getElementById("centercell").value = "Origin";
            document.getElementById("centercell").value = "Origin";
            document.getElementById("centercell0").value = "Origin";
@@ -5196,6 +5274,7 @@ ul, li {
            document.getElementById("lattice_a3").value = vec3_to_string3(a3);
            document.getElementById("showcell").value   = "Unit cell off";
            document.getElementById("showcell0").value   = "Unit cell off";
+           document.getElementById("showcell1").value   = "Unit cell off";
            //document.getElementById("centercell").value = "Origin";
            document.getElementById("centercell").value = "Origin";
            document.getElementById("centercell0").value = "Origin";
@@ -12304,6 +12383,7 @@ ul, li {
              <input type="button" VALUE="Editor append to JSMol &#8601;" onClick="jmappendxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
              <input type="button" VALUE="&#8598; Editor trajectory to JSMol models" onClick="jmloadtraj()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
              <input type="button" value="Reset pointer"  onClick="jmresetPointer()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+              <input type="button" class="button" id="showcell1"   value="Unit cell on" onClick="jmshowcell()"/>
           </td>
           <td>
              <!--p style="text-align:left"-->
@@ -12470,8 +12550,8 @@ ul, li {
                          <b style="color: blue; font-size: 14px;" id="runmebanner4b"></b>
                          <br>
                          <b>MD_parameters</b>
-                         <input type="button" class="button2" value="MD Opt." onClick="myoptimizer()"/>
-                         <input type="button" class="button2" value="MD Verlet" onClick="myverlet()"/>
+                         <input type="button" class="button2" value="Bylaska MD" onClick="myoptimizer()"/>
+                         <b id="md_banner" style="color: blue">0 iter.</b>
                          <br>
                          <textarea  name="MD_parameters" id="MD_parameters" rows="4" cols="40" oninput="cacheInput(this)"></textarea>
                          <br>
@@ -12926,7 +13006,7 @@ ul, li {
                   <tr>
                      <td>
                         atoms: <input type="text" id="bulk_name" SIZE=9 value="Pt" oninput="cacheInput(this)"/>
-                        <select id="bulk_type">
+                        <select id="bulk_type" oninput="cacheInput(this)">
                            <option value="sc">Simple Cubic</option>
                            <option value="fcc">Face-Centered Cubic</option>
                            <option value="bcc">Body-Centered Cubic</option>
@@ -13059,7 +13139,7 @@ ul, li {
                   </tr>
                   <tr>
                      <td>
-                        <br> Adjunct atoms: <input type="text" id="bulk2_name" SIZE=9 value="Pt"/>
+                        <br> Adjunct atoms: <input type="text" id="bulk2_name" SIZE=9 value="Pt" oninput="cacheInput(this)"/>
                         <select id="bulk2_type" oninput="cacheInput(this)">
                            <option value="sc">Simple Cubic</option>
                            <option value="fcc">Face-Centered Cubic</option>
@@ -13183,7 +13263,7 @@ ul, li {
           <tr>
              <!--td> <input type="text" name="smi" SIZE=120> </td-->
              <td> <textarea  name="smi" rows="10" cols="80" style="font-family: sans-serif; font-size: 20px;" oninput="cacheInput(this)"></textarea></td>
-             <!--td> <input type="submit" name="JSME-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
+             <!--td> <input type="submit" name="JSMol-arrows" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;"></td-->
              <td> <input type="button" name="JSMol-arrows-button" value="Run Arrows" style="font-family: sans-serif; font-size: 20px;" onClick="Confirm(this.form,1)"></td>
           </tr>
           <tr>
@@ -14230,8 +14310,8 @@ myspreadsheet = jexcel(document.getElementById('jspreadsheet'), {
     toolbar:[
         { type:'i', content:'undo', onclick:function() { myspreadsheet.undo(); } },
         { type:'i', content:'redo', onclick:function() { myspreadsheet.redo(); } },
-        { type:'i', content:'download_for_offline', onclick:function () { savecsvfile(); } },
-        { type:'i', content:'upload_file', onclick:function () { loadcsvfile(); } },
+        { type:'i', content:'upload_file', onclick:function () { loadspreadtodbname(); } },
+        { type:'i', content:'download_for_offline', onclick:function () { savespreadtodbname(); } },
         { type:'i', content:'sentiment_satisfied_alt', onclick:function () { addjsmesmiles(); } },
         { type:'i', content:'3d_rotation', onclick:function () {pushesmilesjsmol();}},
         { type:'i', content:'table_chart', onclick:function () {addtable_spreadsheet();}},
@@ -14448,13 +14528,15 @@ function finish_spreadsheet(cellstr,energy) {
 function submit_cell(cell) {
    var reaction_str = cell[1];
    //var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'OC(O)C(O)OC(O)C(O)O --> OC1OC(O)C(O)OC1O + O ~ theory{pspw4} parse_output{hrxn(gas)}'";
+   var table_calc_url = document.getElementById("arrows_calculation_url").value;
 
    // parsing standard hrxn etc.
    var arrows_get_url;
    if (reaction_str.includes("-->")) {
       reaction_str = reaction_str.replace(/#/gi,"!");
       //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'" + reaction_str + "'";
-      arrows_get_url  = "{{ arrows_api }}reaction/'" + reaction_str + "'";
+      //arrows_get_url  = "{{ arrows_api }}reaction/'" + reaction_str + "'";
+      arrows_get_url  = table_calc_url + "reaction/'" + reaction_str + "'";
    } else if (reaction_str.includes("submitesmiles")) {
       var tt = "parse_output{" + reaction_str.split("parse_output{")[1].split("}")[0] + "}";
       reaction_str = reaction_str.replace(tt,"");
@@ -14462,12 +14544,14 @@ function submit_cell(cell) {
       reaction_str = reaction_str.replace("~","");
       reaction_str = reaction_str.replace(/#/gi,"!");
       //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/submitesmiles/'" + reaction_str + "'";
-      arrows_get_url  = "{{ arrows_api }}submitesmiles/'" + reaction_str + "'";
+      //arrows_get_url  = "{{ arrows_api }}submitesmiles/'" + reaction_str + "'";
+      arrows_get_url  = table_calc_url + "submitesmiles/'" + reaction_str + "'";
    } else {
       reaction_str = reaction_str.replace("~","");
       reaction_str = reaction_str.replace(/#/gi,"!");
       //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/molecule/'" + reaction_str + "'";
-      arrows_get_url  = "{{ arrows_api }}molecule/'" + reaction_str + "'";
+      //arrows_get_url  = "{{ arrows_api }}molecule/'" + reaction_str + "'";
+      arrows_get_url  = table_calc_url + "molecule/'" + reaction_str + "'";
    }
    document.getElementById('runmebanner4c').innerHTML= "Arrows calculation started for " + reaction_str + " at " + cell[0];
    Text2Speech0("Arrows calculation started for cell " + cell[0]);
@@ -14716,9 +14800,121 @@ function savespreadtourl() {
 
 
 
+
+/********************************************
+ *                                          *
+ *            savespreadtodbname            *
+ *                                          *
+ ********************************************/
+function savespreadtodbname() {
+   var tabtitle = document.getElementById("spreadsheetdbname").value;
+   var xx         = [myspreadsheet.getData(),myspreadsheet.getStyle(),myspreadsheet.getWidth(),window.spreadformats];
+   var textToSave = JSON.stringify(xx);
+
+   const dbname    = "arrows_spreadsheet";
+   const dbversion = 1;
+
+   const request = indexedDB.open(dbname,dbversion);
+
+      // on upgrade needed
+      request.onupgradeneeded = e => {
+         const db = e.target.result;
+         const pTables = db.createObjectStore("personal_tables",{keyPath: "title"});
+
+         console.log(`savespreadsheet upgrade called, name: ${db.name}  version: ${db.version}`);
+      }
+
+      // on success
+      request.onsuccess = e => {
+         const db = e.target.result;
+         console.log(`savespreadsheet on success called, name: ${db.name}  version: ${db.version}`);
+         const tx = db.transaction("personal_tables","readwrite");
+         tx.onerror = etx => alert(`savespreadsheet: tx on error called, ${etx.target.error}`);
+
+         const pTables = tx.objectStore("personal_tables");
+         const putrequest = pTables.put({title: tabtitle, tabletext: textToSave});
+         putrequest.onsuccess = eee => console.log(`Table ${tabtitle} was saved into ${dbname}`);
+         putrequest.onerror   = eee => alert(`pTables.put into ${tabtitle} failed!`);
+
+      };
+
+      // on error
+      request.onerror = e => {
+         alert(`savespreadsheet error: ${e.target.error} was found`);
+      }
+}
+
+
+
+/********************************************
+ *                                          *
+ *            loadspreadtodbname            *
+ *                                          *
+ ********************************************/
+function loadspreadtodbname() {
+   var tabtitle = document.getElementById("spreadsheetdbname").value;
+
+   const dbname    = "arrows_spreadsheet";
+   const dbversion = 1;
+
+   const request = indexedDB.open(dbname,dbversion);
+
+      // on upgrade needed
+      request.onupgradeneeded = e => {
+         const db = e.target.result;
+         const pTables = db.createObjectStore("personal_tables",{keyPath: "title"});
+
+         console.log(`loadspreadsheet upgrade called, name: ${db.name}  version: ${db.version}`);
+      }
+
+      // on success
+      request.onsuccess = e => {
+         const db = e.target.result;
+         console.log(`loadspreadsheet on success called, name: ${db.name}  version: ${db.version}`);
+         const tx = db.transaction("personal_tables","readonly");
+         tx.onerror = etx => alert(`loadspreadsheet: tx on error called, ${etx.target.error}`);
+
+         const pTables = tx.objectStore("personal_tables");
+         const getrequest = pTables.get(tabtitle);
+            getrequest.onsuccess = eee => {
+               var textFromdb = eee.target.result;
+               console.log("loadspreadsheet textFromdb=",textFromdb);
+               if (textFromdb) {
+                  var xx         = JSON.parse(textFromdb.tabletext);
+                  console.log("loadspreadsheet xx=",xx);
+
+                  window.spreadformats = xx[3];
+                  window.ni_spreadformats = xx[3].length;
+                  if (window.ni_spreadformats > 0) {
+                     window.nj_spreadformats = xx[3][0].length;
+                  } else {
+                     window.nj_spreadformats = 0;
+                  }
+                  myspreadsheet.setData(xx[0]);
+                  myspreadsheet.setStyle(xx[1]);
+                  for (var i=0; i<xx[2].length; ++i) {
+                     myspreadsheet.setWidth(i, parseInt(xx[2][i]));
+                  }
+               } else { alert(`The table db ${tabtitle} was not found in the ${dbname} indexedDB database`); }
+            }
+
+            getrequest.onerror   = eee => alert(`The table name ${tabtitle} was not found in the ${dbname} indexedDB database`);
+
+      };
+
+      // on error
+      request.onerror = e => {
+         alert(`loadspreadsheet error: ${e.target.error} was found`);
+      }
+}
+
+
+
+
 </script>
 
 <br>
+table db number: <input type="number" id="spreadsheetdbname" size="3" min="0" max="999" step="1" value="0" oninput="cacheInput(this)">
 table type: <select id="tabletype" oninput="cacheInput(this)">
     <option value="Gas-Phase Energy (Hartrees):e(gas)">Gas-Phase Energy (Hartrees)</option>
     <option value="Gas-Phase Enthalpy (Hartrees):h(gas)">Gas-Phase Enthalpy (Hartrees)</option>
@@ -14738,7 +14934,7 @@ table type: <select id="tabletype" oninput="cacheInput(this)">
     <option value="Lowest Occp. beta MO (eV):beta_lumo">Beta LUMO Energy (eV)</option>
     <option value="SubmitEsmiles:submitesmiles">SubmitEsmiles</option>
 </select>
-column theories: <input type="theoryarray" id="columntheories"  size="55" value="theory{pspw4} : xc{pbe} : xc{b3lyp} : xc{m06-2x}" oninput="cacheInput(this)">
+column theories: <input type="theoryarray" id="columntheories"  size="60" value="theory{pspw4} : xc{pbe} : xc{b3lyp} : xc{m06-2x}" oninput="cacheInput(this)">
 number table rows: <input type="number" id="nrowstable" size="9" min="1" max="1000" step="1" value="5" oninput="cacheInput(this)">
 <br> <br>
 <input type="button" VALUE="Submit Arrows" onClick="submit_spreadsheet()" title="Submit Arrows" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
@@ -15131,12 +15327,13 @@ function queue_nwchem_fetch() {
 
 <div id="Reaction Predictor - Beta version" class="tabcontent">
 
+
 <script>
 
 dummy_dict = {};
 reactants_dict = {};
 
-async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,max_level,show_bad_reactions,element,url) {
+async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element,url) {
    //fetch(url, {mode: 'cors'})
    //  .then(function(response) {
    //    return response.text();
@@ -15148,7 +15345,8 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,max
    //    log('Request failed', error)
    //  });
    var energytitles = "Erxn(gas)       Hrxn(gas)       Grxn(gas) Delta_Solvation        Grxn(aq)".split(/[ ,]+/);
-   var level = (prespace.length)/4
+   var level = (prespace.length)/4;
+   var level = current_level;
 
    console.log("start geturlresult");
    
@@ -15162,20 +15360,81 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,max
    var rr = await request();
    console.log("end  geturlresult, rr=",rr);
 
-   if (rr.contains("Predicted Reactions")) {
+
+   if (rr.includes("Predicted Reactions")) {
       window.reactants_dict[reactants_str] = rr;
    } else {
       window.dummy_dict[reactants_str] = rr;
    }
+   if (rr.includes("check back in ~10 minutes")) {
+      var hhh = "+--------------------------------------------------+\n";
+      var ggg = "|               Reaction Prediction                |";
+      element.value += hhh+ggg+"\n";
+      element.value += rr.split(ggg)[1].trim().split("check back in ~10 minutes")[0].trim() + "\n";
+      element.value += "check back in ~10 minutes\n";
+   }
    var newreactions0 =  makereaction_dictionary(rr);
    console.log("newreactions0=",newreactions0);
+   //document.getElementById("predictor_reactions").innerHTML = "";
+   //document.getElementById("predictor_metabolites").innerHTML = "";
    for (var i=0; i<newreactions0.length; ++i) {
       rxn = newreactions0[i];
       console.log("i=",i," rxn=",rxn);
+
       if ((parseFloat(rxn['energies'][it]) < max_energy) || show_bad_reactions) {
         var str   =  rxn['reaction'];
-        var rlink = "{{ arrows_api }}reaction/" + "\"" + str + "\"";
-        document.getElementById("predictor_reactions").innerHTML += str.link(rlink) + "<br>";
+        var rlink = document.getElementById("arrows_calculation_url").value + "reaction/" + "\"" + str + "\"";
+        var treaction = str.link(rlink).split('<a').join('<a target="_blank"');
+        var tenergy = rxn['energies'][it].trim();
+        var estring = energytitles[it]+ " = " + tenergy + "  ";
+        if (!document.getElementById("predictor_reactions").innerHTML.includes(treaction)) {
+           document.getElementById("predictor_reactions").innerHTML += estring + treaction + "<br>";
+
+           for (var j=0; j<rxn['metabolites'].length; ++j) {
+              var mm = rxn['metabolites'][j].trim();
+
+              var label = "";
+              //for (var k=1; k<reactants_str.split("+").length; ++k) {
+              //   var rr = reactants_str.split("+")[k].trim();
+              //   label += "+" + rr + ",";
+              //}
+              for (var k=0; k<rxn['reactants'].length; ++k) {
+                 var rr = rxn['reactants'][k];
+                 label += "+" + rr + ",";
+              }
+              for (var k=0; k<rxn['new_reactants'].length; ++k) {
+                 var pp = rxn['new_reactants'][k];
+                 label += "-" + pp + ",";
+              }
+              for (var k=0; k<rxn['metabolites'].length; ++k) {
+                 console.log("j,k=",j,k);
+                 if (k!=j) {
+                    var pp = rxn['metabolites'][k];
+                    label += "-" + pp + ",";
+                 }
+              }
+              label += rxn['energies'][it];
+              var acolor;
+              if (parseFloat(rxn['energies'][it])<0.0) {
+                 acolor = " style=\"stroke: red;\" arrowheadStyle=\"fill: red\"";
+              } else {
+                 acolor = " style=\"stroke: blue;\" arrowheadStyle=\"fill: blue\"";
+              }
+
+              // drawing graph
+              //var addedge0 = "\"" + reactants_str.split("+")[0].trim() + "\" -> \"" + mm + "\"";
+              //var addedge = addedge0 + "[label=\""+label+"\" labelStyle=\"fill: green;\"" + acolor + "]; \n /*end*/}\n";
+              //var e0found = document.getElementById("inputGraph").innerHTML.includes(addedge0) ||
+              //              document.getElementById("inputGraph").innerHTML.includes(addedge0.replace("->","-&gt;"));
+
+              //if (!e0found) {
+              //   console.log("inputgraph=",document.getElementById("inputGraph").innerHTML);
+              //   document.getElementById("inputGraph").innerHTML = document.getElementById("inputGraph").innerHTML.split("/*end*/}")[0].trim() + "\n" + addedge;
+              //   console.log("addedge0=",addedge0);
+              //   console.log("addedge=",addedge);
+              //}
+           }
+        }
 
          console.log("i=",i," in parsFloat",parseFloat(rxn['energies'][it]));
          element.value += "\n";
@@ -15189,28 +15448,36 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,max
             element.value += prespace + "    Reaction included!" + "\n";
             for (var j=0; j<rxn['metabolites'].length; ++j) {
                var mm = rxn['metabolites'][j];
-               var rlink2 = "{{ arrows_api }}/molecule/" + "\"" + mm + "\"";
-               var rlink2b = "javascript:jmsmiles0(" + "\'" + mm.split(/[ ,]+/)[0] + "\'" + ");" ;
-               document.getElementById("predictor_metabolites").innerHTML += mm.link(rlink2) + " " + "(jsmol)".link(rlink2b) + "<br>";
+               var rlink2 = document.getElementById("arrows_calculation_url").value + "molecule/" + "\"" + mm + "\"";
+               var tmetabolite = mm.link(rlink2).split('<a').join('<a target="_blank"');
+               if (!document.getElementById("predictor_metabolites").innerHTML.includes(tmetabolite)) {
+                  document.getElementById("predictor_metabolites").innerHTML += tmetabolite + " " + "<br>";
+               }
+               if (!document.getElementById('predictor_esmiles').value.includes(mm)) {
+                  document.getElementById('predictor_esmiles').value += mm + "\n";
+               }
             //   Analyze_reactants(nr,prespace,mm,reactant,max_energy,max_level,show_bad_reactions,element)
             }
             for (var j=0; j<rxn['new_reactants'].length; ++j) {
                var mm = rxn['new_reactants'][j];
-               var rlink2 = "{{ arrows_api }}molecule/" + "\"" + mm + "\"";
-               var rlink2b = "javascript:jmsmiles0(" + "\'" + mm.split(/[ ,]+/)[0] + "\'" + ");" ;
-               document.getElementById("predictor_metabolites").innerHTML += mm.link(rlink2) + " " + "(jsmol)".link(rlink2b) + "<br>";
+               var rlink2 = document.getElementById("arrows_calculation_url").value + "molecule/" + "\"" + mm + "\"";
+               var tnreactant = mm.link(rlink2).split('<a').join('<a target="_blank"');
+               if (!document.getElementById("predictor_genreactants").innerHTML.includes(tnreactant)) {
+                  document.getElementById("predictor_genreactants").innerHTML += tnreactant + " " + "<br>";
+               }
             }
          } else {
             element.value += prespace + "    Reaction ignored because energy greater than " + max_energy.toFixed(2) + "\n";
          }
       } 
+      //tryDraw();
    }
 }
 
 //##### fetch_reactants #######
-function fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,max_level,show_bad_reactions,element) {
+function fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element) {
    console.log("start fetch_reactants, reactants_str=" + reactants_str);
-   var reaction_url = "{{ arrows_api }}reaction/";
+   var reaction_url = document.getElementById("arrows_calculation_url").value + "reaction/";
    //if (reactants_str in window.dummy_dict) {
    //   nr.push(window.dummy_dict[reactants_str]);
    //   nr.push(rr);
@@ -15224,7 +15491,7 @@ function fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,max_le
       var reaction = reaction_url + "'" + reactants + "%20-->'";
       element.value += prespace + "+ Calling the arrows api wtih " + reaction + "\n";
       
-      geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,max_level,show_bad_reactions,element,reaction);
+      geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element,reaction);
       console.log("finished geturlresult");
    //}
 }
@@ -15237,9 +15504,10 @@ function parse_metabolites(rxn_str) {
       var products_split = products.split(" + ");
       //for m in products.split(" + ") {
       for (var i=0; i<products_split.length; ++i) {
-         m = products_split[i];
+         var m = products_split[i];
+         var mm = m.split("Cl").join("");
          //### make metabolite contains a carbon ### if ("C" in m) or ("c" in m) {
-         if (m.includes("C")  ||  m.includes("c")) {
+         if (mm.includes("C")  ||  mm.includes("c")) {
             metabolites.push(m.trim());
          }
       }
@@ -15255,9 +15523,10 @@ function parse_newreactants(rxn_str) {
       var products_split = products.split(" + ");
      
       for (var i=0; i<products_split.length; ++i) {
-         m = products_split[i];
+         var m = products_split[i];
+         var mm = m.split("Cl").join("");
          //### make metabolite not contain a carbon ### if ("C" not in m) and ("c" not in m) {
-         if ((!m.includes("C")) && (!m.includes("c"))) {
+         if ((!mm.includes("C")) && (!mm.includes("c"))) {
             nreactants.push(m.trim());
          }
       }
@@ -15266,8 +15535,22 @@ function parse_newreactants(rxn_str) {
    return nreactants;
 }
 
+function parse_reactants(rxn_str) {
+   var reactants = [];
+   if (rxn_str.includes("-->")) {
+      var rrpp = rxn_str.split("-->")[0].trim();
+      var reactants_split = rrpp.split(" + ");
+    
+      for (var i=1; i<reactants_split.length; ++i) {
+         var m = reactants_split[i];
+         reactants.push(m.trim());
+      }
+   }
+   return reactants;
+}
+
 function makereaction_dictionary(rr) {
-   console.log("makereaction_dictionary",rr.contains("Predicted_Reaction:"));
+   console.log("makereaction_dictionary",rr.includes("Predicted_Reaction:"));
    var myreactions = [];
    if (rr.includes("Predicted_Reaction:")) {
       var newreactions = rr.split("Predicted_Reaction:");
@@ -15281,6 +15564,7 @@ function makereaction_dictionary(rr) {
          rdict['deviations']    = nr.split("deviations:")[1].split(":deviations")[0].trim().split(/[ ,]+/);
          rdict['metabolites']   = parse_metabolites(rxn_str);
          rdict['new_reactants'] = parse_newreactants(rxn_str);
+         rdict['reactants']     = parse_reactants(rxn_str);
          myreactions.push(rdict);
       }
    }
@@ -15289,55 +15573,101 @@ function makereaction_dictionary(rr) {
 }
 
 
-function Analyze_reactants(nr,prespace,esmiles,reactant,it,max_energy,max_level,show_bad_reactions,element) {
+function Analyze_reactants(nr,prespace,esmiles,reactant,it,max_energy,current_level,show_bad_reactions,element) {
    console.log("start Analyze_reactants, esmiles=" + esmiles);
    prespace += "    ";
-   var level = (prespace.length)/4;
-   if (level<= max_level) {
-      var reactants_str = esmiles + " + " + reactant;
 
-      fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,max_level,show_bad_reactions,element);
-      console.log("finished fetch_reactants");
+   var reactants_str = esmiles.trim();
+   if (reactant.trim().length>0) {
+      reactants_str += " + " + reactant;
    }
 
-
+   fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element);
+   console.log("finished fetch_reactants");
 }
 
-function run_reactions(nr,esmiles,reactants,it,max_energy,max_level,show_bad_reactions,element) {
+function run_reactions(nr,esmiles,reactants,it,max_energy,current_level,show_bad_reactions,element) {
    for (var i=0; i<reactants.length; ++i) {
-      r = reactants[i];
+      var r = reactants[i];
       console.log("i=",i," reactant=",r);
-      Analyze_reactants(nr,"",esmiles,r,it,max_energy,max_level,show_bad_reactions,element);
+      Analyze_reactants(nr,"",esmiles,r,it,max_energy,current_level,show_bad_reactions,element);
    }
 }
 
-function runpredictor(esmiles,reactants,max_energy,energy_type,element) {
+function runpredictor(esmiles,reactants,max_energy,max_level,energy_type,element) {
    
-   console.log("esmiles=",esmiles);
-   console.log("reactants=",reactants);
-
-   var compounds = esmiles.split(/[ ,]+/);
-   var max_level  = 3;
-   var show_bad_reactions = false;
-
-   if (isNaN(max_energy)) { max_energy = 9.9e99;}
-   if (isNaN(energy_type)) { energy_type = 0;}
-
-   var output  = "hello\n";
-   output += "esmiles=" + esmiles + "\n";
-   output += "reactants=" + reactants + "\n";
-   output += "compounds=" + compounds + "\n";
-   output += "energy_type=" + energy_type + "\n";
-   output += "max_energy=" + max_energy + "\n";
-   output += "max_level=" + max_level + "\n";
-   element.value = output
-
-   var nr = []
-   //run_reactions(nr,esmiles,reactants,it,max_energy,max_level,show_bad_reactions,element);
-   for (var i=0; i<compounds.length; ++i) {
-      run_reactions(nr,compounds[i],reactants,energy_type,max_energy,max_level,show_bad_reactions,element);
+   var current_level = 1;
+   if (esmiles.includes("Reaction Level =")) {
+      var ss = esmiles.split("Reaction Level =");
+      var ns = ss.length;
+      var current_level = parseInt(ss[ns-1].split("------")[0].trim()) + 1;
+      var esmiles = ss[ns-1].split("------")[1];
    }
 
+   if (current_level<=max_level)  {
+
+      console.log("esmiles=",esmiles);
+      console.log("reactants=",reactants);
+      document.getElementById('predictor_esmiles').value   = document.getElementById('predictor_esmiles').value.trim()   + "\n" + "------ Reaction Level = " + current_level.toString() + " ------\n";
+      document.getElementById('predictor_reactants').value = document.getElementById('predictor_reactants').value.trim() + "\n";
+
+      document.getElementById('predictor_reactions').innerHTML    += "------ Reaction Level = " + current_level.toString() + " ------<br>";
+      document.getElementById('predictor_metabolites').innerHTML  += "------ Reaction Level = " + current_level.toString() + " ------<br>";
+      document.getElementById('predictor_genreactants').innerHTML += "------ Reaction Level = " + current_level.toString() + " ------<br>";
+
+      //var compounds = esmiles.trim().split("\n");
+      //var reactant_list = reactants.trim().split("\n");
+      var compounds = esmiles.trim().split(/[,\n]+/);
+      for (var i=0; i<compounds.length; ++i) { compounds[i] = compounds[i].trim(); }
+
+      var reactant_list = reactants.trim().split(/[,\n]+/);
+      for (var i=0; i<reactant_list.length; ++i) { reactant_list[i] = reactant_list[i].trim(); }
+
+      var show_bad_reactions = false;
+
+      if (isNaN(max_energy)) { max_energy = 9.9e99;} 
+      if (isNaN(max_level)) { max_level = 3;} 
+      if (isNaN(energy_type)) { energy_type = 0;}
+
+      var output = "\n";
+      output += "++=====================================++\n";
+      output += "|| Running Reaction Prediction Program ||\n";
+      output += "++=====================================++\n\n";
+      output += "compound list=" + compounds + "\n";
+      output += "reactant list=" + reactant_list + "\n";
+      output += "max_energy   =" + max_energy + "\n";
+      output += "max_level    =" + max_level + "\n";
+      output += "energy_type  =" + energy_type + "\n";
+      output += "current_level=" + current_level + "\n";
+      element.value += output;
+
+      var nr = [];
+      for (var i=0; i<compounds.length; ++i) {
+         run_reactions(nr,compounds[i],reactant_list,energy_type,max_energy,current_level,show_bad_reactions,element);
+      }
+   } else {
+      element.value += "The current_level=" + (current_level-1).toString() + " is >= max_level=" + max_level.toString() + "\n";
+
+   }
+
+}
+
+function resetpredictor() {
+   document.getElementById('predictor_esmiles').value   = '';
+   document.getElementById('predictor_reactants').value = '';
+   document.getElementById('predictor_output').value = '';
+
+   document.getElementById('predictor_reactions').innerHTML    = '';
+   document.getElementById('predictor_metabolites').innerHTML  = '';
+   document.getElementById('predictor_genreactants').innerHTML = '';
+
+   document.getElementById("inputGraph").innerHTML = 'digraph {\n'
+      + '   node [rx=5 ry=5 labelStyle="font: 300 14px \'Helvetica Neue\', Helvetica"]\n'
+      + '   edge [labelStyle="font: 300 14px \'Helvetica Neue\', Helvetica"]\n'
+      + '\n/*start graph*/\n'
+      + '\n/*end*/}\n';
+
+   tryDraw();
 }
 
 </script>
@@ -15346,43 +15676,59 @@ function runpredictor(esmiles,reactants,max_energy,energy_type,element) {
 
 <table>
    <tr>
-      <td> esmiles:   </td>
-      <td> <input type="text" name="Label" id="predictor_esmiles"   size="80" oninput="cacheInput(this)"> </td>
+      <td> esmiles compounds:   </td>
+      <td><textarea  name="predictor_esmiles" id="predictor_esmiles" rows="8" cols="100"></textarea></td>
    </tr>
    <tr>
       <td> reactants: </td>
-      <td> <input type="text" name="Label" id="predictor_reactants" size="80" oninput="cacheInput(this)"> </td>
+      <td><textarea  name="predictor_reactants" id="predictor_reactants" rows="3" cols="100"></textarea></td>
    </tr>
 </table>
 <table>
    <tr>
       <td> max_energy: </td>
-      <td> <input type="number" name="Label" id="predictor_max_energy" size="20" value="30" oninput="cacheInput(this)"> </td>
+      <td> <input type="number" name="Label" id="predictor_max_energy" size="20" value="30"> </td>
+      <td> max_level: </td>
+      <td> <input type="number" name="Label" id="predictor_max_level" size="2" value="3"> </td>
       <td> energy_type: </td>
-      <td> <input type="number" name="Label" id="predictor_energy_type" size="2" value="0" oninput="cacheInput(this)"> </td>
+      <td> <select id="predictor_energy_type">
+              <option value=0>Erxn(g)</option>
+              <option value=1>Hrxn(g)</option>
+              <option value=2>Grxn(g)</option>
+              <option value=3>Delta_Solvation</option>
+              <option value=4>Grxn(aq)</option>
+           </select>
+      </td>
    </tr>
 </table>
 <br>
 
 <input type="button" VALUE="Run Reaction Prediction" 
    onClick="runpredictor(document.getElementById('predictor_esmiles').value,
-                         document.getElementById('predictor_reactants').value.split(/[ ,]+/),
+                         document.getElementById('predictor_reactants').value,
                          parseFloat(document.getElementById('predictor_max_energy').value),
+                         parseInt(document.getElementById('predictor_max_level').value),
                          parseInt(document.getElementById('predictor_energy_type').value),
                          document.getElementById('predictor_output') )"
    title="Run reaction prediction"/>
+<input type="button" VALUE="Reset" onClick="resetpredictor();" title="Reset predictor"/>
+
 <br>
 <br>
-<textarea  name="predictor_output" id="predictor_output" rows="33" cols="140" oninput="cacheInput(this)"></textarea>
+<textarea  name="predictor_output" id="predictor_output" rows="33" cols="100"></textarea>
 <br>
-<input type="button" VALUE="Clear metabolites and reactants"
-   onClick='document.getElementById("predictor_reactions").innerHTML = ""; 
-            document.getElementById("predictor_metabolites").innerHTML = "";'
-   title="Clear reactions, metabolites and reactants"/>
-<p id="predictor_reactions"></p>
-<p id="predictor_metabolites"></p>
-<br> <br>
+<br>
+<p id="predictor_reactions">  <b>Reactions   </b> <br></p>
+<br>
+<p id="predictor_metabolites"><b>Metabolites</b> <br></p>
+<br>
+<p id="predictor_genreactants"><b>Generated Reactants</b> <br></p>
+
+
 </div>
+
+
+
 
 <div id="Instructions" class="tabcontent">
 
@@ -15541,7 +15887,8 @@ changenwchemefieldtype();
       </td>
    </tr>
 </table>
-arrows program directory: <input type="url" id="arrowsprogramurl" SIZE=80 value="{{url_for('static',filename='arrows-scripts')}}"/> 
+arrows calculation url: <input type="url" id="arrows_calculation_url" SIZE=30 value="{{ arrows_api }}" oninput="cacheInput(this)"/> 
+arrows program directory: <input type="url" id="arrowsprogramurl" SIZE=30 value="{{url_for('static',filename='arrows-scripts')}}" oninput="cacheInput(this)"/> 
 </div>
 <br><br><br>
 <hr>

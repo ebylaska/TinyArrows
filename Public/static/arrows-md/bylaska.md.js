@@ -19,19 +19,35 @@ class Bylaska_MD {
    constructor(potential_input,nion,symbols) {
       this.potential_input = potential_input;
 
+      this.default_sigma   = 3.3; 
+      this.default_epsilon = 0.12;
       // LJ parameters for FCC metals - Hendrik Heinz,,R.A. Vaia, B.L. Farmer, and R.R. Naik; J. Phys. Chem. C2008,112,17281–17290
+      // units are kcal/mol and Angstroms
       if (potential_input.includes("lj-potential-fcc-metals")) {
          this.el_sigma   = {"Ag" : 2.955, "Al" : 2.925, "Au" : 2.951, "Cu" : 2.616, "Ni" : 2.552, "Pb" : 3.565, "Pd" : 2.819, "Pt" : 2.845}; 
          this.el_epsilon = {"Ag" : 4.56,  "Al" : 4.02,  "Au" : 5.29,  "Cu" : 4.72,  "Ni" : 5.65,  "Pb" : 2.93,  "Pd" : 6.15,  "Pt" : 7.80 };
       }
-      this.rcell = [];
-      this.rcell[0] = [0.0,0.0,0.0];
+      this.rcell = [0.0,0.0,0.0];
       this.nshl3d = this.rcell.length;
 
       this.nion = nion
       this.symbols = symbols;
-      this.sigma   = new Array(this.nion); for (let ii=0; ii<(this.nion); ++ii) sigma[ii]   = this.el_sigma[symbols[ii]];
-      this.epsilon = new Array(this.nion); for (let ii=0; ii<(this.nion); ++ii) epsilon[ii] = this.el_epsilon[symbols[ii]];
+      this.sigma   = new Array(this.nion); 
+      this.epsilon = new Array(this.nion); 
+      for (let ii=0; ii<(this.nion); ++ii) {
+         if (symbols[ii] in this.el_sigma) {
+            this.sigma[ii]             = this.el_sigma[symbols[ii]];
+         } else {
+            this.sigma[ii]             = this.default_sigma;
+            this.el_sigma[symbols[ii]] = this.default_sigma;
+         }
+         if (symbols[ii] in this.el_epsilon) {
+            this.epsilon[ii]             = this.el_epsilon[symbols[ii]];
+         } else {
+            this.epsilon[ii]             = this.default_epsilon;
+            this.el_epsilon[symbols[ii]] = this.default_epsilon;
+         }
+      }
    }
 
    /*****************************
@@ -49,9 +65,9 @@ class Bylaska_MD {
 
       this.nshl3d = 1;
       this.rcell  = [0.0,0.0,0.0];
-      for (let n3=-2; n3<3; ++n3) {
-         for (let n2=-2; n2<3; ++n2) {
-            for (let n1=-2; n1<3; ++n1) {
+      for (let n3=-3; n3<4; ++n3) {
+         for (let n2=-3; n2<4; ++n2) {
+            for (let n1=-3; n1<4; ++n1) {
                if (!((n3==0) && (n2==0) && (n1==0))) {
                   let xx = (n1*a1[0] + n2*a2[0] + n3*a3[0]);
                   let yy = (n1*a1[1] + n2*a2[1] + n3*a3[1]);
@@ -87,7 +103,7 @@ class Bylaska_MD {
 
 
 
-   all_e(nion,atoms) {
+   all_e(nion,rion) {
 
       // pairwise potentials 
       let energy = 0.0;
@@ -96,13 +112,11 @@ class Bylaska_MD {
             let sij = 0.5*(this.sigma[ii]+this.sigma[jj]);
             let eij = Math.sqrt(this.epsilon[ii]*this.epsilon[jj]);
 
-            let dx = atoms[ii][0] - atoms[jj][0];
-            let dy = atoms[ii][1] - atoms[jj][1];
-            let dz = atoms[ii][2] - atoms[jj][2];
+            let [dx,dy,dz] = this.mdlat_min_diff(rion[3*ii]-rion[3*jj],rion[3*ii+1]-rion[3*jj+1],rion[3*ii+2]-rion[3*jj+2]);
             for (let l=0; l<this.nshl3d; ++l) {
-               let x = dx + this.rcell[l][0];
-               let y = dy + this.rcell[l][1];
-               let z = dz + this.rcell[l][2];
+               let x = dx + this.rcell[3*l];
+               let y = dy + this.rcell[3*l+1];
+               let z = dz + this.rcell[3*l+2];
 
                let r2 = x*x + y*y + z*z;
                let u2 = (sij*sij)/r2;
@@ -116,8 +130,8 @@ class Bylaska_MD {
       return energy;
    }
 
-   all_egrad(nion,atoms) {
-      let fatoms  = new Array(nion); for (let ii=0; ii<(nion); ++ii) fatoms[ii]  = [0.0, 0.0, 0.0];
+   all_egrad(nion,rion) {
+      let grad = new Array(3*nion); for (let ii=0; ii<(3*nion); ++ii) {grad[ii] = 0.0};
      
       let E = 0.0;
       for (let ii=0; ii<(nion-1); ++ii) {
@@ -125,13 +139,11 @@ class Bylaska_MD {
             let sij = 0.5*(this.sigma[ii]+this.sigma[jj]);
             let eij = Math.sqrt(this.epsilon[ii]*this.epsilon[jj]);
 
-            let dx = atoms[ii][0] - atoms[jj][0];
-            let dy = atoms[ii][1] - atoms[jj][1];
-            let dz = atoms[ii][2] - atoms[jj][2];
+            let [dx,dy,dz] = this.mdlat_min_diff(rion[3*ii]-rion[3*jj],rion[3*ii+1]-rion[3*jj+1],rion[3*ii+2]-rion[3*jj+2]);
             for (let l=0; l<this.nshl3d; ++l) {
-               let x = dx + this.rcell[l][0];
-               let y = dy + this.rcell[l][1];
-               let z = dz + this.rcell[l][2];
+               let x = dx + this.rcell[3*l];
+               let y = dy + this.rcell[3*l+1];
+               let z = dz + this.rcell[3*l+2];
 
                let r2 = x*x + y*y + z*z;
                let r  = Math.sqrt(r2);
@@ -140,32 +152,34 @@ class Bylaska_MD {
                let u12 = u6*u6;
 
                E += 4.0*eij*(u12 - u6);
-               dVdr = -4.0*eij/r*(12.0*u12 - 6.0*u6); 
+               let dVdr = -4.0*eij/r*(12.0*u12 - 6.0*u6); 
 
                let fxii = (x/r)*dVdr;
                let fyii = (y/r)*dVdr;
                let fzii = (z/r)*dVdr;
-               fatoms[ii][0] -= fxii;
-               fatoms[ii][1] -= fyii;
-               fatoms[ii][2] -= fzii;
-               fatoms[jj][0] += fxii;
-               fatoms[jj][1] += fyii;
-               fatoms[jj][2] += fzii;
+               grad[3*ii]   += fxii;
+               grad[3*ii+1] += fyii;
+               grad[3*ii+2] += fzii;
+               grad[3*jj]   -= fxii;
+               grad[3*jj+1] -= fyii;
+               grad[3*jj+2] -= fzii;
             
             }
          }
       }
-      return [E,fatoms];
+      return [E,grad];
    }
 
-
    print_params() {
+      const eoln = '\n';
+      let astr = eoln;
       let katom_type = Array.from(new Set(this.symbols));
       astr += sprintf("Bylaska MD LJ Potential Parameters\n");
       astr += sprintf("%5s %8s %8s\n","atom","sigma", "epsilon");
       for (const symb of katom_type) {
-         astr += sprintf("%5s %8.3f %8.3f\n",symb,this.el_sigma[symb],el_epsilon[symb]);
+         astr += sprintf("%5s %8.3f %8.3f\n",symb,this.el_sigma[symb],this.el_epsilon[symb]);
       }
+      return astr;
    }
 
    print_mol(nion,symbol,amatrix,rion) {
@@ -2202,12 +2216,16 @@ function xyzsdf2amatrix(sdf) {
 }
 
 
+var eric_periodic_table_mass = { 'H'  : 1.008, 'He' : 4.0026, 'Li' : 7.016, 'Be' : 9.01218, 'B'  : 11.00931, 'C'  : 12.0, 'N'  : 14.00307, 'O'  : 15.99491, 'F'  : 18.9984, 'Ne' : 19.99244, 'Na' : 22.9898, 'Mg' : 23.98504, 'Al' : 26.98154, 'Si' : 27.97693, 'P'  : 30.97376, 'S'  : 31.97207, 'Cl' : 34.96885, 'Ar' : 39.9624, 'K'  : 38.96371, 'Ca' : 39.96259, 'Sc' : 44.95592, 'Ti' : 45.948, 'V'  : 50.9440, 'Cr' : 51.9405, 'Mn' : 54.9381, 'Fe' : 55.9349, 'Co' : 58.9332, 'Ni' : 57.9353, 'Cu' : 62.9298, 'Zn' : 63.9291, 'Ga' : 68.9257, 'Ge' : 73.9219, 'As' : 74.9216, 'Se' : 78.9183, 'Br' : 79.9165, 'Kr' : 83.912, 'Rb' : 84.9117, 'Sr' : 87.9056, 'Y'  : 88.9054, 'Zr' : 89.9043, 'Nb' : 92.9060, 'Mo' : 97.9055, 'Tc' : 97.9072, 'Ru' : 101.9037, 'Rh' : 102.9048, 'Pd' : 105.9032, 'Ag' : 106.90509, 'Cd' : 113.9036, 'In' : 114.9041, 'Sn' : 117.9018, 'Sb' : 120.9038, 'Te' : 129.9067, 'I'  : 126.9004, 'Xe' : 131.9042, 'Cs' : 132.9051, 'Ba' : 137.9050, 'La' : 138.9061, 'Ce' : 139.9053, 'Pr' : 140.9074, 'Nd' : 143.9099, 'Pm' : 144.9128, 'Sm' : 151.9195, 'Eu' : 152.920, 'Gd' : 157.9241, 'Tb' : 159.9250, 'Dy' : 163.9288, 'Ho' : 164.9303, 'Er' : 165.930, 'Tm' : 168.9344, 'Yb' : 173.9390, 'Lu' : 174.9409, 'Hf' : 179.9468, 'Ta' : 180.948, 'W'  : 183.9510, 'Re' : 186.9560, 'Os' : 189.9586, 'Ir' : 192.9633, 'Pt' : 194.9648, 'Au' : 196.9666, 'Hg' : 201.9706, 'Tl' : 204.9745, 'Pb' : 207.9766, 'Bi' : 208.9804, 'Po' : 209.9829, 'At' : 210.9875, 'Rn' : 222.0175, 'Fr' : 223.0198, 'Ra' : 226.0254, 'Ac' : 227.0278, 'Th' : 232.0382, 'Pa' : 231.0359, 'U'  : 238.0508, 'Np' : 237.0482, 'Pu' : 244.0642, 'Am' : 243.0614, 'Cm' : 247.0704, 'Bk' : 247.0703, 'Cf' : 251.0796, 'Es' : 252.0829, 'Fm' : 257.0950, 'Md' : 258.0986, 'No' : 259.1009, 'Lr' : 262.1100, 'Rf' : 261.1087, 'Ha' : 262.1138, 'Sg' : 266.1219, 'Bh' : 262.1229, 'Hs' : 267.1318, 'Mt' : 268.1388};
+
+
+
 /****************************************** 
  *                                        *
  *            xyzsdf_minimize             *
  *                                        *
  ******************************************/
-function xyzsdf_minimize(molecule_str,mdparam_str,maxit,alpha,maxerr,ismol,oprint,has_lattice,a1,a2,a3) {
+function xyzsdf_minimize(molecule_str,mdparam_str,maxit,time_step,maxerr,ismol,oprint,has_lattice,a1,a2,a3) {
 
    const eoln = "\n";
    let astr = eoln;
@@ -2236,13 +2254,45 @@ function xyzsdf_minimize(molecule_str,mdparam_str,maxit,alpha,maxerr,ismol,oprin
    let Eiv = 0.0;
    let Elj = 0.0;
 
+   /* convert time from au to work with (kcal/mol / ang) forces   */
+   let dti = new Array(nion);
+   for (let ii=0; ii<(nion); ++ii) {
+      dti[ii] = (time_step/(eric_periodic_table_mass[symbols[ii]]*1822.80)) * (0.529177/(27.2116*23.06));
+   }
+
+   //set actlist and actlist3
+   let symlist =  [];
+   if (mdparam_str.includes("frozen")) {
+      symlist = mdparam_str.split("frozen")[1].split(";")[0].split(/[ ,]+/);
+   }
+   let actcount = 0;
+   for (let ii=0; ii<(nion); ++ii) {
+      if (!symlist.includes(symbols[ii])) {actcount += 1;}
+   }
+   let actlist  = new Array(actcount);
+   let actlist3 = new Array(3*actcount);
+   let jj = 0;
+   for (let ii=0; ii<(nion); ++ii) {
+      if (!symlist.includes(symbols[ii])) {
+         actlist[jj]      = ii;
+         actlist3[3*jj]   = 3*ii;
+         actlist3[3*jj+1] = 3*ii+1;
+         actlist3[3*jj+2] = 3*ii+2;
+         jj += 1;
+      }
+   }
+
+   if (mdparam_str.includes("uff")) { console.log("found uff !!!"); mdpotential_type=0; }
+   if (mdparam_str.includes("lj-potential-fcc-metals")) { console.log("found lj-potential-fcc-metals !!!"); mdpotential_type=1; }
+
+
    /* set the uff potential */
    if (mdpotential_type==0) {
       mdpotential = new UFF_Potential(nion,symbols,amatrix);
 
    /* set the LJ potential */
    } else if (mdpotential_type==1) {
-      mdpotential = new Bylaska_MD(potential_input,nion,symbols);
+      mdpotential = new Bylaska_MD(mdparam_str,nion,symbols);
    }
 
    bstr = mdpotential.print_params() + eoln;
@@ -2266,12 +2316,12 @@ function xyzsdf_minimize(molecule_str,mdparam_str,maxit,alpha,maxerr,ismol,oprin
    let err = 0.0;
 
    cstr += sprintf("\nTechnical Parameters") + eoln;
-   cstr += sprintf("maxiter = %12d",maxit) + eoln;
-   cstr += sprintf("alpha   = %12.4e",alpha) + eoln;
-   cstr += sprintf("maxerr  = %12.4e",maxerr) + eoln;
+   cstr += sprintf("maxiter   = %12d",maxit) + eoln;
+   cstr += sprintf("time_step = %12.4f",time_step) + eoln;
+   cstr += sprintf("maxerr    = %12.4e",maxerr) + eoln;
 
    let dstr = sprintf("\n------------------- Iteration Started - %s -----------------------\n",new Date().toLocaleString()) + eoln;
-   dstr += sprintf("\n%6s %15s %14s %14s %8s","iter.","E","E-Eold","Error","alpha") + eoln;
+   dstr += sprintf("\n%6s %15s %14s %14s %8s","iter.","E","E-Eold","Error","time_step") + eoln;
    dstr += sprintf("-------------------------------------------------------------") + eoln;
 
    let cputime1 = performance.now();
@@ -2280,11 +2330,23 @@ function xyzsdf_minimize(molecule_str,mdparam_str,maxit,alpha,maxerr,ismol,oprin
       E        = eegrad[0];
       let grad = eegrad[1];
       err = 0.0;
-      for (let i=0; i<(3*nion); ++i) {err += grad[i]*grad[i];}
-      for (let i=0; i<(3*nion); ++i) {rion[i] -= alpha*grad[i];}
+      for (const i of actlist3) {
+         err += grad[i]*grad[i];
+      }
+      for (const ii of actlist) {
+         rion[3*ii]   -= dti[ii]*grad[3*ii];
+         rion[3*ii+1] -= dti[ii]*grad[3*ii+1];
+         rion[3*ii+2] -= dti[ii]*grad[3*ii+2];
+      }
+      for (const ii of actlist) {
+         [rion[3*ii],rion[3*ii+1],rion[3*ii+2]] = mdpotential.mdlat_min_diff(rion[3*ii],rion[3*ii+1],rion[3*ii+2]);
+      }
+      //for (let i=0; i<(3*nion); ++i) {err += grad[i]*grad[i];}
+      //for (let i=0; i<(3*nion); ++i) {rion[i] -= alpha*grad[i];}
+      //for (let i=0; i<nion;     ++i) {[rion[3*i],rion[3*i+1],rion[3*i+2]] = mdpotential.mdlat_min_diff(rion[3*i],rion[3*i+1],rion[3*i+2]);}
       err = Math.sqrt(err)/(3*nion);
 
-      dstr += sprintf("%6d %15.9f %14.6e %14.6e %8.2e",it,E,E-Eold,err,alpha) + eoln;
+      dstr += sprintf("%6d %15.9f %14.6e %14.6e %8.2f",it,E,E-Eold,err,time_step) + eoln;
       Eerr = E-Eold;
       Eold = E;
       it +=1;
