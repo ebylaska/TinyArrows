@@ -14,5 +14,4 @@ http://localhost:5000/api
 ## Manual ##
 https://ebylaska.github.io/TinyArrows/
 
-
 Again2
