@@ -72,7 +72,7 @@
 <!-- ************************************** -->
 <!-- Location of scripts for ACE            -->
 <!-- ************************************** -->
-<script src="https://unpkg.com/ace-builds@1.4.1/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="https://unpkg.com/ace-builds@1.4.12/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <!--script src="https://unpkg.com/ace-builds@1.4.12/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script-->
 
 <!-- ************************************** -->
@@ -1669,7 +1669,7 @@ ul, li {
               }
            } 
 
-           if (data.includes("geometry")) {
+           if (data.includes("geometry") && data.includes("end")) {
               n = lines.length;
               m = 0;
               x = false;
@@ -3169,8 +3169,13 @@ ul, li {
         function submit_nwchemjob2(callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'queue_nwchem_add/';
+
+
            var textToSave0 = editor.getValue();
            var textToSave  = textToSave0
 
@@ -3266,8 +3271,12 @@ ul, li {
         function submit_splitnwchemjob2(callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'queue_nwchem_add/';
+
            var data = editor.getValue();
 
            if (data.includes("#JOB HAS ALREADY BEEN SUBMITTED")) {
@@ -3354,8 +3363,11 @@ ul, li {
         function submit_splitnwchemjob_sub(nwinputs,qwaitInput,callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'queue_nwchem_add/';
            nwlen = nwinputs.length;
            if (nwlen>0) {
               var textToSave0 = nwinputs[0];
@@ -5154,8 +5166,13 @@ ul, li {
         function solvateurltojsmol() {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'molecular_calculation/';
+
+
            document.getElementById('apirunning').value += "+ running solvateurltojsmol\n";
            document.getElementById('runmebanner4b').innerHTML= "Solvation calculation started.";
 
@@ -5412,8 +5429,11 @@ ul, li {
         function solvatewhaminput(molarity,callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'molecular_calculation/';
            document.getElementById('runmebanner4b').innerHTML= "Solvation calculation started.";
            document.getElementById('apirunning').value += "+ running solvatewhaminput\n";
 
@@ -5591,7 +5611,9 @@ ul, li {
 
         function saveeditortourl() {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
            var url = document.getElementById("urlToLoad").value;
            var saveurl = url.replace("raw=","raw_deposit=");
 
@@ -6580,11 +6602,11 @@ ul, li {
         
         // ****************************
         // *                          *
-        // *     convert2ZYZ          *
+        // *     convert2XYZ          *
         // *                          *
         // ****************************
 	function convert2XYZ() {
-           var i,n,x,y,m,latblock,isfrac;
+           var i,n,x,y,m,latblock,isfrac,isgeom;
            var data = editor.getValue(); // or session.getValue
            var lines = data.split("\n");
            if (data.includes("V2000")) {
@@ -6602,12 +6624,13 @@ ul, li {
               editor.setValue(data,1);
            } 
 
-           if (data.includes("geometry")) {
+           if (data.includes("geometry") && data.includes("end")) {
               n = lines.length;
               m = 0;
               x = false;
               y = false;
               isfrac = false;
+              isgeom = false;
               data = "";
               latblock = "";
               for (i=0; i<n; i++) {
@@ -6847,7 +6870,7 @@ ul, li {
               data  += "end\n";
               fdata += "end\n";
 
-           } else if (data.includes("geometry")) { //read nwchem data
+           } else if (data.includes("geometry") && data.includes("end")) { //read nwchem data
               reading = 2;
               n = lines.length;
               x = false;
@@ -9099,6 +9122,98 @@ ul, li {
 
            editor.setValue(data,1);
         }
+
+
+
+        // ****************************
+        // *                          *
+        // *        addbomd           *
+        // *                          *
+        // ****************************
+        function addbomd(feff9,header,params) {
+           var pspw = theory_arrowsdata2();
+
+           var temp = 300.0;;
+           if (params.contains("temperature{")) {
+              temp = parseFloat(params.split("temperature{")[1].split("}")[0]);
+           } else {
+              temp =  parseFloat(prompt("BOMD Input - Please enter temperature:", temp));
+           }
+
+           var time_step = 15.0;
+           if (params.contains("time_step{")) {
+              time_step = parseFloat(params.split("time_step{")[1].split("}")[0]);
+           } else {
+              time_step = parseFloat(prompt("BOMD Input - Please enter time_step:", 15.0));
+           }
+
+           var iloop = 10;
+           if (params.contains("iloop{")) {
+              iloop = parseInt(params.split("iloop{")[1].split("}")[0]);
+           } else {
+              iloop = parseInt(prompt("BOMD Input - Please enter inner loop:", iloop));
+           }
+
+           var oloop = 1000;
+           if (params.contains("oloop{")) {
+              oloop = parseInt(params.split("oloop{")[1].split("}")[0]);
+           } else {
+              oloop = parseInt(prompt("BOMD Input - Please enter outer loop:", oloop));
+           }
+
+
+           var stime0 = 10.0;
+           if (params.contains("stime0{")) {
+              stime0 = parseFloat(params.split("stime0{")[1].split("}")[0]);
+           } else {
+              stime0 = parseFloat(prompt("CPMD Input - Please enter total simulation time (ps):", stime0));
+           }
+
+           var stime      =  1.0e-12*stime0;
+           var itime      = iloop*oloop*time_step*2.41889e-17;
+           var nsteps     = parseInt((stime/itime))+1;
+
+           var tequil = "tequil";
+           if (params.contains("motion_name{")) {
+              tequil = params.split("motion_name{")[1].split("}")[0];
+           } else {
+              tequil = prompt("CPMD Input - Please enter motion files label:", tequil);
+           }
+
+           var xyz_filename = tequil + ".xyz";
+           var emotion_filename = tequil + ".emotion";
+           var ion_motion_filename = tequil + ".ion_motion";
+           var fei_filename = tequil + ".fei";
+           var data  = editor.getValue(); // or session.getValue
+
+           var whamdata = gen_whamdata(data,ion_motion_filename);
+
+           data += "\n\n";
+           data += "### restart here ###\n";
+           data += header;
+           data += "\n#### equilibrating: temperature=" + temp.toFixed(1) + "K over " + stime0.toFixed(2) + " ps ####\n";
+           data += "nwpw\n";
+           if (temp>0.0) {
+              data += "   temperature " + temp.toFixed(1) + " start\n";
+           }
+           data += "   bo_time_step " + time_step.toFixed(1) + "\n";
+           data += "   bo_steps " + iloop.toString() + " " + oloop.toString() + "\n";
+           data += "   xyz_filename        " + xyz_filename + "\n";
+           data += "   emotion_filename    " + emotion_filename + "\n";
+           data += "   ion_motion_filename " + ion_motion_filename + "\n";
+           //data += "   fei                 " + fei_filename + "\n";
+           data += "end\n";
+           for (var i=0; i<nsteps; ++i) {
+              data += "task " + pspw + " born-oppenheimer\n";
+              if (i<(nsteps-1)) {
+                 data += "\n### restart here ###\n";
+                 data += whamdata
+                 if (feff9) { data += header; }
+              }
+           }
+           editor.setValue(data,1);
+        }
+
 
 
         // ****************************
@@ -11894,7 +12009,7 @@ ul, li {
     <br>
     <!--div id="editor" style="position: relative; top: 85px; z-index: 1000; height: 560px; width: 1000px">some text is here </div-->
     <!--div id="editor" style="height: 560px; width: 1000px">some text is here </div-->
-    <div id="editor" style="height: 600px; width: 1200px">some text is here </div>
+    <div id="editor" style="height: 600px; width: 1200px"></div>
 
     <script>
        var editor = ace.edit("editor");
@@ -12072,7 +12187,8 @@ ul, li {
           <td> <input type="button" class="button4" value="Add AIMD-IR" style="color:orangered;" onClick="addaimdir(true)"/></td>
        </tr>
        <tr>
-          <td> <input type="button" class="button4" value="Add Car-Parrinello task" onClick="addcpmd(false,'','')"/></td>
+          <td> <input type="button" class="button4" value="Add Born-Oppenheimer" onClick="addbomd(false,'','')"/></td>
+          <td> <input type="button" class="button4" value="Add Car-Parrinello" onClick="addcpmd(false,'','')"/></td>
           <td> <input type="button" class="button4" value="Add Steepest Descent" onClick="addcpsd('')"/></td>
           <td> <input type="button" class="button4" value="Add NEB task" style="color:darkmagenta;" onClick="addneb()"/></td>
           <td> <input type="button" class="button4" value="Add String task" style="color:darkmagenta;" onClick="addstring()"/></td>
