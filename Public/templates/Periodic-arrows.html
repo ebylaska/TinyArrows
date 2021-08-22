@@ -9439,6 +9439,7 @@ ul, li {
            }
 
 
+           jms('select *; color cpk;');
            console.log("lats=",lats);
            console.log("evalxyz=",xyz);
            console.log("a1=",a1); console.log("a2=",a2); console.log("a3=",a3);
@@ -9446,6 +9447,9 @@ ul, li {
            if (ctype=="bond") {
               ii = parseInt(document.getElementById("collective_bond_a1").value.trim());
               jj = parseInt(document.getElementById("collective_bond_a2").value.trim());
+              set_color_alist('translucent red','collective_bond_a1')
+              set_color_alist('translucent green','collective_bond_a2')
+
               if (!(isNaN(ii) || isNaN(jj))) {
                  ii -= 1; jj -= 1;
                  x1 = (atom[ii][0]-atom[jj][0]);
@@ -9460,6 +9464,10 @@ ul, li {
               ii = parseInt(document.getElementById("collective_angle_a1").value.trim());
               jj = parseInt(document.getElementById("collective_angle_a2").value.trim());
               kk = parseInt(document.getElementById("collective_angle_a3").value.trim());
+              set_color_alist('translucent red',  'collective_angle_a1')
+              set_color_alist('translucent green','collective_angle_a2')
+              set_color_alist('translucent blue', 'collective_angle_a3')
+
               if (!(isNaN(ii) || isNaN(jj) || isNaN(kk))) {
                  ii -= 1; jj -= 1; kk-=1;
                  x1 = (atom[ii][0]-atom[jj][0]);
@@ -9485,6 +9493,10 @@ ul, li {
               jj = parseInt(document.getElementById("collective_dihedral_a2").value.trim());
               kk = parseInt(document.getElementById("collective_dihedral_a3").value.trim());
               ll = parseInt(document.getElementById("collective_dihedral_a4").value.trim());
+              set_color_alist('translucent red',   'collective_dihedral_a1')
+              set_color_alist('translucent green', 'collective_dihedral_a2')
+              set_color_alist('translucent blue',  'collective_dihedral_a3')
+              set_color_alist('translucent yellow','collective_dihedral_a4')
               if (!(isNaN(ii) || isNaN(jj) || isNaN(kk) || isNaN(ll))) {
                  ii -= 1; jj -= 1; kk-=1; ll-=1;
                  x1 = (atom[jj][0]-atom[ii][0]);
@@ -9518,6 +9530,8 @@ ul, li {
               r0    = document.getElementById("collective_coord_number_r0").value;
               index1 = expand0_atomlist(document.getElementById("collective_coord_number_indexes1").value.trim()).split(/[ ,]+/);
               index2 = expand0_atomlist(document.getElementById("collective_coord_number_indexes2").value.trim()).split(/[ ,]+/);
+              set_color_alist('translucent green','collective_coord_number_indexes1')
+              set_color_alist('translucent blue', 'collective_coord_number_indexes2')
              
               z = 0.0;
               for (i=0; i<index1.length; ++i) {
@@ -9546,6 +9560,8 @@ ul, li {
               index1 = expand0_atomlist(document.getElementById("collective_group_distance_indexes1").value.trim()).split(/[ ,]+/);
               index2 = expand0_atomlist(document.getElementById("collective_group_distance_indexes2").value.trim()).split(/[ ,]+/);
               n12    = (index1.length)*(index2.length);
+              set_color_alist('translucent orange','collective_group_distance_indexes1')
+              set_color_alist('translucent aqua',  'collective_group_distance_indexes2')
 
               z = 0.0;
               for (i=0; i<index1.length; ++i) {
@@ -9567,6 +9583,7 @@ ul, li {
            }
            if (ctype=="X") {
               ii = parseInt(document.getElementById("collective_X_a1").value.trim());
+              set_color_alist('translucent red','collective_X_a1')
               if (!isNaN(ii)) {
                  ii -= 1; 
                  x1 = atom[ii][0];
@@ -9575,6 +9592,7 @@ ul, li {
            }
            if (ctype=="Y") {
               ii = parseInt(document.getElementById("collective_Y_a1").value.trim());
+              set_color_alist('translucent blue','collective_Y_a1');
               if (!isNaN(ii)) {
                  ii -= 1; 
                  y1 = atom[ii][1];
@@ -9583,6 +9601,7 @@ ul, li {
            }
            if (ctype=="Z") {
               ii = parseInt(document.getElementById("collective_Z_a1").value.trim());
+              set_color_alist('translucent green','collective_Z_a1');
               if (!isNaN(ii)) {
                  ii -= 1; 
                  z1 = atom[ii][2];
@@ -9592,6 +9611,8 @@ ul, li {
            if (ctype=="n-plane") {
               ii = parseInt(document.getElementById("collective_nplane_a1").value.trim());
               n = string3_to_vec3(document.getElementById("collective_nplane_normal").value);
+              set_color_alist('translucent orange','collective_nplane_a1');
+              set_color_alist('translucent yellow','collective_nplane_indexes');
               console.log("n=",n);
               console.log("ii=",ii);
               if (!isNaN(ii)) {
@@ -9625,6 +9646,9 @@ ul, li {
               ii = parseInt(document.getElementById("collective_bond_difference2_a1").value.trim());
               jj = parseInt(document.getElementById("collective_bond_difference2_a2").value.trim());
               kk = parseInt(document.getElementById("collective_bond_difference2_a3").value.trim());
+              set_color_alist('translucent red',  'collective_bond_difference2_a1');
+              set_color_alist('translucent green','collective_bond_difference2_a2');
+              set_color_alist('translucent blue', 'collective_bond_difference2_a3');
               if (!(isNaN(ii) || isNaN(jj) || isNaN(kk))) {
                  ii -= 1; jj -= 1; kk-=1;
                  x1 = (atom[jj][0]-atom[ii][0]);
@@ -9644,6 +9668,7 @@ ul, li {
            }
            if (ctype=="bondings") {
               index1 = document.getElementById("collective_bondings_coefindexes").value.trim().split(/[ ,]+/);
+              set_color_bondings('collective_bondings_coefindexes');
               n = index1.length;
               z = 0.0;
               for (i=0; i<n; ++i) {
@@ -10231,51 +10256,62 @@ ul, li {
            var [b1,b2,b3] = a1a2a3_to_b1b2b3(a1,a2,a3);
            var xyzs = xyz.split("\n").slice(2,nion+2);
            var atom = [];
-           for (ii=0; ii<nion; ++ii) {
+           for (let ii=0; ii<nion; ++ii) {
               var x = xyzs[ii].trim().split(/[ ,]+/);
               atom.push([parseFloat(x[1])/0.529177,parseFloat(x[2])/0.529177,parseFloat(x[3])/0.529177]);
            }
            console.log("CTYPE=",ctype);
 
            if (ctype=="bond") {
-              ii = parseInt(document.getElementById("collective_bond_a1").value.trim());
-              jj = parseInt(document.getElementById("collective_bond_a2").value.trim());
+              let ii = parseInt(document.getElementById("collective_bond_a1").value.trim());
+              let jj = parseInt(document.getElementById("collective_bond_a2").value.trim());
              console.log("bond ii=",ii);
              console.log("bond jj=",jj);
               if (!(isNaN(ii) || isNaN(jj))) {
                  ii -= 1; jj -= 1;
-                 x1 = (atom[ii][0]-atom[jj][0]);
-                 y1 = (atom[ii][1]-atom[jj][1]);
-                 z1 = (atom[ii][2]-atom[jj][2]);
+                 let x1 = (atom[ii][0]-atom[jj][0]);
+                 let y1 = (atom[ii][1]-atom[jj][1]);
+                 let z1 = (atom[ii][2]-atom[jj][2]);
                  [x1,y1,z1]  = lattice_min(a1,a2,a3,b1,b2,b3,x1,y1,z1);
-                 r1 = x1*x1 + y1*y1 + z1*z1;
+                 let r1 = x1*x1 + y1*y1 + z1*z1;
                  f = Math.sqrt(r1).toFixed(6);
-                 var apstring = "set nwpw:shake_constraint \"" + (ii+1).toString() + " " + (jj+1).toString() + " l " + f +"\"";
+                 let apstring = "set nwpw:shake_constraint \"" + (ii+1).toString() + " " + (jj+1).toString() + " l " + f +"\"";
                  console.log("apstring=",apstring);
-                 document.getElementById("auxpotentials").innerHTML += "\n" + apstring + "\n";
+                 var data  = editor.getValue(); // or session.getValue
+                 data += "\n### Adding shake constraints ###\n";
+                 data += "### reaction = AB --> A + B \n";
+                 data += "###  A=" + (ii+1).toString() + " B=" + (jj+1).toString() + "\n"; 
+                 data += apstring + "\n";
+                 editor.setValue(data,1);
               }
            }
            if (ctype=="bond_difference2") {
-              ii = parseInt(document.getElementById("collective_bond_difference2_a1").value.trim());
-              jj = parseInt(document.getElementById("collective_bond_difference2_a2").value.trim());
-              kk = parseInt(document.getElementById("collective_bond_difference2_a3").value.trim());
+              let ii = parseInt(document.getElementById("collective_bond_difference2_a1").value.trim());
+              let jj = parseInt(document.getElementById("collective_bond_difference2_a2").value.trim());
+              let kk = parseInt(document.getElementById("collective_bond_difference2_a3").value.trim());
               if (!(isNaN(ii) || isNaN(jj) || isNaN(kk))) {
                  ii -= 1; jj -= 1; kk-=1;
-                 x1 = (atom[jj][0]-atom[ii][0]);
-                 y1 = (atom[jj][1]-atom[ii][1]);
-                 z1 = (atom[jj][2]-atom[ii][2]);
+                 let x1 = (atom[jj][0]-atom[ii][0]);
+                 let y1 = (atom[jj][1]-atom[ii][1]);
+                 let z1 = (atom[jj][2]-atom[ii][2]);
                  [x1,y1,z1]  = lattice_min(a1,a2,a3,b1,b2,b3,x1,y1,z1);
-                 r1  = (x1*x1 + y1*y1 + z1*z1);
+                 let r1  = (x1*x1 + y1*y1 + z1*z1);
 
-                 x2 = (atom[kk][0]-atom[ii][0]);
-                 y2 = (atom[kk][1]-atom[ii][1]);
-                 z2 = (atom[kk][2]-atom[ii][2]);
+                 let x2 = (atom[kk][0]-atom[ii][0]);
+                 let y2 = (atom[kk][1]-atom[ii][1]);
+                 let z2 = (atom[kk][2]-atom[ii][2]);
                  [x2,y2,z2]  = lattice_min(a1,a2,a3,b1,b2,b3,x2,y2,z2);
-                 r2  = (x2*x2 + y2*y2 + z2*z2);
-                 z = r1 - r2; 
+                 let r2  = (x2*x2 + y2*y2 + z2*z2);
+                 let z = r1 - r2; 
                  f = z.toFixed(6)
                  var apstring = "set nwpw:shake_constraint \"" + (jj+1).toString() + " " + (kk+1).toString() + " " + (ii+1).toString() + " d " + f + "\"";
-                 document.getElementById("auxpotentials").innerHTML += "\n" + apstring + "\n";
+                 console.log("apstring=",apstring);
+                 var data  = editor.getValue(); // or session.getValue
+                 data += "\n### Adding shake constraints ###\n";
+                 data += "### reaction = AB + C --> AC + B \n";
+                 data += "###  A=" + (ii+1).toString() + " B=" + (jj+1).toString() + " C=" + (kk+1).toString() + "\n"; 
+                 data += apstring + "\n";
+                 editor.setValue(data,1);
               }
            }
         }
@@ -10317,6 +10353,7 @@ ul, li {
 
            editor.setValue(data,1);
         }
+
 
 
         function isPositiveInteger(n) {
@@ -10916,9 +10953,13 @@ ul, li {
         function gen_rhash2(callback) {
            //var arrows_post_url0 = "https://arrows.emsl.pnnl.gov/api/upload/";
            //var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
+           //var arrows_post_url0 = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}genhash/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url0 = calc_url + 'upload/';
+           var arrows_get_url   = calc_url + 'genhash/';
 
-           var arrows_post_url0 = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}genhash/';
+
 
            var reaction = document.getElementById("reaction_genhash00").value;
            if (reaction.trim().length>5) {
@@ -10972,8 +11013,12 @@ ul, li {
            console.log("In gen_bondings");
            //var arrows_post_url = "https://arrows.emsl.pnnl.gov/api/upload/";
            //var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}genhash/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}genhash/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'genhash/';
+    
 
            var mol = exMod().replace('{','').replace('}','');
            var reaction_type    = document.getElementById("reaction_type").value;
@@ -11183,8 +11228,11 @@ ul, li {
         function gen_reaction_path() {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'molecular_calculation/';
 
            var bondings = document.getElementById("reaction_bondings").value
            console.log("bondings=",bondings);
@@ -11385,8 +11433,11 @@ ul, li {
         function gen_wham_model(callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'molecular_calculation/';
 
            var bondings = document.getElementById("reaction_bondings").value
            console.log("bondings=",bondings);
@@ -11570,8 +11621,12 @@ ul, li {
         function resolveauxvariables(myid,callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
-           var arrows_post_url = '{{ arrows_api }}upload/';
-           var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
+           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var arrows_post_url = calc_url + 'upload/';
+           var arrows_get_url  = calc_url + 'molecular_calculation/';
+
            var auxvar = document.getElementById(myid).value;
            var auxvarlist = auxvar.split("\n");
            var x,y;
@@ -11941,7 +11996,7 @@ ul, li {
 </head>
 
 
-<body onload="jmolOnLoad();cacheLoadAll();">
+<body onload="jmolOnLoad();cacheLoadAll();changefreeenergy();changecollectivecoords();">
 
 <!--div class="linkbanner">
    <a href="https://arrows.emsl.pnnl.gov/api"><img src="https://dl.dropboxusercontent.com/s/s5fof263qwxzcaq/EMSLArrows2019.png" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a> 
@@ -12176,7 +12231,8 @@ ul, li {
           </td>
           <!--td> <input type="button" class="button4" id="latticelocation" value="Lattice in geometry block" onClick="changelatticelocation()"/>  </td-->
           <td> <input type="button" class="button4" id="springconstraint" value="Add reaction constraint" style="color:green;" onClick="addreactionconstraint(false)"/>  </td>
-          <td> <input type="button" class="button4" id="springconstraint" value="Add reaction QMMM" style="color:green;" onClick="addreactionconstraint(true)"/>  </td>
+          <td> <input type="button" class="button4" id="springconstraint2" value="Add reaction QMMM" style="color:green;" onClick="addreactionconstraint(true)"/>  </td>
+          <td> <input type="button" class="button4" id="shakegconstraint22" value="Add shake constraint" style="color:green;" onClick="addshakeconstraint()"/>  </td>
        </tr>
        <tr>
           <td> <input type="button" class="button4" value="Add Energy task" onClick="addenergy('')"/></td>
@@ -12920,7 +12976,14 @@ ul, li {
                       nrange: <input type="number" id="meta_nrange" size="9" min="1" max="5000" step="1" value="" oninput="cacheInput(this)" > <br><br>
                       boundary_w: <input type="number" id="meta_boundary_w" size="9" min="0.0001" max="10.0000" step="0.0001" value="0.0000" oninput="cacheInput(this)"> 
                       boundary_sigma: <input type="number" id="meta_boundary_sigma" size="9" min="0.005" max="1.000" step="0.001" value="0.000" oninput="cacheInput(this)">
-                      tempered: <input type="number" id="meta_tempered" size="15" min="0.0" max="99000.0" step="1.0" value="" oninput="cacheInput(this)"> <br><br>
+                      <br>
+                      tempered: <input type="number" id="meta_tempered" size="15" min="0.0" max="99000.0" step="1.0" value="" 
+                                 onchange="let t = this.value*0.59/298.15;
+                                           let f = t.toFixed(2) + ' kcal/mol';
+                                           document.getElementById('meta_barrier').innerHTML = f;" 
+                                 oninput="cacheInput(this)"/>
+                     <b style="color: blue; font-size: 14px;" id="meta_barriertag"> a priori Ebarrier=</b><b style="color: blue; font-size: 14px;" id="meta_barrier"></b>
+                    <br><br>
                    </div>
                    <div id="tamdinput" class="meta_div" style="display:none; border:1px dotted; border-color: #102DB0;"> 
                       <p align="center"> TAMD </p>
@@ -12939,24 +13002,12 @@ ul, li {
                    </div>
                    <div id="pmfinput" class="meta_div" style="display:none; border:1px dotted; border-color: #102DB0;"> 
                       <p align="center"> PMF </p>
-                      <table>
-                      <tr>
-                         <td> Auxiliary Potentials </td>
-                      </tr>
-                      <tr>
-                         <td> <textarea  id="auxpotentials" rows="20" cols="60" oninput="cacheInput(this)"></textarea></td>
-                      </tr>
-                      </table>
-                      <br>
-                      <input type="button" class="button" id="addshakeconstraint0" value="Add shake constraint" 
-                             onClick="addshakeconstraint();"/> 
-                      <br>
                    </div>
 
 
                    <br><input type="button" class="button" id="redrawcolors" value="Reset atom colors" onClick="jms('select *; color cpk;');"/> <br><br>
 
-                   coordinate_type{<select id="coordinate_type"  onChange="changecollectivecoords();evalcollective()" oninput="cacheInput(this)">
+                   coordinate_type{<select id="coordinate_type" onChange="changecollectivecoords();evalcollective()" oninput="cacheInput(this)">
                                    <option> None </option>
                                    <option>bond</option>
                                    <option>angle</option>
@@ -12972,8 +13023,9 @@ ul, li {
                                  </select>}
                    <br>
                    <div id="collective_bond" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (red): <input type="number" id="collective_bond_a1" size="9" min="1" max="50000" step="1" value=""  onChange="set_color_alist('translucent red','collective_bond_a1');evalcollective()" oninput="cacheInput(this)"> 
-                      atom 2 index (green): <input type="number" id="collective_bond_a2" size="9" min="1" max="50000" step="1" value=""  onChange="set_color_alist('translucent green','collective_bond_a2');evalcollective()" oninput="cacheInput(this)"> <br>
+                      atom 1 index (A red): <input type="number" id="collective_bond_a1" size="9" min="1" max="50000" step="1" value=""  onChange="set_color_alist('translucent red','collective_bond_a1');evalcollective()" oninput="cacheInput(this)"> 
+                      atom 2 index (B green): <input type="number" id="collective_bond_a2" size="9" min="1" max="50000" step="1" value=""  onChange="set_color_alist('translucent green','collective_bond_a2');evalcollective()" oninput="cacheInput(this)"> <br>
+                   Reaction: AB --> A + B <br>
                    </div>
                    <div id="collective_angle" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
                       atom 1 index (red): <input type="number" id="collective_angle_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_angle_a1')" oninput="cacheInput(this)"> 
@@ -13021,9 +13073,10 @@ ul, li {
                       normal: <input type="3array" id="collective_nplane_normal"  size="35" value="0.0 0.0 1.0" onChange="evalcollective()" oninput="cacheInput(this)"> 
                    </div>
                    <div id="collective_bond_difference2" class="collective_div" style="display:none; border-color: #102DB0; background-color: white; padding:10px;"> 
-                      atom 1 index (red): <input type="number" id="collective_bond_difference2_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_bond_difference2_a1')" oninput="cacheInput(this)"> 
-                      atom 2 index (green): <input type="number" id="collective_bond_difference2_a2" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_bond_difference2_a2');evalcollective()" oninput="cacheInput(this)"> <br>
-                      atom 3 index (blue): <input type="number" id="collective_bond_difference2_a3" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_bond_difference2_a3');evalcollective()" oninput="cacheInput(this)"> <br>
+                      atom 1 index (A red): <input type="number" id="collective_bond_difference2_a1" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent red','collective_bond_difference2_a1')" oninput="cacheInput(this)"> 
+                      atom 2 index (B green): <input type="number" id="collective_bond_difference2_a2" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent green','collective_bond_difference2_a2');evalcollective()" oninput="cacheInput(this)"> <br>
+                      atom 3 index (C blue): <input type="number" id="collective_bond_difference2_a3" size="9" min="1" max="50000" step="1" value="" onChange="set_color_alist('translucent blue','collective_bond_difference2_a3');evalcollective()" oninput="cacheInput(this)"> <br>
+                   Reaction: AB + C --> AC + B<br>
                    </div>
    
 
