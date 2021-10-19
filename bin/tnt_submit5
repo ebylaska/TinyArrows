@@ -2361,6 +2361,12 @@ def maketasks(jobtype,jobtheory,radii,rbond,rgroup,mbond1,mbond2,xyzfile,zcoords
             tstr += "\nend\n"
             if ("pspw" in jobtheory): tstr += "set nwpw:cosmo2 .true.\n"
             tstr += "task %s energy ignore" % jobtheory
+         elif (solvation_type=='Born'):
+            if ("pspw" in jobtheory):
+               tstr += "nwpw\n"
+               tstr += "   born on\n"
+               tstr += "end\n"
+               tstr += "task %s energy ignore" % jobtheory
 
 #      ### COSMO SMD calculation ###
 #      if (jobtype[i]=='d'): 
@@ -2399,6 +2405,31 @@ def maketasks(jobtype,jobtheory,radii,rbond,rgroup,mbond1,mbond2,xyzfile,zcoords
          tstr += "\nend\n"
          tstr += "task %s property" % job['theory_property']
 
+
+      ### hole (remove electron) calculation ###
+      if (jobtype[i]=='h'): 
+         jobxc = ''
+         if (job['theory_property']=='pspw' or job['theory_property']=='dft'):
+            jobxc = job['xc_property']
+
+         hmult = job['mult_h']
+         tstr += maketheory(job['theory_property'],jobxc,hmult,job['property_pspw4'],job['property_paw'],job['basis_property'],job['basisHZ_property'],job)
+         tstr += "charge %d\n" % (job['charge']+1)
+         tstr += "task %s energy" % job['theory_property']
+
+
+      ### particle (extra electron)  calculation ###
+      if (jobtype[i]=='p'): 
+         jobxc = ''
+         if (job['theory_property']=='pspw' or job['theory_property']=='dft'):
+            jobxc = job['xc_property']
+
+         pmult = job['mult_p']
+         tstr += maketheory(job['theory_property'],jobxc,pmult,job['property_pspw4'],job['property_paw'],job['basis_property'],job['basisHZ_property'],job)
+         tstr += "charge %d\n" % (job['charge']-1)
+         tstr += "task %s energy" % job['theory_property']
+
+
       if (jobtype[i]=='z'): 
         tstr  = zcoords[i]
         #tstr += "driver; maxiter 50; clear; end\n"
@@ -2415,6 +2446,11 @@ def maketasks(jobtype,jobtheory,radii,rbond,rgroup,mbond1,mbond2,xyzfile,zcoords
             tstr += "   do_cosmo_smd .true.\n"
             tstr += "   solvent %s\n" % svnt
             tstr += "\nend\n"
+         elif ('Born'==solvation_type):
+            if ("pspw" in jobtheory):
+               tstr += "nwpw\n"
+               tstr += "   born on\n"
+               tstr += "end\n"
          else:
             tstr += "cosmo\n"
             tstr += "   do_gasphase .false.\n"
@@ -3364,6 +3400,15 @@ if '^{' in esmiles:
    q = evalnum(esmiles.split('^{')[1].split('}')[0])
    notchargeset = False
 
+if (mult>1):
+   mult_p = mult-1
+   mult_h = mult-1
+else:
+   mult_p = mult+1
+   mult_h = mult+1
+if 'mult_p{' in esmiles: mult_p = evalnum(esmiles.split('mult_p{')[1].split('}')[0])
+if 'mult_h{' in esmiles: mult_h = evalnum(esmiles.split('mult_h{')[1].split('}')[0])
+
 
 if (xyzdata==''):
    if (solvation_type=='aimdmm'):
@@ -3446,6 +3491,7 @@ if (basisHZ==''):  basisHZ  ='default'
 if (reaction_hash!=''):
   if (calctype=='' and solvation_type=='COSMO'):     calctype='lovcb'
   if (calctype=='' and ('COSMO-SMD' in solvation_type)): calctype='lovcb'
+  if (calctype=='' and ('Born' in solvation_type)): calctype='lovcb'
   if (calctype=='' and solvation_type=='None'):      calctype='lovb'
   if (calctype=='' and theory=='pspw'):    calctype='lovb'
   if (calctype=='' and theory=='paw'):     calctype='lovb'
@@ -3457,18 +3503,18 @@ if (reaction_hash!=''):
 
 if (calctype=='' and solvation_type=='COSMO'):     calctype='ovcb'
 if (calctype=='' and ('COSMO-SMD' in solvation_type)): calctype='ovcb'
+if (calctype=='' and ('Born' in solvation_type)): calctype='ovcb'
 if (calctype=='' and solvation_type=='aimdmm'):    calctype='eqd'
 if (calctype=='' and solvation_type=='None'):      calctype='ovb'
-if (calctype=='' and theory=='pspw'):    calctype='ovb'
 if (calctype=='' and theory=='paw'):     calctype='ov'
-if (calctype=='' and theory=='pspw4'):   calctype='ovb'
 if (calctype=='' and theory=='paw4'):    calctype='ov'
 if (calctype=='' and theory=='aimd'):    calctype='eqkb'
 if (calctype=='' and theory=='aimd4'):    calctype='eqkb'
-#if (calctype=='' and theory=='ccsd(t)'): calctype='e'
-#if (calctype=='' and theory=='mp2'):     calctype='e'
-if (calctype=='' and (theory=='dft' or theory=='hf' or theory=='uhf' or theory=='am1' or theory=='pm3' or theory=='mndo' or theory=='mindo3')):
+if (calctype=='' and (theory=='pspw4' or theory=='dft' or theory=='hf' or theory=='uhf' or theory=='am1' or theory=='pm3' or theory=='mndo' or theory=='mindo3')):
       solvation_type = 'COSMO'
+      calctype='ovcb'
+if (calctype=='' and (theory=='pspw')):
+      solvation_type = 'Born'
       calctype='ovcb'
 
 if (theory=='qsharp_chem') and (calctype!='r'): calctype='e'
@@ -3528,6 +3574,9 @@ job['esurface'] = esurface
 job['estate']   = estate
 job['enroots']  = enroots
 job['unitcell'] = unitcell.replace('|','\n').strip()
+
+job['mult_p']    = mult_p
+job['mult_h']    = mult_h
 
 if (molarity==''): job['molarity']   = 1.0
 

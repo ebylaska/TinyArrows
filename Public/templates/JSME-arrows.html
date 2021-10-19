@@ -305,16 +305,17 @@
            if (button0=="b3lyp")  { xcstr = "b3lyp"; }
            if (button0=="m06-2x") { xcstr = "m06-2x"; }
 
+           if (button0=="Born")      { solvstr = "Born"; }
            if (button0=="COSMO")     { solvstr = "COSMO"; }
            if (button0=="COSMO-SMD") { solvstr = document.getElementById("COSMO-SMD").value.split("{")[1].split("}")[0]; }
            if (button0=="None")      { solvstr = "None"; }
 
            // remove conflicting options
-           if ((theorystr=="mp2") || (theorystr=="ccsd(t)"))  { xcstr = ""; }
-           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (xcstr=="m06-2x")) { xcstr = ""; }
-           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (solvstr=="COSMO")) { solvstr = ""; }
-           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (solvstr.includes("COSMO-SMD"))) { solvstr = ""; }
-           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (basisstr=="6-31G*")) { basisstr = ""; }
+           if (((theorystr=="dft") || (theorystr=="mp2") || (theorystr=="ccsd(t)") || (theorystr=="")) && (solvstr=="Born")) { solvstr = "COSMO"; }
+           if ((theorystr=="mp2") || (theorystr=="ccsd(t)"))                                   { xcstr = ""; }
+           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (xcstr=="m06-2x"))             { xcstr = ""; }
+           if (((theorystr=="pspw")) && (solvstr.includes("COSMO")))                           { solvstr = "Born"; }
+           if (((theorystr=="pspw") || (theorystr=="pspw4")) && (basisstr=="6-31G*"))          { basisstr = ""; }
            if (((theorystr=="pspw") || (theorystr=="pspw4")) && (basisstr=="6-311++G(2d,2p)")) { basisstr = ""; }
            if (theorystr=="pm3") { 
               xcstr = ""; 
@@ -332,6 +333,7 @@
                document.getElementById("blyp").style    = color1;
                document.getElementById("b3lyp").style   = color1;
                document.getElementById("m06-2x").style  = color1;
+               document.getElementById("Born").style     = color2;
                document.getElementById("COSMO").style     = color1;
                document.getElementById("COSMO-SMD").style = color1;
                document.getElementById("None").style      = color1;
@@ -344,6 +346,7 @@
                document.getElementById("blyp").style   = color1;
                document.getElementById("b3lyp").style   = color1;
                document.getElementById("m06-2x").style  = color2;
+               document.getElementById("Born").style     = color1;
                document.getElementById("COSMO").style     = color2;
                document.getElementById("COSMO-SMD").style = color2;
                document.getElementById("None").style      = color1;
@@ -356,8 +359,9 @@
                document.getElementById("blyp").style   = color1;
                document.getElementById("b3lyp").style   = color1;
                document.getElementById("m06-2x").style  = color2;
-               document.getElementById("COSMO").style     = color2;
-               document.getElementById("COSMO-SMD").style = color2;
+               document.getElementById("Born").style      = color1;
+               document.getElementById("COSMO").style     = color1;
+               document.getElementById("COSMO-SMD").style = color1;
                document.getElementById("None").style      = color1;
                document.getElementById("6-31G*").style = color2;
                document.getElementById("6-311++G(2d,2p)").style = color2;
@@ -368,6 +372,7 @@
                document.getElementById("blyp").style   = color2;
                document.getElementById("b3lyp").style   = color2;
                document.getElementById("m06-2x").style  = color2;
+               document.getElementById("Born").style     = color2;
                document.getElementById("COSMO").style     = color1;
                document.getElementById("COSMO-SMD").style = color1;
                document.getElementById("None").style      = color1;
@@ -380,6 +385,7 @@
                document.getElementById("blyp").style   = color2;
                document.getElementById("b3lyp").style   = color2;
                document.getElementById("m06-2x").style  = color2;
+               document.getElementById("Born").style     = color2;
                document.getElementById("COSMO").style     = color1;
                document.getElementById("COSMO-SMD").style = color1;
                document.getElementById("None").style      = color1;
@@ -392,6 +398,7 @@
                document.getElementById("blyp").style   = color2;
                document.getElementById("b3lyp").style   = color2;
                document.getElementById("m06-2x").style  = color2;
+               document.getElementById("Born").style     = color2;
                document.getElementById("COSMO").style     = color1;
                document.getElementById("COSMO-SMD").style = color2;
                //document.getElementById("None").style      = color1;
@@ -517,12 +524,15 @@
               style="background-color:#f8f8ff; color:#298DB4;">
        <INPUT TYPE="button" VALUE="solvation_type{COSMO}"  id="COSMO"
               onClick="txspressed('COSMO')"
-              onClick="document.form.smi.value+=' solvation_type{COSMO}'" 
               style="background-color:#f8f8ff; color:#298DB4;">
+       <INPUT TYPE="button" VALUE="solvation_type{Born}"  id="Born"
+              onClick="txspressed('Born')"
+              style="background-color:#f8f8ff; color:#298DB4;">
+       <br>
        <INPUT TYPE="button" VALUE="solvation_type{COSMO-SMD}"  id="COSMO-SMD"
               onClick="txspressed('COSMO-SMD')"
               style="background-color:#f8f8ff; color:#298DB4;">
-       <select id="SMD_solvent" onChange="document.getElementById('COSMO-SMD').value = document.getElementById('SMD_solvent').value;" >
+       <select id="SMD_solvent" onChange="document.getElementById('COSMO-SMD').value = document.getElementById('SMD_solvent').value; txspressed('COSMO-SMD')" >
                  <option value="solvation_type{COSMO-SMD}">water (default)</option>
                  <option value="solvation_type{COSMO-SMD:acetacid}">acetic acid</option>
                  <option value="solvation_type{COSMO-SMD:acetone}">acetone</option>

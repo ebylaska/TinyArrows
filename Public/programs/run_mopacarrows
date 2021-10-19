@@ -5,6 +5,9 @@ import os,sys,subprocess,requests,getopt,glob
 #nwchem         = "/usr/bin/mpirun -np 2 /home/bylaska/bin/nwchem "
 ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
+ARROWS_API_HOME = 'http://localhost:5000/api/'
+
+#mopacker       = ARROWS_HOME + "/compute-bin/mopacker "
 mopacker       = ARROWS_HOME + "/compute-bin/mopacker "
 inputfilename  = "mopacarrows.nw"
 outputfilename = "mopacarrows.out"
@@ -18,12 +21,12 @@ lockfilename   = wrkdir0 + "/runarrows.lock"
 
 #arrows_queue_url       = 'http://arrows.emsl.pnl.gov:5000/api/queue/'
 #arrows_queue_fetch_url = 'http://arrows.emsl.pnl.gov:5000/api/queue_fetch/'
-arrows_queue_url       = 'https://arrows.emsl.pnnl.gov/api/queue/'
-arrows_queue_fetch_url = 'https://arrows.emsl.pnnl.gov/api/queue_fetch/'
+arrows_queue_url       = ARROWS_API_HOME + 'queue/'
+arrows_queue_fetch_url = ARROWS_API_HOME + 'queue_fetch/'
 
 ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo' ])
-arrows_post_url    = 'https://arrows.emsl.pnnl.gov/api/upload/'
-arrows_get_url     = 'https://arrows.emsl.pnnl.gov/api/submit_output/'
+arrows_post_url    = ARROWS_API_HOME + 'upload/'
+arrows_get_url     = ARROWS_API_HOME + 'submit_output/'
 
 
 #############################################################################
@@ -67,7 +70,7 @@ run_mopacarrows
 """
 
 print()
-print("#run_mopacarrows - version 1.0")
+print("#run_mopacarrows - version 2.0")
 print()
 
 inputdeck0 = ''
@@ -96,7 +99,7 @@ for o, a in opts:
 if showq:
    try:
       rr = requests.get(arrows_queue_url)
-      print(rr.text.split('#chemdb_queue - version 1.0')[1].split('</pre>')[0].strip())
+      print(rr.text.split('chemdb_queue - version 2.0')[1].split('</pre>')[0].strip())
    except:
       print(" - API Failed")
    exit()
@@ -131,7 +134,7 @@ if machinetype!='':
 if (queue_entry!=-1):
    try:
       rr = requests.get(arrows_queue_fetch_url + "%d" % queue_entry)
-      inputdeck0 = rr.text.split('#chemdb_queue - version 1.0')[1].split('</pre>')[0].strip()
+      inputdeck0 = rr.text.split('#chemdb_queue - version 2.0')[1].split('</pre>')[0].strip()
    except:
       inputdeck0 = ''
 

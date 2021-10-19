@@ -74,6 +74,8 @@ bbb = "bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p`%'\x
 headerfigure = ['<a href="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif"><img src="https://dl.dropboxusercontent.com/s/1fdkluujb97tr0b/banner2.gif" alt="Arrows Banner Movie"> </a>', '<a href="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg"><img src="https://dl.dropboxusercontent.com/s/en5l9l7l31ggz6e/EMSL_banner.jpg" alt="EMSL Computing Banner" border=0 /></a>', ' <a href="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif"><img src="https://dl.dropboxusercontent.com/s/rcoee0m9urc4e3o/Surface-uprot.gif" alt="Arrows Movie" width="200" height="200"> </a><a href="https://dl.dropboxusercontent.com/u/11053366/nwchemjobs/Ray.gif"><img src="https://dl.dropboxusercontent.com/u/11053366/nwchemjobs/Ray.gif" alt="Metadynamics Movie" width="200" height="200"> </a> <a href="https://dl.dropboxusercontent.com/u/11053366/diamond-nvt.gif"><img src="https://dl.dropboxusercontent.com/u/11053366/diamond-nvt.gif" alt="Diamond Movie" width="200" height="200"> </a> ', '<a href="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif"><img src="https://dl.dropboxusercontent.com/s/chxhlvamd8ro356/ArrowsBeaker2.gif" alt="Arrows Movie"> </a> ', '<a href="https://dl.dropboxusercontent.com/s/ttekdmkebqdfjma/arrows4.png"> <img src="https://dl.dropboxusercontent.com/s/ttekdmkebqdfjma/arrows4.png" alt="Copyright Arrows Logo" width="250" height="125"> </a> ']
 
 
+
+
 ##### define the arrows logos ##### E8613B
 ih = random.randint(1,3)
 if (ih==1): ih=0
@@ -3271,7 +3273,8 @@ def clean_smiles(smiles):
 #                                           #
 #############################################
 def addspaces_reaction(reaction):
-   tags = ['^','mult','theory','xc','solvation_type','basis','calculation_type','property','priority','geometry_generation','SHE','rbond','rgroup']
+   #tags = ['^','mult','theory','xc','solvation_type','basis','calculation_type','property','priority','geometry_generation','SHE','rbond','rgroup']
+   tags = ['^','mult','theory','xc','solvation_type','basis','calculation_type','priority','geometry_generation','SHE','rbond','rgroup']
    reaction2 = reaction[:]
    if (reaction2.find(">")!=-1):
       reaction2 = reaction2.replace(">","")
@@ -8432,7 +8435,7 @@ if (usehtml5): ooofile.write("<!DOCTYPE html>\n")
 ooofile.write("<html>\n")
 if (usehtml5): ooofile.write("<head> <meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no, target-densitydpi=device-dpi\"> <meta charset=\"utf-8\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-32x32.png')}}\"><link rel=\"icon\" type=\"image/png\" sizes=\"96x96\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-96x96.png')}}\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"{{url_for(\'static\', filename=\'arrows-static/favicon-16x16.png')}}\"><style type=\"text/css\"> \n .linkbanner { \n position: relative; \n padding: 1px; \n background-image: linear-gradient(#4286f4,lightgreen,#4286f4); \n font-size: 18px; \n font-weight: bold; \n font-family: times; \n color: white; \n } \n </style> </head>")
 ooofile.write("<body>\n")
-if (usehtml5): ooofile.write("<div class=\"linkbanner\"> <a href=\"%s\"><img src=\"{{url_for(\'static\', filename=\'arrows-static/EMSLArrows2019.png')}}\" alt=\"Copyright Arrows Logo\" width=\"180\" height=\"90\" align=\"middle\"></a> <a href=\"%speriodic\">3D Periodic Editor</a> &nbsp;<a href=\"%s3dbuilder\">3D Molecular And Reaction Editor</a>  &nbsp; <a href=\"%sexpert\">Expert Editor</a> &nbsp;   <a href=\"%sqsharp_chem\">Microsoft Quantum Editor</a> &nbsp;  <a href=\"%saerosol\">EMSL Aerosol Workshop Editor</a> &nbsp; <a href=\"http://www.nwchem-sw.org/index.php/EMSL_Arrows#\">Manual</a> </div>" % (ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME))
+if (usehtml5): ooofile.write("<div class=\"linkbanner\"> <a href=\"%s\"><img src=\"{{url_for(\'static\', filename=\'arrows-static/TinyArrows2019.png')}}\" alt=\"Copyright Arrows Logo\" width=\"180\" height=\"90\" align=\"middle\"></a> <a href=\"%speriodic\">3D Periodic Editor</a> &nbsp;<a href=\"%s3dbuilder\">3D Molecular And Reaction Editor</a>  &nbsp; <a href=\"%sexpert\">Expert Editor</a> &nbsp;   <a href=\"%sqsharp_chem\">Microsoft Quantum Editor</a> &nbsp;  <a href=\"%saerosol\">EMSL Aerosol Workshop Editor</a> &nbsp; <a href=\"http://www.nwchem-sw.org/index.php/EMSL_Arrows#\">Manual</a> </div>" % (ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME))
 if is_qsharp_chem:
    ooofile.write(ArrowsHeader_QDK)
 elif (usehtml5):
@@ -8864,6 +8867,7 @@ while ((len(rstring.split("nwinput:"))>1) and (not toolong) and (":nwinput" in r
    rstring  = rstring.replace("nwinput:"+esmiles+":nwinput","")
    esmiles = addspaces_reaction(esmiles.strip())
    esmiles = parsetosmiles(esmiles)
+   print("LJDFLJDFLJ esmiles=",esmiles)
    msg4 = "##################### start nwinput #######################\n"
    try:
 

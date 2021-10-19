@@ -4529,7 +4529,7 @@ ul, li {
 
 
 
-        var checkedRadio = [null,null,null,null,null,null,null];
+        var checkedRadio = [null,null,null,null,null,null,null,null];
         function ClearRd(ths,ii) {
            var f = 0.0;
            if (checkedRadio[ii] == ths) {
@@ -5504,6 +5504,16 @@ ul, li {
            };
            ajax.send();
         }
+
+        // ****************************************
+        // *                                      *
+        // *          solvateborninput            *
+        // *                                      *
+        // ****************************************
+        function solvateborninput() {
+           convert2geometry(false);
+        }
+
 
 
 
@@ -7199,6 +7209,11 @@ ul, li {
               if (!document.getElementById("parallelmapping3").value.includes("default")) {
                  x += "  " + document.getElementById("parallelmapping3").value + "\n";
               }
+              if (document.getElementById("nwchem_born").checked) {
+                 x += "  born on\n";
+              }
+
+ 
 
               x += gen_spin_penalty("atomlist1","penalty1a","penalty1b","penalty1c");
               x += gen_spin_penalty("atomlist2","penalty2a","penalty2b","penalty2c");
@@ -7761,7 +7776,6 @@ ul, li {
            document.getElementById("queue_nwchem_permdir").value = jobname + "-rxn-g="+rgamma;
            convert2geometry(false);
            addreactionconstraint(false);
-           //addoptimization(false);
            addoptimization(true);
         }
 
@@ -8682,10 +8696,56 @@ ul, li {
 
         // ****************************
         // *                          *
-        // *      addcosmo            *
+        // *        addborn           *
+        // *                          *
+        // ****************************
+        function addborn() {
+           var data  = editor.getValue(); // or session.getValue
+
+           data += "\n\n";
+           data += "### restart here ###\n";
+
+           var pspw = theory_arrowsdata2();
+           data += "nwpw\n";
+           data += "   born on\n";
+           data += "end\n";
+           data += "task " + pspw + " energy\n"
+           editor.setValue(data,1);
+        }
+        
+
+        // ****************************
+        // *                          *
+        // *        addcosmo          *
         // *                          *
         // ****************************
         function addcosmo() {
+           var data  = editor.getValue(); // or session.getValue
+
+           data += "\n\n";
+           data += "### restart here ###\n";
+
+           var pspw = theory_arrowsdata2();
+           data += "cosmo\n";
+           data += "   do_cosmo_smd .true.\n";
+           data += "   solvent " + document.getElementById('SMD_solvent_3').value + "\n";
+           data += "end\n";
+           if (pspw.contains('pspw')) {
+              data += "set nwpw:cosmo2 .true.\n";
+           }
+           data += "task " + pspw + " energy\n"
+
+           editor.setValue(data,1);
+        }
+
+
+
+        // ****************************
+        // *                          *
+        // *      addcosmo_smd        *
+        // *                          *
+        // ****************************
+        function addcosmo_smd() {
            var data  = editor.getValue(); // or session.getValue
 
            data += "\n\n";
@@ -8699,8 +8759,7 @@ ul, li {
            if (pspw.contains('pspw')) {
               data += "set nwpw:cosmo2 .true.\n";
            }
-           data += "task " + pspw + " energy\n";
-
+           data += "task " + pspw + " energy\n"
            editor.setValue(data,1);
         }
 
@@ -10349,6 +10408,63 @@ ul, li {
               data += "   clear\n";
               data += "   spring bondings " + rkappa.toFixed(6) + " " + rgamma  + " " +  bondings + "\n";
               data += "end\n";
+           }
+
+           editor.setValue(data,1);
+        }
+
+
+        // **********************************
+        // *                                *
+        // *    addreactionconstraintpath   *
+        // *                                *
+        // **********************************
+        function addreactionconstraintpath(qmmm) {
+           var maxiter = 50;
+
+           var pspw = theory_arrowsdata2();
+           var rtype    = document.getElementById("reaction_type").value;
+           var rindexes = document.getElementById("reaction_indexes").value;
+           var rgamma   = document.getElementById("reaction_gamma").value;
+           var min_rgamma = parseFloat(document.getElementById("min_reaction_gamma").value);
+           var max_rgamma = parseFloat(document.getElementById("max_reaction_gamma").value);
+           var npath      = parseInt(document.getElementById("reaction_ngamma").value);
+           var rkappa = 1.0;
+           var bondings =  document.getElementById("reaction_bondings").value.split("gamma")[1].split("\n")[0].trim();
+           var dx = (max_rgamma-min_rgamma)/(npath-1);
+
+           var data  = editor.getValue(); // or session.getValue
+           for (let i=0; i<npath; ++i) {
+              let rgamma0 = min_rgamma + i*dx;
+
+              data += "\n\n";
+              data += "### restart here ###\n";
+              data += "\n### Adding reaction ###\n";
+              data += "# reaction_type    = " +rtype +"\n";
+              data += "# reaction_indexes = " +rindexes +"\n";
+              data += "# reaction_gamma   = " +rgamma0.toFixed(3) +"\n";
+              data += "##### current gamma="+rgamma0.toFixed(3)+" ######\n";
+
+              if (qmmm) {
+                 data += "nwpw\n";
+                 data += "   auxiliary_potentials\n";
+                 data += "      nonfragment\n";
+                 data += "         bondings " + rkappa.toFixed(6) + " " + rgamma0.toFixed(3)  + " " +  bondings + "\n";
+                 data += "      end\n";
+                 data += "   end\n";
+                 data += "end\n";
+              } else {
+                 data += "constraints\n";
+                 data += "   clear\n";
+                 data += "   spring bondings " + rkappa.toFixed(6) + " " + rgamma0.toFixed(3)  + " " +  bondings + "\n";
+                 data += "end\n";
+              }
+              data += "\n";
+              data += "driver\n";
+              data += "   clear\n";
+              data += "   maxiter " + maxiter.toString() + "\n";
+              data += "end\n";
+              data += "task " + pspw + " optimize ignore\n";
            }
 
            editor.setValue(data,1);
@@ -12231,6 +12347,7 @@ ul, li {
           </td>
           <!--td> <input type="button" class="button4" id="latticelocation" value="Lattice in geometry block" onClick="changelatticelocation()"/>  </td-->
           <td> <input type="button" class="button4" id="springconstraint" value="Add reaction constraint" style="color:green;" onClick="addreactionconstraint(false)"/>  </td>
+          <td> <input type="button" class="button4" id="springconstraintpath" value="Add constraint path" style="color:green;" onClick="addreactionconstraintpath(false,10)"/>  </td>
           <td> <input type="button" class="button4" id="springconstraint2" value="Add reaction QMMM" style="color:green;" onClick="addreactionconstraint(true)"/>  </td>
           <td> <input type="button" class="button4" id="shakegconstraint22" value="Add shake constraint" style="color:green;" onClick="addshakeconstraint()"/>  </td>
        </tr>
@@ -12252,7 +12369,9 @@ ul, li {
           <td> <input type="button" class="button4" id="TAMD" value="Add TAMD" style="color:darkmagenta;" onClick="addtamd()"/>  </td>
        </tr>
        <tr>
-          <td> <input type="button" class="button4" value="COSMO-SMD task" style="color:green;" onClick="addcosmo()"/></td>
+          <td> <input type="button" class="button4" value="Born Solvation" style="color:green;"  onClick="addborn()"/></td>
+          <td> <input type="button" class="button4" value="COSMO Solvation" style="color:green;" onClick="addcosmo()"/></td>
+          <td> <input type="button" class="button4" value="COSMO-SMD Solvation" style="color:green;" onClick="addcosmo_smd()"/></td>
           <td> <input type="button" class="button4" value="Reaction Job" style="color:green;" onClick="generatereactionjob()"/></td>
           <td> <input type="button" class="button4" value="Simulated Annealing" onClick="addannealing()"/></td>
           <td> <input type="button" class="button4" value="Metadynamics Simulation" style="color:darkmagenta;" onClick="jmaddsmiles('Xx',1)"/></td>
@@ -12514,7 +12633,9 @@ ul, li {
           </td>
        </tr>
        <tr>
-          <td> <select id="nwchemfractional" onChange="changenwchemfractional()">
+          <td> 
+              Born Model <input type="radio" id="nwchem_born" onClick="ClearRd(this,7)" title="include Born solvation"/>
+              <select id="nwchemfractional" onChange="changenwchemfractional()">
                   <option value="No fractional">No fractional</option>
                   <option value="Fixed">Fixed fractional</option>
                   <option value="Stepped">Stepped fractional</option>
@@ -12878,11 +12999,22 @@ ul, li {
                <p align="center" style="color:#102DB0"> Reaction Input </p>
                  <section class="marquee" style="color: red"> <b id="runmebanner4"> </b> </section>
                  <form style="font-size:14px; font-weight:bold">
+                   chemical reaction
+                   <br>
+                   <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1)"
+                          title="Loads the reactants into jsmol from the chemical reaction input box"/>
+                   <input type="button" id="button_genrhash" VALUE="Generate chemical reaction hash" onClick="gen_rhash2(dummy_callback)" title="Generates reaction_hash using chemical reaction input"/>
+                   <input type="button" VALUE="Use JSME reaction" onClick="loadreaction2dWindow('reaction_genhash00')" title=": reaction_genhash00 : Fetches chemical reaction from JSME editor"/>
+                   <br>
+                   <input type="text" id="reaction_genhash00" SIZE=83 title="Thomas: set text reaction_genhash00 :" oninput="cacheInput(this)">
+                   <br><br>
+                   <br>
                    reaction_gamma{<input type="number" id="reaction_gamma" value="0.00" step="0.1" min="-100" max="+100" title=": set number reaction_gamma :">}
                    <input type="button" VALUE="Update reaction gamma" onClick="check_rgamma()" title="Generate the reaction_gamma using current geometry and specified reaction_type and reaction indexes"/>
+                   <br>
                    min_gamma:<input type="number" id="min_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="1000.0" title=": set number min_reaction_gamma :" oninput="cacheInput(this)"> 
                    max_gamma:<input type="number" id="max_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="-1000.0" title=": set number max_reaction_gamma :" oninput="cacheInput(this)"> 
-
+                   ngamma:<input type="number" id="reaction_ngamma" SIZE=2  min="2" max="100" step="1" value="10" title=": set number reaction_ngamma :" oninput="cacheInput(this)"> 
                    <br>
                    reaction_type{<select id="reaction_type" title=": set text reaction_type :" oninput="cacheInput(this)">
                                    <option>None</option>
@@ -12910,7 +13042,7 @@ ul, li {
                                  </select>
                    <input type="button" class="button" id="sdd_reacton_type" value="add" onClick="add_select_option('Add reaction_type: ','','reaction_type');"/> }
                    reaction_indexes{<input type="text" id="reaction_indexes" SIZE=14 title=": set text reaction_indexes :">} 
-                   <input type="button" class="button" id="reactiontab_to_metadynamics" value="Generate bondings WHAM input" onClick="bondings_metadynamics();evalcollective();"/> 
+                   <input type="button" class="button" id="reactiontab_to_metadynamics" value="Generate bondings Collective input" onClick="bondings_metadynamics();evalcollective();"/> 
                    <br> 
                    reaction constraint<br>
                    <textarea  name="reaction_bondings" id="reaction_bondings" rows="4" cols="70" title=": set text reaction_bondings :" oninput="cacheInput(this)"></textarea>
@@ -12924,15 +13056,6 @@ ul, li {
                    <br>
                    <textarea  name="reaction_hash2" id="reaction_hash2" rows="5" cols="70" title="Thomas: set text reaction_hash2 :" oninput="cacheInput(this)"></textarea>
                    <br> <br>
-                   chemical reaction 
-                   <input type="button" VALUE="Use JSME reaction" onClick="loadreaction2dWindow('reaction_genhash00')" title=": reaction_genhash00 : Fetches chemical reaction from JSME editor"/>
-                   <br>
-                   <input type="text" id="reaction_genhash00" SIZE=83 title="Thomas: set text reaction_genhash00 :" oninput="cacheInput(this)"><br>
-                   <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1)" 
-                          title="Loads the reactants into jsmol from the chemical reaction input box"/>
-                   <input type="button" id="button_genrhash" VALUE="Generate chemical reaction hash" onClick="gen_rhash2(dummy_callback)" title="Generates reaction_hash using chemical reaction input"/>
-                   <br><br>
-                   <br>
                    Auxiliary Penalty Functions <input type="button" VALUE="Resolve Variables" onClick="resolveauxvariables('auxiliary_functions',dummy_callback)" title="Fetches chemical reaction from JSME editor"/>
                    <br>
                    <textarea  name="auxiliary_functions" id="auxiliary_functions" rows="3" cols="70" title="Thomas: set text axiliary_functons :" oninput="cacheInput(this)"></textarea>
@@ -12943,10 +13066,10 @@ ul, li {
                    <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false);check_rgamma();" title="Load previous xyz xyz model into jsmol"/>
                    <b style="color: blue; font-size: 14px;" id="model_label2">Model 1 out of 1</b> <br><br>
 
-                   <input type="button" VALUE="Generate morphed model" onClick="gen_morph12()" title="Generate a new xyz model by morphing the two specified models"/>
+                   <!--input type="button" VALUE="Generate morphed model" onClick="gen_morph12()" title="Generate a new xyz model by morphing the two specified models"/>
                    model 1:<input type="number" id="reaction_model1" SIZE=9   min="1" max="1000" step="1" value="1" title=": set number reaction_model1 :"> 
                    model 2:<input type="number" id="reaction_model2" SIZE=9   min="1" max="1000" step="1" value="2" title=": set number reaction_model2 :"> 
-                   mixing:<input type="number" id="reaction_morph12" SIZE=9   min="0.00" max="1.00" step="0.01" value="0.00" title="Thomas: set number reaction_morph12" oninput="cacheInput(this)">
+                   mixing:<input type="number" id="reaction_morph12" SIZE=9   min="0.00" max="1.00" step="0.01" value="0.00" title="Thomas: set number reaction_morph12" oninput="cacheInput(this)"-->
                    <br><br>
                    WHAM_spring{<input type="number" id="umbrella_spring" value="0.3000" min="0.0000" max="100.0000" step="0.0010" title="Thomas: set number umbrella_spring :" oninput="cacheInput(this)">}
                    WHAM_gamma{<input type="number" id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10" title="Thomas: set number umbrella_gamma :" oninput="cacheInput(this)">}
@@ -13421,7 +13544,7 @@ ul, li {
 
 
 
-    <!-- Arrows Entry -->
+    <!-- Arrows Entry "{{ arrows_api }}" -->
     <button class="collapsible">Arrows Entry</button>
     <div class="content">
     <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows#esmiles-reactions-how-to-calculate-reaction-energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
@@ -13786,8 +13909,11 @@ ul, li {
     <br>
 
 </div>
+
 <div id="Arrows Entry - 2D Builder" class="tabcontent">
 
+
+<!-- Arrows Entry "{{ arrows_api }}" -->
 
    <h2>Enter an <a href="https://nwchemgit.github.io/EMSL_Arrows#introduction-to-esmiles-how-to-change-calculation-theories">esmiles</a>, <a href="https://nwchemgit.github.io/EMSL_Arrows#esmiles-reactions-how-to-calculate-reaction-energies"> esmiles reaction</a>, or other Arrows input, then push the "Run Arrows" button.</h2>
     <form action="{{ arrows_api }}" id="JSME-arrows-form" name="form2" target="iframe_output"  method="POST">
