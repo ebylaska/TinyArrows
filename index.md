@@ -822,3 +822,7 @@ This is a fundamental reaction for catalysis in which methanol is formed by comb
 13) select Add constraint path button
 14) Choose machine, ncpu, ... options
 15) Submit NWChem
+
+```
+    676004        0       no       no              no      aerosol1           ccs  nwchem-71.nw H2C1O2.out00 curdir=kitchen:/Projects/CCS/PMF/pspw-pbe-H2C1O2-co2toco  1634864673.179590
+```
