@@ -5168,7 +5168,7 @@ ul, li {
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
            //var arrows_post_url = '{{ arrows_api }}upload/';
            //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
-           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var calc_url        = document.getElementById("arrows_url").value;
            var arrows_post_url = calc_url + 'upload/';
            var arrows_get_url  = calc_url + 'molecular_calculation/';
 
@@ -5431,7 +5431,7 @@ ul, li {
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
            //var arrows_post_url = '{{ arrows_api }}upload/';
            //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
-           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var calc_url        = document.getElementById("arrows_url").value;
            var arrows_post_url = calc_url + 'upload/';
            var arrows_get_url  = calc_url + 'molecular_calculation/';
            document.getElementById('runmebanner4b').innerHTML= "Solvation calculation started.";
@@ -7025,6 +7025,7 @@ ul, li {
            var calculation_type = calculation_type_arrowsdata();
            var solvation_type   = solvation_type_arrowsdata();
            var jobname = theory + "-" + xc + "-" + mformula;
+           var mformula0 = mformula;
 
            if (calculation_type.includes("a")) {
                data = "";
@@ -7035,6 +7036,8 @@ ul, li {
            x =  "#nwchem_input  " + mformula + ".nw\n";
            x += "#nwchem_output " + mformula + ".out00\n";
            x += "#nwchem_done   " + mformula + ".done\n";
+           x += "#\n";
+           x += "#mformula = " + mformula0 + "\n";
            x += "#\n";
            x += "#mformula_off\n";
            x += "#\n";
@@ -9035,8 +9038,9 @@ ul, li {
               if (projectname.contains("myproject")) {
                  projectname = prompt("Please enter projectname:", projectname);
               }
-              var mformula = tdata.split("#mformula = ")[1].split("\n")[0].trim();
-              var jobname  = mformula+"-wham" + rgamma;
+
+              var  mformula = tdata.split("#mformula = ")[1].split("\n")[0].trim();
+              var jobname   = mformula+"-wham" + rgamma;
 
               var curdir0 = document.getElementById("queue_nwchem_curdir0").value;
               var curdir  = curdir0 + "/"+projectname+"/"+jobname
@@ -11071,7 +11075,7 @@ ul, li {
            //var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
            //var arrows_post_url0 = '{{ arrows_api }}upload/';
            //var arrows_get_url  = '{{ arrows_api }}genhash/';
-           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var calc_url        = document.getElementById("arrows_url").value;
            var arrows_post_url0 = calc_url + 'upload/';
            var arrows_get_url   = calc_url + 'genhash/';
 
@@ -11131,7 +11135,7 @@ ul, li {
            //var arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/genhash/";
            //var arrows_post_url = '{{ arrows_api }}upload/';
            //var arrows_get_url  = '{{ arrows_api }}genhash/';
-           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var calc_url        = document.getElementById("arrows_url").value;
            var arrows_post_url = calc_url + 'upload/';
            var arrows_get_url  = calc_url + 'genhash/';
     
@@ -11346,7 +11350,7 @@ ul, li {
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
            //var arrows_post_url = '{{ arrows_api }}upload/';
            //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
-           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var calc_url        = document.getElementById("arrows_url").value;
            var arrows_post_url = calc_url + 'upload/';
            var arrows_get_url  = calc_url + 'molecular_calculation/';
 
@@ -11551,7 +11555,7 @@ ul, li {
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
            //var arrows_post_url = '{{ arrows_api }}upload/';
            //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
-           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var calc_url        = document.getElementById("arrows_url").value;
            var arrows_post_url = calc_url + 'upload/';
            var arrows_get_url  = calc_url + 'molecular_calculation/';
 
@@ -11739,7 +11743,7 @@ ul, li {
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
            //var arrows_post_url = '{{ arrows_api }}upload/';
            //var arrows_get_url  = '{{ arrows_api }}molecular_calculation/';
-           var calc_url        = document.getElementById("arrows_calculation_url").value;
+           var calc_url        = document.getElementById("arrows_url").value;
            var arrows_post_url = calc_url + 'upload/';
            var arrows_get_url  = calc_url + 'molecular_calculation/';
 
@@ -12259,15 +12263,16 @@ ul, li {
     <input type="file" id="fileToLoad" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"><br>
     <input type="button" VALUE="Save to url" onClick="saveeditortourl()" title="Save data from editor into url" style="background-color:#f8f8ff; color:darkred; font-size: 14px; font-weight:bold"/>
     <input type="url" id="urlToLoad" SIZE=111 style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold">
-    <input type="button" VALUE="Load from url" onClick="loadurltoeditor()" title="Load data from url into editor" style="background-color:#f8f8ff; color:darkgreen; font-size: 14px; font-weight:bold"/><br>
+    <input type="button" VALUE="Load from url" onClick="loadurltoeditor()" 
+           title="Load data from url into editor" style="background-color:#f8f8ff; color:darkgreen; font-size: 14px; font-weight:bold"/><br>
     
     <h4> Simulation directories </h4>
     <table>
        <tr>
          <td>mylabel:</td>
-         <td> <input type="text" name="Label" id="queue_nwchem_jobname" size=30 value="mylabel"> </td>
+         <td> <input type="text" name="Label" id="queue_nwchem_jobname" size=30 value="mylabel" oninput="cacheInput(this)"> </td>
          <td>project name:</td>
-         <td> <input type="text" name="Label" id="queue_nwchem_projectname" size=30 value="PathOpt"> </td>
+         <td> <input type="text" name="Label" id="queue_nwchem_projectname" size=30 value="PathOpt" oninput="cacheInput(this)"> </td>
          <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="include model number"/></td>
          <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="include date"/></td>
          <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="deletescratch option"/></td>
@@ -12347,7 +12352,7 @@ ul, li {
           </td>
           <!--td> <input type="button" class="button4" id="latticelocation" value="Lattice in geometry block" onClick="changelatticelocation()"/>  </td-->
           <td> <input type="button" class="button4" id="springconstraint" value="Add reaction constraint" style="color:green;" onClick="addreactionconstraint(false)"/>  </td>
-          <td> <input type="button" class="button4" id="springconstraintpath" value="Add constraint path" style="color:green;" onClick="addreactionconstraintpath(false,10)"/>  </td>
+          <td> <input type="button" class="button4" id="springconstraintpath" value="Add constraint path" style="color:green;" onClick="addreactionconstraintpath(false)"/>  </td>
           <td> <input type="button" class="button4" id="springconstraint2" value="Add reaction QMMM" style="color:green;" onClick="addreactionconstraint(true)"/>  </td>
           <td> <input type="button" class="button4" id="shakegconstraint22" value="Add shake constraint" style="color:green;" onClick="addshakeconstraint()"/>  </td>
        </tr>
@@ -12998,25 +13003,52 @@ ul, li {
                <div id="swapper-other2" style="display:none; border:2px dashed;  border-color: #102DB0; background-color: white; padding:10px;">
                <p align="center" style="color:#102DB0"> Reaction Input </p>
                  <section class="marquee" style="color: red"> <b id="runmebanner4"> </b> </section>
-                 <form style="font-size:14px; font-weight:bold">
+                 <form style="font-size:14px; font-weight:bold" autocomplete="on">
                    chemical reaction
                    <br>
-                   <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1)"
-                          title="Loads the reactants into jsmol from the chemical reaction input box"/>
-                   <input type="button" id="button_genrhash" VALUE="Generate chemical reaction hash" onClick="gen_rhash2(dummy_callback)" title="Generates reaction_hash using chemical reaction input"/>
-                   <input type="button" VALUE="Use JSME reaction" onClick="loadreaction2dWindow('reaction_genhash00')" title=": reaction_genhash00 : Fetches chemical reaction from JSME editor"/>
-                   <br>
                    <input type="text" id="reaction_genhash00" SIZE=83 title="Thomas: set text reaction_genhash00 :" oninput="cacheInput(this)">
+                   <br>
+                   <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" 
+                          onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1)"
+                          title="Loads the reactants into jsmol from the chemical reaction input box"/>
+                   <input type="button" VALUE="Use JSME reaction" onClick="loadreaction2dWindow('reaction_genhash00')" 
+                           style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                           title=": reaction_genhash00 : Fetches chemical reaction from JSME editor"/>
+                   <br><br> 
+                   reaction_hash 
+                      <input type="button" id="button_genrhash" VALUE="Generate reaction hash from chemical reaction" onClick="gen_rhash2(dummy_callback)"
+                             title="Generates reaction_hash using chemical reaction input"/>
+                      <b style="color: blue; font-size: 14px;" id="runmebanner4p"></b>
+                   <br>
+                   <textarea name="reaction_hash" id="reaction_hash" rows="5" cols="70" 
+                             style="font-size:13px;color:#6F4E37"
+                             title="Thomas: set text reaction_hash :" oninput="cacheInput(this)"></textarea>
                    <br><br>
+                   reaction constraint choices 
+                      <input type="button" id="button_searchrconstraints" VALUE="Generate reaction constaint(s) from reaction hash" 
+                             onClick="gen_reactions1(dummy_callback)" title="Searches for possible reaction constraints using the current geometry and reaction_hash"/>
                    <br>
-                   reaction_gamma{<input type="number" id="reaction_gamma" value="0.00" step="0.1" min="-100" max="+100" title=": set number reaction_gamma :">}
-                   <input type="button" VALUE="Update reaction gamma" onClick="check_rgamma()" title="Generate the reaction_gamma using current geometry and specified reaction_type and reaction indexes"/>
+                   <textarea  name="reaction_hash2" id="reaction_hash2" rows="5" cols="70" 
+                              style="font-size:13px;color:#6F4E37"
+                              title="Thomas: set text reaction_hash2 :" oninput="cacheInput(this)"></textarea>
                    <br>
-                   min_gamma:<input type="number" id="min_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="1000.0" title=": set number min_reaction_gamma :" oninput="cacheInput(this)"> 
-                   max_gamma:<input type="number" id="max_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="-1000.0" title=": set number max_reaction_gamma :" oninput="cacheInput(this)"> 
-                   ngamma:<input type="number" id="reaction_ngamma" SIZE=2  min="2" max="100" step="1" value="10" title=": set number reaction_ngamma :" oninput="cacheInput(this)"> 
+                   reaction constraint<br>
+                   <textarea  name="reaction_bondings" id="reaction_bondings" rows="4" cols="70" 
+                              style="font-size:13px;color:#6F4E37"
+                              title=": set text reaction_bondings :" oninput="cacheInput(this)"></textarea>
                    <br>
-                   reaction_type{<select id="reaction_type" title=": set text reaction_type :" oninput="cacheInput(this)">
+                   <br>
+
+                   reaction_gamma{<input type="number" id="reaction_gamma" value="0.00" step="0.1" min="-100" max="+100" 
+                                         style="font-size:13px;color:#6F4E37"
+                                         title=": set number reaction_gamma :">}
+                      <input type="button" VALUE="Update reaction gamma" onClick="check_rgamma()" 
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             title="Generate the reaction_gamma using current geometry and specified reaction_type and reaction indexes"/>
+                   <br>
+                   reaction_type{<select id="reaction_type" 
+                                         style="font-size:13px;color:#6F4E37"
+                                         title=": set text reaction_type :" oninput="cacheInput(this)">
                                    <option>None</option>
                                    <option>A + B --> AB</option>
                                    <option>AB --> A + B</option>
@@ -13040,42 +13072,79 @@ ul, li {
                                    <option>ACB --> AB + C</option>
                                    <option disabled>──────────</option>
                                  </select>
-                   <input type="button" class="button" id="sdd_reacton_type" value="add" onClick="add_select_option('Add reaction_type: ','','reaction_type');"/> }
-                   reaction_indexes{<input type="text" id="reaction_indexes" SIZE=14 title=": set text reaction_indexes :">} 
-                   <input type="button" class="button" id="reactiontab_to_metadynamics" value="Generate bondings Collective input" onClick="bondings_metadynamics();evalcollective();"/> 
-                   <br> 
-                   reaction constraint<br>
-                   <textarea  name="reaction_bondings" id="reaction_bondings" rows="4" cols="70" title=": set text reaction_bondings :" oninput="cacheInput(this)"></textarea>
-                   <br> <br>
-                   reaction_hash <input type="button" VALUE="Generate reaction hash" onClick="gen_rhash1(dummy_callback)" title="Generate reaction_hash using current geometry, reaction_type and reaction_gamma inputs"/>
-                   <b style="color: blue; font-size: 14px;" id="runmebanner4p"></b>
+                      <input type="button" class="button" id="sdd_reacton_type" value="add" 
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             onClick="add_select_option('Add reaction_type: ','','reaction_type');"/> }
+                      reaction_indexes{<input type="text" id="reaction_indexes" SIZE=14 
+                                              style="font-size:13px;color:#6F4E37"
+                                              title=": set text reaction_indexes :">} 
+                      <input type="button" class="button" id="reactiontab_to_metadynamics" value="Generate bondings Collective input" 
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             onClick="bondings_metadynamics();evalcollective();"/> 
+                      <input type="button" VALUE="reGenerate reaction hash" onClick="gen_rhash1(dummy_callback)" 
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             title="reGenerate reaction_hash using current geometry, reaction_type and reaction_gamma inputs"/>
                    <br>
-                   <textarea  name="reaction_hash" id="reaction_hash" rows="5" cols="70" title="Thomas: set text reaction_hash :" oninput="cacheInput(this)"></textarea>
-                   <br><br>
-                   reaction constraint choices <input type="button" id="button_searchrconstraints" VALUE="Search reaction constaints using reaction hash" onClick="gen_reactions1(dummy_callback)" title="Searches for possible reaction constraints using the current geometry and reaction_hash"/>
                    <br>
-                   <textarea  name="reaction_hash2" id="reaction_hash2" rows="5" cols="70" title="Thomas: set text reaction_hash2 :" oninput="cacheInput(this)"></textarea>
-                   <br> <br>
-                   Auxiliary Penalty Functions <input type="button" VALUE="Resolve Variables" onClick="resolveauxvariables('auxiliary_functions',dummy_callback)" title="Fetches chemical reaction from JSME editor"/>
-                   <br>
-                   <textarea  name="auxiliary_functions" id="auxiliary_functions" rows="3" cols="70" title="Thomas: set text axiliary_functons :" oninput="cacheInput(this)"></textarea>
-                   <br> <br>
-                   <input type="button" VALUE="Generate reaction path" onClick="gen_reaction_path()" title="Generates reaction path using the current geometry and reaction constraint"/>
-                   npath:<input type="number" id="reaction_npath" SIZE=9   min="2" max="1000" step="1" value="1" title="Thomas: set number reaction_npath :" oninput="cacheInput(this)"> 
-                   <input type="button" value="Next model" onClick="loadframe2jsmol(false,false);check_rgamma();" title="Load next xyz model into jsmol"/>
-                   <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false);check_rgamma();" title="Load previous xyz xyz model into jsmol"/>
-                   <b style="color: blue; font-size: 14px;" id="model_label2">Model 1 out of 1</b> <br><br>
+                   <hr style="border: 1px dashed #102DB0;"/>
+                   constraint path input -
+                   min_gamma:
+                      <input type="number" id="min_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="1000.0" 
+                             title=": set number min_reaction_gamma :" oninput="cacheInput(this)"> 
+                   max_gamma:
+                      <input type="number" id="max_reaction_gamma" SIZE=9   min="-1000.0" max="1000.0" step="0.1" value="-1000.0" 
+                             title=": set number max_reaction_gamma :" oninput="cacheInput(this)"> 
+                   ngamma:
+                      <input type="number" id="reaction_ngamma" SIZE=2  min="2" max="100" step="1" value="10" 
+                             title=": set number reaction_ngamma :" oninput="cacheInput(this)"> 
+                   <input type="button" value="Generate constraint path input" onClick="jmoltoeditor();convert2geometry(false);addreactionconstraintpath(false);" 
+                           title="Load next xyz model into jsmol"/>
 
-                   <!--input type="button" VALUE="Generate morphed model" onClick="gen_morph12()" title="Generate a new xyz model by morphing the two specified models"/>
-                   model 1:<input type="number" id="reaction_model1" SIZE=9   min="1" max="1000" step="1" value="1" title=": set number reaction_model1 :"> 
-                   model 2:<input type="number" id="reaction_model2" SIZE=9   min="1" max="1000" step="1" value="2" title=": set number reaction_model2 :"> 
-                   mixing:<input type="number" id="reaction_morph12" SIZE=9   min="0.00" max="1.00" step="0.01" value="0.00" title="Thomas: set number reaction_morph12" oninput="cacheInput(this)"-->
-                   <br><br>
-                   WHAM_spring{<input type="number" id="umbrella_spring" value="0.3000" min="0.0000" max="100.0000" step="0.0010" title="Thomas: set number umbrella_spring :" oninput="cacheInput(this)">}
-                   WHAM_gamma{<input type="number" id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10" title="Thomas: set number umbrella_gamma :" oninput="cacheInput(this)">}
-                   <input type="button" VALUE="Generate WHAM model" onClick="gen_wham_model(dummy_callback)" title="Generate a new xyz model by morphing 3 point reaction path"/>
-                   <input type="button" value="Generate solvated WHAM input" onClick="solvatewhaminput(-1.0,dummy_callback);" title="Load next xyz model into jsmol" oninput="cacheInput(this)"/>
-                   posteriori analysis: <input type="radio" id="wham_posteriori" onClick="ClearRd(this,6)" title="Thomas: set radio wham_postiriori : Generate posteriori WHAM DATA block"/>
+                   <hr style="border: 1px dashed #102DB0;"/>
+                   WHAM input - 
+                   WHAM_spring{<input type="number" id="umbrella_spring" value="0.3000" min="0.0000" max="100.0000" step="0.0010" 
+                                      title="Thomas: set number umbrella_spring :" oninput="cacheInput(this)">}
+                   WHAM_gamma{<input type="number" id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10" 
+                                     title="Thomas: set number umbrella_gamma :" oninput="cacheInput(this)">}
+                   <br>
+                   <input type="button" VALUE="Generate WHAM model" onClick="gen_wham_model(dummy_callback)" 
+                          title="Generate a new xyz model by morphing 3 point reaction path"/>
+
+                   <input type="button" value="Generate WHAM input" onClick="jmoltoeditor();convert2geometry(false);addreactionconstraint(true);addcpmd(false,'','');" 
+                           title="Load next xyz model into jsmol"/>
+
+                   <input type="button" value="Generate solvated WHAM input" onClick="solvatewhaminput(-1.0,dummy_callback);" 
+                           title="Load next xyz model into jsmol"/>
+                   posteriori analysis: 
+                      <input type="radio" id="wham_posteriori" onClick="ClearRd(this,6)" 
+                              title="Thomas: set radio wham_postiriori : Generate posteriori WHAM DATA block"/>
+
+                   <br>
+                   <hr style="border: 1px dashed #102DB0;"/>
+
+                   Auxiliary Penalty Functions 
+                      <input type="button" VALUE="Resolve Variables" onClick="resolveauxvariables('auxiliary_functions',dummy_callback)" 
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             title="Fetches chemical reaction from JSME editor"/>
+                   <br>
+                   <textarea name="auxiliary_functions" id="auxiliary_functions" rows="3" cols="70" 
+                             title="Thomas: set text axiliary_functons :" oninput="cacheInput(this)"></textarea>
+                   <br> 
+                   <hr style="border: 1px dashed #102DB0;"/>
+                   <input type="button" VALUE="Generate reaction path" onClick="gen_reaction_path()" 
+                          style="font-size:13px;background-color:#f8f8ff;color:#385970"
+                          title="Generates reaction path using the current geometry and reaction constraint"/>
+                      npath:
+                         <input type="number" id="reaction_npath" SIZE=9   min="2" max="1000" step="1" value="1" 
+                                title="Thomas: set number reaction_npath :" oninput="cacheInput(this)"> 
+                      <input type="button" value="Next model" onClick="loadframe2jsmol(false,false);check_rgamma();" 
+                             style="font-size:13px;background-color:#f8f8ff;color:#385970"
+                             title="Load next xyz model into jsmol"/>
+                      <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false);check_rgamma();" 
+                             style="font-size:13px;background-color:#f8f8ff;color:#385970"
+                             title="Load previous xyz xyz model into jsmol"/>
+                      <b style="color: blue; font-size: 14px;" id="model_label2">Model 1 out of 1</b> 
+
 
                  </form>
                </div>
@@ -15520,7 +15589,10 @@ function queue_upload_files() { queue_upload_files0(0,window.uploadFileList); }
 
 function queue_entry_download(qentry,qsecret) {
    //var arrows_queue_fetch_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_fetch/'
-   var arrows_queue_fetch_url  = '{{ arrows_api }}queue_nwchem_fetch/';
+   //var arrows_queue_fetch_url  = '{{ arrows_api }}queue_nwchem_fetch/';
+   var calc_url        = document.getElementById("arrows_calculation_url").value;
+   var arrows_queue_fetch_url  = calc_url + 'queue_nwchem_fetch/';
+
    var qq = qentry;
    if (qsecret.trim().length > 0) {
      qq += "_" + qsecret.trim();
@@ -15587,7 +15659,10 @@ function queue_nwchem_filter(text) {
 
 function queue_nwchem_fetch() {
    //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_check/nwchem';
-   var arrows_get_url  = '{{ arrows_api }}queue_nwchem_check/';
+   //var arrows_get_url  = '{{ arrows_api }}queue_nwchem_check/';
+   var calc_url        = document.getElementById("arrows_calculation_url").value;
+   var arrows_get_url  = calc_url + 'queue_nwchem_check/';
+
    var qname = 'nwchem';
    if (document.getElementById('queue_nwchem_name').value.trim().length>0) {
       qname = document.getElementById('queue_nwchem_name').value.trim();
@@ -16182,8 +16257,10 @@ changenwchemefieldtype();
       </td>
    </tr>
 </table>
-arrows calculation url: <input type="url" id="arrows_calculation_url" SIZE=30 value="{{ arrows_api }}" oninput="cacheInput(this)"/> 
+arrows url: <input type="url" id="arrows_url" SIZE=30 value="{{ arrows_api }}" oninput="cacheInput(this)"/> 
 arrows program directory: <input type="url" id="arrowsprogramurl" SIZE=30 value="{{url_for('static',filename='arrows-scripts')}}" oninput="cacheInput(this)"/> 
+<br>
+arrows calculation url: <input type="url" id="arrows_calculation_url" SIZE=30 value="{{ arrows_api }}" oninput="cacheInput(this)"/> 
 </div>
 <br><br><br>
 <hr>
