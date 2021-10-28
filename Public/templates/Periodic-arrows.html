@@ -9287,42 +9287,42 @@ ul, li {
         function addcpmd(feff9,header,params) {
            var pspw = theory_arrowsdata2();
 
-           var temp = 300.0;;
+           var temp = document.getElementById("nwchemmdtemperature").value;
            if (params.contains("temperature{")) {
               temp = parseFloat(params.split("temperature{")[1].split("}")[0]);
            } else {
               temp =  parseFloat(prompt("CPMD Input - Please enter temperature:", temp));
            }
 
-           var fake_mass = 750.0;
+           var fake_mass = document.getElementById("nwchemmdfakemass").value;
            if (params.contains("fake_mass{")) {
               fake_mass = parseFloat(params.split("fake_mass{")[1].split("}")[0]);
            } else {
               fake_mass = parseFloat(prompt("CPMD Input - Please enter fake_mass:", fake_mass));
            }
           
-           var time_step = 5.0;
+           var time_step = document.getElementById("nwchemmdtimestep").value;
            if (params.contains("time_step{")) {
               time_step = parseFloat(params.split("time_step{")[1].split("}")[0]);
            } else {
               time_step = parseFloat(prompt("CPMD Input - Please enter time_step:", 5.0));
            }
 
-           var iloop = 10;
+           var iloop = document.getElementById("nwchemmdinner_loop").value;
            if (params.contains("iloop{")) {
               iloop = parseInt(params.split("iloop{")[1].split("}")[0]);
            } else {
               iloop = parseInt(prompt("CPMD Input - Please enter inner loop:", iloop));
            }
 
-           var oloop = 1000;
+           var oloop = document.getElementById("nwchemmdouter_loop").value;
            if (params.contains("oloop{")) {
               oloop = parseInt(params.split("oloop{")[1].split("}")[0]);
            } else {
               oloop = parseInt(prompt("CPMD Input - Please enter outer loop:", oloop));
            }
 
-           var stime0 = 10.0;
+           var stime0 = document.getElementById("nwchemmdtime").value;
            if (params.contains("stime0{")) {
               stime0 = parseFloat(params.split("stime0{")[1].split("}")[0]);
            } else {
@@ -9333,7 +9333,7 @@ ul, li {
            var itime      = iloop*oloop*time_step*2.41889e-17;
            var nsteps     = parseInt((stime/itime))+1;
 
-           var tequil = "tequil";
+           var tequil = document.getElementById("nwchemmdlabel").value;
            if (params.contains("motion_name{")) {
               tequil = params.split("motion_name{")[1].split("}")[0];
            } else { 
@@ -12352,35 +12352,20 @@ ul, li {
           </td>
           <!--td> <input type="button" class="button4" id="latticelocation" value="Lattice in geometry block" onClick="changelatticelocation()"/>  </td-->
           <td> <input type="button" class="button4" id="springconstraint" value="Add reaction constraint" style="color:green;" onClick="addreactionconstraint(false)"/>  </td>
-          <td> <input type="button" class="button4" id="springconstraintpath" value="Add constraint path" style="color:green;" onClick="addreactionconstraintpath(false)"/>  </td>
-          <td> <input type="button" class="button4" id="springconstraint2" value="Add reaction QMMM" style="color:green;" onClick="addreactionconstraint(true)"/>  </td>
-          <td> <input type="button" class="button4" id="shakegconstraint22" value="Add shake constraint" style="color:green;" onClick="addshakeconstraint()"/>  </td>
        </tr>
        <tr>
           <td> <input type="button" class="button4" value="Add Energy task" onClick="addenergy('')"/></td>
           <td> <input type="button" class="button4" value="Add Optimization task" onClick="addoptimization(true)"/></td>
           <td> <input type="button" class="button4" value="Add Frequency task" onClick="addfrequency()"/></td>
-          <td> <input type="button" class="button4" value="Add AIMD-EXAFS" style="color:brown;" onClick="addexafs(true)"/></td>
-          <td> <input type="button" class="button4" value="EXAFS" style="color:brown;" onClick="addexafs(false)"</td>
-          <td> <input type="button" class="button4" value="Add AIMD-IR" style="color:orangered;" onClick="addaimdir(true)"/></td>
-       </tr>
-       <tr>
-          <td> <input type="button" class="button4" value="Add Born-Oppenheimer" onClick="addbomd(false,'','')"/></td>
-          <td> <input type="button" class="button4" value="Add Car-Parrinello" onClick="addcpmd(false,'','')"/></td>
-          <td> <input type="button" class="button4" value="Add Steepest Descent" onClick="addcpsd('')"/></td>
           <td> <input type="button" class="button4" value="Add NEB task" style="color:darkmagenta;" onClick="addneb()"/></td>
           <td> <input type="button" class="button4" value="Add String task" style="color:darkmagenta;" onClick="addstring()"/></td>
-          <td> <input type="button" class="button4" id="metadynamics" value="Add Metadynamics" style="color:darkmagenta;" onClick="addmetadynamics()"/>  </td>
-          <td> <input type="button" class="button4" id="TAMD" value="Add TAMD" style="color:darkmagenta;" onClick="addtamd()"/>  </td>
        </tr>
        <tr>
           <td> <input type="button" class="button4" value="Born Solvation" style="color:green;"  onClick="addborn()"/></td>
           <td> <input type="button" class="button4" value="COSMO Solvation" style="color:green;" onClick="addcosmo()"/></td>
           <td> <input type="button" class="button4" value="COSMO-SMD Solvation" style="color:green;" onClick="addcosmo_smd()"/></td>
-          <td> <input type="button" class="button4" value="Reaction Job" style="color:green;" onClick="generatereactionjob()"/></td>
-          <td> <input type="button" class="button4" value="Simulated Annealing" onClick="addannealing()"/></td>
-          <td> <input type="button" class="button4" value="Metadynamics Simulation" style="color:darkmagenta;" onClick="jmaddsmiles('Xx',1)"/></td>
-          <td> <input type="button" class="button4" value="PMF Simulation" style="color:darkmagenta;" onClick="jmaddsmiles('Xx',1)"/></td>
+          <td> <input type="button" class="button4" id="springconstraintpath" value="Add constraint path" style="color:green;" onClick="addreactionconstraintpath(false)"/>  </td>
+          <!--td> <input type="button" class="button4" value="Reaction job" style="color:green;" onClick="generatereactionjob()"/></td-->
        </tr>
     </table>
      
@@ -12578,10 +12563,14 @@ ul, li {
 
     <table>
        <tr>
-          <td> charge: <input type="number" name="nwchemcharge" id="nwchemcharge" size="3" min="-100" max="100" step="1" value="0" onChange="changenwchemcharge()" oninput="cacheInput(this)">
-               multiplicity: <input type="number" name="nwchemmult" id="nwchemmult" size="3" min="1" max="100" step="1" value="1" onChange="changenwchemmult()" oninput="cacheInput(this)"> 
-               virtual: <input type="number" name="nwchemvirt" id="nwchemvirt" size="3" min="0" max="100" step="1" value="0" onChange="changenwchemvirt()" oninput="cacheInput(this)"> 
-               Ewald rcut: <input type="number" name="nwchemewald_rcut" id="nwchemewald_rcut" size="3" min="0.00" max="20.0" step="0.5" value="0" onChange="changenwchemewald_rcut()" oninput="cacheInput(this)"> 
+          <td> charge:       <input type="number" name="nwchemcharge" id="nwchemcharge" size="3" min="-100" max="100" step="1" value="0" 
+                                    onChange="changenwchemcharge()" oninput="cacheInput(this)">
+               multiplicity: <input type="number" name="nwchemmult" id="nwchemmult" size="3" min="1" max="100" step="1" value="1" 
+                                    onChange="changenwchemmult()" oninput="cacheInput(this)"> 
+               virtual:      <input type="number" name="nwchemvirt" id="nwchemvirt" size="3" min="0" max="100" step="1" value="0" 
+                                    onChange="changenwchemvirt()" oninput="cacheInput(this)"> 
+               Ewald rcut:   <input type="number" name="nwchemewald_rcut" id="nwchemewald_rcut" size="3" min="0.00" max="20.0" step="0.5" value="0" 
+                                    onChange="changenwchemewald_rcut()" oninput="cacheInput(this)"> 
                Ewald ncut: <input type="number" name="nwchemewald_ncut" id="nwchemewald_ncut" size="3" min="0" max="20" step="1" value="0" onChange="changenwchemewald_ncut()"> 
                <select id="parallelmapping3" onChange="changeparallelmapping3()" oninput="cacheInput(this)">
                   <option value="default">default</option>
@@ -12663,6 +12652,45 @@ ul, li {
                   <input type="number" name="nwchemefield2" id="nwchemefield2" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()" oninput="cacheInput(this)">
                   <input type="number" name="nwchemefield3" id="nwchemefield3" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()" oninput="cacheInput(this)"> 
                </div>
+          </td>
+       </tr>
+    </table>
+    <br>
+    <table>
+       <tr>
+          <td> <input type="button" class="button4" value="Add Born-Oppenheimer" onClick="addbomd(false,'','')"/></td>
+          <td> <input type="button" class="button4" value="Add Car-Parrinello" onClick="addcpmd(false,'','')"/></td>
+          <td> <input type="button" class="button4" value="Add Steepest Descent" onClick="addcpsd('')"/></td>
+          <td> <input type="button" class="button4" id="metadynamics" value="Add Metadynamics" style="color:darkmagenta;" onClick="addmetadynamics()"/>  </td>
+          <td> <input type="button" class="button4" id="TAMD" value="Add TAMD" style="color:darkmagenta;" onClick="addtamd()"/>  </td>
+          <td> <input type="button" class="button4" value="EXAFS" style="color:brown;" onClick="addexafs(false)"</td>
+          <td> <input type="button" class="button4" value="Add AIMD-EXAFS" style="color:brown;" onClick="addexafs(true)"/></td>
+          <td> <input type="button" class="button4" value="Add AIMD-IR" style="color:orangered;" onClick="addaimdir(true)"/></td>
+       </tr>
+       <tr>
+          <td> <input type="button" class="button4" id="springconstraint2" value="Add reaction QMMM" style="color:green;" onClick="addreactionconstraint(true)"/>  </td>
+          <td> <input type="button" class="button4" id="shakegconstraint22" value="Add shake constraint" style="color:green;" onClick="addshakeconstraint()"/>  </td>
+          <td> <input type="button" class="button4" value="Simulated Annealing" onClick="addannealing()"/></td>
+          <td> <input type="button" class="button4" value="Metadynamics Simulation" style="color:darkmagenta;" onClick="jmaddsmiles('Xx',1)"/></td>
+          <td> <input type="button" class="button4" value="PMF Simulation" style="color:darkmagenta;" onClick="jmaddsmiles('Xx',1)"/></td>
+       </tr>
+    </table>
+    <table>
+       <tr>
+          <td> temperature(K):<input type="number" name="nwchemmdtemperature" id="nwchemmdtemperature" size="1" min="10.0" max="52190.9" step="10.0" value="300.0" 
+                                      oninput="cacheInput(this)">
+               fake_mass(au): <input type="number" name="nwchemmdfakemass" id="nwchemmdfakemass" size="1" min="1" max="52190.9" step="1.0" value="750.0" 
+                                     oninput="cacheInput(this)">
+               time_step(au): <input type="number" name="nwchemmdtimestep" id="nwchemmdtimestep" size="1" min="0.01" max="100.0" step="0.5" value="5.0" 
+                                     oninput="cacheInput(this)">
+               md_loop:       <input type="number" name="nwchemmdinner_loop" id="nwchemmdinner_loop" size="1" min="0" max="1000" step="5" value="10" 
+                                     oninput="cacheInput(this)">
+                              <input type="number" name="nwchemmdouter_loop" id="nwchemmdouter_loop" size="1" min="0" max="100000" step="100" value="100" 
+                                      oninput="cacheInput(this)">
+               total_time(ps):<input type="number" name="nwchemmdtime" id="nwchemmdtime" size="1" min="0.1" max="9000.0" step="0.5" value="10.0" 
+                                     oninput="cacheInput(this)">
+               motion_label: <input type="text" name="nwchemmdlabel" id="nwchemmdlabel" size="10" value="tequil" 
+                                     oninput="cacheInput(this)">
           </td>
        </tr>
     </table>
@@ -12804,31 +12832,35 @@ ul, li {
                                <td> <input type="button" class="button3" name="smilesX2" id="smilesX2" value="smiles?" onClick="jmaddsmiles('X2',1)"</td>
                                <td> <input type="button" class="button3" name="smilesX3" id="smilesX3" value="smiles?" onClick="jmaddsmiles('X3',1)"</td>
                             </tr>
+                            <tr> <td> </td> </tr>
+                            <tr>
+                               <td> <input type="button" class="button3" value="Delete atom" 
+                                            onClick="jms('set picking off; set picking on; set atomPicking true;set picking DELETEATOM')"/> </td>
+                               <td> <input type="button" class="button3" value="Delete bond" onClick="jms('hover on; set picking assignBond_0; hover off')"/> </td>
+                               <td> <input type="button" class="button3" value="Delete mol." onClick="jmdeletemolecule()"/> </td>
+                            </tr>
                             <tr>
                                <td> <input type="button" class="button3" value="Single" onClick="jms('hover on; set picking assignBond_1; hover off')"/> </td>
                                <td> <input type="button" class="button3" value="Double" onClick="jms('hover on; set picking assignBond_2; hover off')"/> </td>
                                <td> <input type="button" class="button3" value="Triple" onClick="jms('hover on; set picking assignBond_3; hover off')"/> </td>
                             </tr>
-                            <tr>
-                               <td> <input type="button" class="button3" value="Delete atom" onClick="jms('set picking off; set picking on; set atomPicking true;set picking DELETEATOM')"/> </td>
-                               <td> <input type="button" class="button3" value="Delete bond" onClick="jms('hover on; set picking assignBond_0; hover off')"/> </td>
-                               <td> <input type="button" class="button3" value="Delete mol." onClick="jmdeletemolecule()"/> </td>
-                            </tr>
-                            <tr> <td> </td> </tr>
                             <tr> <td> </td> </tr>
                             <tr>
-                               <td> <input type="button" class="button3" value="Length" onClick="jms0('set picking off;set picking on;set pickingstyle MEASURE; set picking MEASURE DISTANCE')"/> </td>
-                               <td> <input type="button" class="button3" value="Angle" onClick="jms0('set picking off;set picking on;set pickingstyle MEASURE; set picking MEASURE ANGLE')"/> </td>
-                               <td> <input type="button" class="button3" value="Torsion" onClick="jms0('set picking off;set picking on; set pickingstyle MEASURE; set picking MEASURE TORSION')"/> </td>
+                               <td> <input type="button" class="button3" value="Length" 
+                                           onClick="jms0('set picking off;set picking on;set pickingstyle MEASURE; set picking MEASURE DISTANCE')"/> </td>
+                               <td> <input type="button" class="button3" value="Angle" 
+                                           onClick="jms0('set picking off;set picking on;set pickingstyle MEASURE; set picking MEASURE ANGLE')"/> </td>
+                               <td> <input type="button" class="button3" value="Torsion" 
+                                           onClick="jms0('set picking off;set picking on; set pickingstyle MEASURE; set picking MEASURE TORSION')"/> </td>
                             </tr>
                             <tr>
                                <td> <input type="button" class="button3" name="jmolspin" id="jmolspin" value="Spin on" onClick="jmspin()"/> </td>
                                <td> <input type="button" class="button3" name="jmolaxes" id="jmolaxes" value="Axes on" onClick="jmaxes()"/>  </td>
-                               <td> <input type="button" class="button3" name="jmollabel" id="jmollabel" value="Labels on" onClick="jmlabel()"/>  </td>
+                               <td> <input type="button" class="button3" name="jmbackcolor" id="jmbackcolor" value="Bckgrnd black" onClick="jmbackground()"/>  </td>
                             </tr>
                             <tr>
+                               <td> <input type="button" class="button3" name="jmollabel" id="jmollabel" value="Labels on" onClick="jmlabel()"/>  </td>
                                <td> <input type="button" class="button3" name="jmlblcolor" id="jmlblcolor" value="Label black" onClick="jmlabelcolor()"/>  </td>
-                               <td> <input type="button" class="button3" name="jmbackcolor" id="jmbackcolor" value="Bckgrnd black" onClick="jmbackground()"/>  </td>
                                <td> <input type="button" class="button3" value="Redraw" onClick="jmredrawMolecule()"/>  </td>
                             </tr>
                             <tr>
@@ -16260,7 +16292,7 @@ changenwchemefieldtype();
 arrows url: <input type="url" id="arrows_url" SIZE=30 value="{{ arrows_api }}" oninput="cacheInput(this)"/> 
 arrows program directory: <input type="url" id="arrowsprogramurl" SIZE=30 value="{{url_for('static',filename='arrows-scripts')}}" oninput="cacheInput(this)"/> 
 <br>
-arrows calculation url: <input type="url" id="arrows_calculation_url" SIZE=30 value="{{ arrows_api }}" oninput="cacheInput(this)"/> 
+arrows calculation queue url: <input type="url" id="arrows_calculation_url" SIZE=30 value="{{ arrows_api }}" oninput="cacheInput(this)"/> 
 </div>
 <br><br><br>
 <hr>
