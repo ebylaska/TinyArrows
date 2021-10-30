@@ -5584,13 +5584,14 @@ ul, li {
                     textFromUrl = ajax.responseText;
                     textFromUrl = textFromUrl.split("</pre>")[0].split("<pre")[1].split(">")[1];
                  } else {
-                    console.log("Fetching ", url2);
+                    console.log("Fetching2 ", url2);
                     var ajax2 = new XMLHttpRequest();
                     ajax2.open("GET", url2, false); // third parameter is async flag
                     ajax2.send();
                     var textFromUrl2= ajax2.responseText;
                     var obj = JSON.parse(textFromUrl2);
-                    textFromUrl = obj.mol_blob.trim();
+                    //textFromUrl = obj.mol_blob.trim();
+                    textFromUrl = obj.xyz_blob.trim();
                     q += parseInt(obj.charge);
                  }
                  document.getElementById("nwchemcharge").value = q;
