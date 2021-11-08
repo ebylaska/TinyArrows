@@ -14515,6 +14515,36 @@ ul, li {
 
 <div id="Notes" class="tabcontent">
 
+cached notes db (IndexedDB) name:
+   <input type="text" list="notesnamelist" id="notedbname"  value="note1" oninput="cacheInput(this)"/>
+      <datalist id="notesnamelist">
+         <option value="note1">note1</option>
+         <option value="note2">note2</option>
+         <option value="note3">note3</option>
+         <option value="note4">note4</option>
+         <option value="note5">note5</option>
+         <option value="note6">note6</option>
+         <option value="note7">note7</option>
+         <option value="note8">note8</option>
+         <option value="note9">note9</option>
+         <option value="note10">note10</option>
+         <option value="note11">note11</option>
+         <option value="note12">note12</option>
+      </datalist>
+   <input type="button" VALUE="read" onClick="loadnotetodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+   <input type="button" VALUE="write" onClick="savenotetodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+   <b style="color: blue; font-size: 14px;" id="notedbnamebanner"></b>
+
+<br> <br>
+<textarea id="joditeditor" name="joditeditor"></textarea>
+<br>
+<a href=" https://base64.guru/converter/encode/image">image to base64</a>
+<br>
+Encode image to base64:
+<input id="inputFileToLoad" type="file" onChange="encodeImageFileAsURL();" />
+<div id="imgTest"></div>
+
+
 <br>
 <input type="button" VALUE="Save to file" onClick="savenotefile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
 <input type="button" VALUE="Load selected file" onClick="loadnotefile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
@@ -14531,15 +14561,6 @@ ul, li {
 <input type="button" value="SERDP Status" onClick="document.getElementById('urlToLoadnote').value='https://arrows.emsl.pnnl.gov/api/eric_view/raw=we31869:/media/seagate2/Projects/Eric/serdp-status.note'" style="background-color:#f8f8ff; color:#298DB4;">
 <input type="button" value="QUASAR Status" onClick="document.getElementById('urlToLoadnote').value='https://arrows.emsl.pnnl.gov/api/eric_view/raw=we31869:/media/seagate2/Projects/Eric/quasar-status.note'" style="background-color:#f8f8ff; color:#298DB4;">
 <input type="button" value="Ilton Status" onClick="document.getElementById('urlToLoadnote').value='https://arrows.emsl.pnnl.gov/api/eric_view/raw=we31869:/media/seagate2/Projects/Eric/ilton-status.note'" style="background-color:#f8f8ff; color:#298DB4;">
-<br> <br>
-<textarea id="joditeditor" name="joditeditor"></textarea>
-<br>
-<a href=" https://base64.guru/converter/encode/image">image to base64</a>
-<br>
-Encode image to base64:
-<input id="inputFileToLoad" type="file" onChange="encodeImageFileAsURL();" />
-<div id="imgTest"></div>
-
 
 <script type='text/javascript'>
 
@@ -14683,12 +14704,127 @@ function loadurltonote() {
 
 
 
+/********************************************
+ *                                          *
+ *            savenotetodbname              *
+ *                                          *
+ ********************************************/
+function savenotetodbname() {
+   var notetitle  = document.getElementById("notedbname").value;
+   var textToSave = joditeditor.getEditorValue();
+
+   const dbname    = "arrows_notes";
+   const dbversion = 1;
+
+   const request = indexedDB.open(dbname,dbversion);
+
+      // on upgrade needed
+      request.onupgradeneeded = e => {
+         const db = e.target.result;
+         const pNotes = db.createObjectStore("personal_notes",{keyPath: "title"});
+
+         console.log(`savenote upgrade called, name: ${db.name}  version: ${db.version}`);
+      }
+
+      // on success
+      request.onsuccess = e => {
+         const db = e.target.result;
+         console.log(`savenote on success called, name: ${db.name}  version: ${db.version}`);
+         const tx = db.transaction("personal_notes","readwrite");
+         tx.onerror = etx => alert(`savenote: tx on error called, ${etx.target.error}`);
+
+         const pNotes = tx.objectStore("personal_notes");
+         const putrequest = pNotes.put({title: notetitle, notetext: textToSave});
+         //putrequest.onsuccess = eee => console.log(`Note ${notetitle} was saved into ${dbname}`);
+         putrequest.onsuccess = eee => {document.getElementById('notedbnamebanner').innerHTML= `Note ${notetitle} was saved into ${dbname} (IndexedDB) db`;
+                                        console.log(`Note ${notetitle} was saved into ${dbname}`);}
+         putrequest.onerror   = eee => alert(`pNotes.put into ${notetitle} failed!`);
+
+      };
+
+      // on error
+      request.onerror = e => {
+         alert(`savenote error: ${e.target.error} was found`);
+      }
+}
+
+
+/********************************************
+ *                                          *
+ *            loadnotetodbname              *
+ *                                          *
+ ********************************************/
+function loadnotetodbname() {
+   var notetitle = document.getElementById("notedbname").value;
+
+   const dbname    = "arrows_notes";
+   const dbversion = 1;
+
+   const request = indexedDB.open(dbname,dbversion);
+
+      // on upgrade needed
+      request.onupgradeneeded = e => {
+         const db = e.target.result;
+         const pTables = db.createObjectStore("personal_notes",{keyPath: "title"});
+
+         console.log(`loadnote upgrade called, name: ${db.name}  version: ${db.version}`);
+      }
+
+      // on success
+      request.onsuccess = e => {
+         const db = e.target.result;
+         console.log(`loadnote on success called, name: ${db.name}  version: ${db.version}`);
+         const tx = db.transaction("personal_notes","readonly");
+         tx.onerror = etx => alert(`loadnote: tx on error called, ${etx.target.error}`);
+
+         const pNotes = tx.objectStore("personal_notes");
+         const getrequest = pNotes.get(notetitle);
+            getrequest.onsuccess = eee => {
+               var textFromdb = eee.target.result;
+               console.log("loadnote textFromdb=",textFromdb);
+               joditeditor.setEditorValue(textFromdb.notetext);
+               document.getElementById('notedbnamebanner').innerHTML= `Note ${notetitle} was loaded from ${dbname} (IndexedDB) db`;
+            }
+
+            getrequest.onerror   = eee => alert(`The note name ${notetitle} was not found in the ${dbname} indexedDB database`);
+      };
+
+      // on error
+      request.onerror = e => {
+         alert(`loadnote error: ${e.target.error} was found`);
+      }
+}
+
+
+
+
 </script>
 
 </div>
 
 
 <div id="SpreadSheet" class="tabcontent">
+
+cached table db (IndexedDB) name: 
+   <input type="text" list="tablenamelist" id="spreadsheetdbname"  value="table1" oninput="cacheInput(this)"/>
+      <datalist id="tablenamelist">
+         <option value="table1">table1</option>
+         <option value="table2">table2</option>
+         <option value="table3">table3</option>
+         <option value="table4">table4</option>
+         <option value="table5">table5</option>
+         <option value="table6">table6</option>
+         <option value="table7">table7</option>
+         <option value="table8">table8</option>
+         <option value="table9">table9</option>
+         <option value="table10">table10</option>
+         <option value="table11">table11</option>
+         <option value="table12">table12</option>
+      </datalist>
+     <input type="button" VALUE="read" onClick="loadspreadtodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+     <input type="button" VALUE="write" onClick="savespreadtodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+     <b style="color: blue; font-size: 14px;" id="spreadsheetdbnamebanner"></b>
+<br>
 
 <div id="jspreadsheet"></div>
 
@@ -14707,8 +14843,8 @@ myspreadsheet = jexcel(document.getElementById('jspreadsheet'), {
     toolbar:[
         { type:'i', content:'undo', onclick:function() { myspreadsheet.undo(); } },
         { type:'i', content:'redo', onclick:function() { myspreadsheet.redo(); } },
-        { type:'i', content:'upload_file', onclick:function () { loadspreadtodbname(); } },
-        { type:'i', content:'download_for_offline', onclick:function () { savespreadtodbname(); } },
+        { type:'i', content:'upload', onclick:function () { loadspreadtodbname(); } },
+        { type:'i', content:'save', onclick:function () { savespreadtodbname(); } },
         { type:'i', content:'sentiment_satisfied_alt', onclick:function () { addjsmesmiles(); } },
         { type:'i', content:'3d_rotation', onclick:function () {pushesmilesjsmol();}},
         { type:'i', content:'table_chart', onclick:function () {addtable_spreadsheet();}},
@@ -15230,7 +15366,9 @@ function savespreadtodbname() {
 
          const pTables = tx.objectStore("personal_tables");
          const putrequest = pTables.put({title: tabtitle, tabletext: textToSave});
-         putrequest.onsuccess = eee => console.log(`Table ${tabtitle} was saved into ${dbname}`);
+         //putrequest.onsuccess = eee => console.log(`Table ${tabtitle} was saved into ${dbname}`);
+         putrequest.onsuccess = eee => {document.getElementById('spreadsheetdbnamebanner').innerHTML= `Table ${tabtitle} was saved into ${dbname} (IndexedDB) db`;
+                                        console.log(`Table ${tabtitle} was saved into ${dbname}`);}
          putrequest.onerror   = eee => alert(`pTables.put into ${tabtitle} failed!`);
 
       };
@@ -15279,6 +15417,7 @@ function loadspreadtodbname() {
                if (textFromdb) {
                   var xx         = JSON.parse(textFromdb.tabletext);
                   console.log("loadspreadsheet xx=",xx);
+                  document.getElementById('spreadsheetdbnamebanner').innerHTML= `Table ${tabtitle} was loaded from ${dbname} (IndexedDB) db`;
 
                   window.spreadformats = xx[3];
                   window.ni_spreadformats = xx[3].length;
@@ -15311,7 +15450,6 @@ function loadspreadtodbname() {
 </script>
 
 <br>
-table db number: <input type="number" id="spreadsheetdbname" size="3" min="0" max="999" step="1" value="0" oninput="cacheInput(this)">
 table type: <select id="tabletype" oninput="cacheInput(this)">
     <option value="Gas-Phase Energy (Hartrees):e(gas)">Gas-Phase Energy (Hartrees)</option>
     <option value="Gas-Phase Enthalpy (Hartrees):h(gas)">Gas-Phase Enthalpy (Hartrees)</option>
