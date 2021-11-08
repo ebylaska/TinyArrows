@@ -5553,6 +5553,7 @@ ul, li {
            var append2 = append;
            //var urllist = document.getElementById("urlToLoad2").value.split(" + ");
            console.log(urllist);
+
            for (var i=0; i<urllist.length; ++i) {
               var x;
               var url = urllist[i];
@@ -5597,17 +5598,31 @@ ul, li {
                  document.getElementById("nwchemcharge").value = q;
                  console.log("q=",q);
                  console.log("MOL=",textFromUrl);
+
+                 var trans = document.getElementById("translate_smiles").value;
+                 console.log("trans=",trans);
+
                  //for (var j=0; j<x; ++j){
                     if (append2) {
                        //var xyzdat = "\"append\"|" + textFromUrl.trim().replace(/\n/g,' | ') + "|end \"append\";";
                        var moldat = "\"append\"" + textFromUrl + "end \"append\";";
+                       var scpt = "set appendNew false; data "+moldat + "select all; select within(molecule,(*)[0]);";
                        //jms("set appendNew false; data "+moldat + "select all; select within(molecule,(*)[0]); minimize select selected; select {*}[0];");
-                       jms("set appendNew false; data "+moldat);
+                       //jms("set appendNew false; data "+moldat);
+                       if (trans.trim().split(/[ ,]+/).length==3) {
+                          scpt += 'translate {' + trans + '} selected;';
+                       }
+                       jms(scpt);
                     }
                     else {
                        //var xyzdat = "\"model arrows\"|" +textFromUrl.trim().replace(/\n/g,' | ') + "|end \"model arrows\";";
                        var moldat = "\"model arrows\"" +textFromUrl + "end \"model arrows\";";
-                       jms("load data "+moldat  + "select all; select within(molecule,(*)[0]); minimize select selected; select {*}[0];");
+                       var scpt   = "load data "+moldat  + "select all; select within(molecule,(*)[0]); minimize select selected; select {*}[0];";
+                       //jms("load data "+moldat  + "select all; select within(molecule,(*)[0]); minimize select selected; select {*}[0];");
+                       if (trans.trim().split(/[ ,]+/).length==3) {
+                          scpt += 'translate {' + trans + '} selected;';
+                       }
+                       jms(scpt);
                        append2 = true;
                     }
                  //}
