@@ -265,6 +265,46 @@ ul, li {
 }
 
 
+#overlay {
+  position: fixed;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2;
+  cursor: pointer;
+}
+
+#text{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 50px;
+  color: white;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+}
+
+.blink9 {
+  animation: blink9 1s linear 9;
+}
+@keyframes blink9 {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+
 </style>
 
 
@@ -7758,7 +7798,7 @@ ul, li {
               editor.setValue(cifdata,1);
            } else {
               editor.setValue(data,1);
-              setQueueLabel();
+              //setQueueLabel();
               if ((theory.includes("pspw")) || (theory.includes("paw")) || (theory.includes("band"))) { addpawatoms(); changenwchemmpmin();}
            }
 
@@ -14546,9 +14586,9 @@ cached notes db (IndexedDB) name:
          <option value="note11">note11</option>
          <option value="note12">note12</option>
       </datalist>
-   <input type="button" VALUE="read" onClick="loadnotetodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+   <input type="button" VALUE="read"  onClick="loadnotetodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
    <input type="button" VALUE="write" onClick="savenotetodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
-   <b style="color: blue; font-size: 14px;" id="notedbnamebanner"></b>
+   <b style="color: blue; font-size: 14px;" class="blink9" id="notedbnamebanner"></b> 
 
 <br> <br>
 <textarea id="joditeditor" name="joditeditor"></textarea>
@@ -14725,11 +14765,15 @@ function loadurltonote() {
  *                                          *
  ********************************************/
 function savenotetodbname() {
+   document.getElementById('notedbnamebanner').style.display = "none";
+
    var notetitle  = document.getElementById("notedbname").value;
    var textToSave = joditeditor.getEditorValue();
 
    const dbname    = "arrows_notes";
    const dbversion = 1;
+
+   if (confirm("Do you want to save " + notetitle + " ?")) {
 
    const request = indexedDB.open(dbname,dbversion);
 
@@ -14751,7 +14795,8 @@ function savenotetodbname() {
          const pNotes = tx.objectStore("personal_notes");
          const putrequest = pNotes.put({title: notetitle, notetext: textToSave});
          //putrequest.onsuccess = eee => console.log(`Note ${notetitle} was saved into ${dbname}`);
-         putrequest.onsuccess = eee => {document.getElementById('notedbnamebanner').innerHTML= `Note ${notetitle} was saved into ${dbname} (IndexedDB) db`;
+         putrequest.onsuccess = eee => {document.getElementById('notedbnamebanner').style.display = "inline";
+                                        document.getElementById('notedbnamebanner').innerHTML= `Note ${notetitle} was saved into ${dbname} (IndexedDB) db`;
                                         console.log(`Note ${notetitle} was saved into ${dbname}`);}
          putrequest.onerror   = eee => alert(`pNotes.put into ${notetitle} failed!`);
 
@@ -14761,6 +14806,7 @@ function savenotetodbname() {
       request.onerror = e => {
          alert(`savenote error: ${e.target.error} was found`);
       }
+   }
 }
 
 
@@ -14770,12 +14816,15 @@ function savenotetodbname() {
  *                                          *
  ********************************************/
 function loadnotetodbname() {
+   document.getElementById('notedbnamebanner').style.display = "none";
+
    var notetitle = document.getElementById("notedbname").value;
 
    const dbname    = "arrows_notes";
    const dbversion = 1;
+   if (confirm("Do you want to load " + notetitle + " ?")) {
 
-   const request = indexedDB.open(dbname,dbversion);
+      const request = indexedDB.open(dbname,dbversion);
 
       // on upgrade needed
       request.onupgradeneeded = e => {
@@ -14798,6 +14847,7 @@ function loadnotetodbname() {
                var textFromdb = eee.target.result;
                console.log("loadnote textFromdb=",textFromdb);
                joditeditor.setEditorValue(textFromdb.notetext);
+               document.getElementById('notedbnamebanner').style.display = "inline";
                document.getElementById('notedbnamebanner').innerHTML= `Note ${notetitle} was loaded from ${dbname} (IndexedDB) db`;
             }
 
@@ -14808,6 +14858,7 @@ function loadnotetodbname() {
       request.onerror = e => {
          alert(`loadnote error: ${e.target.error} was found`);
       }
+   }
 }
 
 
@@ -14836,10 +14887,14 @@ cached table db (IndexedDB) name:
          <option value="table11">table11</option>
          <option value="table12">table12</option>
       </datalist>
-     <input type="button" VALUE="read" onClick="loadspreadtodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+     <input type="button" VALUE="read"  onClick="loadspreadtodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
      <input type="button" VALUE="write" onClick="savespreadtodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
-     <b style="color: blue; font-size: 14px;" id="spreadsheetdbnamebanner"></b>
-<br>
+     <b style="color: blue; font-size: 14px;" class="blink9"  id="spreadsheetdbnamebanner"></b>
+   <br> <br>
+   <input type="button" VALUE="Submit Arrows" onClick="submit_spreadsheet()" title="Submit Arrows" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+   <input type="button" VALUE="Clear run" onClick="document.getElementById('runmebanner4d').innerHTML= ''" title="Clear run"/>
+   <b style="color: blue; font-size: 14px;" id="runmebanner4c"></b> -- <b style="color: red; font-size: 14px;" id="runmebanner4d"></b>
+   <br>
 
 <div id="jspreadsheet"></div>
 
@@ -15355,12 +15410,16 @@ function savespreadtourl() {
  *                                          *
  ********************************************/
 function savespreadtodbname() {
+   document.getElementById('spreadsheetdbnamebanner').style.display = "none";
+
    var tabtitle = document.getElementById("spreadsheetdbname").value;
    var xx         = [myspreadsheet.getData(),myspreadsheet.getStyle(),myspreadsheet.getWidth(),window.spreadformats];
    var textToSave = JSON.stringify(xx);
 
    const dbname    = "arrows_spreadsheet";
    const dbversion = 1;
+
+  if (confirm("Do you want to save " + tabtitle + " ?")) {
 
    const request = indexedDB.open(dbname,dbversion);
 
@@ -15382,7 +15441,8 @@ function savespreadtodbname() {
          const pTables = tx.objectStore("personal_tables");
          const putrequest = pTables.put({title: tabtitle, tabletext: textToSave});
          //putrequest.onsuccess = eee => console.log(`Table ${tabtitle} was saved into ${dbname}`);
-         putrequest.onsuccess = eee => {document.getElementById('spreadsheetdbnamebanner').innerHTML= `Table ${tabtitle} was saved into ${dbname} (IndexedDB) db`;
+         putrequest.onsuccess = eee => {document.getElementById('spreadsheetdbnamebanner').style.display = "inline";
+                                        document.getElementById('spreadsheetdbnamebanner').innerHTML = `Table ${tabtitle} was saved into ${dbname} (IndexedDB) db`;
                                         console.log(`Table ${tabtitle} was saved into ${dbname}`);}
          putrequest.onerror   = eee => alert(`pTables.put into ${tabtitle} failed!`);
 
@@ -15392,6 +15452,7 @@ function savespreadtodbname() {
       request.onerror = e => {
          alert(`savespreadsheet error: ${e.target.error} was found`);
       }
+   }
 }
 
 
@@ -15402,10 +15463,13 @@ function savespreadtodbname() {
  *                                          *
  ********************************************/
 function loadspreadtodbname() {
+   document.getElementById('spreadsheetdbnamebanner').style.display = "none";
    var tabtitle = document.getElementById("spreadsheetdbname").value;
 
    const dbname    = "arrows_spreadsheet";
    const dbversion = 1;
+
+   if (confirm("Do you want to load " + tabtitle + " ?")) {
 
    const request = indexedDB.open(dbname,dbversion);
 
@@ -15432,6 +15496,7 @@ function loadspreadtodbname() {
                if (textFromdb) {
                   var xx         = JSON.parse(textFromdb.tabletext);
                   console.log("loadspreadsheet xx=",xx);
+                  document.getElementById('spreadsheetdbnamebanner').style.display = "inline";
                   document.getElementById('spreadsheetdbnamebanner').innerHTML= `Table ${tabtitle} was loaded from ${dbname} (IndexedDB) db`;
 
                   window.spreadformats = xx[3];
@@ -15457,6 +15522,8 @@ function loadspreadtodbname() {
       request.onerror = e => {
          alert(`loadspreadsheet error: ${e.target.error} was found`);
       }
+
+   }
 }
 
 
@@ -15487,12 +15554,6 @@ table type: <select id="tabletype" oninput="cacheInput(this)">
 column theories: <input type="theoryarray" id="columntheories"  size="60" value="theory{pspw4} : xc{pbe} : xc{b3lyp} : xc{m06-2x}" oninput="cacheInput(this)">
 number table rows: <input type="number" id="nrowstable" size="9" min="1" max="1000" step="1" value="5" oninput="cacheInput(this)">
 <br> <br>
-<input type="button" VALUE="Submit Arrows" onClick="submit_spreadsheet()" title="Submit Arrows" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-<input type="button" VALUE="Clear run" onClick="document.getElementById('runmebanner4d').innerHTML= ''" title="Clear run"/>
-<b style="color: blue; font-size: 14px;" id="runmebanner4c"></b>
-<br>
-<b style="color: red; font-size: 14px;" id="runmebanner4d"></b>
-<br>
 <input type="button" VALUE="Save json file" onClick="savejsonfile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
 <input type="button" VALUE="Save to csv file" onClick="savecsvfile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
 <input type="button" VALUE="Load selected json file" onClick="loadjsonfile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
