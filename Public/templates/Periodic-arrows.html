@@ -57,6 +57,14 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='jexcel/v4/jexcel.css')}}" type="text/css" />
 <link rel="stylesheet" href="{{ url_for('static', filename='jexcel/v4/jsuites.css')}}" type="text/css" />
 
+<!--script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script-->
+<!--script src="https://jsuites.net/v4/jsuites.js"></script-->
+<!--link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" /-->
+<!--link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" /-->
+
+
+
+
 <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Material+Icons" />
 
 <!-- ************************************** -->
@@ -4569,7 +4577,7 @@ ul, li {
 
 
 
-        var checkedRadio = [null,null,null,null,null,null,null,null];
+        var checkedRadio = [null,null,null,null,null,null,null,null,null,null];
         function ClearRd(ths,ii) {
            var f = 0.0;
            if (checkedRadio[ii] == ths) {
@@ -12167,6 +12175,19 @@ ul, li {
            }
         }
 
+        // **********************************
+        // *                                *
+        // *           set_lock             *
+        // *                                *
+        // **********************************
+        function set_lock() {
+           if (document.getElementById("editor_lock").checked) {
+              document.getElementsByTagName('body')[0].style.overflow = 'hidden';
+           } else {
+              document.getElementsByTagName('body')[0].style.overflow = 'visible' // the default for the css property
+           }
+        }
+
 </script>
 
 </head>
@@ -12254,12 +12275,13 @@ ul, li {
     </script>
     
     <input type="button" VALUE="NWChem Format" onClick="convert2geometry(false)" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="XYZ Format" onClick="convert2XYZ()" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="CIF Format" onClick="convert2geometry(true)" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" VALUE="XYZ" onClick="convert2XYZ()" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" VALUE="CIF" onClick="convert2geometry(true)" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
     <input type="button" VALUE="vim" onClick="editor.setKeyboardHandler('ace/keyboard/vim');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
     <input type="button" VALUE="emacs" onClick="editor.setKeyboardHandler('ace/keyboard/emacs');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
     <input type="button" VALUE="ace" onClick="editor.setKeyboardHandler('');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    screen lock<input type="radio" id="editor_lock" onClick="ClearRd(this,9); set_lock();" title="editor lock"/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <input type="button" class="rbutton4" id="nwchemsplit" value="Split NWChem" onClick="nwinputsplit()" style="background-color:#f8f8ff; color:green;"/>
     <input type="button" class="button4" value="Add ### restart here ###" onClick="editor.session.insert(editor.selection.getCursor(),'\n### restart here ###\n\n')"  style="background-color:#f8f8ff; color:green;"/>
     <input type="button" VALUE="Submit Thomas" onClick="submit_Thomas()" title="Submit NWChem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
