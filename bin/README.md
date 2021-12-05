@@ -29,6 +29,8 @@ How to create and setup mysql database
       mysql -u arrows -p TNT_Project < eric2.sql
 
 
+Needed babel programs:
+	brew install babel
 
 Needed python libraries:
 
