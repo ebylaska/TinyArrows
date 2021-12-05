@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 from flask import Flask, jsonify, render_template,request,redirect,url_for,send_from_directory,Response
 from flask import abort
 from werkzeug.utils import secure_filename
