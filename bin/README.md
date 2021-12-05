@@ -37,3 +37,4 @@ Needed python libraries:
 	pip3 install pymongo
 	pip3 install numpy
 	pip3 install tinydb
+	pip3 install tinymongo
