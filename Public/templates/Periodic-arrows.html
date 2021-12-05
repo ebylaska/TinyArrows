@@ -4577,7 +4577,7 @@ ul, li {
 
 
 
-        var checkedRadio = [null,null,null,null,null,null,null,null,null,null];
+        var checkedRadio = [null,null,null,null,null,null,null,null,null,null,null,null];
         function ClearRd(ths,ii) {
            var f = 0.0;
            if (checkedRadio[ii] == ths) {
@@ -5147,7 +5147,26 @@ ul, li {
            //var machine = prompt("Please enter machine name:", "we31869");
            var machine = document.getElementById("machine").value;
            var ncpus = document.getElementById("queue_ncpus").value;
-           //ncpus   = prompt("Please enter number cpus:", ncpus);
+           var queue = document.getElementById("queue").value.trim();
+           var qtime = document.getElementById("queue_time").value.trim();
+           if (queue.trim().length<=0) { queue = "regular"; }
+           if (qtime.length<3) {
+
+              if (machine.includes("theta")) {
+                 if (queue.includes("debug")) {
+                    qtime = "0:58:00";
+                 } else {
+                    qtime = "3:00:00";
+                 }
+              } else {
+                 if (queue.includes("debug")) {
+                    qtime = "00:30:00";
+                 } else {
+                    qtime = "18:05:00";
+                 }
+              }
+           }
+
            var tmp = textFromUrl.split("simulation_cell")[1].split("end")[0].trim();
            var a1,a2,a3;
            if (tmp.includes("lattice_vectors")) {
@@ -5180,6 +5199,8 @@ ul, li {
            jsmcellchange(false,true);
            //jmscentercell();
 
+           console.log("HERA: endsolvate");
+
            var mformula = textFromUrl.split("#mformula = ")[1].split("\n")[0].trim();
            var x =  "#nwchem_input  " + mformula + "-aimdmm.nw\n";
            x += "#nwchem_output " + mformula + "-aimdmm.out00\n";
@@ -5190,23 +5211,36 @@ ul, li {
            x += "#transfer_files *.nw *.xyz *.ion_motion *.emotion *.fei *.cif *.hist *.gr meta_*.dat meta.dat *.meta_gaussians *.cube *_epath *_final_epath POWER_SPECTRUM VELOCITY_SPECTRUM VEL_CORRELATION PAIR_DISTRIBUTION *.dipole_powerspectrum *.dipole_correlation\n";
            x += "#bad_files md_xs\n";
            x += "#\n";
+
+           var jobname     = mformula+"-aimdmm";
+           if ((document.getElementById("queue_nwchem_jobname").value.trim().length) > 0) {
+              jobname += "-" + document.getElementById("queue_nwchem_jobname").value.trim();
+           }
+           var projectname = document.getElementById("queue_nwchem_projectname").value.trim();
+           if (projectname.contains("myproject")) {
+                projectname = prompt("Please enter projectname:", projectname);
+           }
            var curdir0 = document.getElementById("queue_nwchem_curdir0").value;
-           var curdir  = curdir0 + "/"+mformula+"-aimdmm";
+           var curdir  = curdir0 + "/"+projectname+"/"+jobname
+
            curdir  = prompt("Please enter curdir:", curdir);
            x += "#curdir " + curdir + "\n"
            x += "#\n";
-           x += "#permdir " + mformula + "-aimdmm\n";
+           x += "#permdir " + jobname + "\n";
            x += "#deletescratch no\n";
            x += "#queuesave no\n"
            x += "#\n";
            x += "#machine " + machine + "\n";
-           x += "#cputime 8:05:00\n";
+
+           x += "#cputime " + qtime + "\n";
            x += "#ncpus " + ncpus + "\n";
-           x += "#queue regular\n";
+           x += "#queue " + queue + "\n";
            x += "#\n";
            var data = x + textFromUrl.split("#Fetched the following entry:")[1].split("</pre>")[0].trim();
 
-           editor.setValue(data,1);
+           console.log("HERB: fetched input");
+
+           editor.setValue(data,-1);
            document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running solvateurltojsmol\n","");
            document.getElementById('runmebanner4b').innerHTML = "";
         }
@@ -9244,6 +9278,9 @@ ul, li {
            data += "      time_step " + time_step.toFixed(1) + "\n";
            data += "      loop " + iloop.toString() + " " + oloop.toString() + "\n";
            data += "   end\n";
+            if (document.getElementById("nwchem_translation_off").checked) {
+              data += "   translation off\n";
+           }
            data += "end\n";
            data += "task " + pspw + " steepest_descent\n";
 
@@ -9329,6 +9366,12 @@ ul, li {
            data += "   emotion_filename    " + emotion_filename + "\n";
            data += "   ion_motion_filename " + ion_motion_filename + "\n";
            //data += "   fei                 " + fei_filename + "\n";
+           if (document.getElementById("nwchem_translation_off").checked) {
+              data += "   translation off\n";
+           }
+           if (document.getElementById("nwchem_rotation_off").checked) {
+              data += "   rotation off\n";
+           }
            data += "end\n";
            for (var i=0; i<nsteps; ++i) {
               data += "task " + pspw + " born-oppenheimer\n";
@@ -9429,6 +9472,12 @@ ul, li {
            data += "      ion_motion_filename " + ion_motion_filename + "\n";
            data += "      fei                 " + fei_filename + "\n";
            data += "   end\n";
+           if (document.getElementById("nwchem_translation_off").checked) {
+              data += "   translation off\n";
+           }
+           if (document.getElementById("nwchem_rotation_off").checked) {
+              data += "   rotation off\n";
+           }
            data += "end\n";
            for (var i=0; i<nsteps; ++i) {
               data += "task " + pspw + " car-parrinello\n";
@@ -9515,6 +9564,12 @@ ul, li {
            data += "      ion_motion_filename " + ion_motion_filename + "\n";
            data += "      fei                 " + fei_filename + "\n";
            data += "   end\n";
+           if (document.getElementById("nwchem_translation_off").checked) {
+              data += "   translation off\n";
+           }
+           if (document.getElementById("nwchem_rotation_off").checked) {
+              data += "   rotation off\n";
+           }
            data += "end\n";
            for (var i=0; i<nsteps; ++i) {
               data += "task " + pspw + " car-parrinello\n";
@@ -12754,6 +12809,12 @@ ul, li {
        </tr>
     </table>
     <table>
+       <tr>
+          <td>
+             translation off <input type="radio" id="nwchem_translation_off" onClick="ClearRd(this,10)" oninput="cacheInput(this)" title="include translation off"/>
+             rotation off    <input type="radio" id="nwchem_rotation_off"    onClick="ClearRd(this,11)" oninput="cacheInput(this)" title="include rotation off"/>
+          </td>
+       </tr>
        <tr>
           <td> temperature(K):<input type="number" name="nwchemmdtemperature" id="nwchemmdtemperature" size="1" min="10.0" max="52190.9" step="10.0" value="300.0" 
                                       oninput="cacheInput(this)">

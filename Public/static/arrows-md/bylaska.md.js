@@ -2216,6 +2216,71 @@ function xyzsdf2amatrix(sdf) {
 }
 
 
+
+
+/****************************************** 
+ *                                        *
+ *            xyza1a2a3amatrix            *
+ *                                        *
+ ******************************************/
+
+function xyza1a2a3amatrix(sdf,a1,a2,a3) {
+
+   var nion,amatrix,symbol,rxyz;
+
+
+   /* parse xyz file */
+   nion = eval(sdf.split("\n")[0].trim());
+   
+   amatrix = new Array(nion*nion); for (let ii=0; ii<(nion*nion); ++ii) amatrix[ii] = 0.0;
+   symbol = [];
+   rxyz   = [];
+   for (const aa of sdf.trim().split("\n").slice(2)) {
+      let ss = aa.trim().split(/\s+/);
+      symbol.push(ss[0]);
+      rxyz.push(eval(ss[1]));
+      rxyz.push(eval(ss[2]));
+      rxyz.push(eval(ss[3]));
+   }
+      
+   /* build adjacency amatrix from geometry */
+   for (let i=0; i<nion; ++i) {
+      for (let j=0; j<nion; ++j) {
+         let symi = symbol[i];
+         let symj = symbol[j];
+         let rci  = eric_rcovalent[symbol[i]];
+         let rcj  = eric_rcovalent[symbol[j]];
+
+         let r = 1.9e9;
+         for (let i3=-1; i3<2; ++i3) {
+            for (let i2=-1; i2<2; ++i2) {
+               for (let i1=-1; i1<2; ++i1) {
+                  let dx = rxyz[3*i]   - rxyz[3*j]   + i1*a1[0] + i2*a2[0] + i3*a3[0];
+                  let dy = rxyz[3*i+1] - rxyz[3*j+1] + i1*a1[1] + i2*a2[1] + i3*a3[1];
+                  let dz = rxyz[3*i+2] - rxyz[3*j+2] + i1*a1[2] + i2*a2[2] + i3*a3[2];
+                  let rtmp = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                  if (rtmp<r) {
+                     r = rtmp;
+                  }
+               }
+            }
+         }
+
+         if (i!=j) {
+            let b = eric_bond_order(rci,rcj,r)
+            if ((b<1.0) && (symi==symj) && (r<(2.5*rci[0]))) { b = 1; }
+            amatrix[i+j*nion] = b;
+         }
+      }
+   }
+
+
+   return [nion,symbol,rxyz,amatrix];
+}
+
+
+
+
 var eric_periodic_table_mass = { 'H'  : 1.008, 'He' : 4.0026, 'Li' : 7.016, 'Be' : 9.01218, 'B'  : 11.00931, 'C'  : 12.0, 'N'  : 14.00307, 'O'  : 15.99491, 'F'  : 18.9984, 'Ne' : 19.99244, 'Na' : 22.9898, 'Mg' : 23.98504, 'Al' : 26.98154, 'Si' : 27.97693, 'P'  : 30.97376, 'S'  : 31.97207, 'Cl' : 34.96885, 'Ar' : 39.9624, 'K'  : 38.96371, 'Ca' : 39.96259, 'Sc' : 44.95592, 'Ti' : 45.948, 'V'  : 50.9440, 'Cr' : 51.9405, 'Mn' : 54.9381, 'Fe' : 55.9349, 'Co' : 58.9332, 'Ni' : 57.9353, 'Cu' : 62.9298, 'Zn' : 63.9291, 'Ga' : 68.9257, 'Ge' : 73.9219, 'As' : 74.9216, 'Se' : 78.9183, 'Br' : 79.9165, 'Kr' : 83.912, 'Rb' : 84.9117, 'Sr' : 87.9056, 'Y'  : 88.9054, 'Zr' : 89.9043, 'Nb' : 92.9060, 'Mo' : 97.9055, 'Tc' : 97.9072, 'Ru' : 101.9037, 'Rh' : 102.9048, 'Pd' : 105.9032, 'Ag' : 106.90509, 'Cd' : 113.9036, 'In' : 114.9041, 'Sn' : 117.9018, 'Sb' : 120.9038, 'Te' : 129.9067, 'I'  : 126.9004, 'Xe' : 131.9042, 'Cs' : 132.9051, 'Ba' : 137.9050, 'La' : 138.9061, 'Ce' : 139.9053, 'Pr' : 140.9074, 'Nd' : 143.9099, 'Pm' : 144.9128, 'Sm' : 151.9195, 'Eu' : 152.920, 'Gd' : 157.9241, 'Tb' : 159.9250, 'Dy' : 163.9288, 'Ho' : 164.9303, 'Er' : 165.930, 'Tm' : 168.9344, 'Yb' : 173.9390, 'Lu' : 174.9409, 'Hf' : 179.9468, 'Ta' : 180.948, 'W'  : 183.9510, 'Re' : 186.9560, 'Os' : 189.9586, 'Ir' : 192.9633, 'Pt' : 194.9648, 'Au' : 196.9666, 'Hg' : 201.9706, 'Tl' : 204.9745, 'Pb' : 207.9766, 'Bi' : 208.9804, 'Po' : 209.9829, 'At' : 210.9875, 'Rn' : 222.0175, 'Fr' : 223.0198, 'Ra' : 226.0254, 'Ac' : 227.0278, 'Th' : 232.0382, 'Pa' : 231.0359, 'U'  : 238.0508, 'Np' : 237.0482, 'Pu' : 244.0642, 'Am' : 243.0614, 'Cm' : 247.0704, 'Bk' : 247.0703, 'Cf' : 251.0796, 'Es' : 252.0829, 'Fm' : 257.0950, 'Md' : 258.0986, 'No' : 259.1009, 'Lr' : 262.1100, 'Rf' : 261.1087, 'Ha' : 262.1138, 'Sg' : 266.1219, 'Bh' : 262.1229, 'Hs' : 267.1318, 'Mt' : 268.1388};
 
 
@@ -2244,6 +2309,7 @@ function xyzsdf_minimize(molecule_str,mdparam_str,maxit,time_step,maxerr,ismol,o
 
    let cputime0 = performance.now();
    let [nion,symbols,rion,amatrix] = xyzsdf2amatrix(molecule_str);
+   //let [nion,symbols,rion,amatrix] = xyza1a2a3amatrix(molecule_str,a1,a2,a3);
 
    var mdpotential;
    let bstr = "";
@@ -2338,9 +2404,12 @@ function xyzsdf_minimize(molecule_str,mdparam_str,maxit,time_step,maxerr,ismol,o
          rion[3*ii+1] -= dti[ii]*grad[3*ii+1];
          rion[3*ii+2] -= dti[ii]*grad[3*ii+2];
       }
-      for (const ii of actlist) {
-         [rion[3*ii],rion[3*ii+1],rion[3*ii+2]] = mdpotential.mdlat_min_diff(rion[3*ii],rion[3*ii+1],rion[3*ii+2]);
-      }
+
+      // Keep in lattice
+      //for (const ii of actlist) {
+      //   [rion[3*ii],rion[3*ii+1],rion[3*ii+2]] = mdpotential.mdlat_min_diff(rion[3*ii],rion[3*ii+1],rion[3*ii+2]);
+      //}
+
       //for (let i=0; i<(3*nion); ++i) {err += grad[i]*grad[i];}
       //for (let i=0; i<(3*nion); ++i) {rion[i] -= alpha*grad[i];}
       //for (let i=0; i<nion;     ++i) {[rion[3*i],rion[3*i+1],rion[3*i+2]] = mdpotential.mdlat_min_diff(rion[3*i],rion[3*i+1],rion[3*i+2]);}
