@@ -735,7 +735,7 @@ def main():
      dd = "-%d-%d-%d-%d:%d.%d" % (tt[0],tt[1],tt[2],tt[3],tt[4],tt[5])
      dd0 = "-%d-%d-%d-%d" % (tt[0],tt[1],tt[2],tt[3])
      startl = "startl"+dd0
-     tequil = "tequil"+dd0
+     tequil = "tequil"
      print
      print("##################### Start of AIMD-MM NWChem Input Deck ######################")
      print("#solute = %s  \n" % (args[0]))
@@ -824,22 +824,25 @@ def main():
      print("   cutoff 50.0")
      print("end")
      print("task pspw gradient\n")
-     print("nwpw")
-     print("   car-parrinello")
-     #print("      nose-hoover 1200.0 300.0 1200 300.0 start")
-     print("      temperature 300.0 start")
-     print("      time_step 5.0")
-     print("      fake_mass 750.0")
-     print("      loop 10 1000")
-     print("      xyz_filename        %s" % (tequil + ".xyz"))
-     print("      emotion_filename    %s" % (tequil + ".emotion"))
-     print("      ion_motion_filename %s" % (tequil + ".ion_motion"))
-     print("      fei                 %s" % (tequil + ".fei"))
-     print("   end")
-     print("end")
-     print("task pspw car-parrinello\n")
 
+
+     ### Henry calculation ###
      if (henry):
+        print("nwpw")
+        print("   car-parrinello")
+        #print("      nose-hoover 1200.0 300.0 1200 300.0 start")
+        print("      temperature 300.0 start")
+        print("      time_step 5.0")
+        print("      fake_mass 750.0")
+        print("      loop 10 1000")
+        print("      xyz_filename        %s" % (tequil + ".xyz"))
+        print("      emotion_filename    %s" % (tequil + ".emotion"))
+        print("      ion_motion_filename %s" % (tequil + ".ion_motion"))
+        print("      fei                 %s" % (tequil + ".fei"))
+        print("   end")
+        print("end")
+        print("task pspw car-parrinello\n")
+
         print("##################### Start of Henry's Law Calculations ######################")
         lmbdas = [1.0,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0.05,0.01,0.005,0.001,0.0005,0.0001]
         for lmbda in lmbdas:
@@ -864,24 +867,7 @@ def main():
            #print("task pspw energy\n\n")
            print("task pspw car-parrinello\n")
         print("##################### End of Henry's Law Calculations   ######################")
-     else:
-        print("### restart here ###")
-        print("nwpw")
-        print("   car-parrinello")
-        #print("      nose-hoover 1200.0 300.0 1200 300.0 restart")
-        print("      temperature 300.0 restart")
-        print("   end")
-        print("end")
-        print("task pspw car-parrinello")
 
-        print("\n### restart here ###")
-        print("task pspw car-parrinello")
-
-        print("\n### restart here ###")
-        print("task pspw car-parrinello")
-
-        print("\n### restart here ###")
-        print("task pspw car-parrinello")
      print("##################### End of AIMD-MM NWChem Input Deck ######################")
      print
 
