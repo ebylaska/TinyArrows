@@ -38,3 +38,4 @@ Needed python libraries:
 	pip3 install numpy
 	pip3 install tinydb
 	pip3 install tinymongo
+	pip3 install pexpect
