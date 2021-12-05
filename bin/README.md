@@ -39,3 +39,4 @@ Needed python libraries:
 	pip3 install tinydb
 	pip3 install tinymongo
 	pip3 install pexpect
+	pip3 install pymysql
