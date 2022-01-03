@@ -33,7 +33,7 @@ ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
 MY_ENV                = os.environ.copy()
 MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
-ARROWS_API_HOME = 'http://localhost:5000/api/'
+ARROWS_API_HOME = 'http://localhost:5001/api/'
 
 ####################### mongoDB #############################
 #uri = "mongodb://arrows:password@we17860.emsl.pnl.gov:27017"

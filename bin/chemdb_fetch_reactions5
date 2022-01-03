@@ -14,7 +14,7 @@ MY_ENV                = os.environ.copy()
 MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 HOMOLUMO_RESUBMIT_ON  = False
 
-ARROWS_API_HOME = 'http://localhost:5000/api/'
+ARROWS_API_HOME = 'http://localhost:5001/api/'
 
 #################### machine specifics ######################
 #babel              = "/usr/bin/babel"

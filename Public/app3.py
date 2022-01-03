@@ -9,7 +9,7 @@ import os,subprocess,urllib,time,random,requests,zipfile,math,yaml
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
 ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
-ARROWS_API_HOME = 'http://localhost:5000/api/'
+ARROWS_API_HOME = 'http://localhost:5001/api/'
 ###################### ARROWS Locations #######################
 
 #UPLOAD_FOLDER = '/tmp/'
@@ -3864,4 +3864,7 @@ def dagrereaction_form():
 
 if __name__ == '__main__':
     #app.run(debug=True)
-    app.run(debug=True,host='0.0.0.0', threaded=True)
+    #app.run(debug=True,threaded=True)
+    #app.run(host='0.0.0.0', threaded=True)
+    #app.run(debug=True,host='0.0.0.0',port=5000,threaded=True)
+    app.run(debug=True,host='0.0.0.0',port=5001,threaded=True)
