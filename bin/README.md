@@ -15,8 +15,13 @@ How to create and setup mysql database
       mysql.server start
       (brew services start mariadb)
 
+      ### these two steps may not work ###
       mysql_secure_installation -u YourUserName
       mysql -u YourUserName
+
+      ### just use, instead ###
+      mysql
+
 
       CREATE USER 'arrows'@localhost IDENTIFIED BY 'reaction';
       GRANT ALL PRIVILEGES ON *.* TO 'arrows'@localhost IDENTIFIED BY 'reaction';
