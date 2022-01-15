@@ -4577,7 +4577,7 @@ ul, li {
 
 
 
-        var checkedRadio = [null,null,null,null,null,null,null,null,null,null,null,null];
+        var checkedRadio = [null,null,null,null,null,null,null,null,null,null,null,null,null];
         function ClearRd(ths,ii) {
            var f = 0.0;
            if (checkedRadio[ii] == ths) {
@@ -4660,6 +4660,11 @@ ul, li {
               document.getElementById(surface_a).value = " 1.0 -1.0  0.0";
               document.getElementById(surface_b).value = " 0.0  1.0 -1.0";
               document.getElementById(surface_c).value = "-1.0 -1.0 -1.0";
+           }
+           if (sc=="graphene001") { 
+              document.getElementById(surface_a).value = "1.0  0.0  0.0";
+              document.getElementById(surface_b).value = "0.0  1.0  0.0";
+              document.getElementById(surface_c).value = "0.0  0.0  1.0";
            }
 
            cacheInput(document.getElementById(surface_cut));
@@ -15736,6 +15741,7 @@ xdoc.close();
     machine_type: <input type="text" list="machinelist" id="queue_machine_type" onChange="definesecret()" value="" oninput="cacheInput(this)"/>
     queue_name: <input type="text" id="queue_nwchem_name" value="nwchem" oninput="cacheInput(this)"/>
     <input type="button" VALUE="queue_nwchem" onClick="queue_nwchem_fetch()" title="queue_nwchem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+    <input type="radio" id="show_window" onClick="ClearRd(this,12)" oninput="cacheInput(this)" title="show window"/>
    <br>
    <br>
    <section  class="listWrapper" style="color: black" id="queue_nwchem_area"> 
@@ -15942,6 +15948,12 @@ function queue_entry_download(qentry,qsecret) {
               alert("# CHEMDB ENTRY NOT AVAILABLE! queue_entry="+qq);
            } else if (txt.includes("# CHEMDB OUTPUT AVAILABLE!")) {
               alert("# CHEMDB OUTPUT AVAILABLE! Try downloading zip file");
+          } else if ((txt.includes("#chemdb_queue_nwchem - version 1.0")) && (txt.includes("</pre> </html>"))) {
+              txt = "#chemdb_queue_nwchem - version 1.0" + txt.split("#chemdb_queue_nwchem - version 1.0")[1].split("</pre> </html>")[0].trim();
+              if (txt.includes("#nwchem_input")) {
+                 filename = txt.split("#nwchem_input")[1].split("\n")[0].trim();
+              }
+              savefile(txt,filename);
            } else if ((txt.includes("#chemdb_queue_nwchem - version 2.0")) && (txt.includes("</pre> </html>"))) {
               txt = "#chemdb_queue_nwchem - version 2.0" + txt.split("#chemdb_queue_nwchem - version 2.0")[1].split("</pre> </html>")[0].trim();
               if (txt.includes("#nwchem_input")) {
@@ -15949,6 +15961,7 @@ function queue_entry_download(qentry,qsecret) {
               }
               savefile(txt,filename);
            }
+
          } else {
            console.error(request.statusText);
          }
@@ -15967,6 +15980,24 @@ function queue_entry_set(qentry) {
 
 function queue_nwchem_filter(text) {
    var text2 = text;
+   var calc_url        = document.getElementById("arrows_calculation_url").value;
+   var arrows_get_url  = calc_url + 'queue_nwchem_view/';
+
+   if (text2.includes("#chemdb_queue_nwchem - version 1.0")) {
+      text2 = text2.split("#chemdb_queue_nwchem - version 1.0")[1].split("</pre> </html>")[0].trim();
+      var mt = document.getElementById('queue_machine_type').value;
+      var lines = text2.split("\n");
+      text2 = lines[0] + "\n";
+      for (var i=1; i<lines.length; ++i) {
+         if (lines[i].includes(mt)) {
+            var ll = lines[i].trim();
+            var qentry   = ll.split("</a>")[0].split(">")[1];
+            var hreplace = arrows_get_url + qentry;
+            ll = ll.replace(hreplace,"javascript:queue_entry_set("+qentry+");");
+            text2 += ll + "\n";
+         }
+      }
+   }
 
    if (text2.includes("#chemdb_queue_nwchem - version 2.0")) {
       text2 = text2.split("#chemdb_queue_nwchem - version 2.0")[1].split("</pre> </html>")[0].trim();
@@ -15977,7 +16008,7 @@ function queue_nwchem_filter(text) {
          if (lines[i].includes(mt)) {
             var ll = lines[i].trim();
             var qentry   = ll.split("</a>")[0].split(">")[1];
-            var hreplace = "{{ arrows_api }}queue_nwchem_view/" + qentry;
+            var hreplace = arrows_get_url + qentry;
             ll = ll.replace(hreplace,"javascript:queue_entry_set("+qentry+");");
             text2 += ll + "\n";
          }
@@ -16018,7 +16049,17 @@ function queue_nwchem_fetch() {
    };
    request.send();
 
+   queue_openwindow(arrows_get_url,"temp");
 }
+
+function queue_openwindow(url,name) {
+   if (document.getElementById("show_window").checked) {
+      window.open(url,name,"menubar=1,resizable=1,width=350,height=250");
+   }
+}
+
+
+
 
 
 </script>
