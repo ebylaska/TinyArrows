@@ -1752,6 +1752,7 @@ ul, li {
               document.getElementById("showcell1").value = "Unit cell on";
               document.getElementById("centercell").value = "Origin";
               document.getElementById("centercell0").value = "Origin";
+              document.getElementById("centercell1").value = "Origin";
               console.log("alpha=",alpha);
               console.log("beta=",beta);
               console.log("gamma=",gamma);
@@ -2282,10 +2283,12 @@ ul, li {
               jms("unitcell {-0.5 -0.5 -0.5};");
               document.getElementById("centercell").value = "Origin";
               document.getElementById("centercell0").value = "Origin";
+              document.getElementById("centercell1").value = "Origin";
            } else {
               jms("unitcell {0.0 0.0 0.0};");
               document.getElementById("centercell").value = "Center";
               document.getElementById("centercell0").value = "Center";
+              document.getElementById("centercell1").value = "Center";
            }
         }
         // ****************************
@@ -4566,6 +4569,7 @@ ul, li {
            document.getElementById("showcell1").value = "Unit cell off";
            document.getElementById("centercell").value = "Center";
            document.getElementById("centercell0").value = "Center";
+           document.getElementById("centercell1").value = "Center";
            document.getElementById("bulk_atoms").value = "1-"+xyzdat.split("\n")[0].trim();
 
 
@@ -5194,6 +5198,7 @@ ul, li {
            //document.getElementById("centercell").value = "Origin";
            document.getElementById("centercell").value = "Origin";
            document.getElementById("centercell0").value = "Origin";
+           document.getElementById("centercell1").value = "Origin";
 
            var xyz = textFromUrl.split("geometry noautosym noautoz")[1].split("end")[0].trim();
            var nion = xyz.split("\n").length;
@@ -5384,6 +5389,7 @@ ul, li {
            //document.getElementById("centercell").value = "Origin";
            document.getElementById("centercell").value = "Origin";
            document.getElementById("centercell0").value = "Origin";
+           document.getElementById("centercell1").value = "Origin";
 
            var xyz = textFromUrl.split("geometry noautosym noautoz")[1].split("end")[0].trim();
            var nion = xyz.split("\n").length;
@@ -13545,6 +13551,8 @@ ul, li {
                   <tr>
                      <td>
                         <input type="button" VALUE="Generate simple bulk crystal" style="font-size:13px;background-color:#f8f8ff;color:#0000ff" onClick="loadbulktojsmol()" title="Load xyz data from url into jsmol"/>
+                        <input type="button" class="button" id="supercell"  value="Supercell" onClick="jmssupercell('')"/>
+                        <input type="button" class="button" id="centercell1" value="Center" onClick="jmscentercell()"/> 
                      </td>
                   </tr>
                   <tr>
