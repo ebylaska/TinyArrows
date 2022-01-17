@@ -787,7 +787,7 @@ def main():
      print("   end")
      print("   xc %s" % xc0)
      print("   mult %d" % (solute_mult))
-     print("   cutoff 2.0")
+     print("   cutoff 2.0  #keep for setup of qmmm")
      print("   lmbfgs")
      print("end\n")
      print("set geometry:actlist %d:%d" % (len(atoms)+1,len(newatoms)))

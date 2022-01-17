@@ -710,7 +710,7 @@ def generate_solute(solutejob):
   nfile.write("      end\n")
   nfile.write("   end\n")
   nfile.write("   xc pbe96\n")
-  nfile.write("   cutoff 1.0\n")
+  nfile.write("   cutoff 1.0 #keep for setup of qmmm\n")
   nfile.write("   #lmbfgs\n")
   nfile.write("   mult %d\n" % solutejob['mult'])
   nfile.write("end\n\n")

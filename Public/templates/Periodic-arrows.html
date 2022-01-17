@@ -5151,9 +5151,9 @@ ul, li {
 
            //var machine = prompt("Please enter machine name:", "we31869");
            var machine = document.getElementById("machine").value;
-           var ncpus = document.getElementById("queue_ncpus").value;
-           var queue = document.getElementById("queue").value.trim();
-           var qtime = document.getElementById("queue_time").value.trim();
+           var ncpus  = document.getElementById("queue_ncpus").value;
+           var queue  = document.getElementById("queue").value.trim();
+           var qtime  = document.getElementById("queue_time").value.trim();
            if (queue.trim().length<=0) { queue = "regular"; }
            if (qtime.length<3) {
 
@@ -5248,6 +5248,8 @@ ul, li {
            editor.setValue(data,-1);
            document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running solvateurltojsmol\n","");
            document.getElementById('runmebanner4b').innerHTML = "";
+
+           changenwchemcutoff();
         }
 
         function solvateurltojsmol() {
@@ -8440,12 +8442,17 @@ ul, li {
            if (isNaN(cutoff)) { cutoff = 0.0; }
            var data   = editor.getValue(); // or session.getValue
            if (data.includes("cutoff")) {
-              var oldblk  = "cutoff " + data.split("cutoff ")[1].split("\n")[0];
-              if (cutoff>0) {
-                 data = data.replace(oldblk,"cutoff " + cutoff.toString());
-              } else {
-                 data = data.replace("  " + oldblk+"\n","");
+              var newdata = "";
+              for (let ll of data.split("\n")) {
+                 if (ll.includes("cutoff ") && (!ll.includes("#keep for setup of qmmm"))) {
+                    if (cutoff>0) {
+                       newdata += "   cutoff " + cutoff.toString() + "\n";
+                    }
+                 } else {
+                    newdata += ll + "\n";
+                 }
               }
+              editor.setValue(newdata,1);
            } else if (cutoff>0) {
               var beforeline = data.split("  ### pseudopotential block end   ###\n")[0];
               var afterline  = data.split("  ### pseudopotential block end   ###\n")[1];
@@ -8453,8 +8460,8 @@ ul, li {
               data += "  ### pseudopotential block end   ###\n";
               data += "  cutoff " + cutoff.toString() + "\n";
               data += afterline;
+              editor.setValue(data,1);
            }
-           editor.setValue(data,1);
         }
 
 
