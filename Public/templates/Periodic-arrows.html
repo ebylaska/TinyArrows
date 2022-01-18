@@ -5226,6 +5226,16 @@ ul, li {
            if ((document.getElementById("queue_nwchem_jobname").value.trim().length) > 0) {
               jobname += "-" + document.getElementById("queue_nwchem_jobname").value.trim();
            }
+           if (document.getElementById("queue_nwchem_jobmodel").checked) {
+              var imm =  window.xyzframes_cur + 1;
+              jobname += "-m-"+imm.toString();
+           }
+           if (document.getElementById("queue_nwchem_jobdate").checked) {
+              var today = new Date();
+              var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+              jobname += "-d-" + date
+           }
+
            var projectname = document.getElementById("queue_nwchem_projectname").value.trim();
            if (projectname.contains("myproject")) {
                 projectname = prompt("Please enter projectname:", projectname);
@@ -5234,6 +5244,8 @@ ul, li {
            var curdir  = curdir0 + "/"+projectname+"/"+jobname
 
            curdir  = prompt("Please enter curdir:", curdir);
+           document.getElementById("queue_nwchem_curdir").value  = curdir;
+           document.getElementById("queue_nwchem_permdir").value = jobname;;
            x += "#curdir " + curdir + "\n"
            x += "#\n";
            x += "#permdir " + jobname + "\n";
