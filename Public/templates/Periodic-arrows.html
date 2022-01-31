@@ -5527,6 +5527,8 @@ ul, li {
            editor.setValue(data,1);
            document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running solvatewhaminput\n","");
            callback("solvatewhaminput");
+
+           changenwchemcutoff();
         }
 
 
@@ -13351,11 +13353,23 @@ ul, li {
                    <input type="button" VALUE="Generate WHAM model" onClick="gen_wham_model(dummy_callback)" 
                           title="Generate a new xyz model by morphing 3 point reaction path"/>
 
-                   <input type="button" value="Generate WHAM input" onClick="jmoltoeditor();convert2geometry(false);addreactionconstraint(true);addcpmd(false,'','');" 
-                           title="Load next xyz model into jsmol"/>
+                   <input type="button" value="Generate WHAM input" 
+                          onClick="if (document.getElementById('append_buildreactants').checked) {
+                                      if (confirm('Do you want to append the initial model?')){
+                                         loadframe2jsmol(false,true);
+                                      }
+                                   }
+                                   jmoltoeditor();convert2geometry(false);addreactionconstraint(true);addcpmd(false,'','');" 
+                          title="Load next xyz model into jsmol"/>
 
-                   <input type="button" value="Generate solvated WHAM input" onClick="solvatewhaminput(-1.0,dummy_callback);" 
-                           title="Load next xyz model into jsmol"/>
+                   <input type="button" value="Generate solvated WHAM input" 
+                          onClick="if (document.getElementById('append_buildreactants').checked) {
+                                      if (confirm('Do you want to append the initial model?')){
+                                         loadframe2jsmol(false,true);
+                                      }
+                                   }
+                                   solvatewhaminput(-1.0,dummy_callback);" 
+                          title="Load next xyz model into jsmol"/>
                    posteriori analysis: 
                       <input type="radio" id="wham_posteriori" onClick="ClearRd(this,6)" 
                               title="Thomas: set radio wham_postiriori : Generate posteriori WHAM DATA block"/>
