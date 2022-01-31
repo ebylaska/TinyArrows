@@ -830,7 +830,7 @@ ul, li {
       }
       else if (txt.includes("build") && txt.includes("reactants from chemical reaction")) {  
          Text2Speech0(txt0);
-         appendreactants2jsmol(document.getElementById('reaction_genhash00').value,2);
+         appendreactants2jsmol(document.getElementById('reaction_genhash00').value,2,false);
       }
       else if (txt.includes("generate") && txt.includes("chemical reaction hash")) {  
          Text2Speech0(txt0);
@@ -2450,6 +2450,12 @@ ul, li {
               var xyzcell1 = window.xyzframes[amodel];
               var xyzdat1 = "\"append\"|" + xyzcell1[0].trim().replace(/\n/g,' | ') + "|end \"append\"";
               jms("set appendNew false; data "+xyzdat1);
+
+               if (confirm("Merging lattice from model " + (amodel+1).toString() + "?")){
+                 document.getElementById("lattice_a1").value = xyzcell1[1];
+                 document.getElementById("lattice_a2").value = xyzcell1[2];
+                 document.getElementById("lattice_a3").value = xyzcell1[3];
+              }
 
            } else {
               var nframes = window.xyzframes.length;
@@ -4581,7 +4587,7 @@ ul, li {
 
 
 
-        var checkedRadio = [null,null,null,null,null,null,null,null,null,null,null,null,null];
+        var checkedRadio = [null,null,null,null,null,null,null,null,null,null,null,null,null,null];
         function ClearRd(ths,ii) {
            var f = 0.0;
            if (checkedRadio[ii] == ths) {
@@ -5560,6 +5566,7 @@ ul, li {
               }
               xyz += " molarity{"+ molarity0+"}";
            }
+           var nsolvent =document.getElementById("umbrella_nsolvent").value;
 
            textToSave = xyz;
 
@@ -6420,6 +6427,17 @@ ul, li {
            }
         }
 
+        function hcleanappendreactants2jsmol3(xx,yy) {
+           console.log("HELLLO: ", xx,yy);
+           if (yy.contains("Step 100") ||  yy.contains("CONVERGED")) {
+              document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running appendreactants2jsmol\n","");
+              document.getElementById('nwchemcharge').value = charge_arrowsdata();
+              document.getElementById('nwchemmult').value   = mult_arrowsdata();
+              jms('unset echoCallback');
+              loadframe2jsmol(false,true);
+           }
+        }
+
         function hcleanaddsmiles() {
            jms('unset echoCallback');
         }
@@ -6442,13 +6460,24 @@ ul, li {
 
 
 
-        function appendreactants2jsmol(reaction,opt) {
+        function appendreactants2jsmol(reaction,opt,append) {
            var mol = reaction;
            document.getElementById('apirunning').value += "+ running appendreactants2jsmol\n";
            if (mol.contains("-->")) {
               var i,scpt;
               var rmol = mol.split("-->")[0].split(" + ");
               var nr = rmol.length;
+              var trans = document.getElementById('translate_reactants').value;
+
+              // save pre_appended geometry
+              let pre_nion = 0;
+              let pre_frame = window.xyzframes_cur;
+              if (append) {
+                 document.getElementById("bulk_atoms").value = "";
+                 let molecule_str = exModXYZ();                                                                                                 
+                 pre_nion = parseInt(molecule_str.split("\n")[0].trim());
+                 loadframe2jsmol(true,false);
+              }
 
               for (i=0; i<nr; ++i) {
                  smiles = rmol[i].trim();
@@ -6457,14 +6486,19 @@ ul, li {
                  } else {
                     scpt = 'load smiles \"' + smiles + '\"; select all; select within(molecule,(*)[0]); ';
                  }
-                 scpt += 'select {*}[0]; ' 
+                 if (trans.trim().split(/[ ,]+/).length==3) {
+                    scpt += 'translate {' + trans + '} selected;';
+                 }
+
                  jms(scpt); 
               }
-              if (opt==1) {
+              if ((opt==1) && (!append)) {
                  jms('select nonmetal;minimize steps 100; select *; wireframe 0.15; spacefill 23%; boundbox {*}; centerat boundbox; zoom 0; set echoCallback \"hcleanappendreactants2jsmol\"; javascript echo(globalVar);');
-              } else {
-                 jms('select nonmetal;minimize steps 100; select *; wireframe 0.15; spacefill 23%; boundbox {*}; centerat boundbox; zoom 0; set echoCallback \"hcleanappendreactants2jsmol2\"; javascript echo(globalVar);');
+              } else if ((opt==1) && (append)) {
+                 jms('select nonmetal;minimize steps 100; select *; wireframe 0.15; spacefill 23%; boundbox {*}; centerat boundbox; zoom 0; set echoCallback \"hcleanappendreactants2jsmol\"; javascript echo(globalVar);');
               }
+
+
            }
         }
           
@@ -7186,7 +7220,7 @@ ul, li {
                  var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
                  permdir += "-d-"+date;
               }
-              permdir = prompt("Please enter permdir:", permdir);
+              permdir = prompt("Please enter Bulk Atoms :", permdir);
               document.getElementById("queue_nwchem_permdir").value = permdir;
            }
 
@@ -11721,7 +11755,7 @@ ul, li {
            if (bondings.contains("spring  bondings K gamma")) {
               document.getElementById('apirunning').value += "+ running gen_wham_model\n";
               document.getElementById('runmebanner4p').innerHTML= "Generating reaction path";
-              loadframe2jsmol(false,false);
+              //loadframe2jsmol(false,false);
               var jjj = bondings.split("spring  bondings K gamma")[1].split("\n")[0].trim().split(/[ ,]+/);
               var nb = jjj.length/3;
               console.log("jjj=",jjj);
@@ -13208,13 +13242,17 @@ ul, li {
                    chemical reaction
                    <br>
                    <input type="text" id="reaction_genhash00" SIZE=83 title="Thomas: set text reaction_genhash00 :" oninput="cacheInput(this)">
-                   <br>
-                   <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" 
-                          onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1)"
-                          title="Loads the reactants into jsmol from the chemical reaction input box"/>
                    <input type="button" VALUE="Use JSME reaction" onClick="loadreaction2dWindow('reaction_genhash00')" 
                            style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
                            title=": reaction_genhash00 : Fetches chemical reaction from JSME editor"/>
+                   <br>
+                   <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" 
+                          onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1,
+                                                         document.getElementById('append_buildreactants').checked)"
+                          title="Loads the reactants into jsmol from the chemical reaction input box"/>
+                   <input type="3array" id="translate_reactants"  size="10" oninput="cacheInput(this)">
+                   append: <input type="radio" id="append_buildreactants" onClick="ClearRd(this,13)"
+                              title="Thomas: set radio append_buildreactants : Append reactants from chemmical reaction"/>
                    <br><br> 
                    reaction_hash 
                       <input type="button" id="button_genrhash" VALUE="Generate reaction hash from chemical reaction" onClick="gen_rhash2(dummy_callback)"
@@ -13307,6 +13345,8 @@ ul, li {
                                       title="Thomas: set number umbrella_spring :" oninput="cacheInput(this)">}
                    WHAM_gamma{<input type="number" id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10" 
                                      title="Thomas: set number umbrella_gamma :" oninput="cacheInput(this)">}
+                   WHAM_nsolvent{<input type="text" id="umbrella_nsolvent" size=3
+                                     title="Thomas: set number umbrella_nsolvent :" oninput="cacheInput(this)">}
                    <br>
                    <input type="button" VALUE="Generate WHAM model" onClick="gen_wham_model(dummy_callback)" 
                           title="Generate a new xyz model by morphing 3 point reaction path"/>
@@ -13344,6 +13384,10 @@ ul, li {
                       <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false);check_rgamma();" 
                              style="font-size:13px;background-color:#f8f8ff;color:#385970"
                              title="Load previous xyz xyz model into jsmol"/>
+                      <input type="button" value="New model" onClick="loadframe2jsmol(true,false)" title="Add new xyzframe"/>
+                      <br>
+                      <input type="button" value="Append model" onClick="loadframe2jsmol(false,true)" title="Append new xyzframe"/>
+                      <input type="button" value="Delete model" onClick="deleteframe2jsmol()" title="Delete current xyz frame"/>
                       <b style="color: blue; font-size: 14px;" id="model_label2">Model 1 out of 1</b> 
 
 
