@@ -337,6 +337,30 @@ ul, li {
       }
    }
 
+   function cacheGet() {
+      let data = "";
+      for (let i=0; i<localStorage.length; ++i) {
+         let key = localStorage.key(i);
+         let cachedVal = localStorage.getItem(key);
+         data += "CacheKey=" + key + "  CacheValue=" + cachedVal + "\n";
+         //console.log("cacheWrite: CacheKey=",key, " CacheValue=",cachedVal);
+      }
+      editor.setValue(data,1);
+   }
+
+   function cachePut() {
+      let data = editor.getValue();
+      let data_list = data.trim().split("\n");
+
+      for (let line of data_list) {
+         let key = line.split("CacheKey=")[1].split("Value=")[0].trim();
+         let val = line.split("CacheValue=")[1];
+         localStorage.setItem(key,val);
+      }
+   }
+
+
+
 
 
 
@@ -12363,17 +12387,18 @@ ul, li {
     <input type="button" VALUE="&#8598; Editor to JSMol" onClick="jmloadxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
     <input type="button" VALUE="&#8599; Editor append to JSMol" onClick="jmappendxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
     <!--input type="button" VALUE="&#8598; Editor to JSMol models" onClick="jmloadxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/-->
-    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+    &nbsp; &nbsp; 
     <input type="button" VALUE="Previous input" onClick="previnput2editor();" style="background-color:#f8f8ff; color:#FF5733; font-size: 14px; font-weight:bold"/>
     <input type="button" VALUE="Next input" onClick="loadinput2editor(false);" style="background-color:#f8f8ff; color:#FF5733; font-size: 14px; font-weight:bold"/>
     <input type="button" VALUE="New" onClick="loadinput2editor(true);" style="background-color:#f8f8ff; color:#FF5733; font-size: 14px; font-weight:bold"/>
     <input type="button" VALUE="Delete" onClick="deleteinput2editor();" style="background-color:#f8f8ff; color:#FF5733; font-size: 14px; font-weight:bold"/>
     <input type="button" VALUE="Clear" onClick="editor.setValue('');" style="background-color:#f8f8ff; color:#FF5733; font-size: 14px; font-weight:bold"/>
-    <b style="color:#FF5733; font-size: 14px;" id="input_label">Input 1 out of 1</b>
+    <b style="color:#FF5733; font-size: 12px;" id="input_label">Input 1 out of 1</b>
 
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+    <input type="button" VALUE="CacheGet" onClick="cacheGet();" style="background-color:#f8f8ff; color:#0000ff; font-size: 11px; font-weight:bold"/>
+    <input type="button" VALUE="CachePut" onClick="cachePut();" style="background-color:#f8f8ff; color:#0000ff; font-size: 11px; font-weight:bold"/>
     <input type="button" VALUE="Copy to Clipboard" 
-     style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"
+     style="background-color:#f8f8ff; color:#0000ff; font-size: 11px; font-weight:bold"
      onClick="navigator.clipboard.writeText(editor.getValue())
          .then(() => { console.log('Text copied to clipboard'); })
          .catch(err => { console.error('Error in copying text: ', err); });"
