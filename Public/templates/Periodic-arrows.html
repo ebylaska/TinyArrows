@@ -1771,9 +1771,9 @@ ul, li {
               document.getElementById("cell_alpha").value = alpha;
               document.getElementById("cell_beta").value  = beta;
               document.getElementById("cell_gamma").value = gamma;
-              document.getElementById("showcell0").value = "Unit cell on";
-              document.getElementById("showcell").value = "Unit cell on";
-              document.getElementById("showcell1").value = "Unit cell on";
+              document.getElementById("showcell0").value = "Unit cell off";
+              document.getElementById("showcell").value = "Unit cell off";
+              document.getElementById("showcell1").value = "Unit cell off";
               document.getElementById("centercell").value = "Origin";
               document.getElementById("centercell0").value = "Origin";
               document.getElementById("centercell1").value = "Origin";
@@ -2315,6 +2315,7 @@ ul, li {
               document.getElementById("centercell1").value = "Center";
            }
         }
+
         // ****************************
         // *                          *
         // *     jmscentercell        *
@@ -2383,6 +2384,7 @@ ul, li {
            var cellon = document.getElementById("showcell").value == "Unit cell off";
            //var cellon = true;
            var centeron = document.getElementById("centercell").value == "Origin";
+           console.log("jsmcellchange, cellchange=",cellchange, " sccords=",scoords, " cellon=",cellon);
            if (cellchange) {
                var a = parseFloat(document.getElementById("cell_a").value);
                var b = parseFloat(document.getElementById("cell_b").value);
@@ -3607,10 +3609,11 @@ ul, li {
            var xyz =  parse_ion_motion(editor_fetchXYZ());
            var xyzdat = "\"model editor\"|" + xyz.trim().replace(/\n/g,' | ') + "|end \"model editor\"";
            jms("load data "+xyzdat); 
-           setTimeout(function(){
+           jsmcellchange(true,true);
+           //setTimeout(function(){
               //your code here
-              jsmcellchange(true,true);
-           }, 100);
+              // jsmcellchange(true,true);
+           //}, 100);
            Text2Speech0("Copying editor to JSMol");
            var amatrix = xyz.split("\n")[1].trim().split(/[ ,]+/);
            console.log("amatrix=",amatrix);
@@ -12964,7 +12967,7 @@ ul, li {
                    <tr>
                       <td>
                          <input type="button" value="Center atom"  onClick="jmcenteratom()"/> 
-                         <input type="button" value="Origin"  onClick="jmcenterorigin()"/> 
+                         <input type="button" value="Center Origin"  onClick="jmcenterorigin()"/> 
                          <input type="button" value="Console" onClick="jms0('console;')"/> 
                          <input type="button" value="Reset pointer"  onClick="jmresetPointer()"/> 
                       </td>
