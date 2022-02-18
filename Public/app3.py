@@ -805,6 +805,7 @@ def get_esmiles2xyz(esmiles0):
        ddrand = random.randint(0,999999)
        xyzfile   = wrkdir + "/jjarrows-%d.xyz" % ddrand
        cmd7 = esmiles2xyz + "-s " + '\"' + esmiles0 + '\" ' + xyzfile
+       print("CMD7:",cmd7)
        data = subprocess.check_output(cmd7,shell=True).decode("utf-8")
        os.unlink(xyzfile)
     except:

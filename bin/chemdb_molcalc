@@ -199,7 +199,7 @@ try:
          bbr = []
          bbt = []
          bbp = []
-         for b in range(nb/3):
+         for b in range(int(nb/3)):
             i = bondings[3*b+1]
             j = bondings[3*b+2]
             sb = 1
