@@ -12139,7 +12139,7 @@ ul, li {
 
         function definesecret() {
            var sc = document.getElementById("machine").value.trim();
-           if ((sc=="cascade") || (sc=="ccs-knl0") || (sc=="we31869") || (sc=="econstance") || (sc=="theta") || (sc=="erichome")) { 
+           if ((sc=="etahoma") || (sc=="ccs-knl0") || (sc=="we31869") || (sc=="econstance") || (sc=="theta") || (sc=="erichome") || (sc=="ilton_tahoma")) { 
               document.getElementById("queue_secret_code").value = "xxxxxxxx";
            } else {
               document.getElementById("queue_secret_code").value = "";
@@ -12150,7 +12150,8 @@ ul, li {
            if (sc.includes("gulfport")) { ncpus="32";}
            if (sc.includes("aerosol"))  { ncpus="32";}
            if (sc.includes("samsung"))  { ncpus="32";}
-           if (sc.includes("cascade"))  { ncpus="64";}
+           if (sc.includes("etahoma"))  { ncpus="36";}
+           if (sc.includes("ilton_tahoma"))  { ncpus="36";}
            if (sc.includes("theta"))    { ncpus="64";}
            if (sc.includes("ccs-knl0")) { ncpus="68";}
            if (sc.includes("we31869")) { ncpus="6";}
@@ -12158,6 +12159,9 @@ ul, li {
 
            if (sc.includes("econstance")) { 
                document.getElementById("queue_nwchem_curdir0").value =  "we31869.emsl.pnl.gov:/media/seagate2/Projects/Eric/mq_simulations";
+           }
+           if (sc.includes("ilton_tahoma")) { 
+               document.getElementById("queue_nwchem_curdir0").value =  "we31869.emsl.pnl.gov:/home/bylaska/Projects/Eric/BES";
            }
            if (sc.includes("theta")) { 
                document.getElementById("queue_nwchem_curdir0").value =  "we31869.emsl.pnl.gov:/media/seagate2/Projects/Eric/Theta";
@@ -12381,7 +12385,8 @@ ul, li {
                 <option value="aerosol3">aerosol3</option>
                 <option value="aerosol4">aerosol4</option>
                 <option value="aerosol5">aerosol5</option>
-                <option value="cascade">cascade</option>
+                <option value="etahoma">etahoma</option>
+                <option value="ilton_tahoma">ilton_tahoma</option>
                 <option value="econstance">econstance</option>
                 <option value="theta">theta</option>
                 <option value="ccs-knl0">ccs-knl0</option>
