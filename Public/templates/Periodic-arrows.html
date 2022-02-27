@@ -446,10 +446,12 @@ ul, li {
 
    function finish_Thomas_command(finalstr) {
       console.log("finish_Thomas_command:", finalstr);
-      document.getElementById('apirunning').innerHTML= finalstr;
+      //document.getElementById('apirunning').innerHTML= finalstr;
+      document.getElementById('apirunning').value= finalstr;
       run_next_queueThomas();
       if (window.queueThomas_cur >= window.queueThomas_length) {
-         document.getElementById('apirunning').innerHTML = "";
+         //document.getElementById('apirunning').innerHTML = "";
+         document.getElementById('apirunning').value = "";
          window.queuerunning = false;
       }
    }
@@ -624,7 +626,7 @@ ul, li {
       }
       else if (txt.includes("switch") && txt.includes("reaction")) { jmreactionplane(); finish_Thomas_command("Thomas switch reaction");}
       else if (txt.includes("unit cell") && txt.includes("on")) { jmshowcell0(true); Text2Speech0("unit cell is on"); finish_Thomas_command("Thomas turn on unit cell");}
-      else if (txt.includes("unit cell") && txt.includes("off")) { jmshowcell(false); Text2Speech0("unit cell is off"); finish_Thomas_command("Thomas turn off unit cell");}
+      else if (txt.includes("unit cell") && txt.includes("off")) { jmshowcell0(false); Text2Speech0("unit cell is off"); finish_Thomas_command("Thomas turn off unit cell");}
       else if (txt.includes("unit cell") && txt.includes("center")) { 
          Text2Speech0("unit cell is centered"); 
          jmscentercell0(true); 
@@ -744,6 +746,16 @@ ul, li {
          jmaddsmiles(vvv,2);
          //finish_Thomas_command("Thomas add smiles");
       }
+      else if ((txt.includes("append")) && (txt.includes("frame")) ) {  
+         document.getElementById('apirunning').value += "+ running jsmol script\n";
+         var ScriptCallback_scpt = 'set echoCallback \"hScriptCallback\";';
+         jms0(ScriptCallback_scpt);
+
+         Text2Speech0(txt0);
+         var vvv = txt0.split("frame")[1].trim();
+         loadframe2jsmol(false,true,parseInt(vvv));
+         //finish_Thomas_command("Thomas append frame");
+      }
       else if (txt.includes("append")) {  
          var mol = txt.replace("append","").trim();
          Text2Speech0(mol + " is appended");
@@ -796,10 +808,14 @@ ul, li {
          finish_Thomas_command("Thomas execute");
       }
       else if (txt.includes("supercell")) {  
+         document.getElementById('apirunning').value += "+ running jsmol script\n";
+         var ScriptCallback_scpt = 'set echoCallback \"hScriptCallback\";';
+         jms0(ScriptCallback_scpt);
+
          Text2Speech0(txt0);
          var vvv = txt.split("supercell")[1].trim(); console.log("vvv=",vvv); 
          jmssupercell(vvv);
-         finish_Thomas_command("Thomas supercell");
+         //finish_Thomas_command("Thomas supercell");
       }
       else if (txt.includes("reset") && txt.includes("text")) {  
          Text2Speech0(txt0);
@@ -843,7 +859,7 @@ ul, li {
       else if (txt.includes("set") && txt.includes("radio")) {  
          Text2Speech0(txt0);
          var vvv = txt0.split("radio")[1].trim();
-         var xxx = vvv.split(" ")[0];
+         var xxx = vvv.split(" ")[0].trim();
          var yyy = vvv.replace(xxx,"").trim();
          if (yyy.includes("true")) {
             document.getElementById(xxx).checked = true;
@@ -854,7 +870,8 @@ ul, li {
       }
       else if (txt.includes("build") && txt.includes("reactants from chemical reaction")) {  
          Text2Speech0(txt0);
-         appendreactants2jsmol(document.getElementById('reaction_genhash00').value,2,false);
+         appendreactants2jsmol(document.getElementById('reaction_genhash00').value,2,
+                               document.getElementById('check_buildreactants').checked);
       }
       else if (txt.includes("generate") && txt.includes("chemical reaction hash")) {  
          Text2Speech0(txt0);
@@ -878,9 +895,13 @@ ul, li {
          solvatewhaminput(xx,finish_Thomas_command);
       }
       else if (txt.includes("generate") && txt.includes("bulk") && txt.includes("crystal")) {  
+         document.getElementById('apirunning').value += "+ running jsmol script\n";
+         var ScriptCallback_scpt = 'set echoCallback \"hScriptCallback\";';
+         jms0(ScriptCallback_scpt);
+
          loadbulktojsmol();
          Text2Speech0(txt0);
-         finish_Thomas_command("Thomas generate bulk crystal");
+         //finish_Thomas_command("Thomas generate bulk crystal");
       }
       else if (txt.includes("generate") && txt.includes("surface")) {  
          Text2Speech0(txt0);
@@ -2415,6 +2436,7 @@ ul, li {
            if (centeron) { scpt += "unitcell {-0.5 -0.5 -0.5};"; }
            if (cellon) { jms(scpt); }
            if (scoords) {jmsetcoordboxes();}
+           jms0('echo "finished jmcellchange";')
         }
 
         // ****************************
@@ -2453,7 +2475,7 @@ ul, li {
         var xyzframes_ntotal = 1;
         var xyzframes_cur = 0;
         var xyzframes = [];
-        function loadframe2jsmol(addmodel,append) {
+        function loadframe2jsmol(addmodel,append,fn) {
            var a1,a2,a3,xyzcell;
            var xyzdat = jmvar("data({1.1},\"xyz\")");
            var nion = xyzdat.trim().split("\n").length;
@@ -2471,17 +2493,27 @@ ul, li {
            orient     =  "reset; " + orient.split("reset;")[1];
 
            if (append) {
-              var amodel   =  parseFloat(prompt("Please enter model to append:", (1+(window.xyzframes_cur+1) % window.xyzframes_ntotal)));
+              var amodel = fn;
+              //var  amodel = parseInt(prompt("Please enter model to append:", (1+(window.xyzframes_cur+1) % window.xyzframes_ntotal)));
+              if (amodel<1) {
+                 amodel = parseInt(prompt("Please enter model to append:", (1+(window.xyzframes_cur+1) % window.xyzframes_ntotal)));
+              }
               amodel -= 1;
               var xyzcell1 = window.xyzframes[amodel];
               var xyzdat1 = "\"append\"|" + xyzcell1[0].trim().replace(/\n/g,' | ') + "|end \"append\"";
               jms("set appendNew false; data "+xyzdat1);
 
-               if (confirm("Merging lattice from model " + (amodel+1).toString() + "?")){
+               if (fn==1) {
                  document.getElementById("lattice_a1").value = xyzcell1[1];
                  document.getElementById("lattice_a2").value = xyzcell1[2];
                  document.getElementById("lattice_a3").value = xyzcell1[3];
-              }
+               } else {
+                  if (confirm("Merging lattice from model " + (amodel+1).toString() + "?")){
+                    document.getElementById("lattice_a1").value = xyzcell1[1];
+                    document.getElementById("lattice_a2").value = xyzcell1[2];
+                    document.getElementById("lattice_a3").value = xyzcell1[3];
+                  }
+               }
 
            } else {
               var nframes = window.xyzframes.length;
@@ -2857,6 +2889,7 @@ ul, li {
         // *                          *
         // ****************************
         function jmsfetchucell() { 
+     
            var ucell = jmvar("unitcell()");
            var cntr = ucell[0];
            var a1 = ucell[1];
@@ -3191,7 +3224,7 @@ ul, li {
            }
            let mdappend = mdparam.includes("mdappend");
 
-           if (mdappend) {loadframe2jsmol(true,false);}
+           if (mdappend) {loadframe2jsmol(true,false,0);}
 
 
            console.log("MDPARAM:");
@@ -6441,17 +6474,17 @@ ul, li {
               document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running appendreactants2jsmol\n","");
               document.getElementById('nwchemcharge').value = charge_arrowsdata();
               document.getElementById('nwchemmult').value   = mult_arrowsdata();
-              jms('unset echoCallback');
+              jms0('set echoCallback ""');
            }
         }
 
         function hcleanappendreactants2jsmol2(xx,yy) {
-           console.log("HELLLO: ", xx,yy);
+           console.log(" hcleanappendreactants2jsmol2: ", xx,yy);
            if (yy.contains("Step 100") ||  yy.contains("CONVERGED")) {
               document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running appendreactants2jsmol\n","");
               document.getElementById('nwchemcharge').value = charge_arrowsdata();
               document.getElementById('nwchemmult').value   = mult_arrowsdata();
-              jms('unset echoCallback');
+              jms0('set echoCallback ""');
               finish_Thomas_command("Thomas appendreactants2jsmol");
            }
         }
@@ -6462,28 +6495,37 @@ ul, li {
               document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running appendreactants2jsmol\n","");
               document.getElementById('nwchemcharge').value = charge_arrowsdata();
               document.getElementById('nwchemmult').value   = mult_arrowsdata();
-              jms('unset echoCallback');
-              loadframe2jsmol(false,true);
+              jms0('set echoCallback ""');
+              loadframe2jsmol(false,true,0);
+           }
+        }
+
+        function hScriptCallback(xx,yy) {
+           console.log("hScriptCallback: ", xx,yy);
+           if (yy.contains("finished jmcellchange")) {
+              document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running jsmol script\n","");
+              jms0('set echoCallback ""');
+              finish_Thomas_command("Thomas jsmol script");
            }
         }
 
         function hcleanaddsmiles() {
-           jms('unset echoCallback');
+           jms0('set echoCallback ""');
         }
 
         function hcleanaddsmiles2() {
            console.log("HCLEANADDSMILES2");
-           jms('unset echoCallback');
+           jms0('set echoCallback ""');
            finish_Thomas_command("Thomas add smiles");
         }
 
         function hcleancutslab() {
-           jms('unset echoCallback');
+           jms('set echoCallback ""');
         }
 
         function hcleancutslab2() {
            console.log("HCLEANCUTSLAB2");
-           jms('unset echoCallback');
+           jms0('set echoCallback ""');
            finish_Thomas_command("Thomas generate surface");
         }
 
@@ -6505,7 +6547,7 @@ ul, li {
                  document.getElementById("bulk_atoms").value = "";
                  let molecule_str = exModXYZ();                                                                                                 
                  pre_nion = parseInt(molecule_str.split("\n")[0].trim());
-                 loadframe2jsmol(true,false);
+                 loadframe2jsmol(true,false,0);
               }
 
               for (i=0; i<nr; ++i) {
@@ -6521,10 +6563,16 @@ ul, li {
 
                  jms(scpt); 
               }
+              console.log("append reactant....OPT=",opt, "  append=",append);
               if ((opt==1) && (!append)) {
                  jms('select nonmetal;minimize steps 100; select *; wireframe 0.15; spacefill 23%; boundbox {*}; centerat boundbox; zoom 0; set echoCallback \"hcleanappendreactants2jsmol\"; javascript echo(globalVar);');
               } else if ((opt==1) && (append)) {
                  jms('select nonmetal;minimize steps 100; select *; wireframe 0.15; spacefill 23%; boundbox {*}; centerat boundbox; zoom 0; set echoCallback \"hcleanappendreactants2jsmol\"; javascript echo(globalVar);');
+              }
+              if ((opt==2) && (!append)) {
+                 jms0('select nonmetal;minimize steps 100; select *; wireframe 0.15; spacefill 23%; boundbox {*}; centerat boundbox; zoom 0; set echoCallback \"hcleanappendreactants2jsmol2\"; javascript echo(globalVar);');
+              } else if ((opt==2) && (append)) {
+                 jms0('select nonmetal;minimize steps 100; select *; wireframe 0.15; spacefill 23%; boundbox {*}; centerat boundbox; zoom 0; set echoCallback \"hcleanappendreactants2jsmol2\"; javascript echo(globalVar);');
               }
 
 
@@ -11579,7 +11627,7 @@ ul, li {
            if (bondings.contains("spring  bondings K gamma")) {
               document.getElementById('apirunning').value += "+ running gen_reaction_path\n";
               document.getElementById('runmebanner4p').innerHTML= "Generating reaction path";
-              loadframe2jsmol(false,false);
+              loadframe2jsmol(false,false,0);
               var jjj = bondings.split("spring  bondings K gamma")[1].split("\n")[0].trim().split(/[ ,]+/);
               var nb = jjj.length/3;
               console.log("jjj=",jjj);
@@ -11784,7 +11832,7 @@ ul, li {
            if (bondings.contains("spring  bondings K gamma")) {
               document.getElementById('apirunning').value += "+ running gen_wham_model\n";
               document.getElementById('runmebanner4p').innerHTML= "Generating reaction path";
-              //loadframe2jsmol(false,false);
+              //loadframe2jsmol(false,false,0);
               var jjj = bondings.split("spring  bondings K gamma")[1].split("\n")[0].trim().split(/[ ,]+/);
               var nb = jjj.length/3;
               console.log("jjj=",jjj);
@@ -13123,11 +13171,11 @@ ul, li {
                          <br>
                          <textarea  name="MD_parameters" id="MD_parameters" rows="4" cols="40" oninput="cacheInput(this)"></textarea>
                          <br>
-                         <input type="button" value="Next model" onClick="loadframe2jsmol(false,false)" title="Next xyzframe"/>
+                         <input type="button" value="Next model" onClick="loadframe2jsmol(false,false,0)" title="Next xyzframe"/>
                          <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false)" title="Previous xyzframe"/>
-                         <input type="button" value="New model" onClick="loadframe2jsmol(true,false)" title="Add new xyzframe"/>
+                         <input type="button" value="New model" onClick="loadframe2jsmol(true,false,0)" title="Add new xyzframe"/>
                          <br>
-                         <input type="button" value="Append model" onClick="loadframe2jsmol(false,true)" title="Append new xyzframe"/>
+                         <input type="button" value="Append model" onClick="loadframe2jsmol(false,true,0)" title="Append new xyzframe"/>
                          <input type="button" value="Delete model" onClick="deleteframe2jsmol()" title="Delete current xyz frame"/>
                          <b style="color: blue; font-size: 14px;" id="model_label">Model 1 out of 1</b>
                          <br>
@@ -13283,11 +13331,11 @@ ul, li {
                    <br>
                    <input type="button" id="button_buildreactants" VALUE="Build reactants from chemical reaction" 
                           onClick="appendreactants2jsmol(document.getElementById('reaction_genhash00').value,1,
-                                                         document.getElementById('append_buildreactants').checked)"
+                                                         document.getElementById('check_buildreactants').checked)"
                           title="Loads the reactants into jsmol from the chemical reaction input box"/>
                    <input type="3array" id="translate_reactants"  size="10" oninput="cacheInput(this)">
-                   append: <input type="radio" id="append_buildreactants" onClick="ClearRd(this,13)"
-                              title="Thomas: set radio append_buildreactants : Append reactants from chemmical reaction"/>
+                   append: <input type="radio" id="check_buildreactants" onClick="ClearRd(this,13)"
+                              title="Thomas: set radio check_buildreactants : Append reactants from chemmical reaction"/>
                    <br><br> 
                    reaction_hash 
                       <input type="button" id="button_genrhash" VALUE="Generate reaction hash from chemical reaction" onClick="gen_rhash2(dummy_callback)"
@@ -13387,18 +13435,18 @@ ul, li {
                           title="Generate a new xyz model by morphing 3 point reaction path"/>
 
                    <input type="button" value="Generate WHAM input" 
-                          onClick="if (document.getElementById('append_buildreactants').checked) {
+                          onClick="if (document.getElementById('check_buildreactants').checked) {
                                       if (confirm('Do you want to append the initial model?')){
-                                         loadframe2jsmol(false,true);
+                                         loadframe2jsmol(false,true,0);
                                       }
                                    }
                                    jmoltoeditor();convert2geometry(false);addreactionconstraint(true);addcpmd(false,'','');" 
                           title="Load next xyz model into jsmol"/>
 
                    <input type="button" value="Generate solvated WHAM input" 
-                          onClick="if (document.getElementById('append_buildreactants').checked) {
+                          onClick="if (document.getElementById('check_buildreactants').checked) {
                                       if (confirm('Do you want to append the initial model?')){
-                                         loadframe2jsmol(false,true);
+                                         loadframe2jsmol(false,true,0);
                                       }
                                    }
                                    solvatewhaminput(-1.0,dummy_callback);" 
@@ -13425,15 +13473,15 @@ ul, li {
                       npath:
                          <input type="number" id="reaction_npath" SIZE=9   min="2" max="1000" step="1" value="1" 
                                 title="Thomas: set number reaction_npath :" oninput="cacheInput(this)"> 
-                      <input type="button" value="Next model" onClick="loadframe2jsmol(false,false);check_rgamma();" 
+                      <input type="button" value="Next model" onClick="loadframe2jsmol(false,false,0);check_rgamma();" 
                              style="font-size:13px;background-color:#f8f8ff;color:#385970"
                              title="Load next xyz model into jsmol"/>
                       <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false);check_rgamma();" 
                              style="font-size:13px;background-color:#f8f8ff;color:#385970"
                              title="Load previous xyz xyz model into jsmol"/>
-                      <input type="button" value="New model" onClick="loadframe2jsmol(true,false)" title="Add new xyzframe"/>
+                      <input type="button" value="New model" onClick="loadframe2jsmol(true,false,0)" title="Add new xyzframe"/>
                       <br>
-                      <input type="button" value="Append model" onClick="loadframe2jsmol(false,true)" title="Append new xyzframe"/>
+                      <input type="button" value="Append model" onClick="loadframe2jsmol(false,true,0)" title="Append new xyzframe"/>
                       <input type="button" value="Delete model" onClick="deleteframe2jsmol()" title="Delete current xyz frame"/>
                       <b style="color: blue; font-size: 14px;" id="model_label2">Model 1 out of 1</b> 
 
@@ -13653,7 +13701,7 @@ ul, li {
                   <tr><td align="center" style="color:#102DB0"> Bulk-Surface Builders <br><br> </td> </tr>
                   <tr>
                      <td>
-                        <input type="button" VALUE="Generate simple bulk crystal" style="font-size:13px;background-color:#f8f8ff;color:#0000ff" onClick="loadbulktojsmol()" title="Load xyz data from url into jsmol"/>
+                        <input type="button" VALUE="Generate simple bulk crystal" style="font-size:13px;background-color:#f8f8ff;color:#0000ff" onClick="loadbulktojsmol()" title="Generate a bulk crystal and load it into jsmol"/>
                         <input type="button" class="button" id="supercell"  value="Supercell" onClick="jmssupercell('')"/>
                         <input type="button" class="button" id="centercell1" value="Center" onClick="jmscentercell()"/> 
                      </td>

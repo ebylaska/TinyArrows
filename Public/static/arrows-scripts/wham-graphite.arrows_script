@@ -1,0 +1,46 @@
+comments: This script defines the input for a WHAM AIMD/MM simulation on graphene :comments
+
+default_args: "TNT + hydroxide --> TNT-4-OH + nitrite" finegrid-pbe-TNT-4-OH ericlaptop:/Projects/SERDP/Graphene/WHAM 7.5 0.10 10.0 1000 pbe :default_args
+
+Delete all models;
+Set text reaction_genhash00 $arg1;
+Set text queue_nwchem_projectname $arg2;
+Set number umbrella_spring $arg5;
+Set number umbrella_gamma $arg4;
+Set text xc_type $arg8;
+
+Set text queue_nwchem_jobname wham-rxn;
+Set text queue_nwchem_curdir0 $arg3;
+
+Set text bulk_name C;
+Set text bulk_type graphene;
+Set number bulk_a 2.46;
+Set number bulk_b 0.00;
+Set number bulk_c 20.00;
+Set number bulk_alpha 0.00;
+Set number bulk_u 0.00;
+Set radio bulk_primitive false;
+Set radio bulk_cubic true;
+
+Set radio check_buildreactants true;
+Set radio wham_posteriori true;
+
+Generate bulk crystal;
+Supercell 5 5 1;
+
+Build reactants from chemical reactions;
+Generate chemical reaction hash;
+Search reaction constraints using reaction hash;
+Generate wham model;
+Append frame 1;
+Generate solvated wham input -1.0;
+
+Car-Parrinello
+     temperature{300.0} 
+     fake_mass{750.0} 
+     time_step{5.0} 
+      iloop{10} oloop{$arg7} 
+      stime0{$arg6}
+      motion_name{tequil};
+
+
