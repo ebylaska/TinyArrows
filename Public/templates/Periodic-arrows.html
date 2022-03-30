@@ -1291,6 +1291,35 @@ ul, li {
          //jm_cmdlist_add();
       }
 
+      function jmolsetLoadStruct() {
+         console.log("setting HCLEANLOADSTRUCT");
+         jms0('set LoadStructCallback \"hcleanloadstruct\";');
+      }
+
+      function hcleanloadstruct(xx,yy,zz) {
+         console.log("HCLEANDEFAULTLOAD",xx, " yy=",yy, " zz=",zz);
+         if (zz.includes(".cif")) {
+            console.log("Loaded CIF file");
+         }
+         var hasunitcell = jmvar("_.keys").includes("someModelsHaveUnitcells");
+         if (hasunitcell) {
+            var ttt = jmvar("_m.unitCellParams[1][6]");
+            document.getElementById("cell_a").value = ttt[0];
+            document.getElementById("cell_b").value = ttt[1];
+            document.getElementById("cell_c").value = ttt[2];
+            document.getElementById("cell_alpha").value = ttt[3];
+            document.getElementById("cell_beta").value  = ttt[4];
+            document.getElementById("cell_gamma").value = ttt[5];
+
+            var lattice = abcabg_to_lattice(ttt[0],ttt[1],ttt[2],ttt[3],ttt[4],ttt[5]);
+            document.getElementById("lattice_a1").value =  vec3_to_string3(lattice[0]);
+            document.getElementById("lattice_a2").value =  vec3_to_string3(lattice[1]);
+            document.getElementById("lattice_a3").value =  vec3_to_string3(lattice[2]);
+         }
+         jmsetcoordboxes();
+         //jms0(scpt);
+      }
+
         function convertMOL2XYZ(str) {
            var i,n,x,data;
            var lines = str.split("\n");
@@ -2480,6 +2509,10 @@ ul, li {
            var xyzdat = jmvar("data({1.1},\"xyz\")");
            var nion = xyzdat.trim().split("\n").length;
            xyzdat = nion + "\n\n" + xyzdat;
+
+           var ttt = jmvar("_someModelsHaveUnitcells");
+           var ttt = jmvar("_m.unitCellParams[1][6]");
+
            var a1 = document.getElementById("lattice_a1").value;
            var a2 = document.getElementById("lattice_a2").value;
            var a3 = document.getElementById("lattice_a3").value;
@@ -3127,6 +3160,7 @@ ul, li {
             }
         }
 
+
         function jmsmiles() { 
             jms("load smiles \"" + document.JME.smiles().replace('>>','.') + "\""); 
             var hasreaction = document.getElementById("jmolreactionplane").value == "Reaction off";
@@ -3148,7 +3182,7 @@ ul, li {
            var xyzdat0 = jmvar("data({1.1},\"xyz\")").trim();
            var nion = xyzdat0.split("\n").length;
            var cellon = document.getElementById("showcell").value == "Unit cell off";
-     
+
            var xyzdat = nion + "\n";
            if (cellon) {
               xyzdat += document.getElementById("lattice_a1").value + " ";
@@ -6508,6 +6542,7 @@ ul, li {
               finish_Thomas_command("Thomas jsmol script");
            }
         }
+
 
         function hcleanaddsmiles() {
            jms0('set echoCallback ""');
@@ -12393,7 +12428,7 @@ ul, li {
 </head>
 
 
-<body onload="jmolOnLoad();cacheLoadAll();changefreeenergy();changecollectivecoords();">
+<body onload="jmolOnLoad();cacheLoadAll();changefreeenergy();changecollectivecoords();jmolsetLoadStruct();">
 
 <!--div class="linkbanner">
    <a href="https://arrows.emsl.pnnl.gov/api"><img src="https://dl.dropboxusercontent.com/s/s5fof263qwxzcaq/EMSLArrows2019.png" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a> 
@@ -14855,7 +14890,7 @@ Encode image to base64:
 
 
 <br>
-<input type="button" VALUE="Save to file" onClick="savenotefile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+<input type="button" VALUE="Save to file" onClick="savenotefile(document.getElementById('notedbname').value)" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
 <input type="button" VALUE="Load selected file" onClick="loadnotefile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
 <input type="file" id="noteToLoad" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold">
 <br>
@@ -14906,7 +14941,9 @@ var joditeditor = new Jodit('#joditeditor', {
     extraButtons: [
         {
             name: 'insertDate',
-            iconURL: "{{ url_for('static', filename='arrows-static/iconfinder_History_132755.png')}}",
+            iconURL: "{{ url_for('static', filename='arrows-static/icons8-timestamp-67.png')}}",
+            //iconURL: "{{ url_for('static', filename='arrows-static/date-time.png')}}",
+            //iconURL: "{{ url_for('static', filename='arrows-static/iconfinder_History_132755.png')}}",
             //iconURL: '/arrows-static/iconfinder_History_132755.png',
             exec: function (editor) {
                 editor.selection.insertHTML((new Date).toUTCString());
@@ -14917,12 +14954,18 @@ var joditeditor = new Jodit('#joditeditor', {
 //joditeditor.setEditorValue('The World is flat <p>start</p>');
 
 
-function savenotefile() {
+function savenotefile(filename) {
    var textToSave = joditeditor.getEditorValue();
-   var filenameguess = "arrows.note";
+   var fileNameToSaveAs;
+   if (filename.length>0) {
+      fileNameToSaveAs = prompt("Please enter filename:", filename);
+   } else {
+      var filenameguess = "arrows.note";
+      fileNameToSaveAs = prompt("Please enter filename:", filenameguess);
+   }
+
    var textToSaveAsBlob = new Blob([textToSave], {type:"text/plain"});
    var textToSaveAsURL  = window.URL.createObjectURL(textToSaveAsBlob);
-   var fileNameToSaveAs =  prompt("Please enter filename:", filenameguess);
 
    var downloadLink = document.createElement("a");
    downloadLink.download = fileNameToSaveAs;
