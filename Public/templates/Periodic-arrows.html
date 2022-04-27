@@ -2506,7 +2506,8 @@ ul, li {
         var xyzframes = [];
         function loadframe2jsmol(addmodel,append,fn) {
            var a1,a2,a3,xyzcell;
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            var nion = xyzdat.trim().split("\n").length;
            xyzdat = nion + "\n\n" + xyzdat;
 
@@ -2576,7 +2577,8 @@ ul, li {
         function prevframe2jsmol() {
            if (window.xyzframes_ntotal>1) {
               var a1,a2,a3,xyzcell;
-              var xyzdat = jmvar("data({1.1},\"xyz\")");
+              //var xyzdat = jmvar("data({1.1},\"xyz\")");
+              var xyzdat = jmvar("data({thisModel},\"xyz\")");
               var nion = xyzdat.trim().split("\n").length;
               xyzdat = nion + "\n\n" + xyzdat;
               var a1 = document.getElementById("lattice_a1").value;
@@ -2744,7 +2746,8 @@ ul, li {
            console.log("supercell n3=",n3);
            var ss,symb,f1,f2,f3,x,y,z,y0,z0;
            var centeron = document.getElementById("centercell").value == "Center";
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            console.log("supercell xyzdat=",xyzdat);
            if (xyzdat.includes('Mt')) {
               var ss = xyzdat.split('\n');
@@ -2855,7 +2858,8 @@ ul, li {
            var ss,symb,f1,f2,f3,x,y,z;
            var ucell = jmsfetchucell();
            var centeron = document.getElementById("centercell").value == "Center";
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            if (xyzdat.includes('Mt')) {
               var ss = xyzdat.split('\n');
               xyzdat = ''
@@ -2960,7 +2964,8 @@ ul, li {
         function jmsetcoordboxes() { 
            console.log("IN JMSETCOORDBOXES");
            var ss,symb,x,y,z,fx,fy,fz;
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            if (xyzdat.includes('Mt')) {
               var ss = xyzdat.split('\n');
               xyzdat = ''
@@ -3179,7 +3184,8 @@ ul, li {
             return jmstr("extractModel");
          }
         function exModXYZ() { 
-           var xyzdat0 = jmvar("data({1.1},\"xyz\")").trim();
+           //var xyzdat0 = jmvar("data({1.1},\"xyz\")").trim();
+           var xyzdat0 = jmvar("data({thisModel},\"xyz\")").trim();
            var nion = xyzdat0.split("\n").length;
            var cellon = document.getElementById("showcell").value == "Unit cell off";
 
@@ -3714,7 +3720,8 @@ ul, li {
 
            var nframes = window.xyzframes.length;
            if (nframes<window.xyzframes_ntotal) {
-              xyz = jmvar("data({1.1},\"xyz\")");
+              //xyz = jmvar("data({1.1},\"xyz\")");
+              xyz = jmvar("data({thisModel},\"xyz\")");
               nion = xyz.trim().split("\n").length;
               xyz  = nion + "\n\n" + xyz;
               a1 = document.getElementById("lattice_a1").value;
@@ -4816,7 +4823,8 @@ ul, li {
            a3 = [parseFloat(ss[0]), parseFloat(ss[1]), parseFloat(ss[2])];
 
            //tmp = document.getElementById("cartesianCoords").value.trim().split("\n");
-           tmp = jmvar("data({1.1},\"xyz\")").trim().split("\n");
+           //tmp = jmvar("data({1.1},\"xyz\")").trim().split("\n");
+           tmp = jmvar("data({thisModel},\"xyz\")").trim().split("\n");
            atoms = [];
            for (i=0; i<tmp.length; ++i) {
               ss = tmp[i].trim().split(/[ ,]+/); 
@@ -5382,7 +5390,8 @@ ul, li {
            document.getElementById('apirunning').value += "+ running solvateurltojsmol\n";
            document.getElementById('runmebanner4b').innerHTML= "Solvation calculation started.";
 
-           var xyz = jmvar("data({1.1},\"xyz\")").trim();
+           //var xyz = jmvar("data({1.1},\"xyz\")").trim();
+           var xyz = jmvar("data({thisModel},\"xyz\")").trim();
            xyz = " xyzdata{" + xyz.trim().replace(/\n/g,' | ') + "} theory{aimd-mm}";
            xyz += " ^{"+ charge_arrowsdata()+"}";
            xyz += " mult{"+ mult_arrowsdata()+"}";
@@ -5646,7 +5655,8 @@ ul, li {
            document.getElementById('runmebanner4b').innerHTML= "Solvation calculation started.";
            document.getElementById('apirunning').value += "+ running solvatewhaminput\n";
 
-           var xyz = jmvar("data({1.1},\"xyz\")").trim();
+           //var xyz = jmvar("data({1.1},\"xyz\")").trim();
+           var xyz = jmvar("data({thisModel},\"xyz\")").trim();
            xyz = " xyzdata{" + xyz.trim().replace(/\n/g,' | ') + "} theory{aimd-mm}";
            xyz += " ^{"+ charge_arrowsdata()+"}";
            xyz += " mult{"+ mult_arrowsdata()+"}";
@@ -6296,7 +6306,8 @@ ul, li {
 
         function charge_arrowsdata() {
            var arrows_input = document.form.smi.value;
-           var charge  = eval(jmvar("{*}.formalCharge.sum"));
+           //var charge  = eval(jmvar("{*}.formalCharge.sum"));
+           var charge  = eval(jmvar("{thisModel}.formalCharge.sum"));
            var charge0 = document.getElementById("nwchemcharge").value;
            if (arrows_input.includes("^{")) {
               charge = eval(arrows_input.split("^{")[1].split("}")[0].trim());
@@ -6309,7 +6320,8 @@ ul, li {
         }
         function mult_arrowsdata() {
            var arrows_input = document.form.smi.value;
-           var charge  = eval(jmvar("{*}.formalCharge.sum"));
+           //var charge  = eval(jmvar("{*}.formalCharge.sum"));
+           var charge  = eval(jmvar("{thisModel}.formalCharge.sum"));
            var charge0 = eval(document.getElementById("nwchemcharge").value);
            if (arrows_input.includes("^{")) {
               charge = eval(arrows_input.split("^{")[1].split("}")[0].trim());
@@ -6318,7 +6330,8 @@ ul, li {
                  charge = charge0;
               }
            }
-           var mult  = (eval(jmvar("{*}.elemno.sum")) + charge) % 2 + 1;
+           //var mult  = (eval(jmvar("{*}.elemno.sum")) + charge) % 2 + 1;
+           var mult  = (eval(jmvar("{thisModel}.elemno.sum")) + charge) % 2 + 1;
            var odd0  = ((mult%2)==1);
            var mult0 = document.getElementById("nwchemmult").value;
            if (arrows_input.includes("mult{")) {
@@ -6730,7 +6743,8 @@ ul, li {
 	function appendSmiles2() {
                 //jms("xxsmiles = {1.1}.find(\"SMILES\");");
                 //var drawing = jmvar("xxsmiles");
-                var drawing = jmvar("{1.1}.find(\"SMILES\")");
+                //var drawing = jmvar("{1.1}.find(\"SMILES\")");
+                var drawing = jmvar("{thisModel}.find(\"SMILES\")");
                 //var re = /\./g;
                 //drawing = drawing.replace(re, " + ");
                 drawing = drawing.replace(">>"," --> ");
@@ -6749,7 +6763,8 @@ ul, li {
               var geom0 = geombonds.trim().split("\n").slice(0,nion);
               var bond0 = geombonds.trim().split("\n").slice(nion,nion+nbond);
               var graph0 = Array.apply(null, Array(nion*nion)).map(Number.prototype.valueOf,0);
-              var charge0 =  jmvar("{*}.formalCharge.all");
+              //var charge0 =  jmvar("{*}.formalCharge.all");
+              var charge0 =  jmvar("{thisModel}.formalCharge.all");
               for (i=0; i<bond0.length; ++i) {
                  tmp = bond0[i].trim().split(/[ ,]+/);
                  ii = eval(tmp[0])-1;
@@ -6818,7 +6833,8 @@ ul, li {
               }
            } else {
                 var charge  = charge_arrowsdata();
-                var xyzdat  = jmvar("data({1.1},\"xyz\")");
+                //var xyzdat  = jmvar("data({1.1},\"xyz\")");
+                var xyzdat  = jmvar("data({thisModel},\"xyz\")");
                 if (xyzdat.includes('Mt')) {
                    var ss = xyzdat.split('\n');
                    xyzdat = ''
@@ -7283,8 +7299,10 @@ ul, li {
  
            
            // Add Header
-           var katom    = jmvar("{*}.find(\"MF\")").replace(/[0-9]/g,'').trim().split(/[ ,]+/);
-           var mformula = jmvar("{*}.find(\"MF\")").replace(/ /g,'');
+           //var katom    = jmvar("{*}.find(\"MF\")").replace(/[0-9]/g,'').trim().split(/[ ,]+/);
+           //var mformula = jmvar("{*}.find(\"MF\")").replace(/ /g,'');
+           var katom    = jmvar("{thisModel}.find(\"MF\")").replace(/[0-9]/g,'').trim().split(/[ ,]+/);
+           var mformula = jmvar("{thisModel}.find(\"MF\")").replace(/ /g,'');
            var theory  = theory_arrowsdata();
            var basis   = basis_arrowsdata();
            var basisHZ = basisHZ_arrowsdata();
@@ -8023,8 +8041,10 @@ ul, li {
         // *                          *
         // ****************************
 	function generatereactionjob() {
-           var katom    = jmvar("{*}.find(\"MF\")").replace(/[0-9]/g,'').trim().split(/[ ,]+/);
-           var mformula = jmvar("{*}.find(\"MF\")").replace(/ /g,'');
+           //var katom    = jmvar("{*}.find(\"MF\")").replace(/[0-9]/g,'').trim().split(/[ ,]+/);
+           //var mformula = jmvar("{*}.find(\"MF\")").replace(/ /g,'');
+           var katom    = jmvar("{thisModel}.find(\"MF\")").replace(/[0-9]/g,'').trim().split(/[ ,]+/);
+           var mformula = jmvar("{thisModel}.find(\"MF\")").replace(/ /g,'');
            var theory  = theory_arrowsdata();
            var basis   = basis_arrowsdata();
            var basisHZ = basisHZ_arrowsdata();
@@ -10778,7 +10798,8 @@ ul, li {
         function expand0_atomlist(atomlist) {
            if (atomlist.includes(":")) {return atomlist;}
            var atomlist1 = atomlist.trim().split(/[ ,]+/);
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            var xyz = xyzdat.trim().split("\n");
            var nion = xyz.length;
            var symb = []
@@ -10805,7 +10826,8 @@ ul, li {
 
         function expand_atomlist(atomlist) {
            var atomlist1 = atomlist.trim().split(/[ ,]+/);
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            var xyz = xyzdat.trim().split("\n");
            var nion = xyz.length;
            var symb = []
@@ -10918,7 +10940,8 @@ ul, li {
            var num_neighbors = parseInt(penalty1c);
 
            var ucell = jmsfetchucell();
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            var xyz = xyzdat.trim().split("\n");
            var nion = xyz.length;
            var symb = []
@@ -11651,7 +11674,8 @@ ul, li {
 
            var bondings = document.getElementById("reaction_bondings").value
            console.log("bondings=",bondings);
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            var nion = xyzdat.trim().split("\n").length;
            xyzdat = nion + "\n\n" + xyzdat;
            var a1 = document.getElementById("lattice_a1").value;
@@ -11856,7 +11880,8 @@ ul, li {
 
            var bondings = document.getElementById("reaction_bondings").value
            console.log("bondings=",bondings);
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            var nion = xyzdat.trim().split("\n").length;
            xyzdat = nion + "\n\n" + xyzdat;
            var a1 = document.getElementById("lattice_a1").value;
@@ -12062,7 +12087,8 @@ ul, li {
            console.log("xblist=",xblist);
            console.log("xxlist=",xxlist);
 
-           var xyzdat = jmvar("data({1.1},\"xyz\")");
+           //var xyzdat = jmvar("data({1.1},\"xyz\")");
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
            var nion = xyzdat.trim().split("\n").length;
            xyzdat = nion + "\n\n" + xyzdat;
            var a1 = document.getElementById("lattice_a1").value;
