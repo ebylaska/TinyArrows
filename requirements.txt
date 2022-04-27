@@ -1,4 +1,10 @@
 flask
 requests
 pyYaml
+pymysql 
+pymongo
+bson
+Pillow
+numpy
+
 

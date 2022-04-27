@@ -17,3 +17,7 @@ https://ebylaska.github.io/TinyArrows/
 https://ebylaska.github.io/TinyArrows/reactionpath
 
 Again2
+
+docker build . -t tinyarrows
+docker run -p 6001:5001 docker.io/library/tinyarrows
+
