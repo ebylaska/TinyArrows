@@ -1311,13 +1311,22 @@ ul, li {
             document.getElementById("cell_beta").value  = ttt[4];
             document.getElementById("cell_gamma").value = ttt[5];
 
-            var lattice = abcabg_to_lattice(ttt[0],ttt[1],ttt[2],ttt[3],ttt[4],ttt[5]);
+            // This logic works for now - but need to add the capability to change the unitcell orientation 
+            //var lattice = abcabg_to_lattice(ttt[0],ttt[1],ttt[2],ttt[3],ttt[4],ttt[5]);
+            var uuu = jmvar("_m.infoUnitCell[7][15]");
+            var lattice = [[uuu[0],uuu[1],uuu[2]], [uuu[3],uuu[4],uuu[5]], [uuu[6],uuu[7],uuu[8]] ];
             document.getElementById("lattice_a1").value =  vec3_to_string3(lattice[0]);
             document.getElementById("lattice_a2").value =  vec3_to_string3(lattice[1]);
             document.getElementById("lattice_a3").value =  vec3_to_string3(lattice[2]);
-         }
-         jmsetcoordboxes();
-         //jms0(scpt);
+
+            // TO DO - need to add the capability to change the unitcell orientation 
+            //jmsetfcoordboxes();
+            jmsetcoordboxes();
+
+         } else {
+            jmsetcoordboxes();
+         } 
+         
       }
 
         function convertMOL2XYZ(str) {
@@ -2958,7 +2967,7 @@ ul, li {
 
         // ****************************
         // *                          *
-        // *     jmssetcoordboxes     *
+        // *     jmsetcoordboxes      *
         // *                          *
         // ****************************
         function jmsetcoordboxes() { 
@@ -2966,6 +2975,7 @@ ul, li {
            var ss,symb,x,y,z,fx,fy,fz;
            //var xyzdat = jmvar("data({1.1},\"xyz\")");
            var xyzdat = jmvar("data({thisModel},\"xyz\")");
+           
            if (xyzdat.includes('Mt')) {
               var ss = xyzdat.split('\n');
               xyzdat = ''
