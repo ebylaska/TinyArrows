@@ -15439,7 +15439,7 @@ function submit_cell(cell) {
       reaction_str = reaction_str.replace(/#/gi,"!");
       //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'" + reaction_str + "'";
       //arrows_get_url  = "{{ arrows_api }}reaction/'" + reaction_str + "'";
-      arrows_get_url  = table_calc_url + "reaction/'" + reaction_str + " useascii'";
+      arrows_get_url  = table_calc_url + "reaction/'" + reaction_str + "'";
    } else if (reaction_str.includes("submitesmiles")) {
       var tt = "parse_output{" + reaction_str.split("parse_output{")[1].split("}")[0] + "}";
       reaction_str = reaction_str.replace(tt,"");
@@ -15454,7 +15454,7 @@ function submit_cell(cell) {
       reaction_str = reaction_str.replace(/#/gi,"!");
       //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/molecule/'" + reaction_str + "'";
       //arrows_get_url  = "{{ arrows_api }}molecule/'" + reaction_str + "'";
-      arrows_get_url  = table_calc_url + "molecule/'" + reaction_str + " useascii'";
+      arrows_get_url  = table_calc_url + "molecule/'" + reaction_str + "'";
    }
    document.getElementById('runmebanner4c').innerHTML= "Arrows calculation started for " + reaction_str + " at " + cell[0];
    Text2Speech0("Arrows calculation started for cell " + cell[0]);
