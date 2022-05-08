@@ -560,25 +560,25 @@ ul, li {
           Text2Speech0("switch to input editor");
           finish_Thomas_command("Thomas switch to input editor");
       }
-      else if (txt.includes("switch") && txt.includes("notes")) {
-         openCity(event, 'Notes');
-         Text2Speech0("switch to notes");
-         finish_Thomas_command("Thomas switch notes");
+      else if (txt.includes("switch") && txt.includes("output")) {
+         openCity(event, 'Output');
+         Text2Speech0("switch to output");
+         finish_Thomas_command("Thomas switch output");
       }
       else if (txt.includes("switch") && txt.includes("spreadsheet")) {
          openCity(event, 'SpreadSheet');
          Text2Speech0("switch to spreadsheet");
          finish_Thomas_command("Thomas switch spreadsheet");
       }
-      else if (txt.includes("switch") && txt.includes("output")) {
-         openCity(event, 'Output');
-         Text2Speech0("switch to output");
-         finish_Thomas_command("Thomas switch output");
-      }
       else if (txt.includes("switch") && txt.includes("queue")) {
          openCity(event, 'Queue');
          Text2Speech0("switch to queue");
          finish_Thomas_command("Thomas switch queue");
+      }
+      else if (txt.includes("switch") && txt.includes("notes")) {
+         openCity(event, 'Notes');
+         Text2Speech0("switch to notes");
+         finish_Thomas_command("Thomas switch notes");
       }
       else if (txt.includes("switch") && txt.includes("instructions")) {
          openCity(event, 'Instructions');
@@ -8277,7 +8277,7 @@ ul, li {
               if (num==1) {
                  solvstr = document.getElementById("COSMO-SMD").value.split("{")[1].split("}")[0]; 
               } else {
-                 solvstr = document.getElementById("COSMO-SMD_2").value.split("{")[1].split("}")[0]; 
+                 solvstr = document.getElementById("SMD_solvent_2").value.split("{")[1].split("}")[0]; 
               }
            }
            if (button0=="None")      { solvstr = "None"; }
@@ -8285,8 +8285,8 @@ ul, li {
            // remove conflicting options
            if ((theorystr=="mp2") || (theorystr=="ccsd(t)"))  { xcstr = ""; }
            if (((theorystr=="band")||(theorystr=="pspw") || (theorystr=="pspw4")) && (xcstr=="m06-2x")) { xcstr = ""; }
-           if (((theorystr=="band")||(theorystr=="pspw") || (theorystr=="pspw4")) && (solvstr=="COSMO")) { solvstr = ""; }
-           if (((theorystr=="band")||(theorystr=="pspw") || (theorystr=="pspw4")) && (solvstr.includes("COSMO-SMD"))) { solvstr = ""; }
+           if (((theorystr=="band")||(theorystr=="pspw")                        ) && (solvstr=="COSMO")) { solvstr = ""; }
+           if (((theorystr=="band")||(theorystr=="pspw")                                              ) && (solvstr.includes("COSMO-SMD"))) { solvstr = ""; }
            if (((theorystr=="band")||(theorystr=="pspw") || (theorystr=="pspw4")) && (basisstr=="6-31G*")) { basisstr = ""; }
            if (((theorystr=="band")||(theorystr=="pspw") || (theorystr=="pspw4")) && (basisstr=="6-311++G(2d,2p)")) { basisstr = ""; }
            if (theorystr=="pm3") { 
@@ -8395,9 +8395,6 @@ ul, li {
                   document.getElementById("tpss03_2").style   = color1;
                   document.getElementById("scan_2").style   = color1;
                   document.getElementById("m06-2x_2").style  = color1;
-                  document.getElementById("COSMO_2").style     = color1;
-                  document.getElementById("COSMO-SMD_2").style = color1;
-                  document.getElementById("None_2").style      = color1;
                   document.getElementById("6-31G*_2").style          = color1;
                   document.getElementById("6-311++G(2d,2p)_2").style = color1;
               } else if ((theorystr=="band")||(theorystr=="pspw")||(theorystr=="pspw4")) {
@@ -8409,9 +8406,6 @@ ul, li {
                   document.getElementById("tpss03_2").style   = color1;
                   document.getElementById("scan_2").style   = color1;
                   document.getElementById("m06-2x_2").style  = color2;
-                  document.getElementById("COSMO_2").style     = color2;
-                  document.getElementById("COSMO-SMD_2").style = color2;
-                  document.getElementById("None_2").style      = color1;
                   document.getElementById("6-31G*_2").style          = color2;
                   document.getElementById("6-311++G(2d,2p)_2").style = color2;
               } else if ((theorystr=="mp2")||(theorystr=="ccsd(t)")) {
@@ -8423,9 +8417,6 @@ ul, li {
                   document.getElementById("tpss03_2").style   = color2;
                   document.getElementById("scan_2").style   = color2;
                   document.getElementById("m06-2x_2").style  = color2;
-                  document.getElementById("COSMO_2").style     = color1;
-                  document.getElementById("COSMO-SMD_2").style = color1;
-                  document.getElementById("None_2").style      = color1;
                   document.getElementById("6-31G*_2").style          = color1;
                   document.getElementById("6-311++G(2d,2p)_2").style = color1;
               } else if (theorystr=="pm3") {
@@ -8437,9 +8428,6 @@ ul, li {
                   document.getElementById("tpss03_2").style   = color2;
                   document.getElementById("scan_2").style   = color2;
                   document.getElementById("m06-2x_2").style  = color2;
-                  document.getElementById("COSMO_2").style     = color1;
-                  document.getElementById("COSMO-SMD_2").style = color2;
-                  //document.getElementById("None_2").style      = color2;
                   document.getElementById("6-31G*_2").style          = color2;
                   document.getElementById("6-311++G(2d,2p)_2").style = color2;
               }
@@ -12494,11 +12482,11 @@ ul, li {
   <button class="tablinks" onclick="openCity(event, 'Arrows Periodic 3D Builder')" id="defaultOpen">Arrows Periodic 3D Builder</button>
   <button class="tablinks" onclick="openCity(event, 'NWChem Input Editor')">NWChem Input Editor</button>
   <button class="tablinks" onclick="openCity(event, 'Arrows Entry - 2D Builder')">Arrows Entry - 2D Builder (not periodic)</button>
-  <button class="tablinks" onclick="openCity(event, 'Notes')">Notes</button>
-  <button class="tablinks" onclick="openCity(event, 'SpreadSheet')">SpreadSheet</button>
   <button class="tablinks" onclick="openCity(event, 'Output')">Output</button>
-  <button class="tablinks" onclick="openCity(event, 'Queue')">Queue</button>
+  <button class="tablinks" onclick="openCity(event, 'SpreadSheet')">SpreadSheet</button>
   <button class="tablinks" onclick="openCity(event, 'Reaction Predictor - Beta version')">Reaction Predictor - Beta version</button>
+  <button class="tablinks" onclick="openCity(event, 'Queue')">Queue</button>
+  <button class="tablinks" onclick="openCity(event, 'Notes')">Notes</button>
   <button class="tablinks" onclick="openCity(event, 'Instructions')">Instructions</button>
 </div>
 
@@ -14424,253 +14412,228 @@ ul, li {
     <section class="blink" style="color: red"> <b id="runmebanner2"> </b> </section>
     <br>
 
-
-  <FORM METHOD="POST" ONSUBMIT="return false;">
-       <INPUT TYPE="button" VALUE="theory{band}" id="band_2"
-              onClick="txspressed('band',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="theory{pspw}" id="pspw_2"
-              onClick="txspressed('pspw',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="theory{pspw4}" id="pspw4_2"
-              onClick="txspressed('pspw4',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="theory{dft}" id="dft_2"
-              onClick="txspressed('dft',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="theory{mp2}" id="mp2_2"
-              onClick="txspressed('mp2',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="theory{ccsd(t)}" id="ccsd(t)_2"
-              onClick="txspressed('ccsd(t)',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="theory{pm3}" id="pm3_2"
-              onClick="txspressed('pm3',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="basis{6-31G*}" id="6-31G*_2"
-              onClick="txspressed('6-31G*',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="basis{6-311++G(2d,2p)}" id="6-311++G(2d,2p)_2"
-              onClick="txspressed('6-311++G(2d,2p)',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-      <br>
-       <INPUT TYPE="button" VALUE="xc{lda}" id="lda_2"
-              onClick="txspressed('lda',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="xc{pbe}" id="pbe_2"
-              onClick="txspressed('pbe',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="xc{pbe0}" id="pbe0_2"
-              onClick="txspressed('pbe0',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="xc{blyp}" id="blyp_2"
-              onClick="txspressed('blyp',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="xc{b3lyp}" id="b3lyp_2"
-              onClick="txspressed('b3lyp',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="xc{m06-2x}" id="m06-2x_2"
-              onClick="txspressed('m06-2x',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="xc{scan}" id="scan_2"
-              onClick="txspressed('scan',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="xc{tpss03}" id="tpss03_2"
-              onClick="txspressed('tpss03',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-
-       <INPUT TYPE="button" VALUE="solvation_type{None}" id="None_2"
-              onClick="txspressed('None',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="solvation_type{COSMO}"  id="COSMO_2"
-              onClick="txspressed('COSMO',2)"
-              onClick="document.form2.smi.value+=' solvation_type{COSMO}'"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <INPUT TYPE="button" VALUE="solvation_type{COSMO-SMD}"  id="COSMO-SMD_2"
-              onClick="txspressed('COSMO-SMD',2)"
-              style="background-color:#f8f8ff; color:#298DB4;">
-       <select id="SMD_solvent_2" onChange="document.getElementById('COSMO-SMD_2').value = document.getElementById('SMD_solvent_2').value;" oninput="cacheInput(this)">
-                 <option value="solvation_type{COSMO-SMD}">water (default)</option>
-                 <option value="solvation_type{COSMO-SMD:acetacid}">acetic acid</option>
-                 <option value="solvation_type{COSMO-SMD:acetone}">acetone</option>
-                 <option value="solvation_type{COSMO-SMD:acetntrl}">acetonitrile</option>
-                 <option value="solvation_type{COSMO-SMD:acetphen}">acetophenone</option>
-                 <option value="solvation_type{COSMO-SMD:aniline}">aniline</option>
-                 <option value="solvation_type{COSMO-SMD:anisole}">anisole</option>
-                 <option value="solvation_type{COSMO-SMD:benzaldh}">benzaldehyde</option>
-                 <option value="solvation_type{COSMO-SMD:benzene}">benzene</option>
-                 <option value="solvation_type{COSMO-SMD:benzntrl}">benzonitrile</option>
-                 <option value="solvation_type{COSMO-SMD:benzylcl}">benzyl chloride</option>
-                 <option value="solvation_type{COSMO-SMD:brisobut}">1-bromo-2-methylpropane</option>
-                 <option value="solvation_type{COSMO-SMD:brbenzen}">bromobenzene</option>
-                 <option value="solvation_type{COSMO-SMD:brethane}">bromoethane</option>
-                 <option value="solvation_type{COSMO-SMD:bromform}">bromoform</option>
-                 <option value="solvation_type{COSMO-SMD:broctane}">1-bromooctane</option>
-                 <option value="solvation_type{COSMO-SMD:brpentan}">1-bromopentane</option>
-                 <option value="solvation_type{COSMO-SMD:brpropa2}">2-bromopropane</option>
-                 <option value="solvation_type{COSMO-SMD:brpropan}">1-bromopropane</option>
-                 <option value="solvation_type{COSMO-SMD:butanal}">butanal</option>
-                 <option value="solvation_type{COSMO-SMD:butacid}">butanoic acid</option>
-                 <option value="solvation_type{COSMO-SMD:butanol}">1-butanol</option>
-                 <option value="solvation_type{COSMO-SMD:butanol2}">2-butanol</option>
-                 <option value="solvation_type{COSMO-SMD:butanone}">butanone</option>
-                 <option value="solvation_type{COSMO-SMD:butantrl}">butanonitrile</option>
-                 <option value="solvation_type{COSMO-SMD:butile}">butyl acetate</option>
-                 <option value="solvation_type{COSMO-SMD:nba}">butylamine</option>
-                 <option value="solvation_type{COSMO-SMD:nbutbenz}">n-butylbenzene</option>
-                 <option value="solvation_type{COSMO-SMD:sbutbenz}">sec-butylbenzene</option>
-                 <option value="solvation_type{COSMO-SMD:tbutbenz}">tert-butylbenzene</option>
-                 <option value="solvation_type{COSMO-SMD:cs2}">carbon disulfide</option>
-                 <option value="solvation_type{COSMO-SMD:carbntet}">carbon tetrachloride</option>
-                 <option value="solvation_type{COSMO-SMD:clbenzen}">chlorobenzene</option>
-                 <option value="solvation_type{COSMO-SMD:secbutcl}">sec-butyl chloride</option>
-                 <option value="solvation_type{COSMO-SMD:chcl3}">chloroform</option>
-                 <option value="solvation_type{COSMO-SMD:clhexane}">1-chlorohexane</option>
-                 <option value="solvation_type{COSMO-SMD:clpentan}">1-chloropentane</option>
-                 <option value="solvation_type{COSMO-SMD:clpropan}">1-chloropropane</option>
-                 <option value="solvation_type{COSMO-SMD:ocltolue}">o-chlorotoluene</option>
-                 <option value="solvation_type{COSMO-SMD:m-cresol}">m-cresol</option>
-                 <option value="solvation_type{COSMO-SMD:o-cresol}">o-cresol</option>
-                 <option value="solvation_type{COSMO-SMD:cychexan}">cyclohexane</option>
-                 <option value="solvation_type{COSMO-SMD:cychexon}">cyclohexanone</option>
-                 <option value="solvation_type{COSMO-SMD:cycpentn}">cyclopentane</option>
-                 <option value="solvation_type{COSMO-SMD:cycpntol}">cyclopentanol</option>
-                 <option value="solvation_type{COSMO-SMD:cycpnton}">cyclopentanone</option>
-                 <option value="solvation_type{COSMO-SMD:declncis}">cis-decalin</option>
-                 <option value="solvation_type{COSMO-SMD:declntra}">trans-decalin</option>
-                 <option value="solvation_type{COSMO-SMD:declnmix}">decalin (cis/trans mixture)</option>
-                 <option value="solvation_type{COSMO-SMD:decane}">n-decane</option>
-                 <option value="solvation_type{COSMO-SMD:decanol}">1-decanol</option>
-                 <option value="solvation_type{COSMO-SMD:edb12}">1,2-dibromoethane</option>
-                 <option value="solvation_type{COSMO-SMD:dibrmetn}">dibromomethane</option>
-                 <option value="solvation_type{COSMO-SMD:butyleth}">dibutyl ether</option>
-                 <option value="solvation_type{COSMO-SMD:odiclbnz}">o-dichlorobenzene</option>
-                 <option value="solvation_type{COSMO-SMD:edc12}">1,2-dichloroethane</option>
-                 <option value="solvation_type{COSMO-SMD:c12dce}">cis-dichloroethylene</option>
-                 <option value="solvation_type{COSMO-SMD:t12dce}">trans-dichloroethylene</option>
-                 <option value="solvation_type{COSMO-SMD:dcm}">dichloromethane</option>
-                 <option value="solvation_type{COSMO-SMD:ether}">diethyl ether</option>
-                 <option value="solvation_type{COSMO-SMD:et2s}">diethyl sulfide</option>
-                 <option value="solvation_type{COSMO-SMD:dietamin}">diethylamine</option>
-                 <option value="solvation_type{COSMO-SMD:mi}">diiodomethane</option>
-                 <option value="solvation_type{COSMO-SMD:dipe}">diisopropyl ether</option>
-                 <option value="solvation_type{COSMO-SMD:dmds}">dimethyl disulfide</option>
-                 <option value="solvation_type{COSMO-SMD:dmso}">dimethyl sulfoxide</option>
-                 <option value="solvation_type{COSMO-SMD:dma}">N,N-dimethylacetamide</option>
-                 <option value="solvation_type{COSMO-SMD:cisdmchx}">cis-1,2-dimethylcyclohexane</option>
-                 <option value="solvation_type{COSMO-SMD:dmf}">N,N-dimethylformamide</option>
-                 <option value="solvation_type{COSMO-SMD:dmepen24}">2,4-dimethylpentane</option>
-                 <option value="solvation_type{COSMO-SMD:dmepyr24}">2,4-dimethylpyridine</option>
-                 <option value="solvation_type{COSMO-SMD:dmepyr26}">2,6-dimethylpyridine</option>
-                 <option value="solvation_type{COSMO-SMD:dioxane}">1,4-dioxane</option>
-                 <option value="solvation_type{COSMO-SMD:phoph}">diphenyl ether</option>
-                 <option value="solvation_type{COSMO-SMD:dproamin}">dipropylamine</option>
-                 <option value="solvation_type{COSMO-SMD:dodecan}">n-dodecane</option>
-                 <option value="solvation_type{COSMO-SMD:meg}">1,2-ethanediol</option>
-                 <option value="solvation_type{COSMO-SMD:etsh}">ethanethiol</option>
-                 <option value="solvation_type{COSMO-SMD:ethanol}">ethanol</option>
-                 <option value="solvation_type{COSMO-SMD:etoac}">ethyl acetate</option>
-                 <option value="solvation_type{COSMO-SMD:etome}">ethyl formate</option>
-                 <option value="solvation_type{COSMO-SMD:eb}">ethylbenzene</option>
-                 <option value="solvation_type{COSMO-SMD:phenetol}">ethyl phenyl ether</option>
-                 <option value="solvation_type{COSMO-SMD:c6h5f}">fluorobenzene</option>
-                 <option value="solvation_type{COSMO-SMD:foctane}">1-fluorooctane</option>
-                 <option value="solvation_type{COSMO-SMD:formamid}">formamide</option>
-                 <option value="solvation_type{COSMO-SMD:formacid}">formic acid</option>
-                 <option value="solvation_type{COSMO-SMD:heptane}">n-heptane</option>
-                 <option value="solvation_type{COSMO-SMD:heptanol}">1-heptanol</option>
-                 <option value="solvation_type{COSMO-SMD:heptnon2}">2-heptanone</option>
-                 <option value="solvation_type{COSMO-SMD:heptnon4}">4-heptanone</option>
-                 <option value="solvation_type{COSMO-SMD:hexadecn}">n-hexadecane</option>
-                 <option value="solvation_type{COSMO-SMD:hexane}">n-hexane</option>
-                 <option value="solvation_type{COSMO-SMD:hexnacid}">hexanoic acid</option>
-                 <option value="solvation_type{COSMO-SMD:hexanol}">1-hexanol</option>
-                 <option value="solvation_type{COSMO-SMD:hexanon2}">2-hexanone</option>
-                 <option value="solvation_type{COSMO-SMD:hexene}">1-hexene</option>
-                 <option value="solvation_type{COSMO-SMD:hexyne}">1-hexyne</option>
-                 <option value="solvation_type{COSMO-SMD:c6h5i}">iodobenzene</option>
-                 <option value="solvation_type{COSMO-SMD:iobutane}">1-iodobutane</option>
-                 <option value="solvation_type{COSMO-SMD:c2h5i}">iodoethane</option>
-                 <option value="solvation_type{COSMO-SMD:iohexdec}">1-iodohexadecane</option>
-                 <option value="solvation_type{COSMO-SMD:ch3i}">iodomethane</option>
-                 <option value="solvation_type{COSMO-SMD:iopentan}">1-iodopentane</option>
-                 <option value="solvation_type{COSMO-SMD:iopropan}">1-iodopropane</option>
-                 <option value="solvation_type{COSMO-SMD:cumene}">isopropylbenzene</option>
-                 <option value="solvation_type{COSMO-SMD:p-cymene}">p-isopropyltoluene</option>
-                 <option value="solvation_type{COSMO-SMD:mesityln}">mesitylene</option>
-                 <option value="solvation_type{COSMO-SMD:methanol}">methanol</option>
-                 <option value="solvation_type{COSMO-SMD:egme}">2-methoxyethanol</option>
-                 <option value="solvation_type{COSMO-SMD:meacetat}">methyl acetate</option>
-                 <option value="solvation_type{COSMO-SMD:mebnzate}">methyl benzoate</option>
-                 <option value="solvation_type{COSMO-SMD:mebutate}">methyl butanoate</option>
-                 <option value="solvation_type{COSMO-SMD:meformat}">methyl formate</option>
-                 <option value="solvation_type{COSMO-SMD:mibk}">4-methyl-2-pentanone</option>
-                 <option value="solvation_type{COSMO-SMD:mepropyl}">methyl propanoate</option>
-                 <option value="solvation_type{COSMO-SMD:isobutol}">2-methyl-1-propanol</option>
-                 <option value="solvation_type{COSMO-SMD:terbutol}">2-methyl-2-propanol</option>
-                 <option value="solvation_type{COSMO-SMD:nmeaniln}">N-methylaniline</option>
-                 <option value="solvation_type{COSMO-SMD:mecychex}">methylcyclohexane</option>
-                 <option value="solvation_type{COSMO-SMD:nmfmixtr}">N-methylformamide (E/Z mixture)</option>
-                 <option value="solvation_type{COSMO-SMD:isohexan}">2-methylpentane</option>
-                 <option value="solvation_type{COSMO-SMD:mepyrid2}">2-methylpyridine</option>
-                 <option value="solvation_type{COSMO-SMD:mepyrid3}">3-methylpyridine</option>
-                 <option value="solvation_type{COSMO-SMD:mepyrid4}">4-methylpyridine</option>
-                 <option value="solvation_type{COSMO-SMD:c6h5no2}">nitrobenzene</option>
-                 <option value="solvation_type{COSMO-SMD:c2h5no2}">nitroethane</option>
-                 <option value="solvation_type{COSMO-SMD:ch3no2}">nitromethane</option>
-                 <option value="solvation_type{COSMO-SMD:ntrprop1}">1-nitropropane</option>
-                 <option value="solvation_type{COSMO-SMD:ntrprop2}">2-nitropropane</option>
-                 <option value="solvation_type{COSMO-SMD:ontrtolu}">o-nitrotoluene</option>
-                 <option value="solvation_type{COSMO-SMD:nonane}">n-nonane</option>
-                 <option value="solvation_type{COSMO-SMD:nonanol}">1-nonanol</option>
-                 <option value="solvation_type{COSMO-SMD:nonanone}">5-nonanone</option>
-                 <option value="solvation_type{COSMO-SMD:octane}">n-octane</option>
-                 <option value="solvation_type{COSMO-SMD:octanol}">1-octanol</option>
-                 <option value="solvation_type{COSMO-SMD:octanon2}">2-octanone</option>
-                 <option value="solvation_type{COSMO-SMD:pentdecn}">n-pentadecane</option>
-                 <option value="solvation_type{COSMO-SMD:pentanal}">pentanal</option>
-                 <option value="solvation_type{COSMO-SMD:npentane}">n-pentane</option>
-                 <option value="solvation_type{COSMO-SMD:pentacid}">pentanoic acid</option>
-                 <option value="solvation_type{COSMO-SMD:pentanol}">1-pentanol</option>
-                 <option value="solvation_type{COSMO-SMD:pentnon2}">2-pentanone</option>
-                 <option value="solvation_type{COSMO-SMD:pentnon3}">3-pentanone</option>
-                 <option value="solvation_type{COSMO-SMD:pentene}">1-pentene</option>
-                 <option value="solvation_type{COSMO-SMD:e2penten}">E-2-pentene</option>
-                 <option value="solvation_type{COSMO-SMD:pentacet}">pentyl acetate</option>
-                 <option value="solvation_type{COSMO-SMD:pentamin}">pentylamine</option>
-                 <option value="solvation_type{COSMO-SMD:pfb}">perfluorobenzene</option>
-                 <option value="solvation_type{COSMO-SMD:benzalcl}">phenylmethanol</option>
-                 <option value="solvation_type{COSMO-SMD:propanal}">propanal</option>
-                 <option value="solvation_type{COSMO-SMD:propacid}">propanoic acid</option>
-                 <option value="solvation_type{COSMO-SMD:propanol}">1-propanol</option>
-                 <option value="solvation_type{COSMO-SMD:propnol2}">2-propanol</option>
-                 <option value="solvation_type{COSMO-SMD:propntrl}">propanonitrile</option>
-                 <option value="solvation_type{COSMO-SMD:propenol}">2-propen-1-ol</option>
-                 <option value="solvation_type{COSMO-SMD:propacet}">propyl acetate</option>
-                 <option value="solvation_type{COSMO-SMD:propamin}">propylamine</option>
-                 <option value="solvation_type{COSMO-SMD:pyridine}">pyridine</option>
-                 <option value="solvation_type{COSMO-SMD:c2cl4}">tetrachloroethene</option>
-                 <option value="solvation_type{COSMO-SMD:thf}">tetrahydrofuran</option>
-                 <option value="solvation_type{COSMO-SMD:sulfolan}">tetrahydrothiophene-S,S-dioxide</option>
-                 <option value="solvation_type{COSMO-SMD:tetralin}">tetralin</option>
-                 <option value="solvation_type{COSMO-SMD:thiophen}">thiophene</option>
-                 <option value="solvation_type{COSMO-SMD:phsh}">thiophenol</option>
-                 <option value="solvation_type{COSMO-SMD:toluene}">toluene</option>
-                 <option value="solvation_type{COSMO-SMD:tbp}">tributyl phosphate</option>
-                 <option value="solvation_type{COSMO-SMD:tca111}">1,1,1-trichloroethane</option>
-                 <option value="solvation_type{COSMO-SMD:tca112}">1,1,2-trichloroethane</option>
-                 <option value="solvation_type{COSMO-SMD:tce}">trichloroethene</option>
-                 <option value="solvation_type{COSMO-SMD:et3n}">triethylamine</option>
-                 <option value="solvation_type{COSMO-SMD:tfe222}">2,2,2-trifluoroethanol</option>
-                 <option value="solvation_type{COSMO-SMD:tmben124}">1,2,4-trimethylbenzene</option>
-                 <option value="solvation_type{COSMO-SMD:isoctane}">2,2,4-trimethylpentane</option>
-                 <option value="solvation_type{COSMO-SMD:undecane}">n-undecane</option>
-                 <option value="solvation_type{COSMO-SMD:m-xylene}">m-xylene</option>
-                 <option value="solvation_type{COSMO-SMD:o-xylene}">o-xylene</option>
-                 <option value="solvation_type{COSMO-SMD:p-xylene}">p-xylene</option>
-                 <option value="solvation_type{COSMO-SMD:xylenemx}">xylene (mixture)</option>
-       </select><br>
-
+    Calculation Options: <br>
+    <FORM METHOD="POST" ONSUBMIT="return false;">
+       <select id="theory_2" onChange="txspressed(document.getElementById('theory_2').value,2)">
+            <option value="" selected> theory/method </option>
+            <option value="dft"     id="dft_2">     dft     </option>
+            <option value="pspw"    id="pspw_2">    pspw    </option>
+            <option value="pspw4"   id="pspw4_2">   pspw4    </option>
+            <option value="mp2"     id="mp2_2">     mp2    </option>
+            <option value="ccsd(t)" id="ccsd(t)_2"> ccsd(t)    </option>
+            <option value="pm3"     id="pm3_2">     pm3    </option>
+            <option value="band"    id="band_2">    band    </option>
+          </select>
+       <select id="xc_2" onChange="txspressed(document.getElementById('xc_2').value,2)">
+            <option value="" selected> exchange correlation </option>
+            <option value="lda"    id="lda_2">    lda     </option>
+            <option value="pbe"    id="pbe_2">    pbe     </option>
+            <option value="pbe0"   id="pbe0_2">   pbe0   </option>
+            <option value="blyp"   id="blyp_2">   blyp   </option>
+            <option value="b3lyp"  id="b3lyp_2">  b3lyp  </option>
+            <option value="m06-2x" id="m06-2x_2"> m06-2x </option>
+            <option value="scan"   id="scan_2">   scan   </option>
+            <option value="tpss03" id="tpss03_2"> tpss03 </option>
+            <option value="vs98"   id="vs98_2">   vs98   </option>
+            <option value="revpbe" id="revpbe_2"> revpbe </option>
+            <option value="pbesol" id="pbesol_2"> pbesol </option>
+            <option value="pbe-grimme2" id="pbe-grimme2_2"> pbe-grimme2 </option>
+            <option value="pbe-grimme3" id="pbe-grimme3_2"> pbe-grimme3 </option>
+            <option value="beef"        id="beef_2">               beef </option>
+            <option value="xbeef-cpbe"  id="xbeef-cpbe_2">   xbeef-cpbe </option>
+            <option value="beef-vdw2"   id="beef-vdw2_2">     beef-vdw2 </option>
+            <option value="beef-grimme2" id="beef-grimme2_2"> beef-grimme2 </option>
+          </select>
+       <select id="basis_2" onChange="txspressed(document.getElementById('basis_2').value,2)">
+            <option value="" selected> basis sets </option>
+            <option value="6-31G*" id="6-31G*_2">                   6-31G*           </option>
+            <option value="6-311++G(2d,2p)" id="6-311++G(2d,2p)_2"> 6-3111++G(2d,2p) </option>
+          </select>
+       <select id="SMD_solvent_2" onChange="txspressed('COSMO-SMD',2);">
+            <option value=""> solvation theories      </option>
+            <option value=" solvation_type{None}">gas phase </option>
+            <option value=" solvation_type{COSMO}">water (COSMO)</option>
+            <option value=" solvation_type{COSMO-SMD}">water (COSMO-SMD)</option>
+            <option value=" solvation_type{COSMO-SMD:acetacid}">acetic acid</option>
+            <option value=" solvation_type{COSMO-SMD:acetone}">acetone</option>
+            <option value=" solvation_type{COSMO-SMD:acetntrl}">acetonitrile</option>
+            <option value=" solvation_type{COSMO-SMD:acetphen}">acetophenone</option>
+            <option value=" solvation_type{COSMO-SMD:aniline}">aniline</option>
+            <option value=" solvation_type{COSMO-SMD:anisole}">anisole</option>
+            <option value=" solvation_type{COSMO-SMD:benzaldh}">benzaldehyde</option>
+            <option value=" solvation_type{COSMO-SMD:benzene}">benzene</option>
+            <option value=" solvation_type{COSMO-SMD:benzntrl}">benzonitrile</option>
+            <option value=" solvation_type{COSMO-SMD:benzylcl}">benzyl chloride</option>
+            <option value=" solvation_type{COSMO-SMD:brisobut}">1-bromo-2-methylpropane</option>
+            <option value=" solvation_type{COSMO-SMD:brbenzen}">bromobenzene</option>
+            <option value=" solvation_type{COSMO-SMD:brethane}">bromoethane</option>
+            <option value=" solvation_type{COSMO-SMD:bromform}">bromoform</option>
+            <option value=" solvation_type{COSMO-SMD:broctane}">1-bromooctane</option>
+            <option value=" solvation_type{COSMO-SMD:brpentan}">1-bromopentane</option>
+            <option value=" solvation_type{COSMO-SMD:brpropa2}">2-bromopropane</option>
+            <option value=" solvation_type{COSMO-SMD:brpropan}">1-bromopropane</option>
+            <option value=" solvation_type{COSMO-SMD:butanal}">butanal</option>
+            <option value=" solvation_type{COSMO-SMD:butacid}">butanoic acid</option>
+            <option value=" solvation_type{COSMO-SMD:butanol}">1-butanol</option>
+            <option value=" solvation_type{COSMO-SMD:butanol2}">2-butanol</option>
+            <option value=" solvation_type{COSMO-SMD:butanone}">butanone</option>
+            <option value=" solvation_type{COSMO-SMD:butantrl}">butanonitrile</option>
+            <option value=" solvation_type{COSMO-SMD:butile}">butyl acetate</option>
+            <option value=" solvation_type{COSMO-SMD:nba}">butylamine</option>
+            <option value=" solvation_type{COSMO-SMD:nbutbenz}">n-butylbenzene</option>
+            <option value=" solvation_type{COSMO-SMD:sbutbenz}">sec-butylbenzene</option>
+            <option value=" solvation_type{COSMO-SMD:tbutbenz}">tert-butylbenzene</option>
+            <option value=" solvation_type{COSMO-SMD:cs2}">carbon disulfide</option>
+            <option value=" solvation_type{COSMO-SMD:carbntet}">carbon tetrachloride</option>
+            <option value=" solvation_type{COSMO-SMD:clbenzen}">chlorobenzene</option>
+            <option value=" solvation_type{COSMO-SMD:secbutcl}">sec-butyl chloride</option>
+            <option value=" solvation_type{COSMO-SMD:chcl3}">chloroform</option>
+            <option value=" solvation_type{COSMO-SMD:clhexane}">1-chlorohexane</option>
+            <option value=" solvation_type{COSMO-SMD:clpentan}">1-chloropentane</option>
+            <option value=" solvation_type{COSMO-SMD:clpropan}">1-chloropropane</option>
+            <option value=" solvation_type{COSMO-SMD:ocltolue}">o-chlorotoluene</option>
+            <option value=" solvation_type{COSMO-SMD:m-cresol}">m-cresol</option>
+            <option value=" solvation_type{COSMO-SMD:o-cresol}">o-cresol</option>
+            <option value=" solvation_type{COSMO-SMD:cychexan}">cyclohexane</option>
+            <option value=" solvation_type{COSMO-SMD:cychexon}">cyclohexanone</option>
+            <option value=" solvation_type{COSMO-SMD:cycpentn}">cyclopentane</option>
+            <option value=" solvation_type{COSMO-SMD:cycpntol}">cyclopentanol</option>
+            <option value=" solvation_type{COSMO-SMD:cycpnton}">cyclopentanone</option>
+            <option value=" solvation_type{COSMO-SMD:declncis}">cis-decalin</option>
+            <option value=" solvation_type{COSMO-SMD:declntra}">trans-decalin</option>
+            <option value=" solvation_type{COSMO-SMD:declnmix}">decalin (cis/trans mixture)</option>
+            <option value=" solvation_type{COSMO-SMD:decane}">n-decane</option>
+            <option value=" solvation_type{COSMO-SMD:decanol}">1-decanol</option>
+            <option value=" solvation_type{COSMO-SMD:edb12}">1,2-dibromoethane</option>
+            <option value=" solvation_type{COSMO-SMD:dibrmetn}">dibromomethane</option>
+            <option value=" solvation_type{COSMO-SMD:butyleth}">dibutyl ether</option>
+            <option value=" solvation_type{COSMO-SMD:odiclbnz}">o-dichlorobenzene</option>
+            <option value=" solvation_type{COSMO-SMD:edc12}">1,2-dichloroethane</option>
+            <option value=" solvation_type{COSMO-SMD:c12dce}">cis-dichloroethylene</option>
+            <option value=" solvation_type{COSMO-SMD:t12dce}">trans-dichloroethylene</option>
+            <option value=" solvation_type{COSMO-SMD:dcm}">dichloromethane</option>
+            <option value=" solvation_type{COSMO-SMD:ether}">diethyl ether</option>
+            <option value=" solvation_type{COSMO-SMD:et2s}">diethyl sulfide</option>
+            <option value=" solvation_type{COSMO-SMD:dietamin}">diethylamine</option>
+            <option value=" solvation_type{COSMO-SMD:mi}">diiodomethane</option>
+            <option value=" solvation_type{COSMO-SMD:dipe}">diisopropyl ether</option>
+            <option value=" solvation_type{COSMO-SMD:dmds}">dimethyl disulfide</option>
+            <option value=" solvation_type{COSMO-SMD:dmso}">dimethyl sulfoxide</option>
+            <option value=" solvation_type{COSMO-SMD:dma}">N,N-dimethylacetamide</option>
+            <option value=" solvation_type{COSMO-SMD:cisdmchx}">cis-1,2-dimethylcyclohexane</option>
+            <option value=" solvation_type{COSMO-SMD:dmf}">N,N-dimethylformamide</option>
+            <option value=" solvation_type{COSMO-SMD:dmepen24}">2,4-dimethylpentane</option>
+            <option value=" solvation_type{COSMO-SMD:dmepyr24}">2,4-dimethylpyridine</option>
+            <option value=" solvation_type{COSMO-SMD:dmepyr26}">2,6-dimethylpyridine</option>
+            <option value=" solvation_type{COSMO-SMD:dioxane}">1,4-dioxane</option>
+            <option value=" solvation_type{COSMO-SMD:phoph}">diphenyl ether</option>
+            <option value=" solvation_type{COSMO-SMD:dproamin}">dipropylamine</option>
+            <option value=" solvation_type{COSMO-SMD:dodecan}">n-dodecane</option>
+            <option value=" solvation_type{COSMO-SMD:meg}">1,2-ethanediol</option>
+            <option value=" solvation_type{COSMO-SMD:etsh}">ethanethiol</option>
+            <option value=" solvation_type{COSMO-SMD:ethanol}">ethanol</option>
+            <option value=" solvation_type{COSMO-SMD:etoac}">ethyl acetate</option>
+            <option value=" solvation_type{COSMO-SMD:etome}">ethyl formate</option>
+            <option value=" solvation_type{COSMO-SMD:eb}">ethylbenzene</option>
+            <option value=" solvation_type{COSMO-SMD:phenetol}">ethyl phenyl ether</option>
+            <option value=" solvation_type{COSMO-SMD:c6h5f}">fluorobenzene</option>
+            <option value=" solvation_type{COSMO-SMD:foctane}">1-fluorooctane</option>
+            <option value=" solvation_type{COSMO-SMD:formamid}">formamide</option>
+            <option value=" solvation_type{COSMO-SMD:formacid}">formic acid</option>
+            <option value=" solvation_type{COSMO-SMD:heptane}">n-heptane</option>
+            <option value=" solvation_type{COSMO-SMD:heptanol}">1-heptanol</option>
+            <option value=" solvation_type{COSMO-SMD:heptnon2}">2-heptanone</option>
+            <option value=" solvation_type{COSMO-SMD:heptnon4}">4-heptanone</option>
+            <option value=" solvation_type{COSMO-SMD:hexadecn}">n-hexadecane</option>
+            <option value=" solvation_type{COSMO-SMD:hexane}">n-hexane</option>
+            <option value=" solvation_type{COSMO-SMD:hexnacid}">hexanoic acid</option>
+            <option value=" solvation_type{COSMO-SMD:hexanol}">1-hexanol</option>
+            <option value=" solvation_type{COSMO-SMD:hexanon2}">2-hexanone</option>
+            <option value=" solvation_type{COSMO-SMD:hexene}">1-hexene</option>
+            <option value=" solvation_type{COSMO-SMD:hexyne}">1-hexyne</option>
+            <option value=" solvation_type{COSMO-SMD:c6h5i}">iodobenzene</option>
+            <option value=" solvation_type{COSMO-SMD:iobutane}">1-iodobutane</option>
+            <option value=" solvation_type{COSMO-SMD:c2h5i}">iodoethane</option>
+            <option value=" solvation_type{COSMO-SMD:iohexdec}">1-iodohexadecane</option>
+            <option value=" solvation_type{COSMO-SMD:ch3i}">iodomethane</option>
+            <option value=" solvation_type{COSMO-SMD:iopentan}">1-iodopentane</option>
+            <option value=" solvation_type{COSMO-SMD:iopropan}">1-iodopropane</option>
+            <option value=" solvation_type{COSMO-SMD:cumene}">isopropylbenzene</option>
+            <option value=" solvation_type{COSMO-SMD:p-cymene}">p-isopropyltoluene</option>
+            <option value=" solvation_type{COSMO-SMD:mesityln}">mesitylene</option>
+            <option value=" solvation_type{COSMO-SMD:methanol}">methanol</option>
+            <option value=" solvation_type{COSMO-SMD:egme}">2-methoxyethanol</option>
+            <option value=" solvation_type{COSMO-SMD:meacetat}">methyl acetate</option>
+            <option value=" solvation_type{COSMO-SMD:mebnzate}">methyl benzoate</option>
+            <option value=" solvation_type{COSMO-SMD:mebutate}">methyl butanoate</option>
+            <option value=" solvation_type{COSMO-SMD:meformat}">methyl formate</option>
+            <option value=" solvation_type{COSMO-SMD:mibk}">4-methyl-2-pentanone</option>
+            <option value=" solvation_type{COSMO-SMD:mepropyl}">methyl propanoate</option>
+            <option value=" solvation_type{COSMO-SMD:isobutol}">2-methyl-1-propanol</option>
+            <option value=" solvation_type{COSMO-SMD:terbutol}">2-methyl-2-propanol</option>
+            <option value=" solvation_type{COSMO-SMD:nmeaniln}">N-methylaniline</option>
+            <option value=" solvation_type{COSMO-SMD:mecychex}">methylcyclohexane</option>
+            <option value=" solvation_type{COSMO-SMD:nmfmixtr}">N-methylformamide (E/Z mixture)</option>
+            <option value=" solvation_type{COSMO-SMD:isohexan}">2-methylpentane</option>
+            <option value=" solvation_type{COSMO-SMD:mepyrid2}">2-methylpyridine</option>
+            <option value=" solvation_type{COSMO-SMD:mepyrid3}">3-methylpyridine</option>
+            <option value=" solvation_type{COSMO-SMD:mepyrid4}">4-methylpyridine</option>
+            <option value=" solvation_type{COSMO-SMD:c6h5no2}">nitrobenzene</option>
+            <option value=" solvation_type{COSMO-SMD:c2h5no2}">nitroethane</option>
+            <option value=" solvation_type{COSMO-SMD:ch3no2}">nitromethane</option>
+            <option value=" solvation_type{COSMO-SMD:ntrprop1}">1-nitropropane</option>
+            <option value=" solvation_type{COSMO-SMD:ntrprop2}">2-nitropropane</option>
+            <option value=" solvation_type{COSMO-SMD:ontrtolu}">o-nitrotoluene</option>
+            <option value=" solvation_type{COSMO-SMD:nonane}">n-nonane</option>
+            <option value=" solvation_type{COSMO-SMD:nonanol}">1-nonanol</option>
+            <option value=" solvation_type{COSMO-SMD:nonanone}">5-nonanone</option>
+            <option value=" solvation_type{COSMO-SMD:octane}">n-octane</option>
+            <option value=" solvation_type{COSMO-SMD:octanol}">1-octanol</option>
+            <option value=" solvation_type{COSMO-SMD:octanon2}">2-octanone</option>
+            <option value=" solvation_type{COSMO-SMD:pentdecn}">n-pentadecane</option>
+            <option value=" solvation_type{COSMO-SMD:pentanal}">pentanal</option>
+            <option value=" solvation_type{COSMO-SMD:npentane}">n-pentane</option>
+            <option value=" solvation_type{COSMO-SMD:pentacid}">pentanoic acid</option>
+            <option value=" solvation_type{COSMO-SMD:pentanol}">1-pentanol</option>
+            <option value=" solvation_type{COSMO-SMD:pentnon2}">2-pentanone</option>
+            <option value=" solvation_type{COSMO-SMD:pentnon3}">3-pentanone</option>
+            <option value=" solvation_type{COSMO-SMD:pentene}">1-pentene</option>
+            <option value=" solvation_type{COSMO-SMD:e2penten}">E-2-pentene</option>
+            <option value=" solvation_type{COSMO-SMD:pentacet}">pentyl acetate</option>
+            <option value=" solvation_type{COSMO-SMD:pentamin}">pentylamine</option>
+            <option value=" solvation_type{COSMO-SMD:pfb}">perfluorobenzene</option>
+            <option value=" solvation_type{COSMO-SMD:benzalcl}">phenylmethanol</option>
+            <option value=" solvation_type{COSMO-SMD:propanal}">propanal</option>
+            <option value=" solvation_type{COSMO-SMD:propacid}">propanoic acid</option>
+            <option value=" solvation_type{COSMO-SMD:propanol}">1-propanol</option>
+            <option value=" solvation_type{COSMO-SMD:propnol2}">2-propanol</option>
+            <option value=" solvation_type{COSMO-SMD:propntrl}">propanonitrile</option>
+            <option value=" solvation_type{COSMO-SMD:propenol}">2-propen-1-ol</option>
+            <option value=" solvation_type{COSMO-SMD:propacet}">propyl acetate</option>
+            <option value=" solvation_type{COSMO-SMD:propamin}">propylamine</option>
+            <option value=" solvation_type{COSMO-SMD:pyridine}">pyridine</option>
+            <option value=" solvation_type{COSMO-SMD:c2cl4}">tetrachloroethene</option>
+            <option value=" solvation_type{COSMO-SMD:thf}">tetrahydrofuran</option>
+            <option value=" solvation_type{COSMO-SMD:sulfolan}">tetrahydrothiophene-S,S-dioxide</option>
+            <option value=" solvation_type{COSMO-SMD:tetralin}">tetralin</option>
+            <option value=" solvation_type{COSMO-SMD:thiophen}">thiophene</option>
+            <option value=" solvation_type{COSMO-SMD:phsh}">thiophenol</option>
+            <option value=" solvation_type{COSMO-SMD:toluene}">toluene</option>
+            <option value=" solvation_type{COSMO-SMD:tbp}">tributyl phosphate</option>
+            <option value=" solvation_type{COSMO-SMD:tca111}">1,1,1-trichloroethane</option>
+            <option value=" solvation_type{COSMO-SMD:tca112}">1,1,2-trichloroethane</option>
+            <option value=" solvation_type{COSMO-SMD:tce}">trichloroethene</option>
+            <option value=" solvation_type{COSMO-SMD:et3n}">triethylamine</option>
+            <option value=" solvation_type{COSMO-SMD:tfe222}">2,2,2-trifluoroethanol</option>
+            <option value=" solvation_type{COSMO-SMD:tmben124}">1,2,4-trimethylbenzene</option>
+            <option value=" solvation_type{COSMO-SMD:isoctane}">2,2,4-trimethylpentane</option>
+            <option value=" solvation_type{COSMO-SMD:undecane}">n-undecane</option>
+            <option value=" solvation_type{COSMO-SMD:m-xylene}">m-xylene</option>
+            <option value=" solvation_type{COSMO-SMD:o-xylene}">o-xylene</option>
+            <option value=" solvation_type{COSMO-SMD:p-xylene}">p-xylene</option>
+            <option value=" solvation_type{COSMO-SMD:xylenemx}">xylene (mixture)</option>
+          </select>
+       
        <INPUT TYPE="button" VALUE="-->"
               onClick="document.form2.smi.value+=' --> '"
               style="background-color:#f8f8ff; color:#298DB4;">
@@ -15195,13 +15158,11 @@ function loadnotetodbname() {
       }
    }
 }
-
-
-
-
 </script>
-
 </div>
+
+
+
 
 
 <div id="SpreadSheet" class="tabcontent">
@@ -15226,7 +15187,7 @@ cached table db (IndexedDB) name:
      <input type="button" VALUE="write" onClick="savespreadtodbname();" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
      <b style="color: blue; font-size: 14px;" class="blink9"  id="spreadsheetdbnamebanner"></b>
    <br> <br>
-   <input type="button" VALUE="Submit Arrows" onClick="submit_spreadsheet()" title="Submit Arrows" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+   <input type="button" VALUE="Submit Arrows" onClick="submit_spreadSheet()" title="Submit Arrows" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
    <input type="button" VALUE="Clear run" onClick="document.getElementById('runmebanner4d').innerHTML= ''" title="Clear run"/>
    <b style="color: blue; font-size: 14px;" id="runmebanner4c"></b> -- <b style="color: red; font-size: 14px;" id="runmebanner4d"></b>
    <br>
@@ -15348,13 +15309,13 @@ function addtable_spreadsheet() {
    if ((xx.length>0) && (yy.length>0)) {
       var ii = xx[0];
       var jj = yy[0];
-      var tabletype = document.getElementById("tabletype").value.split(":")[0];
-      var method    = document.getElementById("tabletype").value.split(":")[1];
-      var theories  = document.getElementById("columntheories").value.split(":");
-      var nrows     = document.getElementById("nrowstable").value.split(":");
+      var tableType = document.getElementById("tableType").value.split("|")[0];
+      var method    = document.getElementById("tableType").value.split("|")[1];
+      var theories  = document.getElementById("columnTheories").value.split("|");
+      var nrows     = document.getElementById("nrowsTable").value.split("|");
       var ff = myspreadsheet.getStyle();
       var data = myspreadsheet.getData();
-      data[ii][jj] = tabletype;
+      data[ii][jj] = tableType;
       for (var ix=0; ix<nrows; ++ix) {
         data[ii+ix+1][jj] = "esmiles or esmiles reaction";
       }
@@ -15420,6 +15381,10 @@ function setprecision() {
    myspreadsheet.updateTable();
 }
 
+
+
+
+
 function loadcsvfile() {
    var data = [["Year","Performing artist(s)","Work"],
                [2006,"U2","How to Dismantle an Atomic Bomb"]];
@@ -15441,13 +15406,13 @@ function savecsvfile() {
     myspreadsheet.download();
 }
 
-var computecells        = [];
-var computecells_length = 0;
-var computecells_cur    = 0;
+var computeCells        = [];
+var computeCells_length = 0;
+var computeCells_cur    = 0;
 function run_next_cell() {
-   if (window.computecells_cur < window.computecells_length) {
-      submit_cell(window.computecells[window.computecells_cur]);
-      window.computecells_cur += 1;
+   if (window.computeCells_cur < window.computeCells_length) {
+      submit_cell(window.computeCells[window.computeCells_cur]);
+      window.computeCells_cur += 1;
    }
 }
 
@@ -15458,7 +15423,7 @@ function finish_spreadsheet(cellstr,energy) {
       Text2Speech0("Value added to cell " + cellstr);
    }
    run_next_cell();
-   if (window.computecells_cur >= window.computecells_length) {
+   if (window.computeCells_cur >= window.computeCells_length) {
       document.getElementById('runmebanner4d').innerHTML= "";
    }
 }
@@ -15474,7 +15439,7 @@ function submit_cell(cell) {
       reaction_str = reaction_str.replace(/#/gi,"!");
       //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/reaction/'" + reaction_str + "'";
       //arrows_get_url  = "{{ arrows_api }}reaction/'" + reaction_str + "'";
-      arrows_get_url  = table_calc_url + "reaction/'" + reaction_str + "'";
+      arrows_get_url  = table_calc_url + "reaction/'" + reaction_str + " useascii'";
    } else if (reaction_str.includes("submitesmiles")) {
       var tt = "parse_output{" + reaction_str.split("parse_output{")[1].split("}")[0] + "}";
       reaction_str = reaction_str.replace(tt,"");
@@ -15489,7 +15454,7 @@ function submit_cell(cell) {
       reaction_str = reaction_str.replace(/#/gi,"!");
       //arrows_get_url  = "https://arrows.emsl.pnnl.gov/api/molecule/'" + reaction_str + "'";
       //arrows_get_url  = "{{ arrows_api }}molecule/'" + reaction_str + "'";
-      arrows_get_url  = table_calc_url + "molecule/'" + reaction_str + "'";
+      arrows_get_url  = table_calc_url + "molecule/'" + reaction_str + " useascii'";
    }
    document.getElementById('runmebanner4c').innerHTML= "Arrows calculation started for " + reaction_str + " at " + cell[0];
    Text2Speech0("Arrows calculation started for cell " + cell[0]);
@@ -15516,7 +15481,7 @@ function submit_cell(cell) {
    ajax.send();
 }
 
-function check_cell_for_hashstring(cell) {
+function check_cell_for_hashString(cell) {
    var reaction_str = cell[1];
    if (reaction_str.includes("hstart:") && reaction_str.includes(":hmid:") && reaction_str.includes(":hend")) {
       Text2Speech0("Parsing hashstring for cell " + cell[0]);
@@ -15539,8 +15504,8 @@ function check_command(str) {
            (xstr.contains("g(gas)")) ||
            (xstr.contains("grxn(aq)")) ||
            (xstr.contains("g(aq)")) ||
-           (xstr.contains("solvation")) ||
-           (xstr.contains("delta_solvation")) ||
+           (xstr.contains("g(solvation)")) ||
+           (xstr.contains("g(delta_solvation)")) ||
            (xstr.contains("submitesmiles")) ||
            (xstr.contains("homo")) ||
            (xstr.contains("alpha_homo")) ||
@@ -15553,11 +15518,26 @@ function check_command(str) {
    }
    return ok; }
 
+//
+// convert_command: replaces g(solvation) and g(delta_solvation) 
+//
+function convert_command(str) {
+   if (typeof str === 'string' || str instanceof String) {
+      var xstr = str.trim();
+      if (xstr.contains("g(solvation)"))       xstr = "solvation";
+      if (xstr.contains("g(delta_solvation)")) xstr = "delta_solvation";
+      return xstr;
+   } else {
+      return str;
+   }
+}
+
+
 function check_float(str) {
    return (!isNaN(parseFloat(str))); // true
 }
 
-function check_not_commandorfloat(str) {
+function check_not_commandOrFloat(str) {
    var ok = false;
    if (isNaN(parseFloat(str))) {
       var xstr = str.trim();
@@ -15572,32 +15552,32 @@ function gencellstr(i,j) {
    return String.fromCharCode(65+j) + i.toString();
 }
 
-function submit_spreadsheet() {
+function submit_spreadSheet() {
    var test = document.getElementById('runmebanner4d').innerHTML;
    if (!test.includes("Running Arrows")) {
       document.getElementById('runmebanner4d').innerHTML= "Running Arrows. Please be patient.";
-      window.computecells = [];
-      window.computecells_length = 0;
-      window.computecells_cur    = 0;
+      window.computeCells = [];
+      window.computeCells_length = 0;
+      window.computeCells_cur    = 0;
       var xx = myspreadsheet.getData(false);
       for (var i=0; i<xx.length; ++i) {
          var yy = xx[i];
          for (var j=0; j<yy.length; ++j) {
-            check_cell_for_hashstring([gencellstr(i+1,j),xx[i][j].trim()]);
+            check_cell_for_hashString([gencellstr(i+1,j),xx[i][j].trim()]);
             if (check_command(yy[j])) {
                var ii = i-1;
                var jj = j-1;
                var colfound = false;
                var rowfound = false;
                while ((jj>=0) && (!colfound)) {
-                  if (check_not_commandorfloat(xx[i][jj])) {
+                  if (check_not_commandOrFloat(xx[i][jj])) {
                      colfound = true;
                   } else {
                      --jj;
                   }
                }
                while ((ii>=0) && (!rowfound)) {
-                  if (check_not_commandorfloat(xx[ii][j])) {
+                  if (check_not_commandOrFloat(xx[ii][j])) {
                      rowfound = true;
                   } else {
                      --ii;
@@ -15605,8 +15585,8 @@ function submit_spreadsheet() {
                }
 
                if (colfound && rowfound) {
-                  window.computecells.push([gencellstr(i+1,j),xx[i][jj]+" ~ "+xx[ii][j]+" parse_output{"+xx[i][j].trim()+"}"]);
-                  window.computecells_length += 1;
+                  window.computeCells.push([gencellstr(i+1,j),xx[i][jj]+" ~ "+xx[ii][j]+" parse_output{"+convert_command(xx[i][j].trim())+"}"]);
+                  window.computeCells_length += 1;
                }
             }
          }
@@ -15862,33 +15842,268 @@ function loadspreadtodbname() {
 }
 
 
+// **********************************
+// *                                *
+// *      add_column_theory         *
+// *                                *
+// **********************************
+function add_column_theory(promptstr,defaultpromptstr,selectid) {
+   var oldlist = document.getElementById(selectid).value.trim();
+   if (oldlist.length>1) { oldlist += " | ";}
+   oldlist += prompt(promptstr, defaultpromptstr).trim();
+   document.getElementById(selectid).value = oldlist;
+}
+function add_string_id(selectid,newstr) { document.getElementById(selectid).value += " " + newstr;}
+
 
 
 </script>
 
 <br>
-table type: <select id="tabletype" oninput="cacheInput(this)">
-    <option value="Gas-Phase Energy (Hartrees):e(gas)">Gas-Phase Energy (Hartrees)</option>
-    <option value="Gas-Phase Enthalpy (Hartrees):h(gas)">Gas-Phase Enthalpy (Hartrees)</option>
-    <option value="Gas-Phase Free Energy (Hartrees):g(gas)">Gas-Phase Free Energy (Hartrees)</option>
-    <option value="Solvation Free Energy (Hartrees):solvation">Solvation Free Energy (Hartrees)</option>
-    <option value="Aqueous Free Energy (Hartrees):g(aq)">Aqueous Free Energy (Hartrees)</option>
-    <option value="Gas-Phase Reaction Energy (Hartrees):erxn(gas)">Gas-Phase Reaction Energy (Hartrees)</option>
-    <option value="Gas-Phase Reaction Enthalpy (Hartrees):hrxn(gas)" selected="selected">Gas-Phase Reaction Enthalpy (Hartrees)</option>
-    <option value="Gas-Phase Reaction Free Energy (Hartrees):grxn(gas)">Gas-Phase Reaction Free Energy (Hartrees)</option>
-    <option value="Solvation Reaction Free Energy (Hartrees):delta_solvation">Solvation Reaction Free Energy (Hartrees)</option>
-    <option value="Aqueous Reaction Free Energy (Hartrees):grxn(aq)">Aqueous Reaction Free Energy (Hartrees)</option>
-    <option value="Highest Occp. MO (eV):homo">HOMO Energy (eV)</option>
-    <option value="Lowest Occp. MO (eV):lumo">LUMO Energy (eV)</option>
-    <option value="Highest Occp. alpha MO (eV):alpha_homo">Alpha HOMO Energy (eV)</option>
-    <option value="Lowest Occp. alpha MO (eV):alpha_lumo">Alpha LUMO Energy (eV)</option>
-    <option value="Highest Occp. beta MO (eV):beta_homo">Beta HOMO Energy (eV)</option>
-    <option value="Lowest Occp. beta MO (eV):beta_lumo">Beta LUMO Energy (eV)</option>
-    <option value="SubmitEsmiles:submitesmiles">SubmitEsmiles</option>
+table type: <select id="tableType" oninput="cacheInput(this)">
+    <option value="Gas-Phase Energy (Hartrees)|e(gas)">Gas-Phase Energy (Hartrees)</option>
+    <option value="Gas-Phase Enthalpy (Hartrees)|h(gas)">Gas-Phase Enthalpy (Hartrees)</option>
+    <option value="Gas-Phase Free Energy (Hartrees)|g(gas)">Gas-Phase Free Energy (Hartrees)</option>
+    <option value="Solvation Free Energy (Hartrees)|g(solvation)">Solvation Free Energy (Hartrees)</option>
+    <option value="Aqueous Free Energy (Hartrees)|g(aq)">Aqueous Free Energy (Hartrees)</option>
+    <option value="Gas-Phase Reaction Energy (Hartrees)|erxn(gas)">Gas-Phase Reaction Energy (Hartrees)</option>
+    <option value="Gas-Phase Reaction Enthalpy (Hartrees)|hrxn(gas)" selected="selected">Gas-Phase Reaction Enthalpy (Hartrees)</option>
+    <option value="Gas-Phase Reaction Free Energy (Hartrees)|grxn(gas)">Gas-Phase Reaction Free Energy (Hartrees)</option>
+    <option value="Solvation Reaction Free Energy (Hartrees)|g(delta_solvation)">Solvation Reaction Free Energy (Hartrees)</option>
+    <option value="Aqueous Reaction Free Energy (Hartrees)|grxn(aq)">Aqueous Reaction Free Energy (Hartrees)</option>
+    <option value="Highest Occp. MO (eV)|homo">HOMO Energy (eV)</option>
+    <option value="Lowest Occp. MO (eV)|lumo">LUMO Energy (eV)</option>
+    <option value="Highest Occp. alpha MO (eV)|alpha_homo">Alpha HOMO Energy (eV)</option>
+    <option value="Lowest Occp. alpha MO (eV)|alpha_lumo">Alpha LUMO Energy (eV)</option>
+    <option value="Highest Occp. beta MO (eV)|beta_homo">Beta HOMO Energy (eV)</option>
+    <option value="Lowest Occp. beta MO (eV)|beta_lumo">Beta LUMO Energy (eV)</option>
+    <option value="SubmitEsmiles|submitesmiles">SubmitEsmiles</option>
 </select>
-column theories: <input type="theoryarray" id="columntheories"  size="60" value="theory{pspw4} : xc{pbe} : xc{b3lyp} : xc{m06-2x}" oninput="cacheInput(this)">
-number table rows: <input type="number" id="nrowstable" size="9" min="1" max="1000" step="1" value="5" oninput="cacheInput(this)">
-<br> <br>
+column theories: <input type="theoryarray" id="columnTheories"  size="92" value="xc{pbe} | xc{b3lyp} | xc{m06-2x} | xc{pbe0}" oninput="cacheInput(this)">
+<input type="button" class="button" id="add_column_theory" value="add"
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             onClick="add_column_theory('Add theory or enter none for spacer: ','','columnTheories');"/> }
+<br>
+number table rows: <input type="number" id="nrowsTable" size="9" min="1" max="1000" step="1" value="5" oninput="cacheInput(this)">
+<br>
+<select id="theory_s2" onChange="add_string_id('columnTheories',document.getElementById('theory_s2').value)">
+     <option value=""> theory/methods         </option>
+     <option value="theory{dft}">     dft     </option>
+     <option value="theory{pspw}">    pspw    </option>
+     <option value="theory{pspw4}">   pspw4   </option>
+     <option value="theory{mp2}">     mp2     </option>
+     <option value="theory{ccsd(t)}"> ccsd(t) </option>
+     <option value="theory{pm3}">     pm3     </option>
+     <option value="theory{band}">    band    </option>
+   </select>
+<select id="xc_s2" onChange="add_string_id('columnTheories',document.getElementById('xc_s2').value)">
+     <option value=""> exchange correlation </option>
+     <option value="xc{lda}">    lda        </option>
+     <option value="xc{pbe}">    pbe        </option>
+     <option value="xc{pbe0}">   pbe0       </option>
+     <option value="xc{blyp}">   blyp       </option>
+     <option value="xc{b3lyp}">  b3lyp      </option>
+     <option value="xc{m06-2x}"> m06-2x     </option>
+     <option value="xc{scan}">   scan       </option>
+     <option value="xc{tpss03}"> tpss03      </option>
+   </select>
+<select id="basis_s2" onChange="add_string_id('columnTheories',document.getElementById('basis_s2').value)">
+     <option value=""> basis sets                          </option>
+     <option value="basis{6-31G*}"> 6-31G*                 </option>
+     <option value="basis{6-311++G(2d,2p}"> 6-311++G(2d,2p)</option>
+   </select>
+<select id="SMD_solvent_s2" onChange="add_string_id('columnTheories',document.getElementById('SMD_solvent_s2').value)">
+     <option value=""> solvation theories      </option>
+     <option value="solvation_type{COSMO}">water (COSMO)</option>
+     <option value="solvation_type{COSMO-SMD}">water (COSMO-SMD)</option>
+     <option value="solvation_type{COSMO-SMD:acetacid}">acetic acid</option>
+     <option value="solvation_type{COSMO-SMD:acetone}">acetone</option>
+     <option value="solvation_type{COSMO-SMD:acetntrl}">acetonitrile</option>
+     <option value="solvation_type{COSMO-SMD:acetphen}">acetophenone</option>
+     <option value="solvation_type{COSMO-SMD:aniline}">aniline</option>
+     <option value="solvation_type{COSMO-SMD:anisole}">anisole</option>
+     <option value="solvation_type{COSMO-SMD:benzaldh}">benzaldehyde</option>
+     <option value="solvation_type{COSMO-SMD:benzene}">benzene</option>
+     <option value="solvation_type{COSMO-SMD:benzntrl}">benzonitrile</option>
+     <option value="solvation_type{COSMO-SMD:benzylcl}">benzyl chloride</option>
+     <option value="solvation_type{COSMO-SMD:brisobut}">1-bromo-2-methylpropane</option>
+     <option value="solvation_type{COSMO-SMD:brbenzen}">bromobenzene</option>
+     <option value="solvation_type{COSMO-SMD:brethane}">bromoethane</option>
+     <option value="solvation_type{COSMO-SMD:bromform}">bromoform</option>
+     <option value="solvation_type{COSMO-SMD:broctane}">1-bromooctane</option>
+     <option value="solvation_type{COSMO-SMD:brpentan}">1-bromopentane</option>
+     <option value="solvation_type{COSMO-SMD:brpropa2}">2-bromopropane</option>
+     <option value="solvation_type{COSMO-SMD:brpropan}">1-bromopropane</option>
+     <option value="solvation_type{COSMO-SMD:butanal}">butanal</option>
+     <option value="solvation_type{COSMO-SMD:butacid}">butanoic acid</option>
+     <option value="solvation_type{COSMO-SMD:butanol}">1-butanol</option>
+     <option value="solvation_type{COSMO-SMD:butanol2}">2-butanol</option>
+     <option value="solvation_type{COSMO-SMD:butanone}">butanone</option>
+     <option value="solvation_type{COSMO-SMD:butantrl}">butanonitrile</option>
+     <option value="solvation_type{COSMO-SMD:butile}">butyl acetate</option>
+     <option value="solvation_type{COSMO-SMD:nba}">butylamine</option>
+     <option value="solvation_type{COSMO-SMD:nbutbenz}">n-butylbenzene</option>
+     <option value="solvation_type{COSMO-SMD:sbutbenz}">sec-butylbenzene</option>
+     <option value="solvation_type{COSMO-SMD:tbutbenz}">tert-butylbenzene</option>
+     <option value="solvation_type{COSMO-SMD:cs2}">carbon disulfide</option>
+     <option value="solvation_type{COSMO-SMD:carbntet}">carbon tetrachloride</option>
+     <option value="solvation_type{COSMO-SMD:clbenzen}">chlorobenzene</option>
+     <option value="solvation_type{COSMO-SMD:secbutcl}">sec-butyl chloride</option>
+     <option value="solvation_type{COSMO-SMD:chcl3}">chloroform</option>
+     <option value="solvation_type{COSMO-SMD:clhexane}">1-chlorohexane</option>
+     <option value="solvation_type{COSMO-SMD:clpentan}">1-chloropentane</option>
+     <option value="solvation_type{COSMO-SMD:clpropan}">1-chloropropane</option>
+     <option value="solvation_type{COSMO-SMD:ocltolue}">o-chlorotoluene</option>
+     <option value="solvation_type{COSMO-SMD:m-cresol}">m-cresol</option>
+     <option value="solvation_type{COSMO-SMD:o-cresol}">o-cresol</option>
+     <option value="solvation_type{COSMO-SMD:cychexan}">cyclohexane</option>
+     <option value="solvation_type{COSMO-SMD:cychexon}">cyclohexanone</option>
+     <option value="solvation_type{COSMO-SMD:cycpentn}">cyclopentane</option>
+     <option value="solvation_type{COSMO-SMD:cycpntol}">cyclopentanol</option>
+     <option value="solvation_type{COSMO-SMD:cycpnton}">cyclopentanone</option>
+     <option value="solvation_type{COSMO-SMD:declncis}">cis-decalin</option>
+     <option value="solvation_type{COSMO-SMD:declntra}">trans-decalin</option>
+     <option value="solvation_type{COSMO-SMD:declnmix}">decalin (cis/trans mixture)</option>
+     <option value="solvation_type{COSMO-SMD:decane}">n-decane</option>
+     <option value="solvation_type{COSMO-SMD:decanol}">1-decanol</option>
+     <option value="solvation_type{COSMO-SMD:edb12}">1,2-dibromoethane</option>
+     <option value="solvation_type{COSMO-SMD:dibrmetn}">dibromomethane</option>
+     <option value="solvation_type{COSMO-SMD:butyleth}">dibutyl ether</option>
+     <option value="solvation_type{COSMO-SMD:odiclbnz}">o-dichlorobenzene</option>
+     <option value="solvation_type{COSMO-SMD:edc12}">1,2-dichloroethane</option>
+     <option value="solvation_type{COSMO-SMD:c12dce}">cis-dichloroethylene</option>
+     <option value="solvation_type{COSMO-SMD:t12dce}">trans-dichloroethylene</option>
+     <option value="solvation_type{COSMO-SMD:dcm}">dichloromethane</option>
+     <option value="solvation_type{COSMO-SMD:ether}">diethyl ether</option>
+     <option value="solvation_type{COSMO-SMD:et2s}">diethyl sulfide</option>
+     <option value="solvation_type{COSMO-SMD:dietamin}">diethylamine</option>
+     <option value="solvation_type{COSMO-SMD:mi}">diiodomethane</option>
+     <option value="solvation_type{COSMO-SMD:dipe}">diisopropyl ether</option>
+     <option value="solvation_type{COSMO-SMD:dmds}">dimethyl disulfide</option>
+     <option value="solvation_type{COSMO-SMD:dmso}">dimethyl sulfoxide</option>
+     <option value="solvation_type{COSMO-SMD:dma}">N,N-dimethylacetamide</option>
+     <option value="solvation_type{COSMO-SMD:cisdmchx}">cis-1,2-dimethylcyclohexane</option>
+     <option value="solvation_type{COSMO-SMD:dmf}">N,N-dimethylformamide</option>
+     <option value="solvation_type{COSMO-SMD:dmepen24}">2,4-dimethylpentane</option>
+     <option value="solvation_type{COSMO-SMD:dmepyr24}">2,4-dimethylpyridine</option>
+     <option value="solvation_type{COSMO-SMD:dmepyr26}">2,6-dimethylpyridine</option>
+     <option value="solvation_type{COSMO-SMD:dioxane}">1,4-dioxane</option>
+     <option value="solvation_type{COSMO-SMD:phoph}">diphenyl ether</option>
+     <option value="solvation_type{COSMO-SMD:dproamin}">dipropylamine</option>
+     <option value="solvation_type{COSMO-SMD:dodecan}">n-dodecane</option>
+     <option value="solvation_type{COSMO-SMD:meg}">1,2-ethanediol</option>
+     <option value="solvation_type{COSMO-SMD:etsh}">ethanethiol</option>
+     <option value="solvation_type{COSMO-SMD:ethanol}">ethanol</option>
+     <option value="solvation_type{COSMO-SMD:etoac}">ethyl acetate</option>
+     <option value="solvation_type{COSMO-SMD:etome}">ethyl formate</option>
+     <option value="solvation_type{COSMO-SMD:eb}">ethylbenzene</option>
+     <option value="solvation_type{COSMO-SMD:phenetol}">ethyl phenyl ether</option>
+     <option value="solvation_type{COSMO-SMD:c6h5f}">fluorobenzene</option>
+     <option value="solvation_type{COSMO-SMD:foctane}">1-fluorooctane</option>
+     <option value="solvation_type{COSMO-SMD:formamid}">formamide</option>
+     <option value="solvation_type{COSMO-SMD:formacid}">formic acid</option>
+     <option value="solvation_type{COSMO-SMD:heptane}">n-heptane</option>
+     <option value="solvation_type{COSMO-SMD:heptanol}">1-heptanol</option>
+     <option value="solvation_type{COSMO-SMD:heptnon2}">2-heptanone</option>
+     <option value="solvation_type{COSMO-SMD:heptnon4}">4-heptanone</option>
+     <option value="solvation_type{COSMO-SMD:hexadecn}">n-hexadecane</option>
+     <option value="solvation_type{COSMO-SMD:hexane}">n-hexane</option>
+     <option value="solvation_type{COSMO-SMD:hexnacid}">hexanoic acid</option>
+     <option value="solvation_type{COSMO-SMD:hexanol}">1-hexanol</option>
+     <option value="solvation_type{COSMO-SMD:hexanon2}">2-hexanone</option>
+     <option value="solvation_type{COSMO-SMD:hexene}">1-hexene</option>
+     <option value="solvation_type{COSMO-SMD:hexyne}">1-hexyne</option>
+     <option value="solvation_type{COSMO-SMD:c6h5i}">iodobenzene</option>
+     <option value="solvation_type{COSMO-SMD:iobutane}">1-iodobutane</option>
+     <option value="solvation_type{COSMO-SMD:c2h5i}">iodoethane</option>
+     <option value="solvation_type{COSMO-SMD:iohexdec}">1-iodohexadecane</option>
+     <option value="solvation_type{COSMO-SMD:ch3i}">iodomethane</option>
+     <option value="solvation_type{COSMO-SMD:iopentan}">1-iodopentane</option>
+     <option value="solvation_type{COSMO-SMD:iopropan}">1-iodopropane</option>
+     <option value="solvation_type{COSMO-SMD:cumene}">isopropylbenzene</option>
+     <option value="solvation_type{COSMO-SMD:p-cymene}">p-isopropyltoluene</option>
+     <option value="solvation_type{COSMO-SMD:mesityln}">mesitylene</option>
+     <option value="solvation_type{COSMO-SMD:methanol}">methanol</option>
+     <option value="solvation_type{COSMO-SMD:egme}">2-methoxyethanol</option>
+     <option value="solvation_type{COSMO-SMD:meacetat}">methyl acetate</option>
+     <option value="solvation_type{COSMO-SMD:mebnzate}">methyl benzoate</option>
+     <option value="solvation_type{COSMO-SMD:mebutate}">methyl butanoate</option>
+     <option value="solvation_type{COSMO-SMD:meformat}">methyl formate</option>
+     <option value="solvation_type{COSMO-SMD:mibk}">4-methyl-2-pentanone</option>
+     <option value="solvation_type{COSMO-SMD:mepropyl}">methyl propanoate</option>
+     <option value="solvation_type{COSMO-SMD:isobutol}">2-methyl-1-propanol</option>
+     <option value="solvation_type{COSMO-SMD:terbutol}">2-methyl-2-propanol</option>
+     <option value="solvation_type{COSMO-SMD:nmeaniln}">N-methylaniline</option>
+     <option value="solvation_type{COSMO-SMD:mecychex}">methylcyclohexane</option>
+     <option value="solvation_type{COSMO-SMD:nmfmixtr}">N-methylformamide (E/Z mixture)</option>
+     <option value="solvation_type{COSMO-SMD:isohexan}">2-methylpentane</option>
+     <option value="solvation_type{COSMO-SMD:mepyrid2}">2-methylpyridine</option>
+     <option value="solvation_type{COSMO-SMD:mepyrid3}">3-methylpyridine</option>
+     <option value="solvation_type{COSMO-SMD:mepyrid4}">4-methylpyridine</option>
+     <option value="solvation_type{COSMO-SMD:c6h5no2}">nitrobenzene</option>
+     <option value="solvation_type{COSMO-SMD:c2h5no2}">nitroethane</option>
+     <option value="solvation_type{COSMO-SMD:ch3no2}">nitromethane</option>
+     <option value="solvation_type{COSMO-SMD:ntrprop1}">1-nitropropane</option>
+     <option value="solvation_type{COSMO-SMD:ntrprop2}">2-nitropropane</option>
+     <option value="solvation_type{COSMO-SMD:ontrtolu}">o-nitrotoluene</option>
+     <option value="solvation_type{COSMO-SMD:nonane}">n-nonane</option>
+     <option value="solvation_type{COSMO-SMD:nonanol}">1-nonanol</option>
+     <option value="solvation_type{COSMO-SMD:nonanone}">5-nonanone</option>
+     <option value="solvation_type{COSMO-SMD:octane}">n-octane</option>
+     <option value="solvation_type{COSMO-SMD:octanol}">1-octanol</option>
+     <option value="solvation_type{COSMO-SMD:octanon2}">2-octanone</option>
+     <option value="solvation_type{COSMO-SMD:pentdecn}">n-pentadecane</option>
+     <option value="solvation_type{COSMO-SMD:pentanal}">pentanal</option>
+     <option value="solvation_type{COSMO-SMD:npentane}">n-pentane</option>
+     <option value="solvation_type{COSMO-SMD:pentacid}">pentanoic acid</option>
+     <option value="solvation_type{COSMO-SMD:pentanol}">1-pentanol</option>
+     <option value="solvation_type{COSMO-SMD:pentnon2}">2-pentanone</option>
+     <option value="solvation_type{COSMO-SMD:pentnon3}">3-pentanone</option>
+     <option value="solvation_type{COSMO-SMD:pentene}">1-pentene</option>
+     <option value="solvation_type{COSMO-SMD:e2penten}">E-2-pentene</option>
+     <option value="solvation_type{COSMO-SMD:pentacet}">pentyl acetate</option>
+     <option value="solvation_type{COSMO-SMD:pentamin}">pentylamine</option>
+     <option value="solvation_type{COSMO-SMD:pfb}">perfluorobenzene</option>
+     <option value="solvation_type{COSMO-SMD:benzalcl}">phenylmethanol</option>
+     <option value="solvation_type{COSMO-SMD:propanal}">propanal</option>
+     <option value="solvation_type{COSMO-SMD:propacid}">propanoic acid</option>
+     <option value="solvation_type{COSMO-SMD:propanol}">1-propanol</option>
+     <option value="solvation_type{COSMO-SMD:propnol2}">2-propanol</option>
+     <option value="solvation_type{COSMO-SMD:propntrl}">propanonitrile</option>
+     <option value="solvation_type{COSMO-SMD:propenol}">2-propen-1-ol</option>
+     <option value="solvation_type{COSMO-SMD:propacet}">propyl acetate</option>
+     <option value="solvation_type{COSMO-SMD:propamin}">propylamine</option>
+     <option value="solvation_type{COSMO-SMD:pyridine}">pyridine</option>
+     <option value="solvation_type{COSMO-SMD:c2cl4}">tetrachloroethene</option>
+     <option value="solvation_type{COSMO-SMD:thf}">tetrahydrofuran</option>
+     <option value="solvation_type{COSMO-SMD:sulfolan}">tetrahydrothiophene-S,S-dioxide</option>
+     <option value="solvation_type{COSMO-SMD:tetralin}">tetralin</option>
+     <option value="solvation_type{COSMO-SMD:thiophen}">thiophene</option>
+     <option value="solvation_type{COSMO-SMD:phsh}">thiophenol</option>
+     <option value="solvation_type{COSMO-SMD:toluene}">toluene</option>
+     <option value="solvation_type{COSMO-SMD:tbp}">tributyl phosphate</option>
+     <option value="solvation_type{COSMO-SMD:tca111}">1,1,1-trichloroethane</option>
+     <option value="solvation_type{COSMO-SMD:tca112}">1,1,2-trichloroethane</option>
+     <option value="solvation_type{COSMO-SMD:tce}">trichloroethene</option>
+     <option value="solvation_type{COSMO-SMD:et3n}">triethylamine</option>
+     <option value="solvation_type{COSMO-SMD:tfe222}">2,2,2-trifluoroethanol</option>
+     <option value="solvation_type{COSMO-SMD:tmben124}">1,2,4-trimethylbenzene</option>
+     <option value="solvation_type{COSMO-SMD:isoctane}">2,2,4-trimethylpentane</option>
+     <option value="solvation_type{COSMO-SMD:undecane}">n-undecane</option>
+     <option value="solvation_type{COSMO-SMD:m-xylene}">m-xylene</option>
+     <option value="solvation_type{COSMO-SMD:o-xylene}">o-xylene</option>
+     <option value="solvation_type{COSMO-SMD:p-xylene}">p-xylene</option>
+     <option value="solvation_type{COSMO-SMD:xylenemx}">xylene (mixture)</option>
+   </select>
+<select id="run_options_s2" onChange="add_string_id('columnTheories',document.getElementById('run_options_s2').value)">
+     <option value=""> run options                      </option>
+     <option value="optimizer{cgmin}"> optimizer{cgmin} </option>
+     <option value="smear{0.01}">      smear{0.01}      </option>
+     <option value="smear{0.05}">      smear{0.05}      </option>
+     <option value="smear{0.1}">        smear{0.1}      </option>
+   </select>
+
+<br><br><br>
 <input type="button" VALUE="Save json file" onClick="savejsonfile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
 <input type="button" VALUE="Save to csv file" onClick="savecsvfile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
 <input type="button" VALUE="Load selected json file" onClick="loadjsonfile()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
@@ -15952,6 +16167,10 @@ parsing string:<input type="parsingstring" id="splitparsing"  list="parsinglist"
 
 </div>
 <br>
+
+
+
+
 <div id="Output" class="tabcontent">
 
 <script>
