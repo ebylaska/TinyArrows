@@ -3474,6 +3474,7 @@ ul, li {
                  var nwoutput = nwinputs[0].split("nwchem_output")[1].split("\n")[0].trim();
                  var numtag = nwoutput.split("out")[1];
                  var num = parseInt(nwoutput.split("out")[1]);
+                 var numtag000 = "000";
 
                  for (i=1; i<nwlen; ++i) {
                     num += 1;
@@ -3481,7 +3482,7 @@ ul, li {
                     //nwinputs[i] = header.replace(numtag,(numtag+num.toString()).slice(-2)) + nwinputs[i];
 
                     var tt = header.split("nwchem_output")[1].split("\n")[0].trim();
-                    var uu = tt.split("out")[0] + "out" + tt.split("out")[1].replace(numtag,(numtag+num.toString()).slice(-2));
+                    var uu = tt.split("out")[0] + "out" + tt.split("out")[1].replace(numtag,(numtag000+num.toString()).slice(-2));
                     var header0  = header.replace(tt,uu);
                     var nwinput0 = nwinputs[i];
 
