@@ -1,0 +1,593 @@
+#!/usr/bin/env python
+
+import os,math,subprocess,random,glob
+from os import listdir
+from os.path import isfile, join
+
+############## machine parameters #########################
+submit_arrows = "/home/bylaska/bin/submit_arrows "
+fetch_arrows  = "/home/bylaska/bin/fetch_arrows "
+
+ddrand = random.randint(0,999999)
+tmpdir0 =  "/home/bylaska/Projects/BES/Hematite-Zn/JUNK"
+
+curdir = os.getcwd()
+############## machine parameters #########################
+
+periodic_table_charge = {
+    'H'  : 1,
+    'He' : 2,
+    'Li' : 3,
+    'Be' : 4,
+    'B'  : 5,
+    'C'  : 6,
+    'N'  : 7,
+    'O'  : 8,
+    'F'  : 9,
+    'Ne' : 10,
+    'Na' : 11,
+    'Mg' : 12,
+    'Al' : 13,
+    'Si' : 14,
+    'P'  : 15,
+    'S'  : 16,
+    'Cl' : 17,
+    'Ar' : 18,
+    'K'  : 19,
+    'Ca' : 20,
+    'Sc' : 21,
+    'Ti' : 22,
+    'V'  : 23,
+    'Cr' : 24,
+    'Mn' : 25,
+    'Fe' : 26,
+    'Co' : 27,
+    'Ni' : 28,
+    'Cu' : 29,
+    'Zn' : 30,
+    'Ga' : 31,
+    'Ge' : 32,
+    'As' : 33,
+    'Se' : 34,
+    'Br' : 35,
+    'Kr' : 36,
+    'Rb' : 37,
+    'Sr' : 38,
+    'Y'  : 39,
+    'Zr' : 40,
+    'Nb' : 41,
+    'Mo' : 42,
+    'Tc' : 43,
+    'Ru' : 44,
+    'Rh' : 45,
+    'Pd' : 46,
+    'Ag' : 47,
+    'Cd' : 48,
+    'In' : 49,
+    'Sn' : 50,
+    'Sb' : 51,
+    'Te' : 52,
+    'I'  : 53,
+    'Xe' : 54,
+    'Cs' : 55,
+    'Ba' : 56,
+    'La' : 57,
+    'Ce' : 58,
+    'Pr' : 59,
+    'Nd' : 60,
+    'Pm' : 61,
+    'Sm' : 62,
+    'Eu' : 63,
+    'Gd' : 64,
+    'Tb' : 65,
+    'Dy' : 66,
+    'Ho' : 67,
+    'Er' : 68,
+    'Tm' : 69,
+    'Yb' : 70,
+    'Lu' : 71,
+    'Hf' : 72,
+    'Ta' : 73,
+    'W'  : 74,
+    'Re' : 75,
+    'Os' : 76,
+    'Ir' : 77,
+    'Pt' : 78,
+    'Au' : 79,
+    'Hg' : 80,
+    'Tl' : 81,
+    'Pb' : 82,
+    'Bi' : 83,
+    'Po' : 84,
+    'At' : 85,
+    'Rn' : 86,
+    'Fr' : 87,
+    'Ra' : 88,
+    'Ac' : 89,
+    'Th' : 90,
+    'Pa' : 91,
+    'U'  : 92,
+    'Np' : 93,
+    'Pu' : 94,
+    'Am' : 95,
+    'Cm' : 96,
+    'Bk' : 97,
+    'Cf' : 98,
+    'Es' : 99,
+    'Fm' : 100,
+    'Md' : 101,
+    'No' : 102,
+    'Lr' : 103,
+    'Rf' : 104,
+    'Ha' : 105,
+    'Sg' : 106,
+    'Bh' : 107,
+    'Hs' : 108,
+    'Mt' : 109
+}
+
+
+def generate_average_chi(data_dir):
+   if os.path.exists(data_dir):
+      #print "data directory exists:" + data_dir
+      chi_count = 0
+      ks      = [i*0.05 for i in range(401)]
+      chi_all = [0.0]*401
+      chi_all_ra = []
+      chi_count_ra = []
+
+      onlyfiles = [f for f in listdir(data_dir) if isfile(join(data_dir, f)) if "chi_run" in f]
+      nfiles = len(onlyfiles)
+      maxnf = nfiles + 1
+      tag  = ''
+      tag2 = ' - averaging over all %d spectra' % nfiles
+      for nf in range(0,nfiles+1,50):
+         if nf>0:
+            tag = '_ra_%d' % nf
+            tag2 = ' - averaging over first %d spectra' % nf
+            maxnf = nf
+         chi_count = 0
+         ks      = [i*0.05 for i in range(401)]
+         chi_all = [0.0]*401
+
+         for f in onlyfiles:
+            #print "- including " + f + " in the average"
+            if (chi_count<maxnf):
+               chi_count += 1
+               with open(data_dir + "/" + f,"r") as ff:
+                  for line in ff:
+                     if ('#' not in line):
+                        ss = line.split()
+                        x = float(ss[0])
+                        y = float(ss[1])
+                        if (x>=0.0) and (x<=20.0):
+                           i = int(x/0.05 + 0.5)
+                           chi_all[i] += y
+
+
+         # plot chi_avg
+         data_dir0 = data_dir.rstrip("/")
+         chi_avg = data_dir0.split("/")[-1]
+         chi_avg = chi_avg.replace("exafs","chi_avg"+tag)
+         chi_avg = data_dir0 + "/" +  chi_avg + ".dat"
+         #print "chi_avg filename:" + chi_avg
+         #print "initial chi_count = ",chi_count
+         if (chi_count>0) and (nf==0):
+            with open(chi_avg,"w") as ff:
+               for i in range(401):
+                  ff.write("%11.4f %15.6e\n" % (ks[i],chi_all[i]/chi_count))
+         
+         # plot k1chi_avg
+         k1chi_avg = data_dir0.split("/")[-1]
+         k1chi_avg = k1chi_avg.replace("exafs","k1chi_avg"+tag)
+         k1chi_avg = data_dir0 + "/" +  k1chi_avg + ".dat"
+         if (chi_count>0):
+            with open(k1chi_avg,"w") as ff:
+               ff.write("#Title Averaged EXAFS k*chi(k) Data" + tag2 + "\n")
+               ff.write("#Labels k(Angs-1)    chi(k)        k*chi(k)\n")
+               for i in range(401):
+                  ff.write("%11.4f %15.6e %15.6e\n" % (ks[i],chi_all[i]/chi_count,ks[i]*chi_all[i]/chi_count))
+
+         # plot k2chi_avg
+         k2chi_avg = data_dir0.split("/")[-1]
+         k2chi_avg = k2chi_avg.replace("exafs","k2chi_avg"+tag)
+         k2chi_avg = data_dir0 + "/" +  k2chi_avg + ".dat"
+         if (chi_count>0):
+            with open(k2chi_avg,"w") as ff:
+               ff.write("#Title Averaged EXAFS k2*chi(k) Data" + tag2 + "\n")
+               ff.write("#Labels k(Angs-1)    chi(k)       k2*chi(k)\n")
+               for i in range(401):
+                  ff.write("%11.4f %15.6e %15.6e\n" % (ks[i],chi_all[i]/chi_count,ks[i]*ks[i]*chi_all[i]/chi_count))
+
+         # plot k3chi_avg
+         k3chi_avg = data_dir0.split("/")[-1]
+         k3chi_avg = k3chi_avg.replace("exafs","k3chi_avg"+tag)
+         k3chi_avg = data_dir0 + "/" +  k3chi_avg + ".dat"
+         if (chi_count>0):
+            with open(k3chi_avg,"w") as ff:
+               ff.write("#Title Averaged EXAFS k3*chi(k) Data" + tag2 + "\n")
+               ff.write("#Labels k(Angs-1)    chi(k)       k3*chi(k)\n")
+               for i in range(401):
+                  ff.write("%11.4f %15.6e %15.6e\n" % (ks[i],chi_all[i]/chi_count,ks[i]*ks[i]*ks[i]*chi_all[i]/chi_count))
+
+         chi_all_ra.append(chi_all[:])
+         chi_count_ra.append(chi_count)
+
+
+      # plot running average k1chi_avg
+      data_dir0 = data_dir.rstrip("/")
+      k1chi_avg = data_dir0.split("/")[-1]
+      k1chi_avg = k1chi_avg.replace("exafs","k1chi_all_running")
+      k1chi_avg = data_dir0 + "/" +  k1chi_avg + ".dat"
+      with open(k1chi_avg,"w") as ff:
+         ff.write("#Title Running Averaged EXAFS k*chi(k) Data\n")
+         ff.write("#Labels k(Angs-1)")
+         for j in range(len(chi_count_ra)):
+            ff.write(" count=%d" % j)
+         ff.write("\n")
+         for i in range(401):
+            ff.write("%11.4f" % (ks[i]))
+            for j in range(len(chi_count_ra)):
+               chi_count = chi_count_ra[j]
+               ff.write(" %15.6e" % (ks[i]*chi_all_ra[j][i]/chi_count))
+            ff.write("\n")
+
+      # plot running average k2chi_avg
+      data_dir0 = data_dir.rstrip("/")
+      k2chi_avg = data_dir0.split("/")[-1]
+      k2chi_avg = k2chi_avg.replace("exafs","k2chi_all_running")
+      k2chi_avg = data_dir0 + "/" +  k2chi_avg + ".dat"
+      with open(k2chi_avg,"w") as ff:
+         ff.write("#Title Running Averaged EXAFS k2*chi(k) Data\n")
+         ff.write("#Labels k(Angs-1)")
+         for j in range(len(chi_count_ra)):
+            ff.write(" count=%d" % j)
+         ff.write("\n")
+         for i in range(401):
+            ff.write("%11.4f" % (ks[i]))
+            for j in range(len(chi_count_ra)):
+               chi_count = chi_count_ra[j]
+               ff.write(" %15.6e" % (ks[i]*ks[i]*chi_all_ra[j][i]/chi_count))
+            ff.write("\n")
+
+      # plot running average k3chi_avg
+      data_dir0 = data_dir.rstrip("/")
+      k3chi_avg = data_dir0.split("/")[-1]
+      k3chi_avg = k3chi_avg.replace("exafs","k3chi_all_running")
+      k3chi_avg = data_dir0 + "/" +  k3chi_avg + ".dat"
+      with open(k3chi_avg,"w") as ff:
+         ff.write("#Title Running Averaged EXAFS k3*chi(k) Data\n")
+         ff.write("#Labels k(Angs-1)")
+         for j in range(len(chi_count_ra)):
+            ff.write(" count=%d" % j)
+         ff.write("\n")
+         for i in range(401):
+            ff.write("%11.4f" % (ks[i]))
+            for j in range(len(chi_count_ra)):
+               chi_count = chi_count_ra[j]
+               ff.write(" %15.6e" % (ks[i]*ks[i]*ks[i]*chi_all_ra[j][i]/chi_count))
+            ff.write("\n")
+
+
+
+
+
+def main():
+  import sys,time
+  import getopt
+
+
+
+  usage = \
+  """
+  This program runs a feff9 calculations for an aimd simulation
+
+  Usage: run_exafs -a adsorber_atom_name -i ihole -s s02  -r rcut ion_motion
+  
+  -a absorber -  name of absorbing atom (default is first atom)
+  -i ihole Set Hole: 0 = no hole, 1 = K-edge, 2 = L1-edge, 3 = L2-edge, 4 = L3-edge (default 4)
+  -s s02 Set amplitude reduction factor (default 1.0)
+  -r rcut  Set cluster radius (default 5.5 angstroms)
+  -m mstart frame (default 0)
+  -n nskip Stride length; For MD trajectory (default 1)
+  -e de0 Delta E0 shift in eV (default 0.0)
+  -q check the queue
+  -g generate averages
+  --hydrogen include hydrogens
+  -h help
+
+  """
+
+  opts, args = getopt.getopt(sys.argv[1:], "a:i:m:n:r:s:e:hqg:")
+
+  queue_only   = False
+  queue_check  = False
+  gaverage_run = False
+  gatadir0 = ''
+  mstart = 0
+  nskip = 1
+  absorber = ''
+  ihole = 4
+  rcut = 5.5
+  s02 = 1.0
+  de0 = 0.0
+  include_hydrogen = False
+  for o, a in opts:
+     if '-a' in o: absorber = a
+     if '-i' in o: ihole = int(a)
+     if '-s' in o: s02 = float(a)
+     if '-r' in o: rcut = float(a)
+     if '-e' in o: de0  = float(a)
+     if '-m' in o: mstart = int(a)
+     if '-n' in o: nskip = int(a)
+     if '-q' in o: queue_check = True
+     if '-g' in o: 
+        gaverage_run = True
+        gatadir0 = a
+     if o in ("--hydrogen"):
+        include_hydrogen = True
+     if o in ("-h","--help"):
+        print usage
+        exit()
+
+  if len(args) < 1:
+    if (queue_check) or (gaverage_run):
+       queue_only = True
+    else:
+       print usage
+       exit()
+  else:
+     filename = args[0]
+
+  #### just generate averages ####
+  if gaverage_run:
+     ### update chi_averages ###
+     generate_average_chi(gatadir0)
+     return
+
+  #### check the queue for finished feff9 jobs ####
+  if queue_check:
+     os.chdir(tmpdir0)
+     cmd9 = fetch_arrows
+     result9 = subprocess.check_output(cmd9,shell=True,stderr=subprocess.STDOUT)
+     print "Checking queue_nwchem:"
+     #print "fetch_arrows result=",result9
+     #print
+     result = result9.split("label::")[1].strip()
+     for line in result.split("\n"):
+        ss = line.split()
+        if ("feff9" in ss[5]) and (ss[2]=="yes") and ("exafs" in ss[6]):
+
+           #### delete previous chi names before fetching ####
+           chi_fetch_names0 = glob.glob(tmpdir0 + "/chi*.dat")
+           for fname in chi_fetch_names0:
+              if (os.path.isfile(fname)):
+                 try: 
+                    os.unlink(fname)
+                 except:
+                    print "Failed to delete ",fname
+
+           cmd99    = fetch_arrows + "-e " + ss[0]
+           cmd999   = fetch_arrows + "-d " + ss[0]
+           try:
+              result99 = subprocess.check_output(cmd99,shell=True,stderr=subprocess.STDOUT)
+              #print "result99=",result99
+              frame    = int(result99.split("frame:")[1].split(":frame")[0].strip())
+              aindex   = int(result99.split("aindex:")[1].split(":aindex")[0].strip())
+              data_dir = result99.split("data_dir:")[1].split(":data_dir")[0].strip()
+
+              output_filename = data_dir + "/output/feff_run%06d_%02d.out" % (frame,aindex)
+              with open(output_filename,'w') as ff:
+                 ff.write(result99)
+
+              chi_filename = data_dir + "/chi_run%06d_%02d.dat" % (frame,aindex)
+              chi_fetch_names = glob.glob(tmpdir0 + "/chi*.dat")
+              print "chi_fetch_names=",chi_fetch_names
+              print "chi_filename=",chi_filename
+              for fname in chi_fetch_names:
+                 if (os.path.isfile(fname)):
+                    with open(fname,"r") as ff:
+                       aa = ff.read()
+                    with open(chi_filename,"w") as ff:
+                       ff.write(aa)
+                    try: 
+                       os.unlink(fname)
+                    except:
+                       print "Failed to delete ",fname
+
+              ### update chi_averages ###
+              print "into generate average data_dir=",data_dir
+              generate_average_chi(data_dir)
+
+           except:
+              print "  - cmd99 failed=" + cmd99
+
+           ### delete entry ###
+           result999 = subprocess.check_output(cmd999,shell=True,stderr=subprocess.STDOUT)
+           print "  - result999=" + result999.strip()
+
+
+  if queue_only: return
+
+
+  ### submit jobs below ###
+  with open(filename,'r') as ff:
+     aa = ff.read()
+  aalist = aa.split("\n")
+  nion = int(aalist[0].split()[1])
+  nframes = len(aalist)/(nion+1)
+
+  if (absorber==''): 
+     absorber = aalist[1].split()[1]
+
+  aindexes = []
+  katm = {}
+  for i in range(nion):
+     name = aalist[i+1].split()[1]
+     if (name in katm):
+        katm[name] += 1
+     else:
+        katm[name] = 1
+     #if (aindex<0) and (name==absorber): 
+     if (name==absorber): 
+        aindexes.append(i)
+
+  if (len(aindexes)<2):
+     del katm[absorber]
+     absorber0 = absorber
+     katm[absorber0] = 0
+  else:
+     absorber0 = absorber + "0"
+     katm[absorber0] = 0
+  count = 1
+  for key,val in katm.iteritems():
+     if ((key != absorber0) and (key!='H')) or (key=="H" and include_hydrogen):
+        katm[key] = count
+        count += 1
+  if (not include_hydrogen): katm["H"] = -1
+
+
+  chi_count = 0
+  ks      = [i*0.05 for i in range(401)]
+  chi_all = [0.0]*401
+
+  	
+  # define data dir
+  data_dir = curdir 
+  data_dir += "/exafs_"+absorber
+  data_dir += "_ih_%d" % ihole
+  data_dir += "_de_%.1f" % de0
+  data_dir += "_s02_%.1f" % s02
+  data_dir += "_rc_%.1f" % rcut
+  if not os.path.exists(data_dir):
+     print "making data directory:" + data_dir
+     os.mkdir(data_dir)
+  else:
+     print "data directory exists:" + data_dir
+     onlyfiles = [f for f in listdir(data_dir) if isfile(join(data_dir, f)) if "chi_run" in f]
+     for f in onlyfiles:
+        print "- including " + f + " in the average"
+        chi_count += 1
+        with open(data_dir + "/" + f,"r") as ff:
+           for line in ff:
+              if ('#' not in line):
+                 ss = line.split()
+                 x = float(ss[0])
+                 y = float(ss[1])
+                 if (x>=0.0) and (x<=20.0):
+                    i = int(x/0.05 + 0.5)
+                    chi_all[i] += y
+
+
+  # define input_dir
+  input_dir = data_dir + "/input"
+  if not os.path.exists(input_dir):
+     print "making input directory:" + input_dir
+     os.mkdir(input_dir)
+
+  # define output_dir
+  output_dir = data_dir + "/output"
+  if not os.path.exists(output_dir):
+     print "making output directory:" + output_dir
+     os.mkdir(output_dir)
+
+  # define chi_avg
+  #chi_avg = data_dir + "/chi_avg"
+  #chi_avg += "_ih_%d" % ihole
+  #chi_avg += "_de_%.1f" % de0
+  #chi_avg += "_s02_%.1f" % s02
+  #chi_avg += ".dat"
+  #print "chi_avg filename:" + chi_avg
+  #print "initial chi_count = ",chi_count
+  #if (chi_count>0):
+  #   with open(chi_avg,"w") as ff:
+  #      for i in range(401):
+  #         ff.write("%11.4f %15.6e\n" % (ks[i],chi_all[i]/chi_count))
+
+  for aindex in aindexes:
+
+     print "formula dictionary =",katm
+     print "adsorber=",absorber
+     print "adsorber index = ",aindex
+     print "nions   =",nion
+     print "nframes =",nframes 
+     if (include_hydrogen):
+        print "Hydrogens included."
+     else:
+        print "No Hydrogens included."
+
+
+     os.chdir(input_dir)
+     frame = mstart
+     while (frame<nframes):
+        input_filename = input_dir + "/feff_run%06d_%02d.inp" % (frame,aindex)
+        if (not os.path.isfile(input_filename)):
+           feff  = "* label:" + input_filename + ":label\n"
+           feff += "* data_dir:" + data_dir + ":data_dir\n"
+           feff += "* frame: %d :frame  aindex: %d :aindex\n" % (frame,aindex)
+           feff += "TITLE " + filename + " frame=%d\n" % frame
+           feff += "HOLE %d %f\n" % (ihole,s02)
+           feff += "CONTROL 1 1 1 1 1 1\n"
+           feff += "PRINT   0 0 0 0 0 0\n\n\n" 
+           feff += "RMAX %f\n" % (rcut)
+           feff += "SCF 5.5 1 30 0.2 1\n"
+           if (abs(de0)>1e-6):
+              feff += "CORRECTIONS  %f\n" % de0
+           feff += "\n\n"
+           feff += "POTENTIALS\n"
+           feff += "*  IPOT     Z     tag\n"
+           feff += "%6d   %5d     %s\n" % (0,periodic_table_charge[absorber],absorber0)
+           count = 1
+           for key,val in katm.iteritems():
+              if (val>0):
+                 feff += "%6d   %5d     %s\n" % (count,periodic_table_charge[key],key)
+                 count += 1
+           feff += "\n\n"
+           feff += "ATOMS\n"
+           feff += "*      X           Y           Z      IPOT    NN-DIST\n"
+           feff += " %11.6f %11.6f %11.6f %4d %11.6f\n" % (0.0,0.0,0.0,0,0.0)
+
+           # fetch the unitcell
+           s = aalist[frame*(nion+1)].split()
+           amatrix = [eval(s[3]),eval(s[4]),eval(s[5]),eval(s[6]),eval(s[7]),eval(s[8]),eval(s[9]),eval(s[10]),eval(s[11])]
+
+           ss = aalist[frame*(nion+1) + aindex + 1].split()
+           xcm = float(ss[3])
+           ycm = float(ss[4])
+           zcm = float(ss[5])
+           print "xcm,ycm,zcm=",xcm,ycm,zcm
+           for i in range(nion):
+              if (i!=aindex):
+                 ss = aalist[frame*(nion+1) + i + 1].split()
+                 atom = ss[1]
+                 x = float(ss[3])
+                 y = float(ss[4])
+                 z = float(ss[5])
+                 if (katm[atom]>=0):
+                    for i3 in range(-1,2):
+                       for i2 in range(-1,2):
+                          for i1 in range(-1,2):
+                             x1 = x + amatrix[0]*i1 + amatrix[3]*i2 + amatrix[6]*i3
+                             y1 = y + amatrix[1]*i1 + amatrix[4]*i2 + amatrix[7]*i3
+                             z1 = z + amatrix[2]*i1 + amatrix[5]*i2 + amatrix[8]*i3
+                             dist = 0.529177*math.sqrt((x1-xcm)**2 + (y1-ycm)**2 + (z1-zcm)**2)
+                             if (dist<=rcut):
+                                feff += " %11.6f %11.6f %11.6f %4d %11.6f\n" % ((x1-xcm)*0.529177,(y1-ycm)*0.529177,(z1-zcm)*0.529177,katm[atom],dist)
+           feff += "END"
+
+           print "Submit FEFF9 on frame=",frame
+           with open(input_filename, "w") as ff: 
+              ff.write(feff)
+
+           cmd6 = submit_arrows + input_filename
+           result6 = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT)
+           print "submit_arrows result=",result6
+           print
+
+        frame += nskip
+
+
+
+if __name__ == "__main__":
+  main()
+

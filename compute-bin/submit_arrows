@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+
+import os,sys,subprocess,requests,getopt,math,random
+
+ALLOWED_EXTENSIONS = set(['nw','eap','inp'])
+arrows_post_url    = 'https://arrows.emsl.pnnl.gov/api/upload/'
+arrows_get_url     = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/'
+
+############## machine parameters #########################
+curdir      = os.getcwd()
+machinename = 'we34304'
+############## machine parameters #########################
+
+#def allowed_file(filename):
+#    return '.' in filename and \
+#           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+def allowed_file(filename):
+    allowed = False
+    suffix = filename.rsplit('.', 1)[1]
+    for a in ALLOWED_EXTENSIONS:
+       if a in suffix: allowed = True
+    return '.' in filename and allowed
+
+
+
+############################# main program ###################################
+usage = \
+"""
+submit_arrows
+
+  Usage: submit_arrows -h nwchem_input_deck [queue_wait_numbers]
+
+  -m include dir and machinename
+  -h help
+
+"""
+
+print()
+print("submit_arrows - version 1.0")
+print()
+
+opts, args = getopt.getopt(sys.argv[1:], "h")
+include_machine = False
+for o, a in opts:
+  if "-m" in o:
+     include_machine = True
+  if o in ("-h","--help"):
+    print(usage)
+    exit()
+
+if (len(args)<1):
+   print(usage)
+   exit()
+
+filename = args[0]
+if "http" in filename:
+   submit_dir = curdir
+   filename0 = filename
+   try:
+      rr = requests.get(filename0)
+      print(" - API return=",rr.text)
+   except:
+      print(" - API Failed reading " + filename0)
+      exit()
+   if ("geometry" not in rr.text):
+      print("geometry block not found, exiting.")
+      exit()
+
+   filename  = filename0.split('/')[-1]
+   if (".nw" not in filename):
+      ii = int(math.floor(random.random()*1000)) + 1
+      filename = "nwchem-%d.nw" % ii
+   with open(filename,'w') as ff:
+      ff.write(rr.text)
+elif '/' in filename:
+   submit_dir = '/'.join(filename.split('/')[0:-1])
+else:
+   submit_dir = curdir
+
+qnums = ''
+for q in args[1:]:
+   qnums += q + " "
+qnums = qnums.strip()
+
+### read in the filename ###
+with open(filename,'r') as ff:
+   nwinput = ff.read()
+nwinput0 = nwinput
+
+
+### remove html tags from input_deck api ###
+if "# NWChem Input Generation" in nwinput:
+   found = False
+   nwinput2 = ''
+   for ln in nwinput.split("\n"):
+      if ("# NWChem Input Generation" in ln):
+         found = True
+         nwinput2 = ln + "\n"
+      elif ("</pre>" in ln):
+         found = False
+      elif found:
+         nwinput2 += ln + "\n"
+   with open(filename,'w') as ff:
+      ff.write(nwinput2)
+
+
+### check for qsharp job ###
+if "tce:print_integrals T" in nwinput:
+   nwinput += "\n# machine_type: qsharp :machine_type\n"
+   nwinput += "# queue_name: qsharp :queue_name\n"
+   with open(filename,'w') as ff:
+      ff.write(nwinput)
+
+
+### look to see if queue information is available ###
+if ("#permdir" in nwinput) and ("#machine" in nwinput) and ("#nwchem_output" in nwinput):
+   include_machine = True
+
+### append local machine and qwait info ###
+if include_machine or (qnums!=''):
+   if ("submit_machine:" not in nwinput) and ("submit_dir:" not in nwinput):
+      nwinput += "#submit_machine:"+machinename+":submit_machine submit_dir:"+submit_dir+":submit_dir\n"
+   if (qnums != ''):
+      nwinput += "#QWAIT::"+qnums+"::QWAIT\n"
+   with open(filename,'w') as ff:
+      ff.write(nwinput)
+
+datafiles = []
+datafiles_names = ''
+if allowed_file(filename) and os.path.exists(filename):
+   datafiles.append(filename)
+   datafiles_names += filename[filename.rfind('/')+1:] + " "
+else:
+   print(" - filename="+filename + " has bad suffix or does not exist.")
+
+datafiles_names = datafiles_names.strip()
+
+
+for filename in datafiles:
+   print(" - uploading " + filename)
+   ofile = open(filename,'r')
+   files = {'file': ofile}
+   try:
+      r = requests.post(arrows_post_url, files=files)
+      #print "POST return=",r.text
+   finally:
+      ofile.close()
+
+#print "datafiles_names="+datafiles_names
+try:
+   rr = requests.get(arrows_get_url + "\"" + datafiles_names + "\"")
+   print(" - API return=",rr.text)
+except:
+   print(" - API Failed")
+
+### rewrite original inputfile ###
+if include_machine or (qnums!=''):
+   with open(filename,'w') as ff:
+      ff.write(nwinput0)
+
+print()
+if "queue_entry ="   in rr.text: print("queue number   = " + rr.text.split("queue_entry =")[1].split("\n")[0].strip())
+if "nwchem_input"    in nwinput: print("nwchem_input   = " + nwinput.split("nwchem_input")[1].split("\n")[0].strip())
+if "nwchem_output"   in nwinput: print("nwchem_output  = " + nwinput.split("nwchem_output")[1].split("\n")[0].strip())
+if "machine_type"    in nwinput: print("machine        = " + nwinput.split("machine")[1].split("\n")[0].strip())
+if "permdir"         in nwinput: print("permdir        = " + nwinput.split("permdir")[1].split("\n")[0].strip())
+if "cputime"         in nwinput: print("cputime        = " + nwinput.split("cputime")[1].split("\n")[0].strip())
+if "ncpus"           in nwinput: print("ncpus          = " + nwinput.split("ncpus")[1].split("\n")[0].strip())
+if "submit_machine:" in nwinput: print("submit_machine = " + nwinput.split("submit_machine:")[1].split(":submit_machine")[0].strip())
+if "submit_dir:"     in nwinput: print("submit_dir     = " + nwinput.split("submit_dir:")[1].split(":submit_dir")[0].strip())
+if "QWAIT::"         in nwinput: print("qwait numbers  = " + nwinput.split("QWAIT::")[1].split("::QWAIT")[0].strip())
+print()

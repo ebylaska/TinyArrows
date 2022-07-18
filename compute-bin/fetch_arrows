@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+import os,sys,subprocess,urllib2,requests,getopt,operator,zipfile,shutil
+from contextlib import closing
+
+#arrows_queue_url       = 'http://arrows.emsl.pnl.gov:5000/arrows/api/v1.0/queue/'
+#arrows_queue_fetch_url = 'http://arrows.emsl.pnl.gov:5000/arrows/api/v1.0/queue_fetch/'
+#arrows_queue_url        = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem/'
+#arrows_queue_fetch_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_fetch/'
+#arrows_queue_delete_url = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_delete/'
+#arrows_queue_zip_url    = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_zip/'
+
+arrows_queue_url        = 'localhost:5001/api/queue_nwchem/'
+arrows_queue_fetch_url  = 'localhost:5001/api/queue_nwchem_fetch/'
+arrows_queue_delete_url = 'localhost:5001/api/queue_nwchem_delete/'
+arrows_queue_zip_url    = 'localhost:5001/api/queue_nwchem_zip/'
+
+
+
+
+submit_exafs = "/home/bylaska/bin/submit_exafs "
+
+machinecheck = "curdir=we31869.emsl.pnl.gov:"
+curdir       = os.getcwd()
+
+machpass = {"ilton_tahoma":"05291999", "etahoma":"05291999", "dtahoma":"05291999","we31869":"05291999", "ccs-knl0":"05291999", "econstance":"05291999", "dconstance":"05291999", "erichome":"05291999", "dcori":"05291999", "theta":"05291999", "constancetsen":"12345"}
+
+def download_queuedata(queue_entry,feff9):
+   try:
+      if (not feff9):
+      
+         ### download zipfile ###
+         url    = arrows_queue_zip_url + queue_entry
+         subdir = "chemdb_hold_" + queue_entry
+         print "URL=",url
+         print "subdir=",subdir
+
+         try:
+            with closing(urllib2.urlopen(url)) as dl_file:
+               with open(queue_entry+".zip", 'wb') as out_file:
+                  out_file.write(dl_file.read())
+         except:
+            print "dowloading url zip"
+
+         try:
+            with zipfile.ZipFile(queue_entry+".zip", 'r') as zip_ref:
+               zip_ref.extractall()
+         except:
+            print "failed unzipping, continue"
+
+         filenames = os.listdir(subdir)
+
+         fname0 = ''
+         for fname in filenames:
+            dest = shutil.move(subdir+"/"+fname, fname)
+            if ".out" in fname: fname0 = fname
+
+         shutil.rmtree(subdir)
+         os.remove(queue_entry+".zip") 
+
+
+      else:
+         rr = requests.get(arrows_queue_fetch_url + "%s" % queue_entry)
+         ss = rr.text
+         tt = '#chemdb_queue_nwchem - version 1.0'
+         ss = ss[ss.find(tt)+len(tt):]
+         uu = '</pre>'
+         ss = ss[:ss.rfind(uu)].strip()
+         #print ss
+         files = ss.split("=================NEXT FILE:")
+         #print "HERC, files=",files
+         print files[0]
+         if "# nwoutfile       =" in files[0]:
+            fname0 = files[0].split("# nwoutfile       =")[1].split("\n")[0].strip()
+            fname0 = fname0.rsplit("/")[-1]
+            fname0 = fname0[:fname0.rfind("-")]
+            print "generated fname=" + fname0
+            with open(fname0,"w") as gg:
+               gg.write(files[0]+"\n")
+         for ff in files[1:]:
+            ss = ff.split(":NEXT FILE===================")
+            fname = ss[0].strip()
+            fname1 = fname.rstrip(fname[fname.rfind("-"):]).rsplit("/")[-1]
+            print "generated fname=" + fname1
+            #print "ss[1]=",ss[1]
+            with open(fname1,"w") as gg:
+               gg.write(ss[1].strip() + "\n")
+
+
+      print "fname0=",fname0
+      ### look for submit_exafs in nwoutfile ###
+      try: 
+         if (len(fname0)>2):
+            with open(fname0,"r") as ff:
+               aa = ff.read()
+
+            if "submit_exafs" in aa:
+               for s in aa.split("submit_exafs")[1:]:
+                  cmd99    = submit_exafs + s.split("\n")[0] 
+                  result99 = subprocess.check_output(cmd99,shell=True,stderr=subprocess.STDOUT)
+      except:
+         print " - failed parsing submit_exafs"
+
+   except:
+      print " - failed downloading data file"
+
+
+
+############################# main program ###################################
+usage = \
+"""
+fetch_nwchem_input
+
+  Usage: fetch_arrows_input -d queue_entry -q -e queue_entry -m machinetype -l label -h -s -w
+
+  -s save data on queue
+  -w save data on queue and delete queue_entries from queue
+  -h help
+
+"""
+
+
+deldata     = False
+savedata    = False
+showq       = True
+deleteq     = False
+queue_entry = -1
+dqueue_entry = -1
+machinetype = ''
+labeltype = ''
+opts, args = getopt.getopt(sys.argv[1:], "d:e:m:l:qswh")
+for o, a in opts:
+  if '-q' in o:
+     showq       = True
+  if '-s' in o:
+     savedata    = True
+  if '-w' in o:
+     savedata    = True
+     deldata     = True
+  if '-d' in o:
+     dqueue_entry = a
+     deleteq     = True
+     showq       = False
+  if '-e' in o:
+     queue_entry = a
+     showq       = False
+  if '-m' in o:
+     machinetype = a
+     showq       = False
+  if '-l' in o:
+     labeltype = a
+     showq       = False
+
+  if o in ("-h","--help"):
+    print
+    print "#fetch_arrows_input - version 1.0"
+    print
+    print usage
+    exit()
+
+
+if showq:
+   print
+   print "#fetch_arrows_input - version 1.0"
+   print
+   try:
+      rr = requests.get(arrows_queue_url)
+      print rr.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip()
+   except:
+      print " - API Failed"
+
+if machinetype!='':
+   try:
+      rr = requests.get(arrows_queue_url)
+      fmax = 999999
+      qmax = -1
+      for ln in rr.text.split('\n'):
+         if machinetype in ln:
+            ss = ln.split()
+            f = eval(ss[1])
+            q = ss[0]
+            if f<fmax:
+               fmax = f
+               qmax = q
+      queue_entry = qmax
+   except:
+      print " - API Failed"
+
+if labeltype!='':
+   try:
+      rr = requests.get(arrows_queue_url)
+      fmax = 999999
+      qmax = -1
+      for ln in rr.text.split('\n'):
+         if labeltype in ln:
+            ss = ln.split()
+            f = eval(ss[1])
+            q = ss[0]
+            if f<fmax:
+               fmax = f
+               qmax = q
+      queue_entry = qmax
+   except:
+      print " - API Failed"
+
+if (queue_entry!=-1):
+   download_queuedata(queue_entry,True)
+
+
+if (dqueue_entry!=-1):
+   try:
+      rr = requests.get(arrows_queue_delete_url + "%s" % dqueue_entry)
+      print rr.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip()
+   except:
+      print " - API Failed"
+
+if savedata:
+   try:
+      rr = requests.get(arrows_queue_url)
+      lines = rr.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip().split("\n")
+      queuefetch = []
+      for ln in lines:
+         if machinecheck in ln:
+           ss = ln.split()
+           jobdir = ln.split(machinecheck)[1].split()[0]
+           queue_entry = ss[0]
+           isfinished = ("yes" in ss[2])
+           isfeff9 = "feff9" in ln
+           ptag = ""
+           if (ss[5] in machpass):
+              ptag = "_" + machpass[ss[5]]
+           if (isfinished):
+              queuefetch.append([eval(queue_entry),queue_entry+ptag,jobdir,isfeff9])
+     
+      for x in sorted(queuefetch, key=operator.itemgetter(0)):
+         queue_entry = x[1]
+         jobdir      = x[2]
+         feff9       = x[3]
+         print "Downloading " + queue_entry + " to " + jobdir 
+         if (not os.path.exists(jobdir)):
+            print "Creating " + jobdir
+            os.makedirs(jobdir)
+         if (not feff9):
+            os.chdir(jobdir)
+            download_queuedata(queue_entry,feff9)
+            if deldata:
+               try:
+                  rr = requests.get(arrows_queue_delete_url + "%s" % queue_entry)
+                  print rr.text.split('#chemdb_queue_nwchem - version 1.0')[1].split('</pre>')[0].strip()
+               except:
+                  print " - API Failed"
+
+      os.chdir(curdir)
+
+   except:
+      print " - API Failed"
+
+print
