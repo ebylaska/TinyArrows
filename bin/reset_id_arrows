@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+
+arrows_queue_url = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_reset'
+
+
+############################# main program ###################################
+def main():
+   import os,sys,requests,getopt
+
+
+   usage = \
+   """
+   reset_id_arrows
+
+     Usage: reset_id_arrows -h id
+
+     -h help
+   """
+
+   print()
+   print("reset_id_arrows - version 1.0")
+   print()
+
+   opts, args = getopt.getopt(sys.argv[1:], "h")
+   for o, a in opts:
+      if o in ("-h","--help"):
+         print(usage)
+         exit()
+   if (len(args)<1):
+      print(usage)
+      exit()
+
+   url = arrows_queue_url + "/" + args[0].strip()
+
+   print("url="+url)
+   rr = requests.get(url)
+   print(rr.text)
+
+
+
+if __name__ == "__main__":
+  main()
+
