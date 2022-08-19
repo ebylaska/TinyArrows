@@ -7428,7 +7428,12 @@ ul, li {
            x +=  "\n\n";
            x += "echo\n\n";
            x += "start " + jobname + "\n\n";
-           x += "memory 1900 mb\n\n"
+           if (machine.includes("ccs-knl0")) {
+              x += "memory heap 12 gb stack 10 gb global 25 mb\n\n"
+           } else {
+              x += "memory 1900 mb\n\n"
+           }
+
            x += "charge " + charge.toString() + "\n\n";
            if ((theory=="pspw") || (theory=="paw") || (theory=="band") || (theory=="pspw-band")) {
               data = x + fdata + "\n\n";
@@ -12277,14 +12282,19 @@ ul, li {
            }
         }
 
-        function changeqaccount() {
+        function changeaccount() {
            var qa   = document.getElementById("queue_account").value.trim();
            var data = editor.getValue(); // or session.getValue
            if (data.includes("#account ")) {
               var data0 = "#account " + data.split("#account ")[1].split("\n")[0];
               data = data.replace(data0,"#account " + qa);
-              editor.setValue(data,1);
+           } else {
+              data = data.split("#queue ")[0]
+                   + "#account " + qa + "\n"
+                   + "#queue "
+                   + data.split("#queue ")[1]
            }
+           editor.setValue(data,1);
         }
 
 
@@ -12575,7 +12585,7 @@ ul, li {
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     time: <input type="text" name="TLabel" id="queue_time" size="9" onChange="changeqtime()" oninput="cacheInput(this)">
     &nbsp;
-    account: <input type="text" name="Label" id="queue_account" onChange="changeqacount()" oninput="cacheInput(this)">
+    account: <input type="text" name="Label" id="queue_account" onChange="changeaccount()" oninput="cacheInput(this)">
     &nbsp;&nbsp;&nbsp;
     Secret Code: <input type="text" name="Label" id="queue_secret_code" oninput="cacheInput(this)">
     <br>
