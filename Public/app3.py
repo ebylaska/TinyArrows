@@ -2863,7 +2863,8 @@ def arrows_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       nqnames = text.lower().split("queue_nwchem")[1].split()
+       text2  = ireplace("QUEUE_NWCHEM","queue_nwchem",text)
+       nqnames = text2.split("queue_nwchem")[1].split()
        if (len(nqnames)>0):
           return list_queue_nwchem_check(nqnames[0])
        else:
@@ -2969,7 +2970,8 @@ def arrows_reaction_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       nqnames = text.lower().split("queue_nwchem")[1].split()
+       text2  = ireplace("QUEUE_NWCHEM","queue_nwchem",text)
+       nqnames = text2.split("queue_nwchem")[1].split()
        if (len(nqnames)>0):
           return list_queue_nwchem_check(nqnames[0])
        else:
@@ -3077,7 +3079,8 @@ def arrows_3dbuilder_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       nqnames = text.lower().split("queue_nwchem")[1].split()
+       text2  = ireplace("QUEUE_NWCHEM","queue_nwchem",text)
+       nqnames = text2.split("queue_nwchem")[1].split()
        if (len(nqnames)>0):
           return list_queue_nwchem_check(nqnames[0])
        else:
@@ -3186,7 +3189,8 @@ def arrows_qsharp_chem_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       nqnames = text.lower().split("queue_nwchem")[1].split()
+       text2  = ireplace("QUEUE_NWCHEM","queue_nwchem",text)
+       nqnames = text2.split("queue_nwchem")[1].split()
        if (len(nqnames)>0):
           return list_queue_nwchem_check(nqnames[0])
        else:
@@ -3294,7 +3298,8 @@ def arrows_expert_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       nqnames = text.lower().split("queue_nwchem")[1].split()
+       text2  = ireplace("QUEUE_NWCHEM","queue_nwchem",text)
+       nqnames = text2.split("queue_nwchem")[1].split()
        if (len(nqnames)>0):
           return list_queue_nwchem_check(nqnames[0])
        else:
@@ -3404,7 +3409,8 @@ def arrows_periodic_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       nqnames = text.lower().split("queue_nwchem")[1].split()
+       text2  = ireplace("QUEUE_NWCHEM","queue_nwchem",text)
+       nqnames = text2.split("queue_nwchem")[1].split()
        if (len(nqnames)>0):
           return list_queue_nwchem_check(nqnames[0])
        else:
@@ -3502,7 +3508,8 @@ def parsing_text():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       nqnames = text.lower().split("queue_nwchem")[1].split()
+       text2  = ireplace("QUEUE_NWCHEM","queue_nwchem",text)
+       nqnames = text2.split("queue_nwchem")[1].split()
        if (len(nqnames)>0):
           return list_queue_nwchem_check(nqnames[0])
        else:
