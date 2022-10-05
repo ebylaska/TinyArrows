@@ -2863,7 +2863,11 @@ def arrows_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       return list_queue_nwchem_html()
+       nqnames = text.lower().split("queue_nwchem")[1].split()
+       if (len(nqnames)>0):
+          return list_queue_nwchem_check(nqnames[0])
+       else:
+          return list_queue_nwchem_html()
     elif ("queue" in text.lower()):
        return list_queue_html()
     elif ("download fetch_nwchem_input" in text.lower()):
@@ -2965,7 +2969,11 @@ def arrows_reaction_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       return list_queue_nwchem_html()
+       nqnames = text.lower().split("queue_nwchem")[1].split()
+       if (len(nqnames)>0):
+          return list_queue_nwchem_check(nqnames[0])
+       else:
+          return list_queue_nwchem_html()
     elif ("queue" in text.lower()):
        return list_queue_html()
     elif ("download fetch_nwchem_input" in text.lower()):
@@ -3069,7 +3077,11 @@ def arrows_3dbuilder_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       return list_queue_nwchem_html()
+       nqnames = text.lower().split("queue_nwchem")[1].split()
+       if (len(nqnames)>0):
+          return list_queue_nwchem_check(nqnames[0])
+       else:
+          return list_queue_nwchem_html()
     elif ("queue" in text.lower()):
        return list_queue_html()
     elif ("download fetch_nwchem_input" in text.lower()):
@@ -3174,7 +3186,11 @@ def arrows_qsharp_chem_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       return list_queue_nwchem_html()
+       nqnames = text.lower().split("queue_nwchem")[1].split()
+       if (len(nqnames)>0):
+          return list_queue_nwchem_check(nqnames[0])
+       else:
+          return list_queue_nwchem_html()
     elif ("queue" in text.lower()):
        return list_queue_html()
     elif ("download fetch_nwchem_input" in text.lower()):
@@ -3278,7 +3294,11 @@ def arrows_expert_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       return list_queue_nwchem_html()
+       nqnames = text.lower().split("queue_nwchem")[1].split()
+       if (len(nqnames)>0):
+          return list_queue_nwchem_check(nqnames[0])
+       else:
+          return list_queue_nwchem_html()
     elif ("queue" in text.lower()):
        return list_queue_html()
     elif ("download fetch_nwchem_input" in text.lower()):
@@ -3384,7 +3404,11 @@ def arrows_periodic_draw_post():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       return list_queue_nwchem_html()
+       nqnames = text.lower().split("queue_nwchem")[1].split()
+       if (len(nqnames)>0):
+          return list_queue_nwchem_check(nqnames[0])
+       else:
+          return list_queue_nwchem_html()
     elif ("queue" in text.lower()):
        return list_queue_html()
     elif ("download fetch_nwchem_input" in text.lower()):
@@ -3478,7 +3502,11 @@ def parsing_text():
     elif ("queue_nwchem3" in text.lower()):
        return list_queue_nwchem3()
     elif ("queue_nwchem" in text.lower()):
-       return list_queue_nwchem_html()
+       nqnames = text.lower().split("queue_nwchem")[1].split()
+       if (len(nqnames)>0):
+          return list_queue_nwchem_check(nqnames[0])
+       else:
+          return list_queue_nwchem_html()
     elif ("queue" in text.lower()):
        return list_queue_html()
     elif ("download fetch_nwchem_input" in text.lower()):
