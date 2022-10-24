@@ -5411,6 +5411,8 @@ ul, li {
               xyz += document.getElementById("lattice_a1").value + " | ";
               xyz += document.getElementById("lattice_a2").value + " | ";
               xyz += document.getElementById("lattice_a3").value + "}";
+              var molarity = prompt("Please enter molarity:", "1.0");
+              xyz += " molarity{"+ molarity+"}";
            } else {
               var molarity = prompt("Please enter molarity:", "1.0");
               xyz += " molarity{"+ molarity+"}";
