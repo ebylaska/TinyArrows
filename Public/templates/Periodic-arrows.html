@@ -7431,7 +7431,7 @@ ul, li {
            x += "echo\n\n";
            x += "start " + jobname + "\n\n";
            if (machine.includes("ccs-knl0")) {
-              x += "memory heap 12 gb stack 10 gb global 25 mb\n\n"
+              x += "memory heap 500 mb stack 350 mb global 10 mb\n\n"
            } else {
               x += "memory 1900 mb\n\n"
            }
