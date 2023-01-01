@@ -12538,13 +12538,20 @@ ul, li {
 
     <script>
        var editor = ace.edit("editor");
-       editor.setTheme("ace/theme/gob");
-       //editor.setTheme("ace/theme/terminal");
+       //editor.setTheme("ace/theme/gob");
+       //editor.setTheme("ace/theme/monokai");
+       //editor.setTheme("ace/theme/merbivore_soft");
+       editor.setTheme("ace/theme/terminal");
        //editor.setTheme("ace/theme/vibrant_ink");
        //editor.setTheme("ace/theme/Cobalt");
        //editor.setTheme("ace/theme/dracula");
        //editor.session.setMode("ace/mode/javascript");
-       editor.session.setMode("ace/mode/fortran");
+       //editor.session.setMode("ace/mode/fortran");
+       //editor.session.setMode("ace/mode/css");
+       //editor.session.setMode("ace/mode/properties");
+       //editor.session.setMode("ace/mode/python");
+       editor.session.setMode("ace/mode/perl");
+       editor.session.setUseWrapMode(true);
     </script>
     
     <input type="button" VALUE="NWChem Format" onClick="convert2geometry(false)" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
