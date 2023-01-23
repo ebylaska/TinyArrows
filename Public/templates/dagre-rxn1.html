@@ -1,0 +1,1030 @@
+<!doctype html>
+<html>
+<head>
+
+  <script src="https://d3js.org/d3.v4.js"></script>
+  <script src="https://dagrejs.github.io/project/graphlib-dot/v0.6.3/graphlib-dot.js"></script>
+  <script src="https://dagrejs.github.io/project/dagre-d3/latest/dagre-d3.js"></script>
+
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width">
+
+
+<style>
+.linkbanner {
+  position: relative;
+  //display: inline-block;
+  padding: 1px;
+  // background-color: lightblue;
+  //background-image: linear-gradient(blue,#FEFEFE,blue);
+  //background-image: linear-gradient(blue,lightgreen,blue);
+  background-image: linear-gradient(#4286f4,lightgreen,#4286f4);
+  //background-image: linear-gradient(#4286f4,#599a3e,#4286f4);
+  //background-image: linear-gradient(#2f61ce,lightgreen,#2f61ce);
+  //background-image: linear-gradient(#2f61ce,gold,#2f61ce);
+  //background-image: linear-gradient(#4286f4,gold,#4286f4);
+  font-size: 18px;
+  font-weight: bold;
+  font-family: times;
+  color: white;
+}
+
+svg {
+  border: 1px solid #999;
+  overflow: hidden;
+}
+
+.node {
+  white-space: nowrap;
+}
+
+.node rect,
+.node circle,
+.node ellipse {
+  stroke: #333;
+  fill: #fff;
+  stroke-width: 1.5px;
+}
+
+.cluster rect {
+  stroke: #333;
+  fill: #000;
+  fill-opacity: 0.1;
+  stroke-width: 0.5px;
+}
+
+.edgePath path.path {
+  stroke: #333;
+  stroke-width: 1.5px;
+  fill: none;
+}
+
+h1, h2 {
+  color: #333;
+}
+
+textarea {
+  width: 800px;
+}
+
+label {
+  margin-top: 1.0em;
+  display: block;
+}
+
+.error {
+  color: red;
+}
+</style>
+
+</head>
+
+
+<body onLoad="tryDraw();">
+
+<!--div class="linkbanner">
+   <a href="https://arrows.emsl.pnnl.gov/api"><img src="https://dl.dropboxusercontent.com/s/s5fof263qwxzcaq/EMSLArrows2019.png" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="https://arrows.emsl.pnnl.gov/api/periodic">3D Periodic Editor</a> &nbsp;
+   <a href="https://arrows.emsl.pnnl.gov/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/expert">Expert Editor</a> &nbsp;   <a href="https://arrows.emsl.pnnl.gov/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="https://arrows.emsl.pnnl.gov/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Manual</a>
+</div-->
+
+<div class="linkbanner">
+   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="{{ arrows_api }}periodic">3D Periodic Editor</a> &nbsp;
+   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Expert Editor</a> &nbsp;   <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
+</div>
+
+
+<div id="Reaction Predictor - Beta version" class="tabcontent">
+
+<script>
+
+dummy_dict = {};
+reactants_dict = {};
+
+async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element,url) {
+   //fetch(url, {mode: 'cors'})
+   //  .then(function(response) {
+   //    return response.text();
+   //  })
+   //  .then(function(text) {
+   //    console.log('Request successful', text);
+   //  })
+   //  .catch(function(error) {
+   //    log('Request failed', error)
+   //  });
+   var energytitles = "Erxn(gas)       Hrxn(gas)       Grxn(gas) Delta_Solvation        Grxn(aq)".split(/[ ,]+/);
+   var level = (prespace.length)/4;
+   var level = current_level;
+
+   console.log("start geturlresult");
+   
+   const request = async() => {
+      const response = await fetch(url, {mode: 'cors'});
+      const data = await response.text();
+      console.log("geturlresult data=",data);
+      return data;
+   }
+
+   var rr = await request();
+   console.log("end  geturlresult, rr=",rr);
+
+
+   if (rr.includes("Predicted Reactions")) {
+      window.reactants_dict[reactants_str] = rr;
+   } else {
+      window.dummy_dict[reactants_str] = rr;
+   }
+   if (rr.includes("check back in ~10 minutes")) {
+      var hhh = "+--------------------------------------------------+\n";
+      var ggg = "|               Reaction Prediction                |";
+      element.value += hhh+ggg+"\n";
+      element.value += rr.split(ggg)[1].trim().split("check back in ~10 minutes")[0].trim() + "\n";
+      element.value += "check back in ~10 minutes\n";
+   }
+   var newreactions0 =  makereaction_dictionary(rr);
+   console.log("newreactions0=",newreactions0);
+   //document.getElementById("predictor_reactions").innerHTML = "";
+   //document.getElementById("predictor_metabolites").innerHTML = "";
+   for (var i=0; i<newreactions0.length; ++i) {
+      rxn = newreactions0[i];
+      console.log("i=",i," rxn=",rxn);
+
+      if ((parseFloat(rxn['energies'][it]) < max_energy) || show_bad_reactions) {
+        var str   =  rxn['reaction'];
+        var rlink = "{{ arrows_api }}reaction/" + "\"" + str + "\"";
+        var treaction = str.link(rlink).split('<a').join('<a target="_blank"');
+        var tenergy = rxn['energies'][it].trim();
+        var estring = energytitles[it]+ " = " + tenergy + "  ";
+        if (!document.getElementById("predictor_reactions").innerHTML.includes(treaction)) {
+           document.getElementById("predictor_reactions").innerHTML += estring + treaction + "<br>";
+
+           for (var j=0; j<rxn['metabolites'].length; ++j) {
+              var mm = rxn['metabolites'][j].trim();
+
+              var label = "";
+              //for (var k=1; k<reactants_str.split("+").length; ++k) {
+              //   var rr = reactants_str.split("+")[k].trim();
+              //   label += "+" + rr + ",";
+              //}
+              for (var k=0; k<rxn['reactants'].length; ++k) {
+                 var rr = rxn['reactants'][k];
+                 label += "+" + rr + ",";
+              }
+              for (var k=0; k<rxn['new_reactants'].length; ++k) {
+                 var pp = rxn['new_reactants'][k];
+                 label += "-" + pp + ",";
+              }
+              for (var k=0; k<rxn['metabolites'].length; ++k) {
+                 console.log("j,k=",j,k);
+                 if (k!=j) {
+                    var pp = rxn['metabolites'][k];
+                    label += "-" + pp + ",";
+                 }
+              }
+              label += rxn['energies'][it];
+              var acolor;
+              if (parseFloat(rxn['energies'][it])<0.0) {
+                 acolor = " style=\"stroke: red;\" arrowheadStyle=\"fill: red\"";
+              } else {
+                 acolor = " style=\"stroke: blue;\" arrowheadStyle=\"fill: blue\"";
+              }
+
+              var addedge0 = "\"" + reactants_str.split("+")[0].trim() + "\" -> \"" + mm + "\"";
+
+              var addedge = addedge0 + "[label=\""+label+"\" labelStyle=\"fill: green;\"" + acolor + "]; \n /*end*/}\n";
+              var e0found = document.getElementById("inputGraph").innerHTML.includes(addedge0) ||
+                            document.getElementById("inputGraph").innerHTML.includes(addedge0.replace("->","-&gt;"));
+
+              if (!e0found) {
+                 console.log("inputgraph=",document.getElementById("inputGraph").innerHTML);
+                 document.getElementById("inputGraph").innerHTML = document.getElementById("inputGraph").innerHTML.split("/*end*/}")[0].trim() + "\n" + addedge;
+                 console.log("addedge0=",addedge0);
+                 console.log("addedge=",addedge);
+              }
+           }
+        }
+
+         console.log("i=",i," in parsFloat",parseFloat(rxn['energies'][it]));
+         element.value += "\n";
+         element.value += prespace + "+ Reaction Level =" + level.toString() + "\n";
+         element.value += prespace + "  - " + rxn['reaction'] + "\n";
+         element.value += prespace + "    " + energytitles[it] + " = " + rxn['energies'][it] + "\n";
+         element.value += prespace + "    metabolites = " + rxn['metabolites'] + "\n";
+         element.value += prespace + "    nreactants  = " + rxn['new_reactants'] + "\n";
+         if (parseFloat(rxn['energies'][it]) < max_energy) {
+            nr.push(rxn);
+            element.value += prespace + "    Reaction included!" + "\n";
+            for (var j=0; j<rxn['metabolites'].length; ++j) {
+               var mm = rxn['metabolites'][j];
+               var rlink2 = "{{ arrows_api }}molecule/" + "\"" + mm + "\"";
+               var tmetabolite = mm.link(rlink2).split('<a').join('<a target="_blank"');
+               if (!document.getElementById("predictor_metabolites").innerHTML.includes(tmetabolite)) {
+                  document.getElementById("predictor_metabolites").innerHTML += tmetabolite + " " + "<br>";
+               }
+               if (!document.getElementById('predictor_esmiles').value.includes(mm)) {
+                  document.getElementById('predictor_esmiles').value += mm + "\n";
+               }
+            //   Analyze_reactants(nr,prespace,mm,reactant,max_energy,max_level,show_bad_reactions,element)
+            }
+            for (var j=0; j<rxn['new_reactants'].length; ++j) {
+               var mm = rxn['new_reactants'][j];
+               var rlink2 = "{{ arrows_api }}molecule/" + "\"" + mm + "\"";
+               var tnreactant = mm.link(rlink2).split('<a').join('<a target="_blank"');
+               if (!document.getElementById("predictor_genreactants").innerHTML.includes(tnreactant)) {
+                  document.getElementById("predictor_genreactants").innerHTML += tnreactant + " " + "<br>";
+               }
+            }
+         } else {
+            element.value += prespace + "    Reaction ignored because energy greater than " + max_energy.toFixed(2) + "\n";
+         }
+      } 
+      tryDraw();
+   }
+}
+
+//##### fetch_reactants #######
+function fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element) {
+   console.log("start fetch_reactants, reactants_str=" + reactants_str);
+   var reaction_url = "{{ arrows_api }}reaction/";
+   //if (reactants_str in window.dummy_dict) {
+   //   nr.push(window.dummy_dict[reactants_str]);
+   //   nr.push(rr);
+   //} else if (reactants_str in window.reactants_dict)  {
+   //   nr.push(window.reactants_dict[reactants_str]);
+   //   window.dummy_dict[reactants_str] = window.reactants_dict[reactants_str];
+   //} else {
+      element.value += "\n";
+      element.value += prespace + "+ Asking Arrows for reactions that contain reactants = " + reactants_str + "\n";
+      var reactants =  reactants_str.replace(" ","%20")
+      var reaction = reaction_url + "'" + reactants + "%20-->'";
+      element.value += prespace + "+ Calling the arrows api wtih " + reaction + "\n";
+      
+      geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element,reaction);
+      console.log("finished geturlresult");
+   //}
+}
+
+
+function parse_metabolites(rxn_str) {
+   var metabolites = [];
+   if (rxn_str.includes("-->")) {
+      var products = rxn_str.split("-->")[1].trim();
+      var products_split = products.split(" + ");
+      //for m in products.split(" + ") {
+      for (var i=0; i<products_split.length; ++i) {
+         var m = products_split[i];
+         var mm = m.split("Cl").join("");
+         //### make metabolite contains a carbon ### if ("C" in m) or ("c" in m) {
+         if (mm.includes("C")  ||  mm.includes("c")) {
+            metabolites.push(m.trim());
+         }
+      }
+   }
+
+   return metabolites;
+}
+
+function parse_newreactants(rxn_str) {
+   var nreactants = [];
+   if (rxn_str.includes("-->")) {
+      var products = rxn_str.split("-->")[1].trim();
+      var products_split = products.split(" + ");
+     
+      for (var i=0; i<products_split.length; ++i) {
+         var m = products_split[i];
+         var mm = m.split("Cl").join("");
+         //### make metabolite not contain a carbon ### if ("C" not in m) and ("c" not in m) {
+         if ((!mm.includes("C")) && (!mm.includes("c"))) {
+            nreactants.push(m.trim());
+         }
+      }
+   }
+
+   return nreactants;
+}
+
+
+function parse_reactants(rxn_str) {
+   var reactants = [];
+   if (rxn_str.includes("-->")) {
+      var rrpp = rxn_str.split("-->")[0].trim();
+      var reactants_split = rrpp.split(" + ");
+    
+      for (var i=1; i<reactants_split.length; ++i) {
+         var m = reactants_split[i];
+         reactants.push(m.trim());
+      }
+   }
+   return reactants;
+}
+
+
+
+function makereaction_dictionary(rr) {
+   console.log("makereaction_dictionary",rr.includes("Predicted_Reaction:"));
+   var myreactions = [];
+   if (rr.includes("Predicted_Reaction:")) {
+      var newreactions = rr.split("Predicted_Reaction:");
+      console.log("newreactions=",newreactions);
+      for (var i=1; i<newreactions.length; ++i) {
+         var nr = newreactions[i];
+         var rdict = {};
+         var rxn_str            = nr.split(":Reaction_Predicted")[0].split('style="font-size:1.0em">')[1].split("</a>")[0].trim();
+         rdict['reaction']      = rxn_str;
+         rdict['energies']      = nr.split("energy_estimates:")[1].split(":energy_estimates")[0].trim().split(/[ ,]+/);
+         rdict['deviations']    = nr.split("deviations:")[1].split(":deviations")[0].trim().split(/[ ,]+/);
+         rdict['metabolites']   = parse_metabolites(rxn_str);
+         rdict['new_reactants'] = parse_newreactants(rxn_str);
+         rdict['reactants']     = parse_reactants(rxn_str);
+         myreactions.push(rdict);
+      }
+   }
+
+   return myreactions;
+}
+
+
+function Analyze_reactants(nr,prespace,esmiles,reactant,it,max_energy,current_level,show_bad_reactions,element) {
+   console.log("start Analyze_reactants, esmiles=" + esmiles);
+   prespace += "    ";
+
+   var reactants_str = esmiles.trim();
+   if (reactant.trim().length>0) {
+      reactants_str += " + " + reactant;
+   }
+
+   fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element);
+   console.log("finished fetch_reactants");
+}
+
+function run_reactions(nr,esmiles,reactants,it,max_energy,current_level,show_bad_reactions,element) {
+   for (var i=0; i<reactants.length; ++i) {
+      var r = reactants[i];
+      console.log("i=",i," reactant=",r);
+      Analyze_reactants(nr,"",esmiles,r,it,max_energy,current_level,show_bad_reactions,element);
+   }
+}
+
+function runpredictor(esmiles,reactants,max_energy,max_level,energy_type,element) {
+   
+   var current_level = 1;
+   if (esmiles.includes("Reaction Level =")) {
+      var ss = esmiles.split("Reaction Level =");
+      var ns = ss.length;
+      var current_level = parseInt(ss[ns-1].split("------")[0].trim()) + 1;
+      var esmiles = ss[ns-1].split("------")[1];
+   }
+
+   if (current_level<=max_level)  {
+
+      console.log("esmiles=",esmiles);
+      console.log("reactants=",reactants);
+      document.getElementById('predictor_esmiles').value   = document.getElementById('predictor_esmiles').value.trim()   + "\n" + "------ Reaction Level = " + current_level.toString() + " ------\n";
+      document.getElementById('predictor_reactants').value = document.getElementById('predictor_reactants').value.trim() + "\n";
+
+      document.getElementById('predictor_reactions').innerHTML    += "------ Reaction Level = " + current_level.toString() + " ------<br>";
+      document.getElementById('predictor_metabolites').innerHTML  += "------ Reaction Level = " + current_level.toString() + " ------<br>";
+      document.getElementById('predictor_genreactants').innerHTML += "------ Reaction Level = " + current_level.toString() + " ------<br>";
+
+      //var compounds = esmiles.trim().split("\n");
+      //var reactant_list = reactants.trim().split("\n");
+      var compounds = esmiles.trim().split(/[,\n]+/);
+      for (var i=0; i<compounds.length; ++i) { compounds[i] = compounds[i].trim(); }
+
+      var reactant_list = reactants.trim().split(/[,\n]+/);
+      for (var i=0; i<reactant_list.length; ++i) { reactant_list[i] = reactant_list[i].trim(); }
+
+      var show_bad_reactions = false;
+
+      if (isNaN(max_energy)) { max_energy = 9.9e99;} 
+      if (isNaN(max_level)) { max_level = 3;} 
+      if (isNaN(energy_type)) { energy_type = 0;}
+
+      var output = "\n";
+      output += "++=====================================++\n";
+      output += "|| Running Reaction Prediction Program ||\n";
+      output += "++=====================================++\n\n";
+      output += "compound list=" + compounds + "\n";
+      output += "reactant list=" + reactant_list + "\n";
+      output += "max_energy   =" + max_energy + "\n";
+      output += "max_level    =" + max_level + "\n";
+      output += "energy_type  =" + energy_type + "\n";
+      output += "current_level=" + current_level + "\n";
+      element.value += output;
+
+      var nr = [];
+      for (var i=0; i<compounds.length; ++i) {
+         run_reactions(nr,compounds[i],reactant_list,energy_type,max_energy,current_level,show_bad_reactions,element);
+      }
+   } else {
+      element.value += "The current_level=" + (current_level-1).toString() + " is >= max_level=" + max_level.toString() + "\n";
+
+   }
+
+}
+
+function resetpredictor() {
+   document.getElementById('predictor_esmiles').value   = '';
+   document.getElementById('predictor_reactants').value = '';
+   document.getElementById('predictor_output').value = '';
+
+   document.getElementById('predictor_reactions').innerHTML    = '';
+   document.getElementById('predictor_metabolites').innerHTML  = '';
+   document.getElementById('predictor_genreactants').innerHTML = '';
+
+   document.getElementById("inputGraph").innerHTML = 'digraph {\n'
+      + '   node [rx=5 ry=5 labelStyle="font: 300 14px \'Helvetica Neue\', Helvetica"]\n'
+      + '   edge [labelStyle="font: 300 14px \'Helvetica Neue\', Helvetica"]\n'
+      + '\n/*start graph*/\n'
+      + '\n/*end*/}\n';
+
+   tryDraw();
+}
+
+</script>
+
+<h2> Reaction Prediction </h2>
+
+<table>
+   <tr>
+      <td> esmiles compounds:   </td>
+      <td><textarea  name="predictor_esmiles" id="predictor_esmiles" rows="8" cols="100"></textarea></td>
+   </tr>
+   <tr>
+      <td> reactants: </td>
+      <td><textarea  name="predictor_reactants" id="predictor_reactants" rows="3" cols="100"></textarea></td>
+   </tr>
+</table>
+<table>
+   <tr>
+      <td> max_energy: </td>
+      <td> <input type="number" name="Label" id="predictor_max_energy" size="20" value="30"> </td>
+      <td> max_level: </td>
+      <td> <input type="number" name="Label" id="predictor_max_level" size="2" value="3"> </td>
+      <td> energy_type: </td>
+      <td> <select id="predictor_energy_type">
+              <option value=0>Erxn(g)</option>
+              <option value=1>Hrxn(g)</option>
+              <option value=2>Grxn(g)</option>
+              <option value=3>Delta_Solvation</option>
+              <option value=4>Grxn(aq)</option>
+           </select>
+      </td>
+   </tr>
+</table>
+<br>
+
+<input type="button" VALUE="Run Reaction Prediction" 
+   onClick="runpredictor(document.getElementById('predictor_esmiles').value,
+                         document.getElementById('predictor_reactants').value,
+                         parseFloat(document.getElementById('predictor_max_energy').value),
+                         parseInt(document.getElementById('predictor_max_level').value),
+                         parseInt(document.getElementById('predictor_energy_type').value),
+                         document.getElementById('predictor_output') )"
+   title="Run reaction prediction"/>
+<input type="button" VALUE="Reset" onClick="resetpredictor();" title="Reset predictor"/>
+
+<br>
+<br>
+<textarea  name="predictor_output" id="predictor_output" rows="33" cols="100"></textarea>
+<br>
+<br>
+<p id="predictor_reactions">  <b>Reactions   </b> <br></p>
+<br>
+<p id="predictor_metabolites"><b>Metabolites</b> <br></p>
+<br>
+<p id="predictor_genreactants"><b>Generated Reactants</b> <br></p>
+
+</div>
+
+
+
+<h2> Reaction Graph </h2>
+
+<form>
+  <label for="inputGraph">Graphviz Definition</label>
+  <textarea id="inputGraph" cols="100" rows="10" style="display: block" onKeyUp="tryDraw();">
+digraph {
+    node [rx=5 ry=5 labelStyle="font-weight: bold, font: 300 14px 'Helvetica Neue', Helvetica"]
+    edge [labelStyle="font: 300 14px 'Helvetica Neue', Helvetica"]
+
+/*start graph*/
+
+/*end*/}
+  </textarea>
+
+  <!--a id="graphLink">Link for this graph</a-->
+</form>
+
+<h2>Graph Visualization</h2>
+<input type="button" VALUE="Update Graph" onClick="tryDraw();" title="Run update graph"/>
+<input type="button" VALUE="Save PNG" onClick="saveSvgAsPng(document.getElementsByTagName('svg')[0],'plot.png');" title="Save svg"/>
+<br>
+
+<svg width="2000" height="400">
+   <g/>
+</svg>
+
+<script>
+// Input related code goes here
+
+function graphToURL() {
+  var elems = [window.location.protocol, '//',
+               window.location.host,
+               window.location.pathname,
+               '?'];
+
+  var queryParams = [];
+  if (debugAlignment) {
+    queryParams.push('alignment=' + debugAlignment);
+  }
+  queryParams.push('graph=' + encodeURIComponent(inputGraph.value));
+  elems.push(queryParams.join('&'));
+
+  return elems.join('');
+}
+
+var inputGraph = document.querySelector("#inputGraph");
+
+var graphLink = d3.select("#graphLink");
+
+var oldInputGraphValue;
+
+var graphRE = /[?&]graph=([^&]+)/;
+var graphMatch = window.location.search.match(graphRE);
+if (graphMatch) {
+  inputGraph.value = decodeURIComponent(graphMatch[1]);
+}
+var debugAlignmentRE = /[?&]alignment=([^&]+)/;
+var debugAlignmentMatch = window.location.search.match(debugAlignmentRE);
+var debugAlignment;
+if (debugAlignmentMatch) debugAlignment = debugAlignmentMatch[1];
+
+// Set up zoom support
+var svg = d3.select("svg"),
+    inner = d3.select("svg g"),
+    zoom = d3.zoom().on("zoom", function() {
+      inner.attr("transform", d3.event.transform);
+    });
+svg.call(zoom);
+
+// Create and configure the renderer
+var render = dagreD3.render();
+
+  var g;
+function tryDraw() {
+  if (oldInputGraphValue !== inputGraph.value) {
+    inputGraph.setAttribute("class", "");
+    oldInputGraphValue = inputGraph.value;
+    try {
+      g = graphlibDot.read(inputGraph.value);
+    } catch (e) {
+      inputGraph.setAttribute("class", "error");
+      throw e;
+    }
+
+    // Save link to new graph
+    graphLink.attr("href", graphToURL());
+
+    // Set margins, if not present
+    if (!g.graph().hasOwnProperty("marginx") &&
+        !g.graph().hasOwnProperty("marginy")) {
+      g.graph().marginx = 20;
+      g.graph().marginy = 20;
+    }
+
+    g.graph().rankDir = 'LR';
+
+    g.graph().transition = function(selection) {
+      return selection.transition().duration(500);
+    };
+
+    // Render the graph into svg g
+    d3.select("svg g").call(render, g);
+
+   // Center the graph
+   var initialScale = 0.75;
+   svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale));
+
+   svg.attr('height', g.graph().height * initialScale + 40);
+
+  }
+}
+</script>
+
+<script>
+(function() {
+  const out$ = typeof exports != 'undefined' && exports || typeof define != 'undefined' && {} || this || window;
+  if (typeof define !== 'undefined') define('save-svg-as-png', [], () => out$);
+  out$.default = out$;
+
+  const xmlNs = 'http://www.w3.org/2000/xmlns/';
+  const xhtmlNs = 'http://www.w3.org/1999/xhtml';
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const doctype = '<?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [<!ENTITY nbsp "&#160;">]>';
+  const urlRegex = /url\(["']?(.+?)["']?\)/;
+  const fontFormats = {
+    woff2: 'font/woff2',
+    woff: 'font/woff',
+    otf: 'application/x-font-opentype',
+    ttf: 'application/x-font-ttf',
+    eot: 'application/vnd.ms-fontobject',
+    sfnt: 'application/font-sfnt',
+    svg: 'image/svg+xml'
+  };
+
+  const isElement = obj => obj instanceof HTMLElement || obj instanceof SVGElement;
+  const requireDomNode = el => {
+    if (!isElement(el)) throw new Error(`an HTMLElement or SVGElement is required; got ${el}`);
+  };
+  const requireDomNodePromise = el =>
+    new Promise((resolve, reject) => {
+      if (isElement(el)) resolve(el)
+      else reject(new Error(`an HTMLElement or SVGElement is required; got ${el}`));
+    })
+  const isExternal = url => url && url.lastIndexOf('http',0) === 0 && url.lastIndexOf(window.location.host) === -1;
+
+  const getFontMimeTypeFromUrl = fontUrl => {
+    const formats = Object.keys(fontFormats)
+      .filter(extension => fontUrl.indexOf(`.${extension}`) > 0)
+      .map(extension => fontFormats[extension]);
+    if (formats) return formats[0];
+    console.error(`Unknown font format for ${fontUrl}. Fonts may not be working correctly.`);
+    return 'application/octet-stream';
+  };
+
+  const arrayBufferToBase64 = buffer => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return window.btoa(binary);
+  }
+
+  const getDimension = (el, clone, dim) => {
+    const v =
+      (el.viewBox && el.viewBox.baseVal && el.viewBox.baseVal[dim]) ||
+      (clone.getAttribute(dim) !== null && !clone.getAttribute(dim).match(/%$/) && parseInt(clone.getAttribute(dim))) ||
+      el.getBoundingClientRect()[dim] ||
+      parseInt(clone.style[dim]) ||
+      parseInt(window.getComputedStyle(el).getPropertyValue(dim));
+    return typeof v === 'undefined' || v === null || isNaN(parseFloat(v)) ? 0 : v;
+  };
+
+  const getDimensions = (el, clone, width, height) => {
+    if (el.tagName === 'svg') return {
+      width: width || getDimension(el, clone, 'width'),
+      height: height || getDimension(el, clone, 'height')
+    };
+    else if (el.getBBox) {
+      const {x, y, width, height} = el.getBBox();
+      return {
+        width: x + width,
+        height: y + height
+      };
+    }
+  };
+
+  const reEncode = data =>
+    decodeURIComponent(
+      encodeURIComponent(data)
+        .replace(/%([0-9A-F]{2})/g, (match, p1) => {
+          const c = String.fromCharCode(`0x${p1}`);
+          return c === '%' ? '%25' : c;
+        })
+    );
+
+  const uriToBlob = uri => {
+    const byteString = window.atob(uri.split(',')[1]);
+    const mimeString = uri.split(',')[0].split(':')[1].split(';')[0]
+    const buffer = new ArrayBuffer(byteString.length);
+    const intArray = new Uint8Array(buffer);
+    for (let i = 0; i < byteString.length; i++) {
+      intArray[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([buffer], {type: mimeString});
+  };
+
+  const query = (el, selector) => {
+    if (!selector) return;
+    try {
+      return el.querySelector(selector) || el.parentNode && el.parentNode.querySelector(selector);
+    } catch(err) {
+      console.warn(`Invalid CSS selector "${selector}"`, err);
+    }
+  };
+
+  const detectCssFont = (rule, href) => {
+    // Match CSS font-face rules to external links.
+    // @font-face {
+    //   src: local('Abel'), url(https://fonts.gstatic.com/s/abel/v6/UzN-iejR1VoXU2Oc-7LsbvesZW2xOQ-xsNqO47m55DA.woff2);
+    // }
+    const match = rule.cssText.match(urlRegex);
+    const url = (match && match[1]) || '';
+    if (!url || url.match(/^data:/) || url === 'about:blank') return;
+    const fullUrl =
+      url.startsWith('../') ? `${href}/../${url}`
+      : url.startsWith('./') ? `${href}/.${url}`
+      : url;
+    return {
+      text: rule.cssText,
+      format: getFontMimeTypeFromUrl(fullUrl),
+      url: fullUrl
+    };
+  };
+
+  const inlineImages = el => Promise.all(
+    Array.from(el.querySelectorAll('image')).map(image => {
+      let href = image.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || image.getAttribute('href');
+      if (!href) return Promise.resolve(null);
+      if (isExternal(href)) {
+        href += (href.indexOf('?') === -1 ? '?' : '&') + 't=' + new Date().valueOf();
+      }
+      return new Promise((resolve, reject) => {
+        const canvas = document.createElement('canvas');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = href;
+        img.onerror = () => reject(new Error(`Could not load ${href}`));
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', canvas.toDataURL('image/png'));
+          resolve(true);
+        };
+      });
+    })
+  );
+
+  const cachedFonts = {};
+  const inlineFonts = fonts => Promise.all(
+    fonts.map(font =>
+      new Promise((resolve, reject) => {
+        if (cachedFonts[font.url]) return resolve(cachedFonts[font.url]);
+
+        const req = new XMLHttpRequest();
+        req.addEventListener('load', () => {
+          // TODO: it may also be worth it to wait until fonts are fully loaded before
+          // attempting to rasterize them. (e.g. use https://developer.mozilla.org/en-US/docs/Web/API/FontFaceSet)
+          const fontInBase64 = arrayBufferToBase64(req.response);
+          const fontUri = font.text.replace(urlRegex, `url("data:${font.format};base64,${fontInBase64}")`)+'\n';
+          cachedFonts[font.url] = fontUri;
+          resolve(fontUri);
+        });
+        req.addEventListener('error', e => {
+          console.warn(`Failed to load font from: ${font.url}`, e);
+          cachedFonts[font.url] = null;
+          resolve(null);
+        });
+        req.addEventListener('abort', e => {
+          console.warn(`Aborted loading font from: ${font.url}`, e);
+          resolve(null);
+        });
+        req.open('GET', font.url);
+        req.responseType = 'arraybuffer';
+        req.send();
+      })
+    )
+  ).then(fontCss => fontCss.filter(x => x).join(''));
+
+  let cachedRules = null;
+  const styleSheetRules = () => {
+    if (cachedRules) return cachedRules;
+    return cachedRules = Array.from(document.styleSheets).map(sheet => {
+      try {
+        return {rules: sheet.cssRules, href: sheet.href};
+      } catch (e) {
+        console.warn(`Stylesheet could not be loaded: ${sheet.href}`, e);
+        return {};
+      }
+    });
+  };
+
+  const inlineCss = (el, options) => {
+    const {
+      selectorRemap,
+      modifyStyle,
+      modifyCss,
+      fonts,
+      excludeUnusedCss
+    } = options || {};
+    const generateCss = modifyCss || ((selector, properties) => {
+      const sel = selectorRemap ? selectorRemap(selector) : selector;
+      const props = modifyStyle ? modifyStyle(properties) : properties;
+      return `${sel}{${props}}\n`;
+    });
+    const css = [];
+    const detectFonts = typeof fonts === 'undefined';
+    const fontList = fonts || [];
+    styleSheetRules().forEach(({rules, href}) => {
+      if (!rules) return;
+      Array.from(rules).forEach(rule => {
+        if (typeof rule.style != 'undefined') {
+          if (query(el, rule.selectorText)) css.push(generateCss(rule.selectorText, rule.style.cssText));
+          else if (detectFonts && rule.cssText.match(/^@font-face/)) {
+            const font = detectCssFont(rule, href);
+            if (font) fontList.push(font);
+          } else if (!excludeUnusedCss) {
+            css.push(rule.cssText);
+          }
+        }
+      });
+    });
+
+    return inlineFonts(fontList).then(fontCss => css.join('\n') + fontCss);
+  };
+
+  const downloadOptions = () => {
+    if (!navigator.msSaveOrOpenBlob && !('download' in document.createElement('a'))) {
+      return {popup: window.open()};
+    }
+  };
+
+  out$.prepareSvg = (el, options, done) => {
+    requireDomNode(el);
+    const {
+      left = 0,
+      top = 0,
+      width: w,
+      height: h,
+      scale = 1,
+      responsive = false,
+      excludeCss = false,
+    } = options || {};
+
+    return inlineImages(el).then(() => {
+      let clone = el.cloneNode(true);
+      clone.style.backgroundColor = (options || {}).backgroundColor || el.style.backgroundColor;
+      const {width, height} = getDimensions(el, clone, w, h);
+
+      if (el.tagName !== 'svg') {
+        if (el.getBBox) {
+          if (clone.getAttribute('transform') != null) {
+            clone.setAttribute('transform', clone.getAttribute('transform').replace(/translate\(.*?\)/, ''));
+          }
+          const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+          svg.appendChild(clone);
+          clone = svg;
+        } else {
+          console.error('Attempted to render non-SVG element', el);
+          return;
+        }
+      }
+
+      clone.setAttribute('version', '1.1');
+      clone.setAttribute('viewBox', [left, top, width, height].join(' '));
+      if (!clone.getAttribute('xmlns')) clone.setAttributeNS(xmlNs, 'xmlns', svgNs);
+      if (!clone.getAttribute('xmlns:xlink')) clone.setAttributeNS(xmlNs, 'xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+      if (responsive) {
+        clone.removeAttribute('width');
+        clone.removeAttribute('height');
+        clone.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+      } else {
+        clone.setAttribute('width', width * scale);
+        clone.setAttribute('height', height * scale);
+      }
+
+      Array.from(clone.querySelectorAll('foreignObject > *')).forEach(foreignObject => {
+        foreignObject.setAttributeNS(xmlNs, 'xmlns', foreignObject.tagName === 'svg' ? svgNs : xhtmlNs);
+      });
+
+      if (excludeCss) {
+        const outer = document.createElement('div');
+        outer.appendChild(clone);
+        const src = outer.innerHTML;
+        if (typeof done === 'function') done(src, width, height);
+        else return {src, width, height};
+      } else {
+        return inlineCss(el, options).then(css => {
+          const style = document.createElement('style');
+          style.setAttribute('type', 'text/css');
+          style.innerHTML = `<![CDATA[\n${css}\n]]>`;
+
+          const defs = document.createElement('defs');
+          defs.appendChild(style);
+          clone.insertBefore(defs, clone.firstChild);
+
+          const outer = document.createElement('div');
+          outer.appendChild(clone);
+          const src = outer.innerHTML.replace(/NS\d+:href/gi, 'xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href');
+
+          if (typeof done === 'function') done(src, width, height);
+          else return {src, width, height};
+        });
+      }
+    });
+  };
+
+  out$.svgAsDataUri = (el, options, done) => {
+    requireDomNode(el);
+    return out$.prepareSvg(el, options)
+      .then(({src, width, height}) => {
+          const svgXml = `data:image/svg+xml;base64,${window.btoa(reEncode(doctype+src))}`;
+          if (typeof done === 'function') {
+              done(svgXml, width, height);
+          }
+          return svgXml;
+      });
+  };
+
+  out$.svgAsPngUri = (el, options, done) => {
+    requireDomNode(el);
+    const {
+      encoderType = 'image/png',
+      encoderOptions = 1.0,
+      canvg
+    } = options || {};
+
+    const convertToPng = ({src, width, height}) => {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      const pixelRatio = window.devicePixelRatio || 1;
+
+      canvas.width = width * pixelRatio;
+      canvas.height = height * pixelRatio;
+      canvas.style.width = `${canvas.width}px`;
+      canvas.style.height = `${canvas.height}px`;
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+      if (canvg) canvg(canvas, src);
+      else context.drawImage(src, 0, 0);
+
+      let png;
+      try {
+        png = canvas.toDataURL(encoderType, encoderOptions);
+      } catch (e) {
+        if ((typeof SecurityError !== 'undefined' && e instanceof SecurityError) || e.name === 'SecurityError') {
+          console.error('Rendered SVG images cannot be downloaded in this browser.');
+          return;
+        } else throw e;
+      }
+      if (typeof done === 'function') done(png, canvas.width, canvas.height);
+      return Promise.resolve(png);
+    }
+
+    if (canvg) return out$.prepareSvg(el, options).then(convertToPng);
+    else return out$.svgAsDataUri(el, options).then(uri => {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(convertToPng({
+          src: image,
+          width: image.width,
+          height: image.height
+        }));
+        image.onerror = () => {
+          reject(`There was an error loading the data URI as an image on the following SVG\n${window.atob(uri.slice(26))}Open the following link to see browser's diagnosis\n${uri}`);
+        }
+        image.src = uri;
+      })
+    });
+  };
+
+  out$.download = (name, uri, options) => {
+    if (navigator.msSaveOrOpenBlob) navigator.msSaveOrOpenBlob(uriToBlob(uri), name);
+    else {
+      const saveLink = document.createElement('a');
+      if ('download' in saveLink) {
+        saveLink.download = name;
+        saveLink.style.display = 'none';
+        document.body.appendChild(saveLink);
+        try {
+          const blob = uriToBlob(uri);
+          const url = URL.createObjectURL(blob);
+          saveLink.href = url;
+          saveLink.onclick = () => requestAnimationFrame(() => URL.revokeObjectURL(url));
+        } catch (e) {
+          console.error(e);
+          console.warn('Error while getting object URL. Falling back to string URL.');
+          saveLink.href = uri;
+        }
+        saveLink.click();
+        document.body.removeChild(saveLink);
+      } else if (options && options.popup) {
+        options.popup.document.title = name;
+        options.popup.location.replace(uri);
+      }
+    }
+  };
+
+  out$.saveSvg = (el, name, options) => {
+    const downloadOpts = downloadOptions(); // don't inline, can't be async
+    return requireDomNodePromise(el)
+      .then(el => out$.svgAsDataUri(el, options || {}))
+      .then(uri => out$.download(name, uri, downloadOpts));
+  };
+
+  out$.saveSvgAsPng = (el, name, options) => {
+    const downloadOpts = downloadOptions(); // don't inline, can't be async
+    return requireDomNodePromise(el)
+      .then(el => out$.svgAsPngUri(el, options || {}))
+      .then(uri => out$.download(name, uri, downloadOpts));
+  };
+})();
+</script>
+
+<h2> The End </h2>
+
+</body>
+</html>
