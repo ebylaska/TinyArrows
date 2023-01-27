@@ -12668,7 +12668,16 @@ ul, li {
     <table>
        <tr>
          <td>mylabel:</td>
-         <td> <input type="text" name="Label" id="queue_nwchem_jobname" size=30 value="mylabel" oninput="cacheInput(this)"> </td>
+         <!--td> <input type="text" name="Label" id="queue_nwchem_jobname" size=30 value="mylabel" oninput="cacheInput(this)"> </td-->
+         <td>  <select id="queue_nwchem_jobname"
+                       style="font-size:13px;color:#6F4E37"
+                       title=": set text jobname :" oninput="cacheInput(this)">
+                       <option>None</option>
+                       <option disabled>──────────</option>
+               </select>
+               <input type="button" class="button" id="add_queue_nwchem_jobname" value="add"
+                       style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                       onClick="add_select_option0('Add jobname: ','','queue_nwchem_jobname');"/> </td>
          <td>project name:</td>
          <!--td> <input type="text" name="Label" id="queue_nwchem_projectname" size=30 value="PathOpt" oninput="cacheInput(this)"> </td-->
          <td>  <select id="queue_nwchem_projectname"
