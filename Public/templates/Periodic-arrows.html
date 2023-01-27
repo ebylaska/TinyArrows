@@ -12447,6 +12447,45 @@ ul, li {
            }
         }
 
+
+        // **********************************
+        // *                                *
+        // *      add_select_option2        *
+        // *                                *
+        // **********************************
+        function add_select_option2(promptstr,defaultpromptstr,selectid) {
+           var newrxn  =  prompt(promptstr, defaultpromptstr);
+           newrxn = newrxn.trim();
+           if (newrxn.includes(":")) {
+              if ((newrxn.split(":")[0].length > 1) && (newrxn.split(":"[1]>1))) {
+                 var ddl = document.getElementById(selectid);
+                 var option = document.createElement("OPTION");
+                 option.innerHTML = newrxn;
+                 option.value     = newrxn;
+                 ddl.options.add(option);
+              }
+           }
+        }
+
+
+        // **********************************
+        // *                                *
+        // *      add_select_option0        *
+        // *                                *
+        // **********************************
+        function add_select_option0(promptstr,defaultpromptstr,selectid) {
+           var newrxn  =  prompt(promptstr, defaultpromptstr);
+           newrxn = newrxn.trim();
+           if (newrxn.length>1) {
+              var ddl = document.getElementById(selectid);
+              var option = document.createElement("OPTION");
+              option.innerHTML = newrxn;
+              option.value     = newrxn;
+              ddl.options.add(option);
+           }
+        }
+
+
         // **********************************
         // *                                *
         // *           set_lock             *
@@ -12631,7 +12670,16 @@ ul, li {
          <td>mylabel:</td>
          <td> <input type="text" name="Label" id="queue_nwchem_jobname" size=30 value="mylabel" oninput="cacheInput(this)"> </td>
          <td>project name:</td>
-         <td> <input type="text" name="Label" id="queue_nwchem_projectname" size=30 value="PathOpt" oninput="cacheInput(this)"> </td>
+         <!--td> <input type="text" name="Label" id="queue_nwchem_projectname" size=30 value="PathOpt" oninput="cacheInput(this)"> </td-->
+         <td>  <select id="queue_nwchem_projectname"
+                       style="font-size:13px;color:#6F4E37"
+                       title=": set text projectname :" oninput="cacheInput(this)">
+                       <option>None</option>
+                       <option disabled>──────────</option>
+               </select>
+               <input type="button" class="button" id="add_queue_nwchem_projectname" value="add"
+                       style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                       onClick="add_select_option0('Add projectname: ','','queue_nwchem_projectname');"/> </td>
          <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="include model number"/></td>
          <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="include date"/></td>
          <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="deletescratch option"/></td>
@@ -12640,7 +12688,19 @@ ul, li {
     <table>
        <tr>
          <td>curdir0:</td>
-         <td> <input type="text" name="Label" id="queue_nwchem_curdir0" size=145 value="mymachine:/Projects/Simulations" oninput="cacheInput(this)"> </td>
+         <!--td> <input type="text" list="queue_nwchem_curdir0_list" name="Label" id="queue_nwchem_curdir0" size=145 value="mymachine:/Projects/Simulations" oninput="cacheInput(this)"> </td-->
+
+           <td>  <select id="queue_nwchem_curdir0"
+                                         style="font-size:13px;color:#6F4E37"
+                                         title=": set text cudir0 :" oninput="cacheInput(this)">
+                                   <option>None</option>
+                                   <option>mymachine:/Projects/Simulations</option>
+                                   <option disabled>──────────</option>
+                                 </select>
+                      <input type="button" class="button" id="add_queue_nwchem_curdir0" value="add"
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             onClick="add_select_option2('Add curdir0: ','','queue_nwchem_curdir0');"/> </td>
+
        </tr>
        <tr>
           <td>permdir: </td> 
@@ -12651,6 +12711,7 @@ ul, li {
           <td> <input type="text" name="Label" id="queue_nwchem_curdir" size=145 value="" onChange="changecurdir()" oninput="cacheInput(this)"> </td>
        </tr>
     </table>
+
 
     <h4> Simulation generation scripts and input</h4>
     <table>
