@@ -12286,19 +12286,22 @@ ul, li {
 
         function changeaccount() {
            var qa   = document.getElementById("queue_account").value.trim();
-           var data = editor.getValue(); // or session.getValue
-           if (data.includes("#account ")) {
-              var data0 = "#account " + data.split("#account ")[1].split("\n")[0];
-              data = data.replace(data0,"#account " + qa);
-           } else {
-              data = data.split("#queue ")[0]
-                   + "#account " + qa + "\n"
-                   + "#queue "
-                   + data.split("#queue ")[1]
+           if ( !(qa.includes("Add Account") || qa.includes("None")) ) {
+              var data = editor.getValue(); // or session.getValue
+              if (data.includes("#account ")) {
+                 var data0 = "#account " + data.split("#account ")[1].split("\n")[0];
+                 data = data.replace(data0,"#account " + qa);
+              } else {
+                 data = data.split("#queue ")[0]
+                      + "#account " + qa + "\n"
+                      + "#queue "
+                      + data.split("#queue ")[1]
+              }
+              editor.setValue(data,1);
            }
-           editor.setValue(data,1);
         }
 
+    
 
         function changepermdir() {
            var pd   = document.getElementById("queue_nwchem_permdir").value.trim();
@@ -12454,15 +12457,18 @@ ul, li {
         // *                                *
         // **********************************
         function add_select_option2(promptstr,defaultpromptstr,selectid) {
-           var newrxn  =  prompt(promptstr, defaultpromptstr);
-           newrxn = newrxn.trim();
-           if (newrxn.includes(":")) {
-              if ((newrxn.split(":")[0].length > 1) && (newrxn.split(":"[1]>1))) {
-                 var ddl = document.getElementById(selectid);
-                 var option = document.createElement("OPTION");
-                 option.innerHTML = newrxn;
-                 option.value     = newrxn;
-                 ddl.options.add(option);
+           var qa  = document.getElementById(selectid).value.trim();
+           if (qa.includes(promptstr)) {
+              var newrxn  =  prompt(promptstr, defaultpromptstr);
+              newrxn = newrxn.trim();
+              if (newrxn.includes(":")) {
+                 if ((newrxn.split(":")[0].length > 1) && (newrxn.split(":"[1]>1))) {
+                    var ddl = document.getElementById(selectid);
+                    var option = document.createElement("OPTION");
+                    option.innerHTML = newrxn;
+                    option.value     = newrxn;
+                    ddl.options.add(option);
+                 }
               }
            }
         }
@@ -12474,14 +12480,43 @@ ul, li {
         // *                                *
         // **********************************
         function add_select_option0(promptstr,defaultpromptstr,selectid) {
-           var newrxn  =  prompt(promptstr, defaultpromptstr);
-           newrxn = newrxn.trim();
-           if (newrxn.length>1) {
-              var ddl = document.getElementById(selectid);
-              var option = document.createElement("OPTION");
-              option.innerHTML = newrxn;
-              option.value     = newrxn;
-              ddl.options.add(option);
+           var qa  = document.getElementById(selectid).value.trim();
+           if (qa.includes(promptstr)) {
+              var newrxn  =  prompt(promptstr,defaultpromptstr);
+              newrxn = newrxn.trim();
+              if (newrxn.length>1) {
+                 var ddl = document.getElementById(selectid);
+                 var option = document.createElement("OPTION");
+                 option.innerHTML = newrxn;
+                 option.value     = newrxn;
+                 ddl.options.add(option);
+              }
+           }
+        }
+
+        // **********************************
+        // *                                *
+        // *      add_select_option02       *
+        // *                                *
+        // **********************************
+        function add_select_option02(promptstr,defaultpromptstr,selectid,selectid2) {
+           var qa  = document.getElementById(selectid).value.trim();
+           if (qa.includes(promptstr)) {
+              var newrxn  =  prompt(promptstr, defaultpromptstr);
+              newrxn = newrxn.trim();
+              if (newrxn.length>1) {
+                 var ddl = document.getElementById(selectid);
+                 var option = document.createElement("OPTION");
+                 option.innerHTML = newrxn;
+                 option.value     = newrxn;
+                 ddl.options.add(option);
+
+                 var ddl2 = document.getElementById(selectid2);
+                 var option2 = document.createElement("OPTION");
+                 option2.innerHTML = newrxn;
+                 option2.value     = newrxn;
+                 ddl2.options.add(option2);
+              }
            }
         }
 
@@ -12633,9 +12668,29 @@ ul, li {
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     time: <input type="text" name="TLabel" id="queue_time" size="9" onChange="changeqtime()" oninput="cacheInput(this)">
     &nbsp;
-    account: <input type="text" name="Label" id="queue_account" onChange="changeaccount()" oninput="cacheInput(this)">
+    account: <!--input type="text" name="Label" id="queue_account" onChange="changeaccount()" oninput="cacheInput(this)"-->
+               <select id="queue_account"
+                       name="queue_account"
+                       style="font-size:13px;color:#6F4E37"
+                       title=": set text queue_account :" 
+                       onChange="add_select_option0('Add Account','','queue_account')"
+                       oninput="cacheInput(this)">
+                       <option>None</option>
+                       <option>Add Account</option>
+                       <option disabled>──────────</option>
+               </select>
     &nbsp;&nbsp;&nbsp;
-    Secret Code: <input type="text" name="Label" id="queue_secret_code" oninput="cacheInput(this)">
+    Secret Code: <!--input type="text" name="Label" id="queue_secret_code" oninput="cacheInput(this)"-->
+               <select id="queue_secret_code"
+                       name="queue_secret_code"
+                       style="font-size:13px;color:#6F4E37"
+                       title=": set text queue_secret_code :" 
+                       onChange="add_select_option02('Add Secret Code','','queue_secret_code','queue_secret_code2')"
+                       oninput="cacheInput(this)">
+                       <option>None</option>
+                       <option>Add Secret Code</option>
+                       <option disabled>──────────</option>
+               </select>
     <br>
     Arrows queue_name: <input type="text" list="queue_name_list" id="queue_name" onChange="changequeue()" oninput="cacheInput(this)"/>
                <datalist id="queue_name_list">
@@ -12671,24 +12726,26 @@ ul, li {
          <!--td> <input type="text" name="Label" id="queue_nwchem_jobname" size=30 value="mylabel" oninput="cacheInput(this)"> </td-->
          <td>  <select id="queue_nwchem_jobname"
                        style="font-size:13px;color:#6F4E37"
-                       title=": set text jobname :" oninput="cacheInput(this)">
+                       title=": set text jobname :" 
+                       onChange="add_select_option0('Add job label','','queue_nwchem_jobname')"
+                       oninput="cacheInput(this)">
                        <option>None</option>
+                       <option>Add job label</option>
                        <option disabled>──────────</option>
                </select>
-               <input type="button" class="button" id="add_queue_nwchem_jobname" value="add"
-                       style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
-                       onClick="add_select_option0('Add jobname: ','','queue_nwchem_jobname');"/> </td>
+         </td>
          <td>project name:</td>
          <!--td> <input type="text" name="Label" id="queue_nwchem_projectname" size=30 value="PathOpt" oninput="cacheInput(this)"> </td-->
          <td>  <select id="queue_nwchem_projectname"
                        style="font-size:13px;color:#6F4E37"
-                       title=": set text projectname :" oninput="cacheInput(this)">
+                       title=": set text projectname :" 
+                       onChange="add_select_option0('Add project name','','queue_nwchem_projectname')"
+                       oninput="cacheInput(this)">
                        <option>None</option>
+                       <option>Add project name</option>
                        <option disabled>──────────</option>
                </select>
-               <input type="button" class="button" id="add_queue_nwchem_projectname" value="add"
-                       style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
-                       onClick="add_select_option0('Add projectname: ','','queue_nwchem_projectname');"/> </td>
+         </td>
          <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="include model number"/></td>
          <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="include date"/></td>
          <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="deletescratch option"/></td>
@@ -12698,18 +12755,17 @@ ul, li {
        <tr>
          <td>curdir0:</td>
          <!--td> <input type="text" list="queue_nwchem_curdir0_list" name="Label" id="queue_nwchem_curdir0" size=145 value="mymachine:/Projects/Simulations" oninput="cacheInput(this)"> </td-->
-
-           <td>  <select id="queue_nwchem_curdir0"
-                                         style="font-size:13px;color:#6F4E37"
-                                         title=": set text cudir0 :" oninput="cacheInput(this)">
-                                   <option>None</option>
-                                   <option>mymachine:/Projects/Simulations</option>
-                                   <option disabled>──────────</option>
-                                 </select>
-                      <input type="button" class="button" id="add_queue_nwchem_curdir0" value="add"
-                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
-                             onClick="add_select_option2('Add curdir0: ','','queue_nwchem_curdir0');"/> </td>
-
+           <td> <select id="queue_nwchem_curdir0"
+                    name="queue_nwchem_curdir0"
+                    style="font-size:13px;color:#6F4E37" 
+                    title=": set text queue_account :" 
+                    onChange="add_select_option2('Add curdir0','','queue_nwchem_curdir0')"
+                    oninput="cacheInput(this)">
+                    <option>None</option>
+                    <option>Add curdir0</option> 
+                    <option disabled>──────────</option>
+                </select> 
+           </td>
        </tr>
        <tr>
           <td>permdir: </td> 
@@ -16310,7 +16366,14 @@ xdoc.close();
    
    <input type="button" VALUE="Download queue_entry" onClick="queue_entry_download(document.getElementById('queue_entry').value, document.getElementById('queue_entry_secret').value)" title="qnwchem_dload" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
    <input type="text" id="queue_entry" oninput="cacheInput(this)"/> 
-   Secret Code: <input type="text" name="queue_entry_secret" id="queue_entry_secret" oninput="cacheInput(this)">
+   Secret Code: <!--input type="text" name="queue_secret_code" id="queue_secret_code" oninput="cacheInput(this)"-->
+               <select id="queue_secret_code2"
+                       name="queue_secret_code2"
+                       style="font-size:13px;color:#6F4E37"
+                       title=": set text queue_secret_code2 :" oninput="cacheInput(this)">
+                       <option>None</option>
+                       <option disabled>──────────</option>
+               </select>
    <br>
    <br>
    </div>
