@@ -319,7 +319,16 @@ ul, li {
 
 <script type="text/javascript">
 
-   function cacheInput(el)       { /*console.log("cacheInput: el.value=", el.value);*/ localStorage.setItem(":inputcache:"+el.attributes["id"].value,el.value); }
+   function cacheInput(el) { /*console.log("cacheInput: el.value=", el.value);*/ 
+       if (el instanceof HTMLSelectElement) {
+          for (var i=0; i<el.options.length; ++i) {
+             if ((!el.options[i].disabled) && (!el.options[i].value.includes("Add ")) && (el.options[i].value!="None"))
+                localStorage.setItem(":inputselectcache:"+el.attributes["id"].value+":"+el.options[i].innerHTML,el.options[i].value);
+          }
+       } else {
+          localStorage.setItem(":inputcache:"+el.attributes["id"].value,el.value);
+       } 
+   }
    function cacheInputbool(el,x) { /*console.log("cacheInputbool: x=", x);*/ localStorage.setItem(":inputboolcache:"+el.attributes["id"].value,x); }
    function cacheLoadAll()  {
       for (let i=0; i<localStorage.length; ++i) {
@@ -333,6 +342,16 @@ ul, li {
          if (key.includes(":inputboolcache:")) {
             let cachedVal = localStorage.getItem(key);
             if (cachedVal.includes("true")) {document.getElementById(key.replace(":inputboolcache:","")).checked = true; }
+         }
+         if (key.includes(":inputselectcache:")) {
+            let key0 = key.replace(":inputselectcache:","").split(":")[0];
+            let key1 = key.replace(":inputselectcache:","").split(":")[1];
+            let cachedVal = localStorage.getItem(key);
+            let ddl    = document.getElementById(key0);
+            let option = document.createElement("OPTION");
+            option.innerHTML = key1;
+            option.value     = cachedVal;
+            ddl.options.add(option);
          }
       }
    }
@@ -3783,6 +3802,28 @@ ul, li {
            downloadLink.click();
         }
 
+        function localstoragesave() {
+           let filenameguess = "localstorage.data";
+           var textToSave       = "";
+           for (let i=0; i<localStorage.length; ++i) {
+              let key       = localStorage.key(i);
+              let cachedVal = localStorage.getItem(key);
+              textToSave += "<key=" + key + " value=" +  cachedVal + ">\n";
+           }
+           var textToSaveAsBlob = new Blob([textToSave], {type:"text/plain"});
+           var textToSaveAsURL  = window.URL.createObjectURL(textToSaveAsBlob);
+	        var fileNameToSaveAs = prompt("Please enter filename:", filenameguess);
+
+           var downloadLink = document.createElement("a");
+           downloadLink.download = fileNameToSaveAs;
+           downloadLink.innerHTML = "Download File";
+           downloadLink.href = textToSaveAsURL;
+           downloadLink.onclick = destroyClickedElement;
+           downloadLink.style.display = "none";
+           document.body.appendChild(downloadLink);
+
+           downloadLink.click();
+        }
 
         function editorsave() {
            var textToSave = editor.getValue();
@@ -3864,9 +3905,28 @@ ul, li {
            }
         }
 
+        function loadfiletolocalstorage() {
+           var data = "no data";
+	        var fileToLoad = document.getElementById("fileToLoad").files[0];
+
+           var fileReader = new FileReader();
+           fileReader.onload = function(fileLoadedEvent) {
+              var textFromFileLoaded = fileLoadedEvent.target.result;
+              var textlines = textFromFileLoaded.trim().split("\n");
+              for (let i=0; i<textlines.length; ++i) {
+                  let line=textlines[i];
+                  let key       = line.split("<key=")[1].split("value=")[0].trim();
+                  let cachedVal = line.split("value=")[1].split(">")[0];
+                  localStorage.setItem(key,cachedVal);
+              }
+              cacheLoadAll();
+           };
+           fileReader.readAsText(fileToLoad, "UTF-8");
+        }
+
         function loadfiletoeditor() {
            var data = "no data";
-	   var fileToLoad = document.getElementById("fileToLoad").files[0];
+	        var fileToLoad = document.getElementById("fileToLoad").files[0];
 
            var fileReader = new FileReader();
            fileReader.onload = function(fileLoadedEvent) {
@@ -12480,6 +12540,7 @@ ul, li {
         // *                                *
         // **********************************
         function add_select_option0(promptstr,defaultpromptstr,selectid) {
+          console.log("selectid=",selectid)
            var qa  = document.getElementById(selectid).value.trim();
            if (qa.includes(promptstr)) {
               var newrxn  =  prompt(promptstr,defaultpromptstr);
@@ -12490,6 +12551,14 @@ ul, li {
                  option.innerHTML = newrxn;
                  option.value     = newrxn;
                  ddl.options.add(option);
+          console.log("option=",option);
+          console.log("ddl=",ddl);
+          console.log("ddl.nodeName=",ddl.nodeName);
+          console.log("ddl.options.length=",ddl.options.length);
+          for (var i=0; i<ddl.options.length; ++i) {
+             console.log("i=",i," ddl.option=",ddl.options[i]," text=",ddl.options[i].innerHTML," value=",ddl.options[i].value);
+          }
+
               }
            }
         }
@@ -13187,8 +13256,8 @@ ul, li {
        </tr>
     </table>
     <br>
-    <input type="button" VALUE="Save cache" onClick="editorsave()" style="background-color:#f8f8ff; color:#00000f; font-size: 12px; font-weight:bold"/>
-    <input type="button" VALUE="Load cache" onClick="loadfiletoeditor()" style="background-color:#f8f8ff; color:#00000f; font-size: 12px; font-weight:bold"/>
+    <input type="button" VALUE="Export local storage" onClick="localstoragesave()" style="background-color:#f8f8ff; color:#00000f; font-size: 12px; font-weight:bold"/>
+    <input type="button" VALUE="Import local storage" onClick="loadfiletolocalstorage()" style="background-color:#f8f8ff; color:#00000f; font-size: 12px; font-weight:bold"/>
 
 </div>
 
