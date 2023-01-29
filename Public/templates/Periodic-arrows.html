@@ -3400,7 +3400,7 @@ ul, li {
               if (labelInput.length>0) {
                  textToSave += "# label:" + fileNameToSaveAs + " " + labelInput + " :label\n";
               }
-              var secret = document.getElementById("queue_secret_code").value.replace("None","").trim();
+              var secret = document.getElementById("queue_secret_code").value.replace("Add Secret Code","").replace("None","").trim();
               if (secret.length>0) {
                  textToSave += "# ARROWS_PASSWORD:" + secret + ":ARROWS_PASSWORD\n"
               }
@@ -3598,7 +3598,7 @@ ul, li {
                  if (labelInput.length>0) {
                     textToSave += "# label:" + fileNameToSaveAs + " " + labelInput + " :label\n";
                  }
-                 var secret = document.getElementById("queue_secret_code").value.replace("None","").trim();
+                 var secret = document.getElementById("queue_secret_code").value.replace("Add Secret Code","").replace("None","").trim();
                  if (secret.length>0) {
                     textToSave += "# ARROWS_PASSWORD:" + secret + ":ARROWS_PASSWORD\n"
                  }
@@ -5405,8 +5405,8 @@ ul, li {
            x += "#\n";
 
            var jobname     = mformula+"-aimdmm";
-           if ((document.getElementById("queue_nwchem_jobname").value.replace("None","").trim().length) > 0) {
-              jobname += "-" + document.getElementById("queue_nwchem_jobname").value.replace("None","").trim();
+           if ((document.getElementById("queue_nwchem_jobname").value.replace("Add job label","").replace("None","").trim().length) > 0) {
+              jobname += "-" + document.getElementById("queue_nwchem_jobname").value.replace("Add job label","").replace("None","").trim();
            }
            if (document.getElementById("queue_nwchem_jobmodel").checked) {
               var imm =  window.xyzframes_cur + 1;
@@ -5418,11 +5418,11 @@ ul, li {
               jobname += "-d-" + date
            }
 
-           var projectname = document.getElementById("queue_nwchem_projectname").value.replace("None","").trim();
+           var projectname = document.getElementById("queue_nwchem_projectname").value.replace("Add project name","").replace("None","").trim();
            if (projectname.contains("myproject")) {
                 projectname = prompt("Please enter projectname:", projectname);
            }
-           var curdir0 = document.getElementById("queue_nwchem_curdir0").value.replace("None","mymachine:/Projects");
+           var curdir0 = document.getElementById("queue_nwchem_curdir0").value.replace("Add curdir0","mymachine:/Projects").replace("None","mymachine:/Projects");
            var curdir  = curdir0 + "/"+projectname+"/"+jobname
 
            curdir  = prompt("Please enter curdir:", curdir);
@@ -5597,7 +5597,7 @@ ul, li {
            jsmcellchange(false,true);
            //jmscentercell();
 
-           var projectname  = document.getElementById("queue_nwchem_projectname").value.replace("None","").trim();
+           var projectname  = document.getElementById("queue_nwchem_projectname").value.replace("Add project name","").replace("None","").trim();
            if (projectname.contains("myproject")) {
               projectname = prompt("Please enter projectname:", projectname);
            }
@@ -5605,7 +5605,7 @@ ul, li {
            var mformula = textFromUrl.split("#mformula = ")[1].split("\n")[0].trim();
            var jobname  = mformula+"-wham" + rgamma;
            //jobname = prompt("Please enter jobname:", jobname);
-           //var jobname      = document.getElementById("queue_nwchem_jobname").value.replace("None","").trim();
+           //var jobname      = document.getElementById("queue_nwchem_jobname").value.replace("Add job label","").replace("None","").trim();
 
            var x =  "#nwchem_input  " + jobname + ".nw\n";
            x += "#nwchem_output " + jobname + ".out00\n";
@@ -5616,7 +5616,7 @@ ul, li {
            x += "#transfer_files *.nw *.xyz *.ion_motion *.emotion *.fei *.cif *.hist *.gr meta_*.dat meta.dat *.meta_gaussians *.cube *_epath *_final_epath POWER_SPECTRUM VELOCITY_SPECTRUM VEL_CORRELATION PAIR_DISTRIBUTION *.dipole_powerspectrum *.dipole_correlation\n";
            x += "#bad_files md_xs\n";
            x += "#\n";
-           var curdir0 = document.getElementById("queue_nwchem_curdir0").value.replace("None","mymachine:/Projects");
+           var curdir0 = document.getElementById("queue_nwchem_curdir0").value.replace("Add curdir0","mymachine:/Projects").replace("None","mymachine:/Projects");
            var curdir  = curdir0 + "/"+projectname+"/"+jobname
 
            x += "#curdir " + curdir + "\n"
@@ -7407,11 +7407,11 @@ ul, li {
            x += "#transfer_files *.nw *.xyz *.ion_motion *.emotion *.fei *.cif *.hist *.gr meta_*.dat meta.dat *.meta_gaussians *.cube *_epath *_final_epath POWER_SPECTRUM VELOCITY_SPECTRUM VEL_CORRELATION PAIR_DISTRIBUTION *.dipole_powerspectrum *.dipole_correlation\n";
            x += "#bad_files md_xs\n";
            x += "#\n";
-           if ((document.getElementById("queue_nwchem_jobname").value.replace("None","").trim().length) > 0) {
-              jobname += "-" + document.getElementById("queue_nwchem_jobname").value.replace("None","").trim();
+           if ((document.getElementById("queue_nwchem_jobname").value.replace("Add job label","").replace("None","").trim().length) > 0) {
+              jobname += "-" + document.getElementById("queue_nwchem_jobname").value.replace("Add job label","").replace("None","").trim();
            }
-           var projectname = document.getElementById("queue_nwchem_projectname").value.replace("None","");
-           var curdir0 = document.getElementById("queue_nwchem_curdir0").value.replace("None","mymachine:/Projects");
+           var projectname = document.getElementById("queue_nwchem_projectname").value.replace("Add project name","").replace("None","");
+           var curdir0 = document.getElementById("queue_nwchem_curdir0").value.replace("Add curdir0","mymachine:/Projects").replace("None","mymachine:/Projects");
            var permdir = document.getElementById("queue_nwchem_permdir").value;
            var curdir  = document.getElementById("queue_nwchem_curdir").value;
            i =  window.xyzframes_cur + 1;
@@ -9397,7 +9397,7 @@ ul, li {
               var rgamma   = parseFloat(document.getElementById("umbrella_gamma").value).toFixed(2);
               var rkappa   = parseFloat(document.getElementById("umbrella_spring").value);
 
-              var projectname = document.getElementById("queue_nwchem_projectname").value.replace("None","").trim();
+              var projectname = document.getElementById("queue_nwchem_projectname").value.replace("Add project name","").replace("None","").trim();
               if (projectname.contains("myproject")) {
                  projectname = prompt("Please enter projectname:", projectname);
               }
@@ -9405,7 +9405,7 @@ ul, li {
               var  mformula = tdata.split("#mformula = ")[1].split("\n")[0].trim();
               var jobname   = mformula+"-wham" + rgamma;
 
-              var curdir0 = document.getElementById("queue_nwchem_curdir0").value.replace("None","mymachine:/Projects");
+              var curdir0 = document.getElementById("queue_nwchem_curdir0").value.replace("Add curdir0","mymachine:/Projects").replace("None","mymachine:/Projects");
               var curdir  = curdir0 + "/"+projectname+"/"+jobname
 
               var winp        = curdir0 + "/"+projectname+"/" + mformula+"-wham.winp";
