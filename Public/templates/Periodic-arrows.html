@@ -345,8 +345,11 @@ ul, li {
          }
          if (key.includes(":inputselectcache:")) {
             let key0 = key.replace(":inputselectcache:","").split(":")[0];
-            let key1 = key.replace(":inputselectcache:","").split(":")[1];
+            let key1 = key.replace(":inputselectcache:","").split(":").slice(1).join(':');
             let cachedVal = localStorage.getItem(key);
+            console.log("key0=",key0);
+            console.log("key1=",key1);
+            console.log("cachedVal=",cachedVal);
             let ddl    = document.getElementById(key0);
             let option = document.createElement("OPTION");
             option.innerHTML = key1;
