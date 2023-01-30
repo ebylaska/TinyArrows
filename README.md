@@ -1,6 +1,9 @@
 # TinyArrows
 TinyArrows is a tiny version of EMSL Arrows
 
+## requirements ##
+pip3 install -r ./requirements.txt
+
 ## Running Arrows
 cd TinyArrows/Public
 
