@@ -1910,11 +1910,12 @@ def list_queue():
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += calcs
-   html += "</pre> </html>"
+   #html += calcs
+   #html += "</pre> </html>"
+   calcs += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data =  render_template(name)
+   data = render_template(name) + calcs
 
    return data
 
@@ -2002,11 +2003,12 @@ def submit_queue_prequeue():
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += calcs
-   html += "</pre> </html>"
+   #html += calcs
+   #html += "</pre> </html>"
+   calcs += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data =  render_template(name)
+   data = render_template(name) + calcs
 
    return data
 
@@ -2035,11 +2037,12 @@ def add_reset(esmiles):
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += result
-   html += "</pre> </html>"
+   #html += result
+   #html += "</pre> </html>"
+   result += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data =  render_template(name)
+   data = render_template(name) + result
 
    return data
 
@@ -2065,11 +2068,12 @@ def add_delete(esmiles):
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += result
-   html += "</pre> </html>"
+   #html += result
+   #html += "</pre> </html>"
+   result += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data =  render_template(name)
+   data = render_template(name) + result
 
    return data
 
@@ -2095,11 +2099,12 @@ def add_queue(esmiles):
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += result
-   html += "</pre> </html>"
+   #html += result
+   #html += "</pre> </html>"
+   result += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data =  render_template(name)
+   data = render_template(name) + result
 
    return data
 
@@ -2123,11 +2128,12 @@ def fetch_queue(jobid):
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += calcs
-   html += "</pre> </html>"
+   #html += calcs
+   #html += "</pre> </html>"
+   calcs += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data =  render_template(name)
+   data =  render_template(name) + calcs
 
    return data
 
@@ -2160,11 +2166,12 @@ def view_queue(jobid):
       hlink  = "Arrows <a href=\"" + link + "\">queue</a> entry:" + queuenumber
       html += hlink + "\n"
       html += nwinput2jsmol("0x8c0101",calcs)
-   html += calcs
-   html += "</pre> </html>"
+   #html += calcs
+   #html += "</pre> </html>"
+   calcs += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data =  render_template(name)
+   data = render_template(name) + calcs
 
    return data
 
@@ -2522,11 +2529,12 @@ def fetch_queue_nwchem(jobid):
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += calcs
-   html += "</pre> </html>"
+   #html += calcs
+   #html += "</pre> </html>"
+   calcs += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data = render_template(name)
+   data = render_template(name) + calcs
    return data
 
 
@@ -2560,11 +2568,12 @@ def view_queue_nwchemw(jobid):
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += calcs
-   html += "</pre> </html>"
+   #html += calcs
+   #html += "</pre> </html>"
+   calcs += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data = render_template(name)
+   data = render_template(name) + calcs
    return data
 
 
@@ -2674,11 +2683,12 @@ def queue_nwchem_add_reset(esmiles):
    html = "<html>\n"
    html += ArrowsHeader
    html += "<pre style=\"font-size:1.0em;color:black\">\n"
-   html += result
-   html += "</pre> </html>"
+   #html += result
+   #html += "</pre> </html>"
+   result += "</pre> </html>"
 
    with open(htmlfile1,'w') as ff: ff.write(html)
-   data = render_template(name)
+   data = render_template(name) + result
    return data
 
 
