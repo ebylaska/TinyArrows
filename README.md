@@ -21,3 +21,11 @@ Again2
 docker build . -t tinyarrows
 docker run -p 6001:5001 docker.io/library/tinyarrows
 
+
+## installing python packages
+pip install -r requirements.txt
+
+or 
+
+pip3 install -r requirements.txt
+
