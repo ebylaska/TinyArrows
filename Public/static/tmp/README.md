@@ -1,1 +1,1 @@
-Directory for temporary static files.
+Directory for temporary files

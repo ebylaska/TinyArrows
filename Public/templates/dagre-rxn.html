@@ -8,9 +8,36 @@
 
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
 <style>
+* {
+  box-sizing: border-box;
+}
+
+/* Create two unequal columns that floats next to each other */
+.first-column {
+  float: left;
+  width: 40%;
+  padding: 10px;
+  //height: 300px; /* Should be removed. Only for demonstration */
+}
+.second-column {
+  float: left;
+  width: 60%;
+  padding: 10px;
+  //height: 300px; /* Should be removed. Only for demonstration */
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+
 .linkbanner {
   position: relative;
   //display: inline-block;
@@ -32,6 +59,9 @@
 svg {
   border: 1px solid #999;
   overflow: hidden;
+    resize: both;
+     width: 1200px; /* initial width */
+    height: 800px; /* initial height */
 }
 
 .node {
@@ -75,6 +105,16 @@ label {
 .error {
   color: red;
 }
+
+    #hellobig {
+      resize: both;
+      overflow: auto;
+      border: 1px solid black;
+      width:  800px; /* initial width */
+      height: 400px; /* initial height */
+
+    }
+
 </style>
 
 </head>
@@ -82,11 +122,22 @@ label {
 
 <body onLoad="tryDraw();">
 
-<div class="linkbanner">
+<!--div class="linkbanner">
    <a href="https://arrows.emsl.pnnl.gov/api"><img src="https://dl.dropboxusercontent.com/s/s5fof263qwxzcaq/EMSLArrows2019.png" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
 <a href="https://arrows.emsl.pnnl.gov/api/periodic">3D Periodic Editor</a> &nbsp;
+<<<<<<< HEAD
    <a href="https://arrows.emsl.pnnl.gov/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/expert">Expert Editor</a> &nbsp;   <a href="https://arrows.emsl.pnnl.gov/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="https://arrows.emsl.pnnl.gov/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Manual</a>
+=======
+   <a href="https://arrows.emsl.pnnl.gov/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/expert">Expert Editor</a> &nbsp;   <a href="https://arrows.emsl.pnnl.gov/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="https://arrows.emsl.pnnl.gov/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>
+</div-->
+
+<div class="linkbanner">
+   <a href="https://arrows.emsl.pnnl.gov/api/"><img src="/static/arrows-static/EMSLArrows2019.png" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+<a href="https://arrows.emsl.pnnl.gov/api/periodic">Expert Periodic and Molecular Editor </a> &nbsp;
+   <a href="https://arrows.emsl.pnnl.gov/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/expert">Molecular Combo Editor</a> &nbsp;   <a href="https://arrows.emsl.pnnl.gov/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="https://arrows.emsl.pnnl.gov/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>
 </div>
+
+
 
 
 <div id="Reaction Predictor - Beta version" class="tabcontent">
@@ -112,7 +163,7 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,cur
    var level = current_level;
 
    console.log("start geturlresult");
-   
+
    const request = async() => {
       const response = await fetch(url, {mode: 'cors'});
       const data = await response.text();
@@ -179,14 +230,20 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,cur
               label += rxn['energies'][it];
               var acolor;
               if (parseFloat(rxn['energies'][it])<0.0) {
+<<<<<<< HEAD
                  acolor = " style=\"stroke: red; stroke-width: 8px;\" arrowheadStyle=\"fill: red\"";
               } else {
                  acolor = " style=\"stroke: blue; stroke-width: 8px;\" arrowheadStyle=\"fill: blue\"";
+=======
+                 acolor = " style=\"stroke: red; stroke-width: 12px;\" arrowheadStyle=\"fill: red\"";
+              } else {
+                 acolor = " style=\"stroke: blue; stroke-width: 12px;\" arrowheadStyle=\"fill: blue\"";
+>>>>>>> e5b091ab9e601a0a7195a7b0ba979b5ad088e172
               }
 
               var addedge0 = "\"" + reactants_str.split("+")[0].trim() + "\" -> \"" + mm + "\"";
 
-              var addedge = addedge0 + "[label=\""+label+"\" labelStyle=\"fill: green;\"" + acolor + "]; \n /*end*/}\n";
+              var addedge = addedge0 + "[label=\""+label+"\" labelStyle=\"fill: green; font: 800 28px \'Helvetica Neue\', Helvetica\"" + acolor + "]; \n /*end*/}\n";
               var e0found = document.getElementById("inputGraph").innerHTML.includes(addedge0) ||
                             document.getElementById("inputGraph").innerHTML.includes(addedge0.replace("->","-&gt;"));
 
@@ -232,7 +289,7 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,cur
          } else {
             element.value += prespace + "    Reaction ignored because energy greater than " + max_energy.toFixed(2) + "\n";
          }
-      } 
+      }
       tryDraw();
    }
 }
@@ -253,7 +310,7 @@ function fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,curren
       var reactants =  reactants_str.replace(" ","%20")
       var reaction = reaction_url + "'" + reactants + "%20-->'";
       element.value += prespace + "+ Calling the arrows api wtih " + reaction + "\n";
-      
+
       geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element,reaction);
       console.log("finished geturlresult");
    //}
@@ -284,7 +341,7 @@ function parse_newreactants(rxn_str) {
    if (rxn_str.includes("-->")) {
       var products = rxn_str.split("-->")[1].trim();
       var products_split = products.split(" + ");
-     
+
       for (var i=0; i<products_split.length; ++i) {
          var m = products_split[i];
          var mm = m.split("Cl").join("");
@@ -304,7 +361,7 @@ function parse_reactants(rxn_str) {
    if (rxn_str.includes("-->")) {
       var rrpp = rxn_str.split("-->")[0].trim();
       var reactants_split = rrpp.split(" + ");
-    
+
       for (var i=1; i<reactants_split.length; ++i) {
          var m = reactants_split[i];
          reactants.push(m.trim());
@@ -361,7 +418,7 @@ function run_reactions(nr,esmiles,reactants,it,max_energy,current_level,show_bad
 }
 
 function runpredictor(esmiles,reactants,max_energy,max_level,energy_type,element) {
-   
+
    var current_level = 1;
    if (esmiles.includes("Reaction Level =")) {
       var ss = esmiles.split("Reaction Level =");
@@ -391,8 +448,8 @@ function runpredictor(esmiles,reactants,max_energy,max_level,energy_type,element
 
       var show_bad_reactions = false;
 
-      if (isNaN(max_energy)) { max_energy = 9.9e99;} 
-      if (isNaN(max_level)) { max_level = 3;} 
+      if (isNaN(max_energy)) { max_energy = 9.9e99;}
+      if (isNaN(max_level)) { max_level = 3;}
       if (isNaN(energy_type)) { energy_type = 0;}
 
       var output = "\n";
@@ -428,8 +485,8 @@ function resetpredictor() {
    document.getElementById('predictor_genreactants').innerHTML = '';
 
    document.getElementById("inputGraph").innerHTML = 'digraph {\n'
-      + '   node [rx=5 ry=5 labelStyle="font: 300 14px \'Helvetica Neue\', Helvetica"]\n'
-      + '   edge [labelStyle="font: 300 14px \'Helvetica Neue\', Helvetica"]\n'
+      + '   node [rx=5 ry=5 labelStyle="font-weight: bold; font: 800 48px \'Helvetica Neue\', Helvetica"]\n'
+      + '   edge [labelStyle="font: 800 48px \'Helvetica Neue\', Helvetica"]\n'
       + '\n/*start graph*/\n'
       + '\n/*end*/}\n';
 
@@ -469,7 +526,7 @@ function resetpredictor() {
 </table>
 <br>
 
-<input type="button" VALUE="Run Reaction Prediction" 
+<input type="button" VALUE="Run Reaction Prediction"
    onClick="runpredictor(document.getElementById('predictor_esmiles').value,
                          document.getElementById('predictor_reactants').value,
                          parseFloat(document.getElementById('predictor_max_energy').value),
@@ -478,20 +535,29 @@ function resetpredictor() {
                          document.getElementById('predictor_output') )"
    title="Run reaction prediction"/>
 <input type="button" VALUE="Reset" onClick="resetpredictor();" title="Reset predictor"/>
+</div>
 
+
+<h2> Prediction Results </h2>
+
+<div class="row">
+   <div class="first-column" style="background-color:#1affff;">
+      <p id="predictor_metabolites"><b>Metabolites</b> <br></p>
+      <br>
+      <p id="predictor_genreactants"><b>Generated Reactants</b> <br></p>
+   </div>
+   <div class="second-column" style="background-color:#ccff66;">
+      <p id="predictor_reactions">  <b>Reactions</b> <br></p>
+   </div>
+</div>
+
+<div>
 <br>
 <br>
 <textarea  name="predictor_output" id="predictor_output" rows="33" cols="100"></textarea>
 <br>
 <br>
-<p id="predictor_reactions">  <b>Reactions   </b> <br></p>
-<br>
-<p id="predictor_metabolites"><b>Metabolites</b> <br></p>
-<br>
-<p id="predictor_genreactants"><b>Generated Reactants</b> <br></p>
-
 </div>
-
 
 
 <h2> Reaction Graph </h2>
@@ -500,8 +566,8 @@ function resetpredictor() {
   <label for="inputGraph">Graphviz Definition</label>
   <textarea id="inputGraph" cols="100" rows="10" style="display: block" onKeyUp="tryDraw();">
 digraph {
-    node [rx=5 ry=5 labelStyle="font-weight: bold, font: 300 14px 'Helvetica Neue', Helvetica"]
-    edge [labelStyle="font: 300 14px 'Helvetica Neue', Helvetica"]
+    node [rx=5 ry=5 labelStyle="font-weight: bold; font: 800 48px 'Helvetica Neue', Helvetica"]
+    edge [labelStyle="font: 800 48px 'Helvetica Neue', Helvetica"]
 
 /*start graph*/
 
@@ -517,9 +583,20 @@ digraph {
 <input type="button" VALUE="Save SVG" onClick="saveSvg(document.getElementsByTagName('svg')[0],'plot.svg');" title="Save0 svg"/>
 <br>
 
+<<<<<<< HEAD
 <svg width="800" height="800">
    <g/>
 </svg>
+=======
+<!--svg width=800 height=800-->
+<div id="hellobig">
+   <svg>
+      <g/>
+   </svg>
+</div>
+
+
+>>>>>>> e5b091ab9e601a0a7195a7b0ba979b5ad088e172
 
 <script>
 // Input related code goes here
@@ -563,6 +640,7 @@ var svg = d3.select("svg"),
       inner.attr("transform", d3.event.transform);
     });
 svg.call(zoom);
+
 
 // Create and configure the renderer
 var render = dagreD3.render();
@@ -1023,3 +1101,5 @@ function tryDraw() {
 
 </body>
 </html>
+
+
