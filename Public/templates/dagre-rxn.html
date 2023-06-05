@@ -82,16 +82,10 @@ label {
 
 <body onLoad="tryDraw();">
 
-<!--div class="linkbanner">
+<div class="linkbanner">
    <a href="https://arrows.emsl.pnnl.gov/api"><img src="https://dl.dropboxusercontent.com/s/s5fof263qwxzcaq/EMSLArrows2019.png" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
 <a href="https://arrows.emsl.pnnl.gov/api/periodic">3D Periodic Editor</a> &nbsp;
    <a href="https://arrows.emsl.pnnl.gov/api/3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="https://arrows.emsl.pnnl.gov/api/expert">Expert Editor</a> &nbsp;   <a href="https://arrows.emsl.pnnl.gov/api/qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="https://arrows.emsl.pnnl.gov/api/aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="http://www.nwchem-sw.org/index.php/EMSL_Arrows#">Manual</a>
-</div-->
-
-<div class="linkbanner">
-   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/EMSLArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
-<a href="{{ arrows_api }}periodic">3D Periodic Editor</a> &nbsp;
-   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; <a href="{{ arrows_api }}expert">Expert Editor</a> &nbsp;   <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp; <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>                                          
 </div>
 
 
@@ -152,7 +146,7 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,cur
 
       if ((parseFloat(rxn['energies'][it]) < max_energy) || show_bad_reactions) {
         var str   =  rxn['reaction'];
-        var rlink = "{{ arrows_api }}reaction/" + "\"" + str + "\"";
+        var rlink = "https://arrows.emsl.pnnl.gov/api/reaction/" + "\"" + str + "\"";
         var treaction = str.link(rlink).split('<a').join('<a target="_blank"');
         var tenergy = rxn['energies'][it].trim();
         var estring = energytitles[it]+ " = " + tenergy + "  ";
@@ -185,9 +179,9 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,cur
               label += rxn['energies'][it];
               var acolor;
               if (parseFloat(rxn['energies'][it])<0.0) {
-                 acolor = " style=\"stroke: red;\" arrowheadStyle=\"fill: red\"";
+                 acolor = " style=\"stroke: red; stroke-width: 8px;\" arrowheadStyle=\"fill: red\"";
               } else {
-                 acolor = " style=\"stroke: blue;\" arrowheadStyle=\"fill: blue\"";
+                 acolor = " style=\"stroke: blue; stroke-width: 8px;\" arrowheadStyle=\"fill: blue\"";
               }
 
               var addedge0 = "\"" + reactants_str.split("+")[0].trim() + "\" -> \"" + mm + "\"";
@@ -217,7 +211,7 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,cur
             element.value += prespace + "    Reaction included!" + "\n";
             for (var j=0; j<rxn['metabolites'].length; ++j) {
                var mm = rxn['metabolites'][j];
-               var rlink2 = "{{ arrows_api }}molecule/" + "\"" + mm + "\"";
+               var rlink2 = "https://arrows.emsl.pnnl.gov/api/molecule/" + "\"" + mm + "\"";
                var tmetabolite = mm.link(rlink2).split('<a').join('<a target="_blank"');
                if (!document.getElementById("predictor_metabolites").innerHTML.includes(tmetabolite)) {
                   document.getElementById("predictor_metabolites").innerHTML += tmetabolite + " " + "<br>";
@@ -229,7 +223,7 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,cur
             }
             for (var j=0; j<rxn['new_reactants'].length; ++j) {
                var mm = rxn['new_reactants'][j];
-               var rlink2 = "{{ arrows_api }}molecule/" + "\"" + mm + "\"";
+               var rlink2 = "https://arrows.emsl.pnnl.gov/api/molecule/" + "\"" + mm + "\"";
                var tnreactant = mm.link(rlink2).split('<a').join('<a target="_blank"');
                if (!document.getElementById("predictor_genreactants").innerHTML.includes(tnreactant)) {
                   document.getElementById("predictor_genreactants").innerHTML += tnreactant + " " + "<br>";
@@ -246,7 +240,7 @@ async function geturlresult(nr,prespace,reactants_str,reactant,it,max_energy,cur
 //##### fetch_reactants #######
 function fetch_reactants(nr,prespace,reactants_str,reactant,it,max_energy,current_level,show_bad_reactions,element) {
    console.log("start fetch_reactants, reactants_str=" + reactants_str);
-   var reaction_url = "{{ arrows_api }}reaction/";
+   var reaction_url = "https://arrows.emsl.pnnl.gov/api/reaction/";
    //if (reactants_str in window.dummy_dict) {
    //   nr.push(window.dummy_dict[reactants_str]);
    //   nr.push(rr);
@@ -520,9 +514,10 @@ digraph {
 <h2>Graph Visualization</h2>
 <input type="button" VALUE="Update Graph" onClick="tryDraw();" title="Run update graph"/>
 <input type="button" VALUE="Save PNG" onClick="saveSvgAsPng(document.getElementsByTagName('svg')[0],'plot.png');" title="Save svg"/>
+<input type="button" VALUE="Save SVG" onClick="saveSvg(document.getElementsByTagName('svg')[0],'plot.svg');" title="Save0 svg"/>
 <br>
 
-<svg width="2000" height="400">
+<svg width="800" height="800">
    <g/>
 </svg>
 
@@ -607,7 +602,7 @@ function tryDraw() {
    var initialScale = 0.75;
    svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale));
 
-   svg.attr('height', g.graph().height * initialScale + 40);
+   //svg.attr('height', g.graph().height * initialScale + 40);
 
   }
 }
