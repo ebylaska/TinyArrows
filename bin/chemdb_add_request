@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys,os,time,pickle,math,urllib.request,pexpect,getopt,random,operator,subprocess,re
+import sys,os,time,pickle,math,urllib.request,pexpect,getopt,random,operator,subprocess,re,sqlite3
 import pymysql as MySQLdb
 from math import *
 
@@ -929,7 +929,7 @@ insertlist.append(mult)
 insertlist.append(solvation_type)
 insertlist.append(calculation_type)
 if (issqlite3):
-   insertlist.append(sqlite3.Binary(nmr_blob))
+   insertlist.append(sqlite3.Binary(nmr_blob.encode()))
 else:
    insertlist.append(nmr_blob)
 insertlist.append(pickle.dumps(gt,0).decode("utf-8"))

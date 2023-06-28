@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys,os,time,pickle,math,urllib,pexpect,getopt,subprocess,random,operator,re,yaml
+import sys,os,time,pickle,math,urllib,pexpect,getopt,subprocess,random,operator,re,yaml,sqlite3
 import pymysql as MySQLdb
 from math import *
 from numpy import *
@@ -4861,6 +4861,7 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
       else:
          mytable = bad_table
 
+      print("HERA")
       if (nmr_blob!=''):
          sqlinsert = "insert into " + mytable
          sqlinsert += " (iupac,mformula,InChI,InChIKey,cid,cas,kegg,synonyms,smiles,csmiles,esmiles,program,calculation_type,"
@@ -4961,6 +4962,7 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
          sqlinsert += "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
 
       if (not issqlite3): sqlinsert = sqlinsert.replace('?','%s')
+      print("HERB")
 
       insertlist = []
       insertlist.append(iupac)
@@ -4999,7 +5001,7 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
       if 'svib0' in constraints:     insertlist.append(constraints['svib0'])
       if (theory=="qsharp_chem"):     
          if (issqlite3):
-            insertlist.append(sqlite3.Binary(matrix_elements_blob))
+            insertlist.append(sqlite3.Binary(matrix_elements_blob).encode())
          else:
             insertlist.append(matrix_elements_blob)
          insertlist.append(qsharp_norbs)
@@ -5022,15 +5024,22 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
       insertlist.append(SAV)
       #insertlist.append(xyzblob)
       #insertlist.append(freqblob)
+      print("HERC")
       if (issqlite3):
-         insertlist.append(sqlite3.Binary(xyzblob))
-         if (nmr_blob!=''): insertlist.append(sqlite3.Binary(nmr_blob))
-         insertlist.append(sqlite3.Binary(freqblob))
+         print("xyzblob=",xyzblob)
+         alja =  sqlite3.Binary(xyzblob.encode())
+         print("HERCC")
+         insertlist.append(sqlite3.Binary(xyzblob.encode()))
+         print("HERCCC")
+         if (nmr_blob!=''): insertlist.append(sqlite3.Binary(nmr_blob.encode()))
+         print("freqblob=",freqblob)
+         insertlist.append(sqlite3.Binary(freqblob.encode()))
       else:
          insertlist.append(xyzblob)
          if (nmr_blob!=''): insertlist.append(nmr_blob)
          insertlist.append(freqblob)
          insertlist.append(eigblob)
+      print("HERD")
       insertlist.append(nwfilename)
       insertlist.append(nwdatafiles)
       insertlist.append(chemical_structure_asciiart)
@@ -5044,6 +5053,7 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
       insertlist.append(oInChIKey)
       insertlist.append(bonding_string)
       insertlist.append(covalent_string)
+      print("HERC",insertlist)
 
       sqlcheck = "select count(1) from " + mytable + " where "
       sqlcheck += "iupac=? and InChI=? and InChIKey=? and smiles=? and csmiles=? and esmiles=? and program=? and "
@@ -5062,6 +5072,7 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
       sqlcheck += "honig>=? and honig<=? and ASA>=? and ASA<=? and SAV>=? and SAV<=?  limit 1;"
 
       if (not issqlite3): sqlcheck = sqlcheck.replace('?','%s')
+      print("HERD sqlcheck=",sqlcheck)
 
       eps = 1.0e-6
       checklist = []
@@ -5134,12 +5145,14 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
          duplicate = (row[0]>0)
          if ((not duplicate) and (inserting)):
              print("inserting into " + mytable)
+             print("sqlinsert=",sqlinsert)
+             #print("insertlist=",insertlist)
              cur.execute(sqlinsert,insertlist)
 
-      #print("dbfile=",dbfile)
-      #print("hup=",hup)
-      #print("sqlinsert =",sqlinsert)
-      #print("INSERTLIST=",insertlist)
+      print("dbfile=",dbfile)
+      print("hup=",hup)
+      print("sqlinsert =",sqlinsert)
+      print("INSERTLIST=",insertlist)
 
       #### insert into sql table ####
       print("duplicate=",duplicate)
@@ -5206,6 +5219,7 @@ def insert_calculation(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword
 
     #### resubmitjob if not jobok and not an energy only theory ###
     print("THEORY=",theory)
+    print("jobok=",jobok)
     energyonlytheory = (theory=="mp2") or (theory=="ccsd(t)") or (theory=="qsharp_chem") or (theory=="ccsd") or (noresubmit)
     if ((not jobok) and (inserting) and (not energyonlytheory)):
        (hasxyz,xyz,vtag,mtag) = parse_bad_calculation_xyz(outfile_without_hash)
@@ -6297,8 +6311,8 @@ def insert_nmr_calculation(outfile,hup,dbfile,table,bad_table,nwpassword,nwmachi
       insertlist.append(ASA)
       insertlist.append(SAV)
       if (issqlite3):
-         insertlist.append(sqlite3.Binary(xyzblob))
-         insertlist.append(sqlite3.Binary(nmr_blob))
+         insertlist.append(sqlite3.Binary(xyzblob.encode()))
+         insertlist.append(sqlite3.Binary(nmr_blob.encode()))
       else:
          insertlist.append(xyzblob)
          insertlist.append(nmr_blob)
@@ -6704,6 +6718,11 @@ def insert_hrotor(outfile,hup,dbfile,table,bad_table,abrev_table,nwpassword,nwma
 def update_calculationscount(hup,dbfile,table,countfilename):
 
    try:
+      if (hup=='sqlite3'):
+         issqlite3 = True
+      else:
+         issqlite3 = False
+
       sqlcheck = "select count(*) from " + table
       if (issqlite3):
          dbcon = sqlite3.connect(dbfile)
@@ -6755,7 +6774,7 @@ Remote chemdb_add_nwout7 mysql  program
 
 #Database defaults
 hup    = hup0
-dbfile = "TNT_Project"
+dbfile = dbfile0
 table  = "calculations"
 requests_table  = "requests"
 bad_table       = "bad_calculations"
