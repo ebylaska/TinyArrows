@@ -5394,6 +5394,10 @@ ul, li {
            if (queue.trim().length<=0) { queue = "regular"; }
            if (qtime.length<3) {
 
+              if (machine.includes("eperlmutter")) {
+                 qtime = "12:00:00";
+              }
+
               if (machine.includes("theta")) {
                  if (queue.includes("debug")) {
                     qtime = "0:58:00";
@@ -12454,6 +12458,7 @@ ul, li {
            if (sc.includes("ilton_tahoma"))  { ncpus="36";}
            if (sc.includes("theta"))    { ncpus="64";}
            if (sc.includes("ccs-knl0")) { ncpus="68";}
+           if (sc.includes("eperlmutter")) { ncpus="128";}
            if (sc.includes("we31869")) { ncpus="6";}
            document.getElementById("queue_ncpus").value = ncpus;
 
@@ -12778,6 +12783,7 @@ ul, li {
                 <option value="econstance">econstance</option>
                 <option value="theta">theta</option>
                 <option value="ccs-knl0">ccs-knl0</option>
+                <option value="eperlmutter">eperlmutter</option>
                 <option value="we31869">we31869</option>
                 <option value="harsono">harsono</option>
                 <option value="erichome">erichome</option>
