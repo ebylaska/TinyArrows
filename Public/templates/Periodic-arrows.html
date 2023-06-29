@@ -17325,6 +17325,9 @@ function resetpredictor() {
       // Set the initial content of the editorpop
       editorpop.setValue(inputText);
       editorpop.clearSelection();
+
+      // set screen lock
+      document.getElementsByTagName('body')[0].style.overflow = 'hidden';
     }
 
     function closeNWChemInput() {
@@ -17345,6 +17348,9 @@ function resetpredictor() {
       editor.setValue(nwinput);
 
       closeNWChemInput();
+
+      // unset screen lock
+      document.getElementsByTagName('body')[0].style.overflow = 'visible' // the default for the css property
     }
 
 </script>
