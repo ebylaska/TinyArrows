@@ -1,0 +1,79 @@
+version: '3.1'
+
+# Environment variables to define paths:
+# MYARROWS_ARCHIVE - archive directory
+# MYARROWS_WORK    - working directory
+# MYARROWS_MARIADB - mariadb directory
+# TINYARROWS_INIT  - location of init/ directory in tinyarrows
+# MYARROWS_MONGODB - mongodb director
+#
+# On Linux, you can define these environment variables in your shell's 
+# profile or a script like ~/.bashrc or ~/.bash_profile. 
+#
+# For example:
+# export MYARROWS_ARCHIVE=/home/user/Public/MyArrows/archive
+# export MYARROWS_WORK=/home/user/Public/MyArrows/Work
+# export MYARROWS_MARIADB=/home/user/Public/MyArrows/mariadb
+# export TINYARROWS_INIT=/home/user/Public/TinyArrows/init
+# export MYARROWS_MONGODB=/home/user/Public/MyArrows/mongodb
+#
+#
+# To set up environment variables in Windows, you have several options. 
+# Here's a step-by-step guide to adding environment variables for the paths 
+# used in the docker-compose.yml file:
+#
+# Option 1: Using Environment Variable Settings (User-Specific):
+#
+# Press the Windows + R keys to open the Run dialog.
+# Type control sysdm.cpl,,3 and press Enter. This opens the System Properties 
+# window on the "Advanced" tab with the "Environment Variables" button.
+# In the Environment Variables window, under the "User variables" section, click on "New."
+# Enter the Variable name (e.g., MYARROWS_ARCHIVE) and the Variable value 
+# (e.g., C:\Users\yourusername\Public\MyArrows\archive).
+# Click "OK" to save the new environment variable.
+# Repeat steps 3-5 for the other environment variables 
+# (MYARROWS_WORK, MYARROWS_MARIADB, TINYARROWS_INIT, and MYARROWS_MONGODB).
+#
+
+services:
+  tinyarrows:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tinyarrows:latest
+    ports:
+      - 5001:5001
+    volumes:
+      - ${MYARROWS_ARCHIVE}:/TinyArrows/archive
+      - ${MYARROWS_WORK}:/TinyArrows/Work
+    depends_on:
+      - mariadb
+      - mongodb
+
+  mariadb:
+    image: mariadb:latest
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: 05291999
+      MYSQL_DATABASE: TNT_Project
+      MYSQL_USER: arrows
+      MYSQL_PASSWORD: reaction
+    command: --bind-address=0.0.0.0
+    restart: always
+    volumes:
+      - ${MYARROWS_MARIADB}:/var/lib/mysql
+      - ${TINYARROWS_INIT}:/docker-entrypoint-initdb.d
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - ${MYARROWS_MONGODB}:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: arrows
+      MONGO_INITDB_ROOT_PASSWORD: reaction
+      MONGO_INITDB_DATABASE: Arrows
+    command: mongod --auth --bind_ip_all
+
