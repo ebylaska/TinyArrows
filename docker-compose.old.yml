@@ -9,8 +9,8 @@ services:
     ports:
       - 5001:5001
     volumes:
-      - ../MyArrows/archive:/TinyArrows/archive
-      - ../MyArrows/Work:/TinyArrows/Work
+      - /Users/bylaska/Public/MyArrows/archive:/TinyArrows/archive
+      - /Users/bylaska/Public/MyArrows/Work:/TinyArrows/Work
     depends_on:
       - mariadb
       - mongodb
@@ -27,15 +27,15 @@ services:
     command: --bind-address=0.0.0.0
     restart: always
     volumes:
-      - ../MyArrows/mariadb:/var/lib/mysql
-      - ./init:/docker-entrypoint-initdb.d
+      - /Users/bylaska/Public/MyArrows/mariadb:/var/lib/mysql
+      - /Users/bylaska/Public/TinyArrows/init:/docker-entrypoint-initdb.d
 
   mongodb:
     image: mongo:latest
     ports:
       - 27017:27017
     volumes:
-      - ../MyArrows/mongodb:/data/db
+      - /Users/bylaska/Public/MyArrows/mongodb:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: arrows
       MONGO_INITDB_ROOT_PASSWORD: reaction
