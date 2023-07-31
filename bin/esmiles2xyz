@@ -8,6 +8,7 @@ from math import *
 #################### machine specifics ######################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
 ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
+print("ARROWS_HOME=",ARROWS_HOME)
 MY_ENV                = os.environ.copy()
 MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 

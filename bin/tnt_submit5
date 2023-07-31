@@ -26,6 +26,77 @@ class CustomClient(TinyMongoClient):
         return serialization
 ############## tinymongo ################
 
+############## wrapptermongo ################
+class CustomCollection:
+    def __init__(self, collection, is_mongo):
+        self.collection = collection
+        self.is_mongo = is_mongo
+
+    def insert(self, entry):
+        if self.is_mongo:
+            return self.collection.insert_one(entry).inserted_id
+        else:
+            return self.collection.insert(entry)
+
+    def remove(self, delentry):
+        if self.is_mongo:
+            return self.collection.delete_one(delentry)
+        else:
+            return self.collection.remove(delentry)
+
+    def count(self):
+        if self.is_mongo:
+            return self.collection.count_documents({})
+        else:
+            return self.collection.count()  # Use the count method for TinyMongo
+
+    def find_count(self,filter=None,projection=None):
+        if self.is_mongo:
+            return self.collection.count_documents(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection).count()
+
+    def find(self, filter=None, projection=None):
+        if self.is_mongo:
+            return self.collection.find(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection)
+
+    def find_one(self, check):
+        if self.is_mongo:
+            return self.collection.find_one(check)
+        else:
+            return self.collection.find_one(check)
+
+    def update(self, check, new_values, upsert=False, multi=False):
+        if self.is_mongo:
+            return self.collection.update_many(check, new_values, upsert=upsert)
+        else:
+            return self.collection.update(check, new_values, upsert=upsert, multi=multi)
+
+    #def update(self, check, new_values, upsert=False):
+    #    if self.is_mongo:
+    #        return self.collection.update_many(check, new_values, upsert=upsert)
+    #    else:
+    #        return self.collection.update(check, new_values, upsert=upsert)
+    #def update(self, check, new_values):
+    #    if self.is_mongo:
+    #        return self.collection.update_many(check, new_values)
+    #    else:
+    #        return self.collection.update(check, new_values)
+
+    def update_one(self, check, new_values):
+        if self.is_mongo:
+            return self.collection.update_one(check, new_values)
+        else:
+            return self.collection.update(check, new_values, multi=False)
+
+    #def update_one(self, check, new_values):
+    #    if self.is_mongo:
+    #        return self.collection.update_one(check, new_values)
+    #    else:
+    #        return self.collection.update(check, new_values)
+############## wrapptermongo ################
 
 ################ machine parameters #########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
@@ -44,12 +115,19 @@ if "mongodb:" in uri:
 else:
    nosql_client = CustomClient(uri)
    ismongo      = False
-arrows_db          = nosql_client.Arrows
-qnumber_collection = arrows_db.queue_number
-nwchem_collection  = arrows_db.nwchem_queue
-machine_collection = arrows_db.nwchem_machinedata
 
+# Define the TinyMongo collections
+arrows_db          = nosql_client.Arrows
+qnumber_collection = CustomCollection(arrows_db.queue_number,ismongo)
+nwchem_collection  = CustomCollection(arrows_db.nwchem_queue,ismongo)
+machine_collection = CustomCollection(arrows_db.nwchem_machinedata,ismongo)
+
+#arrows_db          = nosql_client.Arrows
+#qnumber_collection = arrows_db.queue_number
+#nwchem_collection  = arrows_db.nwchem_queue
+#machine_collection = arrows_db.nwchem_machinedata
 #################### machine specifics ######################
+
 nwpythonlib    = "/bin/nwpythonlib.py"
 
 obabel         = "/usr/bin/env obabel "
@@ -3453,7 +3531,8 @@ job['kindatoms'] = kindatoms
 if (seed>0):
    job['seed'] = seed
 else:
-   if (qnumber_collection.find({'queue':'seed'}).count()>0):
+   #if (qnumber_collection.find({'queue':'seed'}).count()>0):
+   if (qnumber_collection.find_count({'queue':'seed'})>0):
       job['seed']  = qnumber_collection.find_one({'queue':'seed'})['count']
    else:
       job['seed'] = 1
@@ -3746,7 +3825,8 @@ else:
 
 ## set queue number  and submitdir ##
 #queue_number00  = qnumber_collection.find_one({'queue':'tnt'})['count']
-if (qnumber_collection.find({'queue':'tnt'}).count()>0):
+#if (qnumber_collection.find({'queue':'tnt'}).count()>0):
+if (qnumber_collection.find_count({'queue':'tnt'})>0):
    queue_number00  = qnumber_collection.find_one({'queue':'tnt'})['count']
 else:
    queue_number00 = 1

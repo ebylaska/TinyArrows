@@ -24,6 +24,55 @@ class CustomClient(TinyMongoClient):
         return serialization
 ############## tinymongo ################
 
+############## wrapptermongo ################
+class CustomCollection:
+    def __init__(self, collection, is_mongo):
+        self.collection = collection
+        self.is_mongo = is_mongo
+
+    def insert(self, entry):
+        if self.is_mongo:
+            return self.collection.insert_one(entry).inserted_id
+        else:
+            return self.collection.insert(entry)
+
+    def remove(self, delentry):
+        if self.is_mongo:
+            return self.collection.delete_one(delentry)
+        else:
+            return self.collection.remove(delentry)
+
+    def count(self):
+        if self.is_mongo:
+            return self.collection.count_documents({})
+        else:
+            return self.collection.count()  # Use the count method for TinyMongo
+
+    def find(self, filter=None, projection=None):
+        if self.is_mongo:
+            return self.collection.find(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection)
+
+    def find_one(self, check):
+        if self.is_mongo:
+            return self.collection.find_one(check)
+        else:
+            return self.collection.find_one(check)
+
+    def update(self, check, new_values):
+        if self.is_mongo:
+            return self.collection.update_many(check, new_values)
+        else:
+            return self.collection.update(check, new_values)
+
+    def update_one(self, check, new_values):
+        if self.is_mongo:
+            return self.collection.update_one(check, new_values)
+        else:
+            return self.collection.update(check, new_values)
+############## wrapptermongo ################
+
 
 ###################### PARAMETERS ###########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
@@ -41,7 +90,7 @@ else:
    nosql_client = CustomClient(uri)
    ismongo      = False
 arrows_db                = nosql_client.Arrows
-esmiles_queue_collection = arrows_db.esmiles_queue_collection
+esmiles_queue_collection = CustomCollection(arrows_db.esmiles_queue_collection,ismongo)
 ####################### mongoDB #############################
 
 ############## machine parameters #########################

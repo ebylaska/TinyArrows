@@ -4,6 +4,7 @@ import sys,os,time,pickle,math,getopt,subprocess,pexpect,random,operator,pymongo
 import datetime,re
 from bson.objectid import ObjectId
 from math import *
+#from bson import ObjectId
 
 ############## tinymongo ################
 import tinydb
@@ -23,6 +24,63 @@ class CustomClient(TinyMongoClient):
         return serialization
 ############## tinymongo ################
 
+
+############## wrapptermongo ################
+class CustomCollection:
+    def __init__(self, collection, is_mongo):
+        self.collection = collection
+        self.is_mongo = is_mongo
+
+    def insert(self, entry):
+        if self.is_mongo:
+            return self.collection.insert_one(entry).inserted_id
+        else:
+            return self.collection.insert(entry)
+
+    def remove(self, delentry):
+        if self.is_mongo:
+            return self.collection.delete_one(delentry)
+        else:
+            return self.collection.remove(delentry)
+
+    def count(self):
+        if self.is_mongo:
+            return self.collection.count_documents({})
+        else:
+            return self.collection.count()  # Use the count method for TinyMongo
+
+    def find_count(self,filter=None,projection=None):
+        if self.is_mongo:
+            return self.collection.count_documents(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection).count()
+
+    def find(self, filter=None, projection=None):
+        if self.is_mongo:
+            return self.collection.find(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection)
+
+    def find_one(self, check):
+        if self.is_mongo:
+            return self.collection.find_one(check)
+        else:
+            return self.collection.find_one(check)
+
+    def update(self, check, new_values, upsert=False, multi=False):
+        if self.is_mongo:
+            return self.collection.update_many(check, new_values, upsert=upsert)
+        else:
+            return self.collection.update(check, new_values, upsert=upsert, multi=multi)
+
+    def update_one(self, check, new_values):
+        if self.is_mongo:
+            return self.collection.update_one(check, new_values)
+        else:
+            return self.collection.update(check, new_values, multi=False)
+############## wrapptermongo ################
+
+
 ###################### PARAMETERS ###########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
 ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
@@ -40,13 +98,15 @@ if "mongodb:" in uri:
 else:
    nosql_client = CustomClient(uri)
    ismongo      = False
+
+# Define the TinyMongo collections
 arrows_db                           = nosql_client.Arrows
-chemdb_reaction_collection          = arrows_db.chemdb_reaction_collection2
-chemdb_finished_reaction_collection = arrows_db.chemdb_finished_reaction_collection2
-chemdb_noreaction_collection        = arrows_db.chemdb_noreaction_collection2
-chemdb_predict_collection           = arrows_db.chemdb_predict_collection2
-chemdb_predict_collection_email     = arrows_db.chemdb_predict_collection2_email
-qnumber_collection                  = arrows_db.queue_number
+chemdb_reaction_collection          = CustomCollection(arrows_db.chemdb_reaction_collection2,ismongo)
+chemdb_finished_reaction_collection = CustomCollection(arrows_db.chemdb_finished_reaction_collection2,ismongo)
+chemdb_noreaction_collection        = CustomCollection(arrows_db.chemdb_noreaction_collection2,ismongo)
+chemdb_predict_collection           = CustomCollection(arrows_db.chemdb_predict_collection2,ismongo)
+chemdb_predict_collection_email     = CustomCollection(arrows_db.chemdb_predict_collection2_email,ismongo)
+qnumber_collection                  = CustomCollection(arrows_db.queue_number,ismongo)
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
@@ -411,7 +471,7 @@ if (listqueues):
       link = entry['reactants'].split("~")[0]
       link += " --> "
       if "~" in entry['reactants']: link += " ~ " + entry['reactants'].split("~")[1]
-      aa = " <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\">%s</a> " % (link.replace('#','%23'),entry['reactants'])
+      aa = " <a href=\'" + ARROWS_API_HOME + "reaction/\"%s\"\' style=\"font-size:1.0em\">%s</a> " % (link.replace('#','%23'),entry['reactants'])
 
       try:
          #stime = ((time.time() - entry['start_time']) >  31104000.0)  # approximately 1 year
@@ -422,9 +482,9 @@ if (listqueues):
 
       if (stime):
          if "~" in entry['reactants']:
-            bb = " <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\">(remove)</a> " % (link.replace('#','%23') + " remove")
+            bb = " <a href=\'" + ARROWS_API_HOME + "reaction/\"%s\"\' style=\"font-size:1.0em\">(remove)</a> " % (link.replace('#','%23') + " remove")
          else:
-            bb = " <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\">(remove)</a> " % (link.replace('#','%23') + " ~ remove")
+            bb = " <a href=\'" + ARROWS_API_HOME + "reaction/\"%s\"\' style=\"font-size:1.0em\">(remove)</a> " % (link.replace('#','%23') + " ~ remove")
       else:
          bb = "(remove)"
 
@@ -439,7 +499,8 @@ if (listqueues):
    
 
    check = {}
-   queue = chemdb_reaction_collection.find(check).sort("queue_number", -1)
+   #queue = chemdb_reaction_collection.find(check).sort("queue_number", -1)
+   queue = chemdb_reaction_collection.find(check)
    print()
    print("Reactions to be Added:")
    print()
@@ -456,7 +517,8 @@ if (listqueues):
       print("Call to chemdb_balance_reaction failed!")
 
    check = {}
-   queue = chemdb_noreaction_collection.find(check).sort("queue_number",1)
+   #queue = chemdb_noreaction_collection.find(check).sort("queue_number",1)
+   queue = chemdb_noreaction_collection.find(check)
    print()
    print("reactions that are waiting:")
    print()
@@ -466,7 +528,7 @@ if (listqueues):
       ll = "%d" % entry['queue_number']
       sp = ''
       for i in range(11-len(ll)):  sp += ' '
-      rink = "<a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\'>%d</a>" % (entry['reaction'].replace('#','%23'),entry['queue_number'])
+      rink = "<a href=\'" + ARROWS_API_HOME + "reaction/\"%s\"\'>%d</a>" % (entry['reaction'].replace('#','%23'),entry['queue_number'])
       print(sp + "%s %7d  %s" % (rink,entry['fetched'],entry['reaction']))
 
 
@@ -494,7 +556,7 @@ if (listqueues3):
       ll = "%d" % entry['queue_number']
       sp = ''
       for i in range(11-len(ll)):  sp += ' '
-      rink = "<a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\'>%d</a>" % (entry['reaction'].replace('#','%23'),entry['queue_number'])
+      rink = "<a href=\'" + ARROWS_API_HOME + "reaction/\"%s\"\'>%d</a>" % (entry['reaction'].replace('#','%23'),entry['queue_number'])
       print(sp + "%s %8d  %s" % (rink,entry['fetched'],entry['reaction']))
 
 
@@ -510,7 +572,7 @@ if (addreaction) and (not hassemiempirical):
    entry['free_energy']      = free_energy
    entry['solvation_energy'] = solvation_energy
    entry['aq_free_energy']   = aq_free_energy
-   duplicatecount = chemdb_reaction_collection.find(entry).count()
+   duplicatecount = chemdb_reaction_collection.find_count(entry)
    print("duplicatecount=", duplicatecount)
    if (duplicatecount==0): 
       ### set queue number  ##
@@ -527,7 +589,7 @@ if (addnoreaction) and (not hassemiempirical):
    entry = {}
    entry['reaction'] = remove_xyzdata(noreaction)
    entry['fetched']  = 0
-   duplicatecount = chemdb_noreaction_collection.find(entry).count()
+   duplicatecount = chemdb_noreaction_collection.find_count(entry)
    print("duplicatecount=", duplicatecount)
    if (duplicatecount==0):
       ### set queue number  ##
@@ -543,7 +605,8 @@ if (addnoreaction) and (not hassemiempirical):
 
 if (checknoreaction):
    check = {}
-   queue = chemdb_noreaction_collection.find(check,no_cursor_timeout=True)
+   #queue = chemdb_noreaction_collection.find(check,no_cursor_timeout=True)
+   queue = chemdb_noreaction_collection.find(check)
    print()
    print("running reactions that are waiting:")
    print()
@@ -615,6 +678,7 @@ if (submitqueue2):
 
 
 if (runqueue) and (not email):
+   print("RUNQUEUE HERE")  
    ### lockfile ###
    if os.path.isfile(lockfilename2):
       print("currently locked by " + lockfilename2)
@@ -623,7 +687,9 @@ if (runqueue) and (not email):
 
    qt = {}
    predict_q = chemdb_predict_collection.find(qt)
-   for entry in predict_q:
+   predict_q_list = list(predict_q)
+
+   for entry in predict_q_list:
       if ('predicted_reactions' not in entry):
          try:
             ff = ''
@@ -667,9 +733,9 @@ if (runqueue) and (not email):
                            ff += g + "\n\n\n"
                      ggall += gg.split("\n\n\n")
 
-               print("Updating queue")
+               print("Updating queue A")
                qqq = chemdb_predict_collection.update(entry,{'$set':{'predicted_reactions':ff}},upsert=False,multi=False)
-               print("updated queue=",qqq)
+               print("updated queue A=",qqq)
 
             ### generate predictions w/ images and new prediction jobs ###
             else:
@@ -699,9 +765,9 @@ if (runqueue) and (not email):
                ff += "\nPrediction Cycle: %d\n\n" % (ncycles+1)
                ff += gg
 
-               print("Updating queue")
+               print("Updating queue B")
                qqq = chemdb_predict_collection.update(entry,{'$set':{'predicted_reactions':ff}},upsert=False,multi=False)
-               print("updated queue=",qqq)
+               print("updated queue B=",qqq)
                if (ncycles>0):
                   for reaction in list(set(newreactants)):
                      if ("-->" in reaction):
@@ -719,12 +785,16 @@ if (runqueue) and (not email):
                      phash = predict_hash(reaction)
                      check = {}
                      check['phash'] = phash
+                     print("ENTRY predict_collection.find_one FINdD C")
                      entry0 = chemdb_predict_collection.find_one(check)
+                     print("entry predict_collection.find_one find C")
                      if (entry0 is None):
                         entry0 = {}
                         entry0['phash']     = phash
                         entry0['reactants'] = reaction
+                        print("predict_collection D")
                         qq1 = chemdb_predict_collection.insert(entry0)
+                        print("predict_collection D, qq1=",qq1)
                         print()
                         print("new reactants=",reaction)
                         print("new phash    =",phash)
@@ -734,6 +804,8 @@ if (runqueue) and (not email):
             qq = chemdb_predict_collection.remove(entry)
             print("bad entry, removed from queue = ",qq)
             print()
+
+   print("END OF loop!!")
 
    ### remove lockfilename ###
    try:
@@ -754,7 +826,7 @@ if (predictreaction) and (not email):
    print("+--------------------------------------------------+")
    print("|               Reaction Prediction                |")
    print("+--------------------------------------------------+")
-   print("</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">")
+   print("</pre> <a href=\'" + ARROWS_API_HOME + "listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">")
    print()
    print("reactants = " + reaction)
    print("phash     = " + phash)
@@ -844,7 +916,7 @@ if (predictreaction) and (not email):
       print()
       print("Unique Compounds (%d):" % len(list(set(compounds))))
       for c in list(set(compounds)):
-         cc = "<a href=\'https://arrows.emsl.pnnl.gov/api/molecule/\"%s\"\' style=\"font-size:1.0em\">%s</a>" % (c+" "+method,c+" "+method)
+         cc = "<a href=\'" + ARROWS_API_HOME + "molecule/\"%s\"\' style=\"font-size:1.0em\">%s</a>" % (c+" "+method,c+" "+method)
          print(cc)
       print()
       print()
@@ -867,14 +939,14 @@ if (predictreaction) and (not email):
          plink2 = link2.split("-->")[1].strip()
          plink2 += " -->"
          aa = '''</pre> Predicted_Reaction: &nbsp;
-                  <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\"> %s </a>
+                  <a href=\'%sreaction/\"%s\"\' style=\"font-size:1.0em\"> %s </a>
                   &nbsp; :Reaction_Predicted
                   <pre style=\"font-size:1.0em;color:black\">
-              ''' % (link2,link)
+              ''' % (ARROWS_API_HOME,link2,link)
          bb = '''</pre>
-                  <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:0.6em\"> Prediction of Products (%s) </a>
+                  <a href=\'%sreaction/\"%s\"\' style=\"font-size:0.6em\"> Prediction of Products (%s) </a>
                   <pre style=\"font-size:1.0em;color:black\">
-              ''' % (plink2,plink)
+              ''' % (ARROWS_API_HOME,plink2,plink)
          print(aa)
          print(" -                         Erxn(gas)       Hrxn(gas)       Grxn(gas) Delta_Solvation        Grxn(aq)")
          print(" - energy_estimates: %15.3f %15.3f %15.3f %15.3f %15.3f -- in kcal/mol :energy_estimates" % (ee[0],ee[1],ee[2],ee[3],ee[4]))
@@ -992,12 +1064,12 @@ if (predictreaction) and (email):
       print()
       print("prediction request submitted=",qq1)
       print("check back in ~10 minutes")
-      print("</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">")
+      print("</pre> <a href=\'" + ARROWS_API_HOME + "listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">")
    elif ('predicted_reactions' not in entry):
       print()
       print("prediction request not finished=",entry)
       print("check back in ~10 minutes")
-      print("</pre> <a href=\'https://arrows.emsl.pnnl.gov/api/listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">")
+      print("</pre> <a href=\'" + ARROWS_API_HOME + "listallreactions' style=\"font-size:1.0em\"> check the reaction queue </a> <pre style=\"font-size:1.0em;color:black\">")
    else:
       qq = chemdb_predict_collection_email.remove(entry)
       print("removed from queue = ",qq)
@@ -1047,14 +1119,14 @@ if (predictreaction) and (email):
          plink2 = link2.split("-->")[1].strip()
          plink2 += " -->"
          aa = '''</pre> Predicted_Reaction: &nbsp;
-                  <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:1.0em\"> %s </a>
+                  <a href=\'%sreaction/\"%s\"\' style=\"font-size:1.0em\"> %s </a>
                   &nbsp; :Reaction_Predicted
                   <pre style=\"font-size:1.0em;color:black\">
-              ''' % (link2,link)
+              ''' % (ARROWS_API_HOME,link2,link)
          bb = '''</pre>
-                  <a href=\'https://arrows.emsl.pnnl.gov/api/reaction/\"%s\"\' style=\"font-size:0.6em\"> Prediction of Products (%s) </a>
+                  <a href=\'%sreaction/\"%s\"\' style=\"font-size:0.6em\"> Prediction of Products (%s) </a>
                   <pre style=\"font-size:1.0em;color:black\">
-              ''' % (plink2,plink)
+              ''' % (ARROWS_API_HOME,plink2,plink)
          print(aa)
          print(" -                         Erxn(gas)       Hrxn(gas)       Grxn(gas) Delta_Solvation        Grxn(aq)")
          print(" - energy_estimates: %15.3f %15.3f %15.3f %15.3f %15.3f -- in kcal/mol :energy_estimates" % (ee[0],ee[1],ee[2],ee[3],ee[4]))

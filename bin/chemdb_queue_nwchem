@@ -23,6 +23,70 @@ class CustomClient(TinyMongoClient):
         return serialization
 ############## tinymongo ################
 
+############## wrapptermongo ################
+class CustomCollection:
+    def __init__(self, collection, is_mongo):
+        self.collection = collection
+        self.is_mongo = is_mongo
+
+    def insert(self, entry):
+        if self.is_mongo:
+            return self.collection.insert_one(entry).inserted_id
+        else:
+            return self.collection.insert(entry)
+
+    def remove(self, delentry):
+        if self.is_mongo:
+            return self.collection.delete_one(delentry)
+        else:
+            return self.collection.remove(delentry)
+
+    def count(self):
+        if self.is_mongo:
+            return self.collection.count_documents({})
+        else:
+            return self.collection.count()  # Use the count method for TinyMongo
+
+    def find_count(self,filter=None,projection=None):
+        if self.is_mongo:
+            return self.collection.count_documents(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection).count()
+
+    def find(self, filter=None, projection=None):
+        if self.is_mongo:
+            return self.collection.find(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection)
+
+    def find_one(self, check):
+        if self.is_mongo:
+            return self.collection.find_one(check)
+        else:
+            return self.collection.find_one(check)
+
+
+    def update(self, check, new_values, upsert=False, multi=False):
+        if self.is_mongo:
+            return self.collection.update_many(check, new_values, upsert=upsert)
+        else:
+            return self.collection.update(check, new_values, upsert=upsert, multi=multi)
+
+    #def update(self, check, new_values):
+    #    if self.is_mongo:
+    #        return self.collection.update_many(check, new_values)
+    #    else:
+    #        return self.collection.update(check, new_values)
+
+    def update_one(self, check, new_values):
+        if self.is_mongo:
+            return self.collection.update_one(check, new_values)
+        else:
+            return self.collection.update(check, new_values, multi=False)
+############## wrapptermongo ################
+
+
+
 ###################### PARAMETERS ###########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
 ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
@@ -40,9 +104,15 @@ if "mongodb:" in uri:
 else:
    nosql_client = CustomClient(uri)
    ismongo      = False
-arrows_db                        = nosql_client.Arrows
-chemdb_queue_collection          = arrows_db.chemdb_queue_nwchem_collection
-qnumber_collection               = arrows_db.queue_number
+
+# Define the TinyMongo collections
+arrows_db               = nosql_client.Arrows
+chemdb_queue_collection = CustomCollection(arrows_db.chemdb_queue_nwchem_collection,ismongo)
+qnumber_collection      = CustomCollection(arrows_db.queue_number,ismongo)
+
+#arrows_db                        = nosql_client.Arrows
+#chemdb_queue_collection          = arrows_db.chemdb_queue_nwchem_collection
+#qnumber_collection               = arrows_db.queue_number
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
@@ -397,7 +467,7 @@ if (addqueue):
       ### set queue number  ##
       #queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue_nwchem'})['count']
       #qqq = qnumber_collection.update({'queue':'chemdb_queue_nwchem'},{'$inc':{'count':1}},upsert=False,multi=False)
-      if (qnumber_collection.find({'queue':'chemdb_queue_nwchem'}).count()>0):
+      if (qnumber_collection.find_count({'queue':'chemdb_queue_nwchem'})>0):
          queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue_nwchem'})['count']
       else:
          queue_number00 = 1
@@ -582,7 +652,7 @@ if (nwoutfile!=''):
             upentry['_id']  = id
             upentry['restart_count'] = int(rcount)
             print("RCOUNT=",rcount)
-            count = chemdb_queue_collection.find(upentry).count()
+            count = chemdb_queue_collection.find_count(upentry)
             print("COUNT=",count)
             if (count>0):
                ee = chemdb_queue_collection.find_one(upentry)

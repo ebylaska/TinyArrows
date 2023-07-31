@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+docker-compose exec tinyarrows bin/chemdb_predict_reaction -j
+
+
+

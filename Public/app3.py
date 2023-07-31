@@ -9,6 +9,8 @@ import os,subprocess,urllib,time,random,requests,zipfile,math,yaml
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
 ARROWS_HOME     = __file__.split("TinyArrows")[0] + "TinyArrows"
 
+print("ARROWS_HOME=",ARROWS_HOME)
+
 ARROWS_API_HOME = 'http://localhost:5001/api/'
 ###################### ARROWS Locations #######################
 

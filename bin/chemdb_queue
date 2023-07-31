@@ -24,6 +24,74 @@ class CustomClient(TinyMongoClient):
         return serialization
 ############## tinymongo ################
 
+############## wrapptermongo ################
+class CustomCollection:
+    def __init__(self, collection, is_mongo):
+        self.collection = collection
+        self.is_mongo = is_mongo
+
+    def insert(self, entry):
+        if self.is_mongo:
+            return self.collection.insert_one(entry).inserted_id
+        else:
+            return self.collection.insert(entry)
+
+    def remove(self, delentry):
+        if self.is_mongo:
+            return self.collection.delete_one(delentry)
+        else:
+            return self.collection.remove(delentry)
+
+    def count(self):
+        if self.is_mongo:
+            return self.collection.count_documents({})
+        else:
+            return self.collection.count()  # Use the count method for TinyMongo
+
+    def find_count(self,filter=None,projection=None):
+        if self.is_mongo:
+            return self.collection.count_documents(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection).count()
+
+    def find(self, filter=None, projection=None):
+        if self.is_mongo:
+            return self.collection.find(filter, projection)
+        else:
+            return self.collection.find(filter, e=projection)
+
+    def find_one(self, check):
+        if self.is_mongo:
+            return self.collection.find_one(check)
+        else:
+            return self.collection.find_one(check)
+
+
+    def update(self, check, new_values, upsert=False, multi=False):
+        if self.is_mongo:
+            return self.collection.update_many(check, new_values, upsert=upsert)
+        else:
+            return self.collection.update(check, new_values, upsert=upsert, multi=multi)
+
+    #def update(self, check, new_values):
+    #    if self.is_mongo:
+    #        return self.collection.update_many(check, new_values)
+    #    else:
+    #        return self.collection.update(check, new_values)
+
+    def update_one(self, check, new_values):
+        if self.is_mongo:
+            return self.collection.update_one(check, new_values)
+        else:
+            return self.collection.update(check, new_values, multi=False)
+
+    #def update_one(self, check, new_values):
+    #    if self.is_mongo:
+    #        return self.collection.update_one(check, new_values)
+    #    else:
+    #        return self.collection.update(check, new_values)
+############## wrapptermongo ################
+
 
 ###################### PARAMETERS ###########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
@@ -32,6 +100,7 @@ MY_ENV                = os.environ.copy()
 MY_ENV["ARROWS_HOME"] = ARROWS_HOME
 
 ARROWS_API_HOME = 'http://localhost:5001/api/'
+
 
 ####################### mongoDB #############################
 #uri = "mongodb://arrows:password@machine.gov:27017"
@@ -42,11 +111,19 @@ if "mongodb:" in uri:
 else:
    nosql_client = CustomClient(uri)
    ismongo      = False
+
+# Define the TinyMongo collections
 arrows_db                        = nosql_client.Arrows
-chemdb_queue_collection0         = arrows_db.chemdb_queue_collection0
-chemdb_queue_collection          = arrows_db.chemdb_queue_collection
-chemdb_finished_queue_collection = arrows_db.chemdb_finished_queue_collection
-qnumber_collection               = arrows_db.queue_number
+chemdb_queue_collection0         = CustomCollection(arrows_db.chemdb_queue_collection0, ismongo)
+chemdb_queue_collection          = CustomCollection(arrows_db.chemdb_queue_collection, ismongo)
+chemdb_finished_queue_collection = CustomCollection(arrows_db.chemdb_finished_queue_collection, ismongo)
+qnumber_collection               = CustomCollection(arrows_db.queue_number,ismongo)
+
+#arrows_db                        = nosql_client.Arrows
+#chemdb_queue_collection0         = arrows_db.chemdb_queue_collection0
+#chemdb_queue_collection          = arrows_db.chemdb_queue_collection
+#chemdb_finished_queue_collection = arrows_db.chemdb_finished_queue_collection
+#qnumber_collection               = arrows_db.queue_number
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
@@ -805,13 +882,16 @@ def esmiles2entry(esmiles,vtag0):
    #qqq = qnumber_collection.update({'queue':'chemdb_queue'},{'$inc':{'count':1}},upsert=False,multi=False)
 
 
+   print("HERA")
 
-   esmiles0 = esmiles .replace("\"",'')
+   esmiles0 = esmiles.replace("\"",'')
    esmiles0 = esmiles0.replace("\'",'')
    esmiles0 = addspaces_reaction(esmiles0.strip())
    esmiles0 = parsetosmiles(esmiles0)
+   print("HERB")
 
    cmd7 = use_arrows_api(tnt_submit)
+   print("HERC, cmd7=",cmd7)
 
    ### use diagonal_hessian if this is a restart ###
    if "resubmitjob:" in vtag0: cmd7 += "-w "
@@ -825,8 +905,10 @@ def esmiles2entry(esmiles,vtag0):
    cmd7 += ' -v ' + '\"' + vtag.strip() + '\" '
 
    cmd7 +=  '\"' + esmiles0 + '\"'
+   print("HERD, cmd7=",cmd7)
    data = subprocess.check_output(cmd7,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    if len(data) == 0: data=esmiles0 + " not generated\n"
+   print("HERE")
 
 
    ## set queue number  ##
@@ -834,6 +916,7 @@ def esmiles2entry(esmiles,vtag0):
       queue_number = evalnum(data.split("queue_number     =")[1].split("\n")[0])
    except:
       queue_number = -1
+   print("HERF")
 
    entry['queue_number'] = queue_number
    entry['fetched']      = 0
@@ -1141,7 +1224,8 @@ if (addqueue1):
             entry = esmiles2entry(addesmiles,vtag)
             print("entry=",entry)
             centry = checkentry(entry)
-            duplicatecount = chemdb_queue_collection.find(centry).count()
+            print("After centry=",centry)
+            duplicatecount = chemdb_queue_collection.find_count(centry)
             print("duplicatecount=", duplicatecount)
             if (duplicatecount==0):
                qq = chemdb_queue_collection.insert(entry)
@@ -1166,7 +1250,7 @@ if (addqueue1):
 if (addqueue):
    entry = esmiles2entry(addesmiles,vtag)
    centry = checkentry(entry)
-   duplicatecount = chemdb_queue_collection.find(centry).count()
+   duplicatecount = chemdb_queue_collection.find_count(centry)
    print("duplicatecount=", duplicatecount)
    if (duplicatecount==0): 
       qq = chemdb_queue_collection.insert(entry)
@@ -1298,7 +1382,7 @@ if (nwfile!=''):
 
       ### set queue number  ##
       #queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue'})['count']
-      if (qnumber_collection.find({'queue':'chemdb_queue'}).count()>0):
+      if (qnumber_collection.find_count({'queue':'chemdb_queue'})>0):
          queue_number00  = qnumber_collection.find_one({'queue':'chemdb_queue'})['count']
       else:
          queue_number00 = 1

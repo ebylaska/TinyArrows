@@ -1,3 +1,8 @@
+mongodb://arrows:reaction@mongodb:27017
+mongodb://arrows:reaction@localhost:27017
+backup/NOSQL_ARROWS
+
+mongodb://arrows:reaction@mongodb:27017
+mongodb://arrows:mypassword@mymachine.gov:27017
+mongodb://arrows:mypassword@mymachine.gov:27017
 /Users/bylaska/Public/TinyArrows/backup/NOSQL_ARROWS
-mongodb://arrows:mypassword@mymachine.gov:27017
-mongodb://arrows:mypassword@mymachine.gov:27017

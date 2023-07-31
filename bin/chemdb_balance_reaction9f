@@ -1254,7 +1254,7 @@ def convertaromatic_adjmat(adjmat):
    print("len(aedges)=",len(aedges))
    if (len(aedges)%2==0):
       ne = len(aedges)
-      bonding = [1]*(ne/2) + [2]*(ne/2)
+      bonding = [1]*(ne//2) + [2]*(ne//2)
       nb = 10000
       gbonding = []
       done = False
@@ -1334,7 +1334,7 @@ def generate_smiles(findx,indx,symbols,adjmat,visited,cycle,smilecount):
    children = []
    children_strings = []
 
-   all_indexes = range(nion)
+   all_indexes = list(range(nion))
    all_indexes.remove(indx)
    if (findx in all_indexes): all_indexes.remove(findx)
    for ii in all_indexes:
@@ -5403,23 +5403,33 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
          user = hup.split()[1]
          pss = hup.split()[2]
          dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
+
       with dbcon:
          cur = dbcon.cursor()
-      cur.execute(sqlcheck2,checklist2)
-      fasthashes0 = cur.fetchall()
-      fasthashes  = [fasthashes0[i][0] for i in range(len(fasthashes0)) if fasthashes0[i]!=(None,) ]
-      #print("fasthashes=",fasthashes)
 
+         #cur.execute(sqlcheck2,checklist2)
+         try:
+            cur.execute(sqlcheck2,checklist2)
+         except MySQLdb.err.InterfaceError as e:
+            print(f"Error executing SQL query: {e}")
+         fasthashes0 = cur.fetchall()
+         fasthashes  = [fasthashes0[i][0] for i in range(len(fasthashes0)) if fasthashes0[i]!=(None,) ]
+         #print("fasthashes=",fasthashes)
 
+      bstrings_reactants = {}
       if (len(fasthashes)>0):
          print("bonding_reactants = ",bonding_reactants)
          aa = findreaction_loops_string(nnodes,edges,redges,nredges,pedges)
          print("into reactant loops")
          #print("aa=",aa)
-         exec(aa)
+         namespace = locals().copy()
+         namespace.update(globals())
+         exec(aa,namespace)
+         bstrings_reactants = namespace["bstrings_reactants"]
       else:
          print("No fasthashes for ", reactiontype, " and method=",method)
          bstrings_reactants = {}
+
       print("number of bstrings_reactions = ",len(bstrings_reactants))
 
       bond_prune        = [[0,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0], [0,1,1,1,1,1,0,0],[0,1,1,1,1,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,0,0,0,0,0]]
@@ -5444,6 +5454,7 @@ def findreactions_molecules(hup,dbfile,table,molecules,method,maxlevel):
          user = hup.split()[1]
          pss = hup.split()[2]
          dbcon = MySQLdb.connect(host=host,user=user,password=pss,database=dbfile,autocommit=True,charset='utf8mb4')
+
       with dbcon:
          cur = dbcon.cursor()
          #for bstring,indxsym in bstrings_reactants.iteritems():
@@ -5868,7 +5879,10 @@ def findproducts_indexes(reactionhash,xyzfile):
    aa = findproducts_loops_string(nnodes,edges,redges,pedges,npedges)
    print("into product loops")
    #print(aa)
-   exec(aa)
+   namespace = locals().copy()
+   namespace.update(globals())
+   exec(aa,namespace)
+   bstrings_products = namespace['bstrings_products']
    print("number of bstrings_reactions = ",len(bstrings_products))
 
    indexes = []
