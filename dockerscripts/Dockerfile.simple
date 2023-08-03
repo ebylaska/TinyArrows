@@ -1,0 +1,14 @@
+FROM python:3-slim-buster
+
+WORKDIR /TinyArrows
+
+COPY . .
+
+# Install system dependencies needed for Open Babel and gnuplot
+RUN apt-get update && apt-get install -y openbabel gnuplot
+
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
+
+
+CMD [ "python3", "Public/app3.py"]

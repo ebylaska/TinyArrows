@@ -1,0 +1,44 @@
+version: '3.1'
+
+services:
+  tinyarrows:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tinyarrows:latest
+    ports:
+      - 5001:5001
+    volumes:
+      - ${MYARROWS_ARCHIVE}:/TinyArrows/archive
+      - ${MYARROWS_WORK}:/TinyArrows/Work
+    depends_on:
+      - mariadb
+      - mongodb
+
+  mariadb:
+    image: mariadb:latest
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: 05291999
+      MYSQL_DATABASE: TNT_Project
+      MYSQL_USER: arrows
+      MYSQL_PASSWORD: reaction
+    command: --bind-address=0.0.0.0
+    restart: always
+    volumes:
+      - ${MYARROWS_MARIADB}:/var/lib/mysql
+      - ${TINYARROWS_INIT}:/docker-entrypoint-initdb.d
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - ${MYARROWS_MONGODB}:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: arrows
+      MONGO_INITDB_ROOT_PASSWORD: reaction
+      MONGO_INITDB_DATABASE: Arrows
+    command: mongod --auth --bind_ip_all
+
