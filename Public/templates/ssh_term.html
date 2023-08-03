@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Web App</title>
+  <link rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css">
+</head>
+<body>
+  <!-- Your app's content goes here -->
+  <div>
+    <label for="hostname">Machine Hostname:</label>
+    <input type="text" id="hostname" required>
+    <br>
+    <label for="username">Username:</label>
+    <input type="text" id="username" required>
+    <br>
+    <label for="password">Password:</label>
+    <input type="password" id="password" required>
+    <br>
+    <button id="connectBtn">Connect</button>
+  </div>
+
+  <div id="terminal"></div>
+
+  <!-- Load xterm.js -->
+  <script src="https://unpkg.com/xterm/lib/xterm.js"></script>
+  <!-- Load Socket.IO -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.2/socket.io.js"></script>
+  <!-- Connect to the WebSocket -->
+  <script>
+    const socket = io.connect();
+
+    const term = new Terminal();
+    term.open(document.getElementById('terminal'));
+
+    // Function to handle SSH connection and command execution
+    function handleSSH() {
+      const hostname = document.getElementById('hostname').value;
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      socket.emit('stdin', {
+        hostname,
+        username,
+        password,
+        input: 'bash\n' // Start an interactive shell
+      });
+    }
+
+    // WebSocket communication
+    socket.on('connect', function() {
+      socket.on('status', function(data) {
+        console.log(data); // Log the connection status
+      });
+      socket.on('stdout', function(data) {
+        term.write(data);
+      });
+
+      // Handle user input from the terminal
+      term.onData(function(data) {
+        socket.emit('stdin', {
+          input: data,
+        });
+        if (data === 'exit\r') {
+          term.dispose();
+        }
+      });
+    });
+
+    // Connect button click event
+    document.getElementById('connectBtn').addEventListener('click', handleSSH);
+
+    // On disconnection, close the terminal
+    socket.on('disconnect', function() {
+      term.dispose();
+    });
+  </script>
+</body>
+</html>
+

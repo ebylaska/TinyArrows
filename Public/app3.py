@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-from flask import Flask, jsonify, render_template,request,redirect,url_for,send_from_directory,Response
+from flask import Flask, jsonify, render_template, request, redirect, url_for, send_from_directory, Response, session
 from flask import abort
 from werkzeug.utils import secure_filename
 import os,subprocess,urllib,time,random,requests,zipfile,math,yaml
+import paramiko,secrets
 
 ###################### ARROWS Locations #######################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
@@ -362,10 +363,148 @@ def parse_matrix_elements(outfile):
          mdict = {}
    return mdict
 
+###########################################
+#                                         #
+#            ssh_tunnel                   #
+#                                         #
+###########################################
+
+def establish_ssh_connection(username, password, target_machine_ip, passcode=""):
+    try:
+        # Append the passcode to the password, if provided
+        if passcode:
+            password += passcode
+
+        # Create an SSH client and establish the connection
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(target_machine_ip, username=username, password=password)
+
+        return ssh_client
+
+    except paramiko.AuthenticationException:
+        print('Authentication failed. Please check your credentials.')
+        return None
+
+    except paramiko.SSHException as e:
+        print(f'SSH connection failed: {e}')
+        return None
 
 
 
+def execute_command(ssh_client, command):
+    try:
+        # Execute the specified command on the target machine
+        stdin, stdout, stderr = ssh_client.exec_command(command, bufsize=4096)
+        output = stdout.read().decode('utf-8')
+        error  = stderr.read().decode('utf-8')
 
+        print(f'Machine Output:\n{output}')
+        print(f'Machine Error:\n{error}')
+
+        return output, error
+
+    except paramiko.SSHException as e:
+        print(f'Command execution failed: {e}')
+
+def close_ssh_connection(ssh_client):
+    if ssh_client:
+        ssh_client.close()
+        print('SSH connection closed.')
+
+
+
+###########################################
+#                                         #
+#            ssh_tunnel                   #
+#                                         #
+###########################################
+
+def ssh_tunnel(username, password, target_machine_ip, local_port, remote_port, passcode=""):
+    try:
+        # Append the passcode to the password, if provided
+        if passcode:
+            password += passcode
+
+        # Step 1: SSH into the target machine
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(target_machine_ip, username=username, password=password)
+
+        # Step 2: Execute 'ls' on the target machine
+        stdin, stdout, stderr = ssh_client.exec_command('ls -al')
+        output = stdout.read().decode('utf-8')
+        print(f'Machine Output:\n{output}')
+
+        # Close the connection to the target machine
+        ssh_client.close()
+
+        return f'Machine Output:\n{output}'
+
+    except paramiko.AuthenticationException:
+        return 'Authentication failed. Please check your credentials.'
+
+    except paramiko.SSHException as e:
+        return f'SSH connection failed: {e}'
+
+
+###########################################
+#                                         #
+#            ssh_tunnel2                  #
+#                                         #
+###########################################
+
+def ssh_tunnel2(username, password, target_machine_ip, local_port, remote_port, intermediate_machine_ip=None, intermediate_machine_username=None, intermediate_machine_password=None):
+
+    # Create a SSH client instance for the intermediate machine
+    intermediate_ssh = paramiko.SSHClient()
+    intermediate_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try:
+        # Step 1: SSH tunnel to the intermediate machine
+        intermediate_ssh.connect(intermediate_machine_ip, username=intermediate_machine_username, password=intermediate_machine_password)
+
+        # Step 2: SSH tunnel from the intermediate machine to the final target machine
+        transport = intermediate_ssh.get_transport()
+        dest_addr = (target_machine_ip, remote_port)
+        local_addr = ('localhost', local_port)
+        transport.request_port_forward(*dest_addr, handler=paramiko.channel.Channel(chanid=None))
+        channel = transport.accept(10)
+        if channel is None:
+            return 'Failed to create SSH tunnel to the intermediate machine.'
+
+        # Print any output from the channel (optional)
+        while not channel.closed:
+            print(channel.recv(1024).decode('utf-8'))
+
+        # Step 3: Prompt the user to enter the final username and password
+        final_username = request.form.get('final_username')
+        final_password = request.form.get('final_password')
+
+        # Step 4: SSH tunnel from the intermediate machine to the final target machine using the final credentials
+        final_transport = intermediate_ssh.get_transport().open_channel('direct-tcpip', dest_addr, local_addr)
+        final_ssh = paramiko.SSHClient()
+        final_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        final_ssh.connect(target_machine_ip, username=final_username, password=final_password, sock=final_transport)
+
+
+        # Perform operations on the remote machine, e.g., executing commands or running a Python script
+        stdin, stdout, stderr = final_ssh.exec_command('ls -al')
+        return stdout.read().decode('utf-8')
+
+
+    except paramiko.AuthenticationException:
+        return 'Authentication failed. Please check your credentials.'
+
+    except paramiko.SSHException as e:
+        return f'SSH connection failed: {e}'
+
+    finally:
+        # Close the SSH clients' connections
+        if intermediate_ssh:
+            intermediate_ssh.close()
+        if final_ssh:
+            final_ssh.close()
 
 
 
@@ -758,6 +897,8 @@ def increment_apivisited():
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.secret_key = secrets.token_hex(32)
+
 
 tasks = [
     {
@@ -3907,6 +4048,71 @@ def dagrereaction_form():
    avisits = apivisited()
    #return render_template("eric-input2.html")
    return render_template("dagre-rxn.html",arrows_api=ARROWS_API_HOME,calculations=calcs,moleculecalculations=molcalcs,visits=avisits)
+
+@app.route('/api/ssh_tunnel0', methods=['GET', 'POST'])
+def ssh_tunnel_route0():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        target_machine_ip = request.form.get('target_machine_ip')
+        local_port = request.form.get('local_port')
+        remote_port = request.form.get('remote_port')
+        passcode = request.form.get('passcode')  # New optional passcode field
+
+        result = ssh_tunnel(username, password, target_machine_ip, int(local_port), int(remote_port), passcode)
+        return result
+
+    return render_template('ssh_tunnel.html')
+
+
+@app.route('/api/ssh_tunnel', methods=['GET', 'POST'])
+def ssh_tunnel_route():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        target_machine_ip = request.form.get('target_machine_ip')
+        local_port = request.form.get('local_port')
+        remote_port = request.form.get('remote_port')
+        passcode = request.form.get('passcode')
+        commands = request.form.get('commands')  # Get the commands as a string separated by newlines
+        #print("username=",username)
+        #print("password=",password)
+        #print("target_machine_ip=",target_machine_ip)
+        #print("passdode=",passcode)
+        #print("commands=",commands)
+
+        ssh_client = establish_ssh_connection(username, password, target_machine_ip, passcode)
+
+        if ssh_client:
+            # Split the commands into a list based on newlines
+            command_list = commands.split('\n')
+            print("command_list=",command_list)
+            
+
+            # Initialize the output to an empty string
+            output_textbox = ''
+
+            # Execute all commands in the list sequentially
+            for command in command_list:
+                command = command.replace("\r","")
+                output, error = execute_command(ssh_client, command)
+
+                # Append the output to the 'output' textbox
+                output_textbox += f"Command: {command}\nOutput:\n{output}\nError:\n{error}\n\n"
+
+
+            # Close the SSH connection after executing all commands
+            close_ssh_connection(ssh_client)
+
+            # Store the updated output in the Flask session
+            session['output'] = output_textbox
+
+    # Get the stored output from the Flask session or an empty string if not set
+    output_textbox = session.get('output', '')
+
+    return render_template('ssh_tunnel.html', output_textbox=output_textbox)
+
+
 
 
 

@@ -9,14 +9,19 @@ import os,sys,getopt,requests
 arrows_queue_url       = 'http://localhost:5001/api/queue/'
 arrows_queue_fetch_url = 'http://localhost:5001/api/queue_fetch/'
 stag = '#chemdb_queue - version 2.0 '
+aspace = ''
 
 ############################# main program ###################################
 usage = \
 """
 fetch_nwchem_input
 
-  Usage: fetch_nwchem_input -q -e queue_entry -m machinetype -h 
+  Usage: fetch_nwchem_input -s -q -e queue_entry -m machinetype -h 
 
+  -e entry
+  -m machine
+  -q showq
+  -s use https://arrows.emsl.pnnl.gov/api, instead of http://localhost:5001/api
   -h help
 
 """
@@ -28,10 +33,15 @@ print()
 showq       = True
 queue_entry = -1
 machinetype = ''
-opts, args = getopt.getopt(sys.argv[1:], "e:m:qh")
+opts, args = getopt.getopt(sys.argv[1:], "e:m:qsh")
 for o, a in opts:
   if '-q' in o:
      showq       = True
+  if '-s' in o:
+     arrows_queue_url       = 'https://arrows.emsl.pnnl.gov/api/queue/'
+     arrows_queue_fetch_url = 'https://arrows.emsl.pnnl.gov/api/queue_fetch/'
+     aspace = " - arrows_api url= https://arrows.emsl.pnnl.gov/api/ \n\n"
+     stag = '#chemdb_queue - version 1.0'
   if '-e' in o:
      queue_entry = eval(a)
      showq       = False
@@ -47,7 +57,7 @@ for o, a in opts:
 if showq:
    try:
       rr = requests.get(arrows_queue_url)
-      print(stag + rr.text.split(stag)[1].split('</pre>')[0].strip())
+      print(stag + aspace + rr.text.split(stag)[1].split('</pre>')[0].strip()) 
    except:
       print(" - API Failed")
 

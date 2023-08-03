@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSH Tunneling</title>
+    <style>
+        label {
+            display: inline-block;
+            width: 150px;
+        }
+        textarea {
+            width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SSH Tunneling</h1>
+    <form id="sshForm" method="post">
+        <!-- SSH tunneling parameters -->
+        <div>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <div>
+            <label for="target_machine_ip">Target Machine IP:</label>
+            <input type="text" id="target_machine_ip" name="target_machine_ip" required>
+        </div>
+
+        <div>
+            <label for="local_port">Local Port:</label>
+            <input type="number" id="local_port" name="local_port" required>
+        </div>
+
+        <div>
+            <label for="remote_port">Remote Port:</label>
+            <input type="number" id="remote_port" name="remote_port" required>
+        </div>
+
+        <!-- Optional Passcode -->
+        <div>
+            <label for="passcode">Passcode (optional):</label>
+            <input type="password" id="passcode" name="passcode">
+        </div>
+
+        <!-- Commands to Execute -->
+        <div>
+            <label for="commands">Commands to Execute:</label><br>
+            <!-- Use textarea to allow multiple lines of input -->
+            <textarea id="commands" name="commands" rows="5" cols="80" required></textarea>
+        </div>
+
+        <!-- Output textbox -->
+        <div>
+            <label>Output:</label><br>
+            <textarea id="output" rows="10" cols="80" readonly>{{ output_textbox }}</textarea>
+        </div>
+
+        <br>
+        <button type="submit">Connect and Execute</button>
+    </form>
+
+    <script>
+        // Restore form values from Local Storage on page load
+        document.addEventListener("DOMContentLoaded", () => {
+            const formFields = ['username', 'password', 'target_machine_ip', 'local_port', 'remote_port', 'commands' ];
+            for (const field of formFields) {
+                const inputField = document.getElementById(field);
+                const storedValue = localStorage.getItem(field);
+                if (storedValue) {
+                    inputField.value = storedValue;
+                }
+            }
+        });
+
+        // Store form values in Local Storage when the form is submitted
+        document.getElementById('sshForm').addEventListener('submit', (event) => {
+            const formFields = ['username', 'password', 'target_machine_ip', 'local_port', 'remote_port', 'commands' ];
+            for (const field of formFields) {
+                const inputField = document.getElementById(field);
+                localStorage.setItem(field, inputField.value);
+            }
+
+            // Clear the output textbox before submitting the form
+            document.getElementById('output').value = '';
+        });
+    </script>
+</body>
+</html>
+

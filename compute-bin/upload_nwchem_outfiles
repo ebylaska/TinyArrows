@@ -2,7 +2,7 @@
 
 import os,sys,getopt,requests
 
-ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo' ])
+ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo', 'cif', 'xyz' ])
 #arrows_post_url    = 'https://arrows.emsl.pnnl.gov/api/upload/'
 #arrows_get_url     = 'https://arrows.emsl.pnnl.gov/api/submit_output/'
 arrows_post_url    = 'http://localhost:5001/api/upload/'
@@ -25,6 +25,7 @@ upload_nwchem_outfiles
 
   Usage: upload_nwchem_outfiles -h datafiles 
 
+  -s use https://arrows.emsl.pnnl.gov/api, instead of http://localhost:5001/api
   -h help
 
 """
@@ -33,8 +34,11 @@ print()
 print("add_nwchem_outfiles - version 1.0")
 print()
 
-opts, args = getopt.getopt(sys.argv[1:], "h")
+opts, args = getopt.getopt(sys.argv[1:], "sh")
 for o, a in opts:
+  if '-s' in o:
+     arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/'
+     arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/submit_output/'
   if o in ("-h","--help"):
     print(usage)
     exit()

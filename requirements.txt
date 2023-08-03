@@ -1,5 +1,6 @@
 flask
 requests
+paramiko
 pyYaml
 pymysql 
 pymongo
