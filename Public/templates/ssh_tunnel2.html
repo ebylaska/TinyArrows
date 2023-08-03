@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSH Tunneling</title>
+</head>
+<body>
+    <h1>SSH Tunneling</h1>
+    <form method="post">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br>
+
+        <label for="target_machine_ip">Target Machine IP:</label>
+        <input type="text" id="target_machine_ip" name="target_machine_ip" required><br>
+
+        <label for="local_port">Local Port:</label>
+        <input type="number" id="local_port" name="local_port" required><br>
+
+        <label for="remote_port">Remote Port:</label>
+        <input type="number" id="remote_port" name="remote_port" required><br>
+
+        <!-- New optional passcode field -->
+        <label for="passcode">Passcode (optional):</label>
+        <input type="password" id="passcode" name="passcode"><br>
+
+        <button type="submit">Connect</button>
+    </form>
+
+    <form id="finalForm" style="display: none;">
+        <h2>Enter Final Machine Password</h2>
+        <label for="final_password">Final Machine Password:</label>
+        <input type="password" id="final_password" name="final_password" required><br>
+
+        <button type="button" onclick="connectToFinal()">Connect to Final</button>
+    </form>
+
+
+    <div id="output"></div>
+
+    <script>
+        function connectToFinal() {
+            var finalForm = document.getElementById("finalForm");
+            var formData = new FormData(document.getElementById("sshForm"));
+
+            // Send the intermediate machine credentials to the Flask app using fetch API
+            fetch('/api/ssh_tunnel2', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(result => {
+                var output = document.getElementById("output");
+                output.innerHTML = "<pre>" + result + "</pre>";
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        var sshForm = document.getElementById("sshForm");
+        sshForm.addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent the form from submitting
+
+            var intermediateForm = document.getElementById("finalForm");
+            var formData = new FormData(event.target);
+
+            // Send the intermediate machine credentials to the Flask app using fetch API
+            fetch('/api/ssh_tunnel2', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(result => {
+                // Hide the intermediate machine login form
+                sshForm.style.display = "none";
+
+                // Display the final machine login form
+                intermediateForm.style.display = "block";
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+
+</body>
+</html>
