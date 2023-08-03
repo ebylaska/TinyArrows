@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+<link rel="icon" type="image/png" sizes="32x32" href="{{url_for('static', filename='arrows-static/favicon-32x32.png')}}">
+<link rel="icon" type="image/png" sizes="96x96" href="{{url_for('static', filename='arrows-static/favicon-96x96.png')}}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{url_for('static', filename='arrows-static/favicon-16x16.png')}}">
+
     <title>SSH Tunneling</title>
     <style>
         label {
@@ -10,10 +15,49 @@
         textarea {
             width: 600px;
         }
+     blink, .blink {
+     animation: blinker 1s linear infinite;
+     }
+     @keyframes blinker {
+     50% { opacity: 0; }
+     }
+
+     .linkbanner {
+       position: relative;
+       //display: inline-block;
+       padding: 1px;
+       // background-color: lightblue;
+       //background-image: linear-gradient(blue,#FEFEFE,blue);
+       //background-image: linear-gradient(blue,lightgreen,blue);
+       background-image: linear-gradient(#4286f4,lightgreen,#4286f4);
+       //background-image: linear-gradient(#4286f4,#599a3e,#4286f4);
+       //background-image: linear-gradient(#2f61ce,lightgreen,#2f61ce);
+       //background-image: linear-gradient(#2f61ce,gold,#2f61ce);
+       //background-image: linear-gradient(#4286f4,gold,#4286f4);
+       font-size: 18px;
+       font-weight: bold;
+       font-family: times;
+       color: white;
+     }
     </style>
+
+
 </head>
 <body>
+
+<div class="linkbanner">
+   <a href="{{ arrows_api }}"><img src="{{url_for('static', filename='arrows-static/TinyArrows2019.png')}}" alt="Copyright Arrows Logo" width="180" height="90" align="middle"></a>
+   <a href="{{ arrows_api }}periodic">Expert Periodic and Molecular Editor </a> &nbsp;
+   <a href="{{ arrows_api }}3dbuilder">3D Molecular And Reaction Editor</a>  &nbsp; 
+   <a href="{{ arrows_api }}expert">Molecular Combo Editor</a> &nbsp;   
+   <a href="{{ arrows_api }}qsharp_chem">Microsoft Quantum Editor</a> &nbsp;  
+   <a href="{{ arrows_api }}aerosol">EMSL Aerosol Workshop Editor</a> &nbsp;  
+   <a href="{{ arrows_api }}ssh_tunnel">SSH Tunneling</a> &nbsp; 
+   <a href="https://nwchemgit.github.io/EMSL_Arrows.html#">Manual</a>
+</div>
+
     <h1>SSH Tunneling</h1>
+    <img src="{{ url_for('static', filename='arrows-static/banner2.gif') }}" alt="Banner">
     <form id="sshForm" method="post">
         <!-- SSH tunneling parameters -->
         <div>

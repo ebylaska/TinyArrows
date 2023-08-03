@@ -4110,7 +4110,7 @@ def ssh_tunnel_route():
     # Get the stored output from the Flask session or an empty string if not set
     output_textbox = session.get('output', '')
 
-    return render_template('ssh_tunnel.html', output_textbox=output_textbox)
+    return render_template('ssh_tunnel.html', arrows_api=ARROWS_API_HOME, output_textbox=output_textbox)
 
 
 
