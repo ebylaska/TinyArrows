@@ -328,7 +328,7 @@ def xyz_atomtype_string0(mformula,symbol,n,adjmat,indx1):
          symi = symbol[i]
          symj = symbol[j]
          key = symi.strip() + symj.strip() 
-         if (bond1count.has_key(key)):
+         if (key in bond1count):
             bond1count[key] += 1
          else:
             bond1count[key] = 1
@@ -348,7 +348,7 @@ def xyz_atomtype_string0(mformula,symbol,n,adjmat,indx1):
                symj = symbol[j]
                symk = symbol[k]
                key = symi.strip() + symj.strip() + symk.strip()
-               if (bond2count.has_key(key)):
+               if (key in bond2count):
                   bond2count[key] += 1
                else:
                   bond2count[key] = 1
@@ -371,7 +371,7 @@ def xyz_atomtype_string0(mformula,symbol,n,adjmat,indx1):
                      symk = symbol[k]
                      syml = symbol[l]
                      key = symi.strip() + symj.strip() + symk.strip() + syml.strip()
-                     if (bond3count.has_key(key)):
+                     if (key in bond3count):
                         bond3count[key] += 1
                      else:
                         bond3count[key] = 1
@@ -397,7 +397,7 @@ def xyz_atomtype_string0(mformula,symbol,n,adjmat,indx1):
                            syml = symbol[l]
                            symm = symbol[m]
                            key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip()
-                           if (bond4count.has_key(key)):
+                           if (key in bond4count):
                               bond4count[key] += 1
                            else:
                               bond4count[key] = 1
@@ -426,7 +426,7 @@ def xyz_atomtype_string0(mformula,symbol,n,adjmat,indx1):
                                  symm = symbol[m]
                                  syma = symbol[a]
                                  key = symi.strip() + symj.strip() + symk.strip() + syml.strip() + symm.strip() + syma.strip()
-                                 if (bond5count.has_key(key)):
+                                 if (key in bond5count):
                                     bond5count[key] += 1
                                  else:
                                     bond5count[key] = 1
@@ -463,7 +463,7 @@ def xyz_atomtype_string(xyzfilename,indx1):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
@@ -533,7 +533,7 @@ def xyz_atomtype_string_indexes(xyzfilename,atomstring,level):
          key = line[0]
       else:
          key = line[0:2]
-      if (fdict.has_key(key)):
+      if (key in fdict):
          fdict[key] += 1
       else:
          fdict[key] = 1
