@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-import sys,os,time,pickle,math,urllib2,getopt,random,operator
+import sys,os,time,pickle,math,getopt,random,operator
 import subprocess
 
 #################### machine specifics ######################
@@ -609,7 +609,7 @@ generate_atomtype_string
 
 """
 
-print "generate_atomtype_string"
+print("generate_atomtype_string")
 tt      = time.localtime()
 
 
@@ -623,11 +623,11 @@ for o, a in opts:
      level = eval(a)
      if (level>5): level=5
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<2):
-    print usage
+    print(usage)
     exit()
 
 if (lookindex):
@@ -635,10 +635,10 @@ if (lookindex):
    xyzfilename      = args[1]
    for atomtypestring in atomtypestrings.split(","):
       indexes = xyz_atomtype_string_indexes(xyzfilename,atomtypestring,level)
-      print
-      print "atomtype_string =  ", atomtypestring
-      print "indexes = ",indexes
-      print "result=",[atomtypestring,indexes]
+      print()
+      print("atomtype_string =  ", atomtypestring)
+      print("indexes = ",indexes)
+      print("result=",[atomtypestring,indexes])
 
 else:
    indx0s       = args[0]
@@ -646,8 +646,8 @@ else:
    for indx0 in indx0s.split(","):
       indx1 = eval(indx0)
       atomtype_string = xyz_atomtype_string(xyzfilename,indx1-1)
-      print
-      print "indx1 = ",indx1
-      print "atomtype_string =  ", atomtype_string
-      print "result=",[indx1,atomtype_string]
+      print()
+      print("indx1 = ",indx1)
+      print("atomtype_string =  ", atomtype_string)
+      print("result=",[indx1,atomtype_string])
   
