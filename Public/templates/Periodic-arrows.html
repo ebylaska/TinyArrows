@@ -819,6 +819,17 @@ ul, li {
          jmaddsmiles(vvv,2);
          //finish_Thomas_command("Thomas add smiles");
       }
+      else if ((txt.includes("new")) && (txt.includes("frame")) ) {  
+         document.getElementById('apirunning').value += "+ running jsmol script\n";
+         var ScriptCallback_scpt = 'set echoCallback \"hScriptCallback\";';
+         jms0(ScriptCallback_scpt);
+
+         Text2Speech0(txt0);
+         var vvv = txt0.split("frame")[1].trim();
+         loadframe2jsmol(true,false,parseInt(vvv));
+         //finish_Thomas_command("Thomas new frame");
+
+      }
       else if ((txt.includes("append")) && (txt.includes("frame")) ) {  
          document.getElementById('apirunning').value += "+ running jsmol script\n";
          var ScriptCallback_scpt = 'set echoCallback \"hScriptCallback\";';
