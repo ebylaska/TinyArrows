@@ -12810,7 +12810,13 @@ ul, li {
     <input type="button" VALUE="Submit NWChem" onClick="submit_nwchemjob2(dummy_callback)" title="Submit NWChem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
     <br><br>
     Machine:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    <input type="text" oninput="cacheInput(this)" list="machinelist" id="machine" onChange="definesecret()" value="aerosol3"/>
+    <input type="text" 
+           oninput="cacheInput(this)" 
+           list="machinelist" 
+           id="machine" 
+           title=": set text machine  :"
+           onChange="definesecret()" 
+           value="aerosol3"/>
              <datalist id="machinelist">
                 <option value="aerosol1">aerosol1</option>
                 <option value="aerosol2">aerosol2</option>
@@ -12827,14 +12833,31 @@ ul, li {
                 <option value="harsono">harsono</option>
                 <option value="erichome">erichome</option>
              </datalist>
-    ncpus: <input type="number" name="nLabel" id="queue_ncpus" size="6" min="1" max="1000000" step="1" value="32" onChange="changencpus()" oninput="cacheInput(this)">
-    queue: <input type="text" list="queuelist" id="queue" onChange="changequeue()" oninput="cacheInput(this)"/>
+    ncpus: <input type="number" 
+                  name="nLabel" 
+                  id="queue_ncpus" 
+                  title=": set number queue_ncpus :"
+                  size="6" min="1" max="1000000" step="1" value="32" 
+                  onChange="changencpus()" 
+                  oninput="cacheInput(this)">
+    queue: <input type="text" 
+                  list="queuelist" 
+                  id="queue" 
+                  title=": set text queue :"
+                  onChange="changequeue()" 
+                  oninput="cacheInput(this)"/>
              <datalist id="queuelist">
                 <option value="regular">regular</option>
                 <option value="debug">debug</option>
              </datalist>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    time: <input type="text" name="TLabel" id="queue_time" size="9" onChange="changeqtime()" oninput="cacheInput(this)">
+    time: <input type="text" 
+                 name="TLabel" 
+                 id="queue_time" 
+                  title=": set text queue_time :"
+                 size="9" 
+                 onChange="changeqtime()" 
+                 oninput="cacheInput(this)">
     &nbsp;
     account: <!--input type="text" name="Label" id="queue_account" onChange="changeaccount()" oninput="cacheInput(this)"-->
                <select id="queue_account"
@@ -12860,7 +12883,12 @@ ul, li {
                        <option disabled>──────────</option>
                </select>
     <br>
-    Arrows queue_name: <input type="text" list="queue_name_list" id="queue_name" onChange="changequeue()" oninput="cacheInput(this)"/>
+    Arrows queue_name: <input type="text" 
+                              list="queue_name_list" 
+                              id="queue_name" 
+                              title=": set text queue_name_list :" 
+                              onChange="changequeue()" 
+                              oninput="cacheInput(this)"/>
                <datalist id="queue_name_list">
                 <option value="nwchem">nwchem</option>
                 <option value="geochem">geochem</option>
@@ -12871,8 +12899,8 @@ ul, li {
     
     <input type="button" VALUE="Arrows Queue Label:" onClick="setQueueLabel()" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
     &nbsp;
-    <input type="text" name="Label" id="queue_nwchem_label" size=45> 
-    QWAIT:: <input type="text" name="Label" id="queue_wait_label">
+    <input type="text" name="Label" id="queue_nwchem_label" title=": set text queue_nwchem_label :"  size=45> 
+    QWAIT:: <input type="text" name="Label" id="queue_wait_label" title=": set text queue_wait_label :" >
     &nbsp;&nbsp;&nbsp;&nbsp;
     <a href="{{ arrows_api }}queue_nwchem_check/nwchem">Check submited jobs</a>
     <br>
@@ -12927,7 +12955,7 @@ ul, li {
            <td> <select id="queue_nwchem_curdir0"
                     name="queue_nwchem_curdir0"
                     style="font-size:13px;color:#6F4E37" 
-                    title=": set text queue_account :" 
+                    title=": set text queue_nwchem_curdir0 :" 
                     onChange="add_select_option2('Add curdir0','','queue_nwchem_curdir0')"
                     oninput="cacheInput(this)">
                     <option>None</option>
@@ -12938,11 +12966,23 @@ ul, li {
        </tr>
        <tr>
           <td>permdir: </td> 
-          <td> <input type="text" name="Label" id="queue_nwchem_permdir" size=145 value="" onChange="changepermdir()" oninput="cacheInput(this)"> </td>
+          <td> <input type="text" 
+                      name="Label" 
+                      id="queue_nwchem_permdir" 
+                      title=": set text queue_nwchem_permdir :" 
+                      size=145 value="" 
+                      onChange="changepermdir()" 
+                      oninput="cacheInput(this)"> </td>
        </tr>
        <tr>
           <td>curdir: </td>
-          <td> <input type="text" name="Label" id="queue_nwchem_curdir" size=145 value="" onChange="changecurdir()" oninput="cacheInput(this)"> </td>
+          <td> <input type="text" 
+                      name="Label" 
+                      id="queue_nwchem_curdir" 
+                      title=": set text queue_nwchem_curdir :" 
+                      size=145 value="" 
+                      onChange="changecurdir()" 
+                      oninput="cacheInput(this)"> </td>
        </tr>
     </table>
 
@@ -12950,7 +12990,10 @@ ul, li {
     <h4> Simulation generation scripts and input</h4>
     <table>
        <tr>
-          <td> <select id="bandpspw" onchange="changebandpspw()" oninput="cacheInput(this)">
+          <td> <select id="bandpspw" 
+                        title=": set text bandpspw :" 
+                        onchange="changebandpspw()" 
+                        oninput="cacheInput(this)">
                 <option value="pspw">PSPW calculation</option>
                 <option value="pspw4">PSPW4 calculation</option>
                 <option value="dft">DFT calculation</option>
@@ -12960,7 +13003,10 @@ ul, li {
                 <option value="pspw-band">PSPW-BAND calculation</option>
               </select>
           </td>
-          <td> <select id="basis_type" onChange="changenwchemcutoff()" oninput="cacheInput(this)">
+          <td> <select id="basis_type" 
+                       title=": set text basis_type :" 
+                       onChange="changenwchemcutoff()" 
+                       oninput="cacheInput(this)">
                 <option value="default">default</option>
                 <option value="def2-svp spherical">def2-svp spherical</option>
                 <option value="def2-tzvp spherical">def2-tzvp spherical</option>
@@ -12975,7 +13021,9 @@ ul, li {
                 <option value="120 Ry">120 Ry</option>
               </select>
           </td>
-          <td> <select id="xc_type" oninput="cacheInput(this)">
+          <td> <select id="xc_type" 
+                       title=": set text xc_type :" 
+                       oninput="cacheInput(this)">
                 <option value="default">default</option>
                 <option value="lda">lda</option>
                 <option value="pbe">pbe</option>
@@ -12996,7 +13044,9 @@ ul, li {
                 <option value="beef-vdw2">beef-vdw2</option>
               </select>
           </td>
-          <td> <select id="latticelocation" oninput="cacheInput(this)">
+          <td> <select id="latticelocation"  
+                       title=": set text latticelocation  :" 
+                       oninput="cacheInput(this)">
                 <option value="default">default</option>
                 <option value="Lattice in geometry block">Lattice in geometry block</option>
                 <option value="Lattice in NWPW block">Lattice in NWPW block</option>
@@ -13023,7 +13073,9 @@ ul, li {
        </tr>
     </table>
      
-    <select id="SMD_solvent_3" oninput="cacheInput(this)">
+    <select id="SMD_solvent_3" 
+            title=": set text SMD_solvent_3 :"
+            oninput="cacheInput(this)">
         <option value="h2o">water (default)</option>
         <option value="acetacid">acetic acid</option>
         <option value="acetone">acetone</option>
@@ -13204,8 +13256,16 @@ ul, li {
         <option value="p-xylene">p-xylene</option>
         <option value="xylenemx">xylene (mixture)</option>
      </select>
-     paw atoms: <input type="text" name="pawatoms" id="pawatoms" size=24 value = "" onChange="addpawatoms()" oninput="cacheInput(this)">  
-     <select id="pspatomslibrary" onChange="addpawatoms()">
+     paw atoms: <input type="text" 
+                       name="pawatoms" 
+                       id="pawatoms" 
+                       title=": set text pawatoms :"
+                       size=24 value = "" 
+                       onChange="addpawatoms()" 
+                       oninput="cacheInput(this)">  
+     <select id="pspatomslibrary" 
+             title=": set text pspatomslibrary :"
+             onChange="addpawatoms()">
         <option value="development_psps">development_psps psp library</option>
         <option value="HGH_LDA">HGH_LDA psp library</option>
         <option value="TETER">TETER psp library</option>
@@ -13213,49 +13273,141 @@ ul, li {
         <option value="pspw_new">pspw_new psp library</option>
         <option value="pspw_old">pspw_old psp library</option>
         <option value="pspw_default">pspw_default psp library</option>
-     </select>: <input type="text" name="pspatoms" id="pspatoms" size=24 value = "" onChange="addpawatoms()" oninput="cacheInput(this)">  
+     </select>: <input type="text" 
+                       name="pspatoms" 
+                       id="pspatoms" 
+                       title=": set text pspatoms :"
+                       size=24 value = "" 
+                       onChange="addpawatoms()" 
+                       oninput="cacheInput(this)">  
 
     <table>
        <tr>
-          <td> charge:       <input type="number" name="nwchemcharge" id="nwchemcharge" size="3" min="-100" max="100" step="1" value="0" 
+          <td> charge:       <input type="number" 
+                                    name="nwchemcharge" 
+                                    id="nwchemcharge" 
+                                    title=": set number nwchemcharge  :"
+                                    size="3" min="-100" max="100" step="1" value="0" 
                                     onChange="changenwchemcharge()" oninput="cacheInput(this)">
-               multiplicity: <input type="number" name="nwchemmult" id="nwchemmult" size="3" min="1" max="100" step="1" value="1" 
-                                    onChange="changenwchemmult()" oninput="cacheInput(this)"> 
-               virtual:      <input type="number" name="nwchemvirt" id="nwchemvirt" size="3" min="0" max="100" step="1" value="0" 
-                                    onChange="changenwchemvirt()" oninput="cacheInput(this)"> 
-               Ewald rcut:   <input type="number" name="nwchemewald_rcut" id="nwchemewald_rcut" size="3" min="0.00" max="20.0" step="0.5" value="0" 
-                                    onChange="changenwchemewald_rcut()" oninput="cacheInput(this)"> 
-               Ewald ncut: <input type="number" name="nwchemewald_ncut" id="nwchemewald_ncut" size="3" min="0" max="20" step="1" value="0" onChange="changenwchemewald_ncut()"> 
-               <select id="parallelmapping3" onChange="changeparallelmapping3()" oninput="cacheInput(this)">
+               multiplicity: <input type="number" 
+                                    name="nwchemmult" 
+                                    id="nwchemmult" 
+                                    title=": set number nwchemmult  :"
+                                    size="3" min="1" max="100" step="1" value="1" 
+                                    onChange="changenwchemmult()" 
+                                    oninput="cacheInput(this)"> 
+               virtual:      <input type="number" 
+                                    name="nwchemvirt" 
+                                    id="nwchemvirt" 
+                                    title=": set number nwchemvirt  :"
+                                    size="3" min="0" max="100" step="1" value="0" 
+                                    onChange="changenwchemvirt()" 
+                                    oninput="cacheInput(this)"> 
+               Ewald rcut:   <input type="number" 
+                                    name="nwchemewald_rcut" 
+                                    id="nwchemewald_rcut" 
+                                    title=": set number nwchemewald_rcut  :"
+                                    size="3" min="0.00" max="20.0" step="0.5" value="0" 
+                                    onChange="changenwchemewald_rcut()" 
+                                    oninput="cacheInput(this)"> 
+               Ewald ncut: <input type="number" 
+                                  name="nwchemewald_ncut" 
+                                  id="nwchemewald_ncut" 
+                                  title=": set number nwchemewald_ncut  :"
+                                  size="3" min="0" max="20" step="1" value="0" 
+                                  onChange="changenwchemewald_ncut()"> 
+               <select id="parallelmapping3" 
+                       title=": set text parallelmapping3 :"
+                       onChange="changeparallelmapping3()" 
+                       oninput="cacheInput(this)">
                   <option value="default">default</option>
                   <option value="1d-slab">1d-slab</option>
                   <option value="2d-hilbert">2d-hilbert</option>
                   <option value="2d-hcurve" selected>2d-hcurve</option>
                </select>
-               np_dimensions: <input type="number" name="nwchemnp_dim1" id="nwchemnp_dim1" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()" oninput="cacheInput(this)"> 
-                              <input type="number" name="nwchemnp_dim2" id="nwchemnp_dim2" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()" oninput="cacheInput(this)"> 
+               np_dimensions: <input type="number" 
+                                     name="nwchemnp_dim1" 
+                                     id="nwchemnp_dim1" 
+                                     title=": set number nwchemp_dim1  :"
+                                     size="2" min="-1" max="128" step="1" value="-1" 
+                                     onChange="changenwchemnp_dim()" 
+                                     oninput="cacheInput(this)"> 
+                              <input type="number" 
+                                     name="nwchemnp_dim2" 
+                                     id="nwchemnp_dim2" 
+                                     title=": set number nwchemp_dim2  :"
+                                     size="2" min="-1" max="128" step="1" value="-1" 
+                                     onChange="changenwchemnp_dim()" 
+                                     oninput="cacheInput(this)"> 
                <div id="monkhorst_input_on">
-                              <input type="number" name="nwchemnp_dim3" id="nwchemnp_dim3" size="2" min="-1" max="128" step="1" value="-1" onChange="changenwchemnp_dim()" oninput="cacheInput(this)"> 
-               Monkhorst-Pack: <input type="number" name="nwchemmp1" id="nwchemmp1" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()" oninput="cacheInput(this)">
-                               <input type="number" name="nwchemmp2" id="nwchemmp2" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()" oninput="cacheInput(this)">
-                               <input type="number" name="nwchemmp3" id="nwchemmp3" size="2" min="1" max="50" step="1" value="1" onChange="changenwchemmp()" oninput="cacheInput(this)"> 
-               dbz(len)_min: <input type="number" name="nwchemmpmin" id="nwchemmpmin" size="2" min="0" max="5" step="0.1" value="0.6" onChange="changenwchemmpmin()" oninput="cacheInput(this)">
+                              <input type="number" 
+                                     name="nwchemnp_dim3" 
+                                     id="nwchemnp_dim3" 
+                                     title=": set number nwchemp_dim3 :"
+                                     size="2" min="-1" max="128" step="1" value="-1" 
+                                     onChange="changenwchemnp_dim()" 
+                                     oninput="cacheInput(this)"> 
+               Monkhorst-Pack: <input type="number" 
+                                      name="nwchemmp1" 
+                                      id="nwchemmp1" 
+                                      title=": set number nwchemmp1 :"
+                                      size="2" min="1" max="50" step="1" value="1" 
+                                      onChange="changenwchemmp()" 
+                                      oninput="cacheInput(this)">
+                               <input type="number" 
+                                      name="nwchemmp2" 
+                                      id="nwchemmp2" 
+                                      title=": set number nwchemmp2 :"
+                                      size="2" min="1" max="50" step="1" value="1" 
+                                      onChange="changenwchemmp()" 
+                                      oninput="cacheInput(this)">
+                               <input type="number" 
+                                      name="nwchemmp3" 
+                                      id="nwchemmp3" 
+                                      title=": set number nwchemmp3 :"
+                                      size="2" min="1" max="50" step="1" value="1" 
+                                      onChange="changenwchemmp()" 
+                                      oninput="cacheInput(this)"> 
+               dbz(len)_min: <input type="number" 
+                                    name="nwchemmpmin" 
+                                    id="nwchemmpmin" 
+                                    title=": set number nwchemmpmin :"
+                                    size="2" min="0" max="5" step="0.1" value="0.6" 
+                                    onChange="changenwchemmpmin()" 
+                                    oninput="cacheInput(this)">
                </div>
           </td>
        </tr>
        <tr>
-          <td> <select id="nwchemoptimizer" onChange="changenwchemoptimizer()" oninput="cacheInput(this)">
+          <td> <select id="nwchemoptimizer" 
+                       title=": set text nwchemoptimizer  :"
+                       onChange="changenwchemoptimizer()" 
+                       oninput="cacheInput(this)">
                   <option value="lmbfgs grassman">Grassman lmbfgs</option>
                   <option value="cg grassman">Grassman cg</option>
                   <option value="lmbfgs stiefel">Stiefel lmfgs</option>
                   <option value="cg stiefel">Stiefel cg</option>
                   <option value="scf">scf</option>
                </select>
-               loop: <input type="number" name="nwcheminner_loop" id="nwcheminner_loop" size="1" min="1" max="1000" step="1" value="10" onChange="changenwcheminner_loop()" oninput="cacheInput(this)">
-                     <input type="number" name="nwchemouter_loop" id="nwchemouter_loop" size="1" min="1" max="1000" step="10" value="100" onChange="changenwchemouter_loop()" oninput="cacheInput(this)">
+               loop: <input type="number" 
+                            name="nwcheminner_loop" 
+                            id="nwcheminner_loop" 
+                            title=": set number nwcheminner_loop  :"
+                            size="1" min="1" max="1000" step="1" value="10" 
+                            onChange="changenwcheminner_loop()" 
+                            oninput="cacheInput(this)">
+                     <input type="number" 
+                            name="nwchemouter_loop" 
+                            id="nwchemouter_loop" 
+                            title=": set number nwchemouter_loop  :"
+                            size="1" min="1" max="1000" step="10" value="100" 
+                            onChange="changenwchemouter_loop()" 
+                            oninput="cacheInput(this)">
                <div id="scf_input_on">
                scf options:
-               <select id="nwchemscfopt" oninput="cacheInput(this)">
+               <select id="nwchemscfopt" 
+                       title=": set text nwchemscfopt  :"
+                       oninput="cacheInput(this)">
                   <option value="block-cg precondition">preconditioned block-cg</option>
                   <option value="cg precondition">preconditioned cg</option>
                   <option value="rmm-diis precondition">preconditioned rmm-diis</option>
@@ -13263,27 +13415,55 @@ ul, li {
                   <option value="cg">cg</option>
                   <option value="rmm-diis">rmm-diis</option>
                </select>
-               ks_iterations: <input type="number" name="nwcheminner_ksit" id="nwcheminner_ksit" size="1" min="1" max="1000" step="1" value="10" onChange="changenwcheminner_ksit()" oninput="cacheInput(this)">
-                              <input type="number" name="nwchemouter_ksit" id="nwchemouter_ksit" size="1" min="1" max="1000" step="1" value="10" onChange="changenwchemouter_ksit()">
-               <select id="nwchemscfmixing" oninput="cacheInput(this)">
+               ks_iterations: <input type="number" 
+                                     name="nwcheminner_ksit" 
+                                     id="nwcheminner_ksit" 
+                                     title=": set number nwcheminner_ksit :"
+                                     size="1" min="1" max="1000" step="1" value="10" 
+                                     onChange="changenwcheminner_ksit()" 
+                                     oninput="cacheInput(this)">
+                              <input type="number" 
+                                     name="nwchemouter_ksit" 
+                                     id="nwchemouter_ksit" 
+                                     title=": set number nwchemouter_ksit :"
+                                     size="1" min="1" max="1000" step="1" value="10" 
+                                     onChange="changenwchemouter_ksit()">
+               <select id="nwchemscfmixing" 
+                       title=": set text nwchemscfmixing :"
+                       oninput="cacheInput(this)">
                   <option value="diis">diis</option>
                   <option value="anderson">anderson</option>
                   <option value="broyden">broyden</option>
                   <option value="simple">simple</option>
                </select>
-               <select id="nwchemscfmixingtype">
+               <select id="nwchemscfmixingtype"
+                       title=": set text nwchemscfmixingtype :" >
                   <option value="density">density mixing</option>
                   <option value="potential">potential mixing</option>
                </select>
-               ks_alpha: <input type="number" name="nwchemks_alpha" id="nwchemks_alpha" size="2" min="0.00" max="1.0" step="0.01" value="0.05" onChange="changenwchemks_alpha()" oninput="cacheInput(this)"> 
-               kerker: <input type="number" name="nwchemkerker" id="nwchemkerker" size="2" min="0.00" max="100.0" step="0.50" value="0.00" onChange="changenwchemkerker()" oninput="cacheInput(this)"> 
+               ks_alpha: <input type="number" 
+                                name="nwchemks_alpha" 
+                                id="nwchemks_alpha" 
+                                title=": set number nwchemks_alpha :"
+                                size="2" min="0.00" max="1.0" step="0.01" value="0.05" 
+                                onChange="changenwchemks_alpha()" 
+                                oninput="cacheInput(this)"> 
+               kerker: <input type="number" 
+                              name="nwchemkerker" 
+                              id="nwchemkerker" 
+                              title=": set number nwchemkerker :"
+                              size="2" min="0.00" max="100.0" step="0.50" value="0.00" 
+                              onChange="changenwchemkerker()" 
+                              oninput="cacheInput(this)"> 
                </div>
           </td>
        </tr>
        <tr>
           <td> 
               Born Model <input type="radio" id="nwchem_born" onClick="ClearRd(this,7)" title="include Born solvation"/>
-              <select id="nwchemfractional" onChange="changenwchemfractional()">
+              <select id="nwchemfractional" 
+                      title=": set text nwchemfractional :"
+                      onChange="changenwchemfractional()">
                   <option value="No fractional">No fractional</option>
                   <option value="Fixed">Fixed fractional</option>
                   <option value="Stepped">Stepped fractional</option>
@@ -13291,20 +13471,60 @@ ul, li {
                   <option value="Gaussian">Gaussian fractional</option>
                   <option value="Marzari-Vanderbilt">Marzari-Vanderbilt fractional</option>
                </select>
-               <div id="fractional_input_on"> temperature(K): <input type="number" name="nwchemkfractional_temperature" id="nwchemfractional_temperature" size="3" min="0.0" max="50000.0" step="10.0" value="300.0" onChange="changenwchemfractional_temperature()" oninput="cacheInput(this)"> 
-               alpha: <input type="number" name="nwchemkfractional_alpha" id="nwchemfractional_alpha" size="2" min="0.00" max="1.00" step="0.01" value="0.25" onchange="changenwchemfractional_alpha()" oninput="cacheInput(this)"> 
-               extra orbitals: <input type="number" name="nwchemkfractional_orbitals" id="nwchemfractional_orbitals" size="2" min="0" max="50" step="1" value="5" onchange="changenwchemfractional_orbitals()" oninput="cacheInput(this)">  </div>
+               <div id="fractional_input_on"> temperature(K): <input type="number" 
+                                                                     name="nwchemkfractional_temperature" 
+                                                                     id="nwchemfractional_temperature" 
+                                                                     title=": set number nwchemfractional_temperature :"
+                                                                     size="3" min="0.0" max="50000.0" step="10.0" value="300.0" 
+                                                                     onChange="changenwchemfractional_temperature()" 
+                                                                     oninput="cacheInput(this)"> 
+               alpha: <input type="number" 
+                             name="nwchemkfractional_alpha" 
+                             id="nwchemfractional_alpha" 
+                             title=": set number nwchemfractional_alpha :"
+                             size="2" min="0.00" max="1.00" step="0.01" value="0.25" 
+                             onchange="changenwchemfractional_alpha()" 
+                             oninput="cacheInput(this)"> 
+               extra orbitals: <input type="number" 
+                                      name="nwchemkfractional_orbitals" 
+                                      id="nwchemfractional_orbitals" 
+                                      title=": set number nwchemfractional_orbitals :"
+                                      size="2" min="0" max="50" step="1" value="5" 
+                                      onchange="changenwchemfractional_orbitals()" 
+                                      oninput="cacheInput(this)">  
+               </div>
 
-               <select id="nwchemefieldtype" onchange="changenwchemefieldtype()" oninput="cacheInput(this)">
+               <select id="nwchemefieldtype" 
+                        title=": set text nwchemfieldtype :"
+                       onchange="changenwchemefieldtype()" 
+                       oninput="cacheInput(this)">
                   <option value="No efield">No efield</option>
                   <option value="periodic efield">periodic efield</option>
                   <option value="realspace efield">real space efield</option>
                   <option value="APC efield">APC efield</option>
                </select>: 
                <div id="efield_input_on"> 
-                  <input type="number" name="nwchemefield1" id="nwchemefield1" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()" oninput="cacheInput(this)">
-                  <input type="number" name="nwchemefield2" id="nwchemefield2" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()" oninput="cacheInput(this)">
-                  <input type="number" name="nwchemefield3" id="nwchemefield3" size="2" min="0.000" max="5.000" step="0.01" value="0.000" onchange="changenwchemefield()" oninput="cacheInput(this)"> 
+                  <input type="number" 
+                         name="nwchemefield1" 
+                         id="nwchemefield1" 
+                         title=": set text nwchemfield1 :"
+                         size="2" min="0.000" max="5.000" step="0.01" value="0.000" 
+                         onchange="changenwchemefield()" 
+                         oninput="cacheInput(this)">
+                  <input type="number" 
+                         name="nwchemefield2" 
+                         id="nwchemefield2" 
+                         title=": set text nwchemfield2 :"
+                         size="2" min="0.000" max="5.000" step="0.01" value="0.000" 
+                         onchange="changenwchemefield()" 
+                         oninput="cacheInput(this)">
+                  <input type="number" 
+                         name="nwchemefield3" 
+                         id="nwchemefield3" 
+                         title=": set text nwchemfield3 :"
+                         size="2" min="0.000" max="5.000" step="0.01" value="0.000" 
+                         onchange="changenwchemefield()" 
+                         oninput="cacheInput(this)"> 
                </div>
           </td>
        </tr>
@@ -13332,25 +13552,61 @@ ul, li {
     <table>
        <tr>
           <td>
-             translation off <input type="radio" id="nwchem_translation_off" onClick="ClearRd(this,10)" oninput="cacheInput(this)" title="include translation off"/>
-             rotation off    <input type="radio" id="nwchem_rotation_off"    onClick="ClearRd(this,11)" oninput="cacheInput(this)" title="include rotation off"/>
+             translation off <input type="radio" 
+                                    id="nwchem_translation_off" 
+                                    onClick="ClearRd(this,10)" 
+                                    oninput="cacheInput(this)" 
+                                    title="include translation off"/>
+             rotation off    <input type="radio" 
+                                    id="nwchem_rotation_off"    
+                                    onClick="ClearRd(this,11)" 
+                                    oninput="cacheInput(this)" 
+                                    title="include rotation off"/>
           </td>
        </tr>
        <tr>
-          <td> temperature(K):<input type="number" name="nwchemmdtemperature" id="nwchemmdtemperature" size="1" min="10.0" max="52190.9" step="10.0" value="300.0" 
-                                      oninput="cacheInput(this)">
-               fake_mass(au): <input type="number" name="nwchemmdfakemass" id="nwchemmdfakemass" size="1" min="1" max="52190.9" step="1.0" value="750.0" 
+          <td> temperature(K):<input type="number" 
+                                     name="nwchemmdtemperature" 
+                                     id="nwchemmdtemperature" 
+                                     title=": set number nwchemmdtemperature :"
+                                     size="1" min="10.0" max="52190.9" step="10.0" value="300.0" 
                                      oninput="cacheInput(this)">
-               time_step(au): <input type="number" name="nwchemmdtimestep" id="nwchemmdtimestep" size="1" min="0.01" max="100.0" step="0.5" value="5.0" 
+               fake_mass(au): <input type="number" 
+                                     name="nwchemmdfakemass" 
+                                     id="nwchemmdfakemass" 
+                                     title=": set number nwchemmdfakemass :"
+                                     size="1" min="1" max="52190.9" step="1.0" value="750.0" 
                                      oninput="cacheInput(this)">
-               md_loop:       <input type="number" name="nwchemmdinner_loop" id="nwchemmdinner_loop" size="1" min="0" max="1000" step="5" value="10" 
+               time_step(au): <input type="number" 
+                                     name="nwchemmdtimestep" 
+                                     id="nwchemmdtimestep" 
+                                     title=": set number nwchemmdtimestep :"
+                                     size="1" min="0.01" max="100.0" step="0.5" value="5.0" 
                                      oninput="cacheInput(this)">
-                              <input type="number" name="nwchemmdouter_loop" id="nwchemmdouter_loop" size="1" min="0" max="100000" step="100" value="100" 
-                                      oninput="cacheInput(this)">
-               total_time(ps):<input type="number" name="nwchemmdtime" id="nwchemmdtime" size="1" min="0.1" max="9000.0" step="0.5" value="10.0" 
+               md_loop:       <input type="number" 
+                                     name="nwchemmdinner_loop" 
+                                     id="nwchemmdinner_loop" 
+                                     title=": set number nwchemmdinner_loop :"
+                                     size="1" min="0" max="1000" step="5" value="10" 
                                      oninput="cacheInput(this)">
-               motion_label: <input type="text" name="nwchemmdlabel" id="nwchemmdlabel" size="10" value="tequil" 
+                              <input type="number" 
+                                     name="nwchemmdouter_loop" 
+                                     id="nwchemmdouter_loop" 
+                                     title=": set number nwchemmdouter_loop :"
+                                     size="1" min="0" max="100000" step="100" value="100" 
                                      oninput="cacheInput(this)">
+               total_time(ps):<input type="number" 
+                                     name="nwchemmdtime" 
+                                     id="nwchemmdtime" 
+                                     title=": set number nwchemmdtime :"
+                                     size="1" min="0.1" max="9000.0" step="0.5" value="10.0" 
+                                     oninput="cacheInput(this)">
+               motion_label: <input type="text" 
+                                    name="nwchemmdlabel" 
+                                    id="nwchemmdlabel" 
+                                    title=": set text nwchemmdlabel :"
+                                    size="10" value="tequil" 
+                                    oninput="cacheInput(this)">
           </td>
        </tr>
     </table>
@@ -13533,12 +13789,20 @@ ul, li {
                             </tr>
                          </table>
                          <input type="button" class="button3" value="trans_selected"  onClick="jmreset()"/> 
-                         <input type="3array" id="translate_smiles"  size="21" oninput="cacheInput(this)">
+                         <input type="3array" 
+                                id="translate_smiles"  
+                                title=": set text translate_smiles :"
+                                size="21" 
+                                oninput="cacheInput(this)">
                          <input type="button" VALUE="Solvate" onClick="solvateurltojsmol()" title="Load xyz data from url into jsmol"/>
                          <br>
                          <input type="button" VALUE="Load esmiles" onClick="loadurltojsmol(false)" title="Load xyz data from url into jsmol"/>
                          <input type="button" VALUE="Append" onClick="loadurltojsmol(true)" title="Append xyz data from url into jsmol"/>
-                         <input type="url" id="urlToLoad2" SIZE=22 oninput="cacheInput(this)"/>
+                         <input type="url" 
+                                id="urlToLoad2" 
+                                title=": set text urlToLoad2 :"
+                                SIZE=22 
+                                oninput="cacheInput(this)"/>
                          <br>
                          <b style="color: blue; font-size: 14px;" id="runmebanner4b"></b>
                          <br>
@@ -13546,7 +13810,11 @@ ul, li {
                          <input type="button" class="button2" value="Bylaska MD" onClick="myoptimizer()"/>
                          <b id="md_banner" style="color: blue">0 iter.</b>
                          <br>
-                         <textarea  name="MD_parameters" id="MD_parameters" rows="4" cols="40" oninput="cacheInput(this)"></textarea>
+                         <textarea  name="MD_parameters" 
+                                    id="MD_parameters" 
+                                    rows="4" cols="40" 
+                                    title=": set text MD_parameters :"
+                                    oninput="cacheInput(this)"></textarea>
                          <br>
                          <input type="button" value="Next model" onClick="loadframe2jsmol(false,false,0)" title="Next xyzframe"/>
                          <input type="button" value="Previous model" onClick="prevframe2jsmol(true,false)" title="Previous xyzframe"/>
