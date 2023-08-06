@@ -23,6 +23,8 @@ Supercell $arg8 $arg8 1;
 Previous frame;
 
 Append frame 3;
+
+
 Generate solvated wham input 1.0;
 Next frame 0;
 Delete frame;

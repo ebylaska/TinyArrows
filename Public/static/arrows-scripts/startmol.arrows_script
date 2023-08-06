@@ -1,0 +1,11 @@
+default_args: "TNT + hydroxide --> TNT-2-OH + nitrite" 0.1 -4.0 5.0 :default_args
+
+Set text reaction_genhash00 $arg1;
+Set number umbrella_spring $arg2;
+Set number umbrella_gamma $arg3;
+Set text translate_reactants 0 0 $arg4;
+Build reactants from chemical reaction;
+Generate chemical reaction hash;
+Search reaction constraints using reaction hash;
+Generate wham model;
+
