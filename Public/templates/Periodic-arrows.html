@@ -819,6 +819,23 @@ ul, li {
          jmaddsmiles(vvv,2);
          //finish_Thomas_command("Thomas add smiles");
       }
+      else if ((txt.includes("previous")) && (txt.includes("frame")) ) {  
+         document.getElementById('apirunning').value += "+ running jsmol script\n";
+         var ScriptCallback_scpt = 'set echoCallback \"hScriptCallback\";';
+         jms0(ScriptCallback_scpt);
+
+         Text2Speech0(txt0);
+         prevframe2jsmol(true,false);
+      }
+      else if ((txt.includes("next")) && (txt.includes("frame")) ) {  
+         document.getElementById('apirunning').value += "+ running jsmol script\n";
+         var ScriptCallback_scpt = 'set echoCallback \"hScriptCallback\";';
+         jms0(ScriptCallback_scpt);
+
+         Text2Speech0(txt0);
+         var vvv = txt0.split("frame")[1].trim();
+         loadframe2jsmol(false,false,parseInt(vvv));
+      }
       else if ((txt.includes("new")) && (txt.includes("frame")) ) {  
          document.getElementById('apirunning').value += "+ running jsmol script\n";
          var ScriptCallback_scpt = 'set echoCallback \"hScriptCallback\";';
