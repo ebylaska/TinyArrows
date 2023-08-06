@@ -1,0 +1,30 @@
+default_args: "TNT + hydroxide --> TNT-2-OH + nitrite" 0.1 -4.0 10.0  C 2.46 30.0 5 :default_args
+
+Set text reaction_genhash00 $arg1;
+Set number umbrella_spring $arg2;
+Set number umbrella_gamma $arg3;
+Set text translate_reactants 0 0 $arg4;
+Build reactants from chemical reaction;
+Generate chemical reaction hash;
+Search reaction constraints using reaction hash;
+Generate wham model;
+
+New frame 0;
+
+Set text bulk_name $arg5;
+Set number bulk_a $arg6;
+Set number bulk_c 0.0;
+Set number bulk_c $arg7;
+Set text bulk_type graphene;
+Set radio bulk_cubic false;
+Generate bulk crystal;
+Supercell $arg8 $arg8 1;
+
+Previous frame;
+
+Append frame 3;
+Generate solvated wham input 1.0;
+Next frame 0;
+Delete frame;
+
+
