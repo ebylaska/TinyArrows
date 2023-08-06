@@ -1,0 +1,24 @@
+
+# Outputs
+*.out
+*.check
+*.xyz
+*.smi
+*.mol
+*.nw
+
+# directories
+Public/counters/*
+backup/*
+Public/static/tmp/*
+Public/templates/tmp/
+Work/ESMILES_CACHE/*
+
+
+# Misc
+.DS_Store
+README.md
+*.gz
+*.sql
+*.sqlite
+*.bak

@@ -25,6 +25,8 @@ Previous frame;
 Append frame 3;
 
 
+Set text basis_type 100 Ry;
+
 Generate solvated wham input 1.0;
 Next frame 0;
 Delete frame;
