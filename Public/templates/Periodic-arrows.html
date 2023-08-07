@@ -5502,7 +5502,7 @@ ul, li {
            document.getElementById("centercell0").value = "Origin";
            document.getElementById("centercell1").value = "Origin";
 
-           var xyz = textFromUrl.split("geometry noautosym noautoz")[1].split("end")[0].trim();
+           var xyz = textFromUrl.split("geometry noautosym nocenter noautoz")[1].split("end")[0].trim();
            var nion = xyz.split("\n").length;
            var xyzdat = nion + "\n\n" + xyz;
 
@@ -5715,7 +5715,7 @@ ul, li {
            document.getElementById("centercell0").value = "Origin";
            document.getElementById("centercell1").value = "Origin";
 
-           var xyz = textFromUrl.split("geometry noautosym noautoz")[1].split("end")[0].trim();
+           var xyz = textFromUrl.split("geometry noautosym nocenter noautoz")[1].split("end")[0].trim();
            var nion = xyz.split("\n").length;
            var xyzdat = nion + "\n\n" + xyz;
 

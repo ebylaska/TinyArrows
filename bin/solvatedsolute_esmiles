@@ -745,7 +745,7 @@ def main():
      print("#permanent_dir ./perm")
      print("#scratch_dir   ./perm\n")
      print("charge %d" % (solute_q))
-     print("geometry noautosym noautoz")
+     print("geometry noautosym nocenter noautoz")
      for a in newatoms:
         print("%s  %.6f %.6f %.6f" % (a[0],a[1],a[2],a[3]))
      print("end\n")
