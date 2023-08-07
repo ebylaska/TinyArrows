@@ -9,6 +9,7 @@
 
 # directories
 Public/counters/*
+Public/counters/apivisited
 backup/*
 Public/static/tmp/*
 Public/templates/tmp/

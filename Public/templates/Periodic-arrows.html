@@ -12795,19 +12795,59 @@ ul, li {
        editor.session.setUseWrapMode(true);
     </script>
     
-    <input type="button" VALUE="NWChem Format" onClick="convert2geometry(false)" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="XYZ" onClick="convert2XYZ()" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="CIF" onClick="convert2geometry(true)" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="vim" onClick="editor.setKeyboardHandler('ace/keyboard/vim');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="emacs" onClick="editor.setKeyboardHandler('ace/keyboard/emacs');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="ace" onClick="editor.setKeyboardHandler('');" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
-    screen lock<input type="radio" id="editor_lock" onClick="ClearRd(this,9); set_lock();" title="editor lock"/>
+    <input type="button" 
+           VALUE="NWChem Format" 
+           onClick="convert2geometry(false)" 
+           style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="XYZ" 
+           onClick="convert2XYZ()" 
+           style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="CIF" 
+           onClick="convert2geometry(true)" 
+           style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="vim" 
+           onClick="editor.setKeyboardHandler('ace/keyboard/vim');" 
+           style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="emacs" 
+           onClick="editor.setKeyboardHandler('ace/keyboard/emacs');" 
+           style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="ace" onClick="editor.setKeyboardHandler('');" 
+           style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    screen lock<input type="radio" 
+                      id="editor_lock" 
+                      onClick="ClearRd(this,9); set_lock();" 
+                      title="editor lock"/>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    <input type="button" class="rbutton4" id="nwchemsplit" value="Split NWChem" onClick="nwinputsplit()" style="background-color:#f8f8ff; color:green;"/>
-    <input type="button" class="button4" value="Add ### restart here ###" onClick="editor.session.insert(editor.selection.getCursor(),'\n### restart here ###\n\n')"  style="background-color:#f8f8ff; color:green;"/>
-    <input type="button" VALUE="Submit Thomas" onClick="submit_Thomas()" title="Submit NWChem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="Split Submit NWChem" onClick="submit_splitnwchemjob2(dummy_callback)" title="Submit NWChem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="Submit NWChem" onClick="submit_nwchemjob2(dummy_callback)" title="Submit NWChem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           class="rbutton4" 
+           id="nwchemsplit" 
+           value="Split NWChem" 
+           onClick="nwinputsplit()" 
+           style="background-color:#f8f8ff; color:green;"/>
+    <input type="button" 
+           class="button4" 
+           value="Add ### restart here ###" 
+           onClick="editor.session.insert(editor.selection.getCursor(),'\n### restart here ###\n\n')"  
+           style="background-color:#f8f8ff; color:green;"/>
+    <input type="button" 
+           VALUE="Submit Thomas" 
+           onClick="submit_Thomas()" title="Submit NWChem" 
+           style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="Split Submit NWChem" 
+           onClick="submit_splitnwchemjob2(dummy_callback)" 
+           title="Submit NWChem" 
+           style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="Submit NWChem" 
+           onClick="submit_nwchemjob2(dummy_callback)" 
+           title="Submit NWChem" 
+           style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
     <br><br>
     Machine:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <input type="text" 
@@ -12897,23 +12937,51 @@ ul, li {
                 <option value="samsung">samsung</option>
               </datalist>
     
-    <input type="button" VALUE="Arrows Queue Label:" onClick="setQueueLabel()" style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="Arrows Queue Label:" 
+           onClick="setQueueLabel()" 
+           style="background-color:#f8f8ff; color:#00000f; font-size: 14px; font-weight:bold"/>
     &nbsp;
-    <input type="text" name="Label" id="queue_nwchem_label" title=": set text queue_nwchem_label :"  size=45> 
-    QWAIT:: <input type="text" name="Label" id="queue_wait_label" title=": set text queue_wait_label :" >
+    <input type="text" 
+           name="Label" 
+           id="queue_nwchem_label" 
+           title=": set text queue_nwchem_label :"  size=45> 
+    QWAIT:: <input type="text" 
+                   name="Label" 
+                   id="queue_wait_label" 
+                   title=": set text queue_wait_label :" >
     &nbsp;&nbsp;&nbsp;&nbsp;
     <a href="{{ arrows_api }}queue_nwchem_check/nwchem">Check submited jobs</a>
     <br>
     <section class="marquee" style="color: red"> <b id="runmebanner3"> </b> </section>
     <section class="marquee" style="color: black"> <b id="runmebanner3b"> </b> </section>
     <br>
-    <input type="button" VALUE="Save to file" onClick="editorsave()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
-    <input type="button" VALUE="Load selected file" onClick="loadfiletoeditor()" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
-    <input type="file" id="fileToLoad" style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"><br>
-    <input type="button" VALUE="Save to url" onClick="saveeditortourl()" title="Save data from editor into url" style="background-color:#f8f8ff; color:darkred; font-size: 14px; font-weight:bold"/>
-    <input type="url" id="urlToLoad" SIZE=111 style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold">
-    <input type="button" VALUE="Load from url" onClick="loadurltoeditor()" 
-           title="Load data from url into editor" style="background-color:#f8f8ff; color:darkgreen; font-size: 14px; font-weight:bold"/><br>
+    <input type="button" 
+           VALUE="Save to file" 
+           onClick="editorsave()" 
+           style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+    <input type="button" 
+           VALUE="Load selected file" 
+           onClick="loadfiletoeditor()" 
+           style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"/>
+    <input type="file" 
+           id="fileToLoad" 
+           style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold"><br>
+    <input type="button" 
+           VALUE="Save to url" 
+           onClick="saveeditortourl()" 
+           title="Save data from editor into url" 
+           style="background-color:#f8f8ff; color:darkred; font-size: 14px; font-weight:bold"/>
+    <input type="url" 
+           id="urlToLoad" 
+           title=": set text urlToLoad :" 
+           SIZE=111 
+           style="background-color:#f8f8ff; color:#298DB4; font-size: 14px; font-weight:bold">
+    <input type="button" 
+           VALUE="Load from url" 
+           title="Load data from url into editor" 
+           onClick="loadurltoeditor()" 
+           style="background-color:#f8f8ff; color:darkgreen; font-size: 14px; font-weight:bold"/><br>
     
 
     <h4> Simulation directories </h4>
@@ -13623,12 +13691,31 @@ ul, li {
        <!--  start of jsmol block -->
        <tr>
           <td>
-             <input type="button" VALUE="&#8599; JSMol to Editor" onClick="jmoltoeditor()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-             <input type="button" VALUE="Editor to JSMol &#8601;" onClick="jmloadxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-             <input type="button" VALUE="Editor append to JSMol &#8601;" onClick="jmappendxyz()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-             <input type="button" VALUE="&#8598; Editor trajectory to JSMol models" onClick="jmloadtraj()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-             <input type="button" value="Reset pointer"  onClick="jmresetPointer()" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-              <input type="button" class="button" id="showcell1"   value="Unit cell on" onClick="jmshowcell()"/>
+             <input type="button" 
+                    VALUE="&#8599; JSMol to Editor" 
+                    onClick="jmoltoeditor()" 
+                    style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+             <input type="button" 
+                    VALUE="Editor to JSMol &#8601;" 
+                    onClick="jmloadxyz()" 
+                    style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+             <input type="button" 
+                    VALUE="Editor append to JSMol &#8601;" 
+                    onClick="jmappendxyz()" 
+                    style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+             <input type="button" 
+                    VALUE="&#8598; Editor trajectory to JSMol models" 
+                    onClick="jmloadtraj()" 
+                    style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+             <input type="button" 
+                    value="Reset pointer"  
+                    onClick="jmresetPointer()" 
+                    style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
+              <input type="button" 
+                     class="button" 
+                     id="showcell1"   
+                     value="Unit cell on" 
+                     onClick="jmshowcell()"/>
           </td>
           <td>
              <!--p style="text-align:left"-->
