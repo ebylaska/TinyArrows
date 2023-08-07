@@ -10,6 +10,7 @@ Set text bulk_type graphene;
 Set radio bulk_cubic false;
 Generate bulk crystal;
 Supercell $arg4 $arg4 1;
+nsurface frame;
 
 Previous frame;
 
