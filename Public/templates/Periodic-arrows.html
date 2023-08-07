@@ -2633,7 +2633,7 @@ ul, li {
         // ****************************
         function myid_set_nion(myid) {
            let xyzdat = jmvar("data({thisModel},\"xyz\")");
-           let nion = xyzdat.trim().split("\n").length;
+           let nion = parseInt(xyzdat.trim().split("\n").length);
            document.getElementById(myid).value = nion;
         }
 
@@ -5733,10 +5733,72 @@ ul, li {
            var jobname  = mformula+"-wham" + rgamma;
            //jobname = prompt("Please enter jobname:", jobname);
            //var jobname      = document.getElementById("queue_nwchem_jobname").value.replace("Add job label","").replace("None","").trim();
-           var nsolvent = textFromUrl.split("#number of water molecules  = ")[1].split("\n")[0].trim();
+
+           var nsolute  = parseInt(document.getElementById("umbrella_nsolute").value);
+           var nsurface = parseInt(document.getElementById("umbrella_nsurface").value);
+           var nsolvent = parseInt(textFromUrl.split("#number of water molecules  = ")[1].split("\n")[0].trim());
            document.getElementById("umbrella_nsolvent").value = nsolvent;
 
-           var x =  "#nwchem_input  " + jobname + ".nw\n";
+           var mm_tags = textFromUrl.split("mm_tags ")[1].split("\n")[0].trim();
+           var s_mm_tag = parseInt(mm_tags.split(":")[0].trim()) - nsurface;
+           var e_mm_tag = parseInt(mm_tags.split(":")[1].trim());
+           var new_mm_tags = s_mm_tag.toString() + ":" + e_mm_tag.toString();
+           console.log("nion     = ",nion);
+           console.log("nsolute  = ",nsolute);
+           console.log("nsurface = ",nsurface);
+           console.log("mm_tags  = " + mm_tags);
+           console.log("new_mm_tags = " + new_mm_tags);
+
+           var new_actlist = "set geometry:actlist 1:" + nsolute.toString() + " " 
+                          + textFromUrl.split("set geometry:actlist")[1].split("\n")[0].trim();
+           console.log("new_actlist = " + new_actlist);
+
+           // find frozen_surface atoms
+           var surfacemm = "\n";
+           if (nsurface>0) {
+              let xyzlines = xyz.split("\n");
+              //console.log("xyzlines=",xyzlines);
+              let solutes = [];
+              let surfaces = [];
+              let solvents = [];
+              let n1=nsolute;
+              let n2=nsolute+nsurface;;
+              let n3=nion;
+              for (let ii=0; ii<n1; ++ii) {
+                 let atomii = xyzlines[ii].split(" ")[0].trim();
+                 solutes.push(atomii);
+              }
+              for (let jj=n1; jj<n2; ++jj) {
+                 let atomjj = xyzlines[jj].split(" ")[0].trim();
+                 surfaces.push(atomjj);
+              }
+              for (let kk=n2; kk<n3; ++kk) {
+                 let atomkk = xyzlines[kk].split(" ")[0].trim();
+                 solvents.push(atomkk);
+              }
+              
+              const mysolutes  = Array.from(new Set(solutes));
+              const mysurfaces = Array.from(new Set(surfaces));
+              const mysolvents = Array.from(new Set(solvents));
+              for (let iii=0; iii<mysurfaces.length; ++iii){
+                 for (let jjj=0; jjj<mysolvents.length; ++jjj) {
+                    surfacemm += "      pair_ion_ion_parameters " + mysurfaces[iii] + "^ " + mysolvents[jjj] + "^  5 0.1 1.0 0.0 0.0\n";
+                 }
+              }
+              for (let iii=0; iii<mysurfaces.length; ++iii){
+                 for (let jjj=0; jjj<mysolutes.length; ++jjj) {
+                    surfacemm += "      pair_ion_ion_parameters " + mysurfaces[iii] + "^ " + mysolutes[jjj] + "   5 0.1 1.0 0.0 0.0\n";
+                 }
+              }
+              surfacemm += "\n";
+              surfacemm += "      fragment frozen_surface\n";
+              surfacemm += "         size " + nsurface.toString() + "\n";
+              surfacemm += "         index_start " + (nsolute+1).toString() + "\n";
+              surfacemm += "      end\n\n";
+           }
+           console.log("surfacemm=",surfacemm);
+
+           var x = "#nwchem_input  " + jobname + ".nw\n";
            x += "#nwchem_output " + jobname + ".out00\n";
            x += "#nwchem_done   " + jobname + ".done\n";
            x += "#\n";
@@ -5794,7 +5856,11 @@ ul, li {
 
            data += "\n\n";
            //data += "### restart here ###" + "\n";
-           data += "unset geometry:actlist" + "\n";
+           if (nsurface>0) {
+              data += new_actlist + "\n";
+           } else {
+              data += "unset geometry:actlist" + "\n";
+           }
 
            // add reaction constraint
            data += "\n### Adding reaction ###\n";
@@ -5831,6 +5897,12 @@ ul, li {
            data += "set nwpw:kbpp_ray    .true.\n";
            data += "set nwpw:kbpp_filter .true.\n";
            data += "task pspw energy" + "\n";
+
+           if (nsurface > 0) {
+               data = data.replace(mm_tags,new_mm_tags);
+               var ss = data.split("fragment spc");
+               data = ss[0] + surfacemm + "      fragment spc" + ss[1];
+           }
 
            editor.setValue(data,1);
            document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running solvatewhaminput\n","");
@@ -14202,7 +14274,7 @@ ul, li {
                                         size=1 min="0" max="10000" step="1"
                                         title="Thomas: set number umbrella_nsolute :" 
                                         oninput="cacheInput(this)">}
-                   <input type="button" VALUE="WHAM_nsolute" onClick="myid_set_nion('umbrella_nsurface');"
+                   <input type="button" VALUE="WHAM_nsurface" onClick="myid_set_nion('umbrella_nsurface');"
                              style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
                              title="append the number of nions"/>{<input type="number" 
                                         id="umbrella_nsurface" 
