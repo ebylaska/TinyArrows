@@ -869,10 +869,14 @@ ul, li {
          //finish_Thomas_command("Thomas append frame");
       }
       else if ((txt.includes("nsolute")) && (txt.includes("frame")) ) {  
-          myid_set_nion("umbrella_nsolute");
+         Text2Speech0(txt0);
+         myid_set_nion("umbrella_nsolute");
+         finish_Thomas_command("Thomas nsolute frame");
       }
       else if ((txt.includes("nsurface")) && (txt.includes("frame")) ) {  
-          myid_set_nion("umbrella_nsurface");
+         Text2Speech0(txt0);
+         myid_set_nion("umbrella_nsurface");
+         finish_Thomas_command("Thomas nsurface frame");
       }
       else if (txt.includes("append")) {  
          var mol = txt.replace("append","").trim();
@@ -2628,8 +2632,8 @@ ul, li {
         // *                          *
         // ****************************
         function myid_set_nion(myid) {
-           var xyzdat = jmvar("data({thisModel},\"xyz\")");
-           var nion = xyzdat.trim().split("\n").length;
+           let xyzdat = jmvar("data({thisModel},\"xyz\")");
+           let nion = xyzdat.trim().split("\n").length;
            document.getElementById(myid).value = nion;
         }
 
@@ -5729,6 +5733,8 @@ ul, li {
            var jobname  = mformula+"-wham" + rgamma;
            //jobname = prompt("Please enter jobname:", jobname);
            //var jobname      = document.getElementById("queue_nwchem_jobname").value.replace("Add job label","").replace("None","").trim();
+           var nsolvent = textFromUrl.split("#number of water molecules  = ")[1].split("\n")[0].trim();
+           document.getElementById("umbrella_nsolvent").value = nsolvent;
 
            var x =  "#nwchem_input  " + jobname + ".nw\n";
            x += "#nwchem_output " + jobname + ".out00\n";
