@@ -868,6 +868,12 @@ ul, li {
          loadframe2jsmol(false,true,parseInt(vvv));
          //finish_Thomas_command("Thomas append frame");
       }
+      else if ((txt.includes("nsolute")) && (txt.includes("frame")) ) {  
+          myid_set_nion("umbrella_nsolute");
+      }
+      else if ((txt.includes("nsurface")) && (txt.includes("frame")) ) {  
+          myid_set_nion("umbrella_nsurface");
+      }
       else if (txt.includes("append")) {  
          var mol = txt.replace("append","").trim();
          Text2Speech0(mol + " is appended");
@@ -2614,6 +2620,17 @@ ul, li {
            var scpt = "unitcell [{" + origin + "} {" + vec3_to_string3(a1) + "} {" + vec3_to_string3(a2) + "} {" + vec3_to_string3(a3) + "}];";
            if (centeron) { scpt += "unitcell {-0.5 -0.5 -0.5};"; }
            if (cellon) { jms0(scpt); }
+        }
+
+        // ****************************
+        // *                          *
+        // *      myid_set_nion       *
+        // *                          *
+        // ****************************
+        function myid_set_nion(myid) {
+           var xyzdat = jmvar("data({thisModel},\"xyz\")");
+           var nion = xyzdat.trim().split("\n").length;
+           document.getElementById(myid).value = nion;
         }
 
 
@@ -5423,6 +5440,11 @@ ul, li {
            return [dx/d, dy/d, dz/d];
         }
 
+        // ****************************************
+        // *                                      *
+        // *       finish_solvateurltojsmol       *
+        // *                                      *
+        // ****************************************
         function finish_solvateurltojsmol(textFromUrl) {
 
            //var machine = prompt("Please enter machine name:", "we31869");
@@ -5545,6 +5567,12 @@ ul, li {
            changenwchemcutoff();
         }
 
+
+        // ****************************************
+        // *                                      *
+        // *           solvateurltojsmol          *
+        // *                                      *
+        // ****************************************
         function solvateurltojsmol() {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
@@ -14161,12 +14189,16 @@ ul, li {
                                      title="Thomas: set number umbrella_gamma :" 
                                      oninput="cacheInput(this)">}
                    <br>
-                   WHAM_nsolute{<input type="number" 
+                   <input type="button" VALUE="WHAM_nsolute" onClick="myid_set_nion('umbrella_nsolute');"
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             title="append the number of nions"/>{<input type="number" 
                                         id="umbrella_nsolute" 
                                         size=1 min="0" max="10000" step="1"
                                         title="Thomas: set number umbrella_nsolute :" 
                                         oninput="cacheInput(this)">}
-                   WHAM_nsurface{<input type="number" 
+                   <input type="button" VALUE="WHAM_nsolute" onClick="myid_set_nion('umbrella_nsurface');"
+                             style="font-size:13px;background-color:#f8f8ff;color:#6F4E37"
+                             title="append the number of nions"/>{<input type="number" 
                                         id="umbrella_nsurface" 
                                         size=1 min="0" max="10000" step="1"
                                         title="Thomas: set number umbrella_nsurface :" 
