@@ -5635,12 +5635,13 @@ ul, li {
            ajax.send();
         }
 
+
+
         // ****************************************
         // *                                      *
         // *          finishsolvatewham           *
         // *                                      *
         // ****************************************
-
         function finish_solvatewham(textFromUrl,callback) {
 
            var rtype    = document.getElementById("reaction_type").value;
@@ -5805,15 +5806,11 @@ ul, li {
         }
 
 
-
-
-
         // ****************************************
         // *                                      *
         // *          solvatewhaminput            *
         // *                                      *
         // ****************************************
-
         function solvatewhaminput(molarity,callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
@@ -5903,8 +5900,6 @@ ul, li {
         function solvateborninput() {
            convert2geometry(false);
         }
-
-
 
 
 
@@ -14156,12 +14151,31 @@ ul, li {
 
                    <hr style="border: 1px dashed #102DB0;"/>
                    WHAM input - 
-                   WHAM_spring{<input type="number" id="umbrella_spring" value="0.3000" min="0.0000" max="100.0000" step="0.0010" 
-                                      title="Thomas: set number umbrella_spring :" oninput="cacheInput(this)">}
-                   WHAM_gamma{<input type="number" id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10" 
-                                     title="Thomas: set number umbrella_gamma :" oninput="cacheInput(this)">}
-                   WHAM_nsolvent{<input type="text" id="umbrella_nsolvent" size=3
-                                     title="Thomas: set number umbrella_nsolvent :" oninput="cacheInput(this)">}
+                   WHAM_spring{<input type="number" 
+                                      id="umbrella_spring" 
+                                      value="0.3000" min="0.0000" max="100.0000" step="0.0010" 
+                                      title="Thomas: set number umbrella_spring :" 
+                                      oninput="cacheInput(this)">}
+                   WHAM_gamma{<input type="number" 
+                                     id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10" 
+                                     title="Thomas: set number umbrella_gamma :" 
+                                     oninput="cacheInput(this)">}
+                   <br>
+                   WHAM_nsolute{<input type="number" 
+                                        id="umbrella_nsolute" 
+                                        size=1 min="0" max="10000" step="1"
+                                        title="Thomas: set number umbrella_nsolute :" 
+                                        oninput="cacheInput(this)">}
+                   WHAM_nsurface{<input type="number" 
+                                        id="umbrella_nsurface" 
+                                        size=1 min="0" max="10000" step="1"
+                                        title="Thomas: set number umbrella_nsurface :" 
+                                        oninput="cacheInput(this)">}
+                   WHAM_nsolvent{<input type="number" 
+                                        id="umbrella_nsolvent" 
+                                        size=1 min="0" max="1000000" step="1"
+                                        title="Thomas: set number umbrella_nsolvent :" 
+                                        oninput="cacheInput(this)">}
                    <br>
                    <input type="button" VALUE="Generate WHAM model" onClick="gen_wham_model(dummy_callback)" 
                           title="Generate a new xyz model by morphing 3 point reaction path"/>
