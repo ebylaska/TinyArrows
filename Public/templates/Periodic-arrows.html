@@ -5736,7 +5736,8 @@ ul, li {
 
            var nsolute  = parseInt(document.getElementById("umbrella_nsolute").value);
            var nsurface = parseInt(document.getElementById("umbrella_nsurface").value);
-           var nsolvent = parseInt(textFromUrl.split("#number of water molecules  = ")[1].split("\n")[0].trim());
+           //var nsolvent = parseInt(textFromUrl.split("#number of water molecules  = ")[1].split("\n")[0].trim());
+           var nsolvent = 3*parseInt(textFromUrl.split("#number of water molecules  = ").pop().split("\n")[0].trim());
            document.getElementById("umbrella_nsolvent").value = nsolvent;
 
            var mm_tags = textFromUrl.split("mm_tags ")[1].split("\n")[0].trim();
@@ -12581,6 +12582,18 @@ ul, li {
            }
         }
 
+        function changecurdir0() {
+           var pd   = document.getElementById("queue_nwchem_curdir0").value.trim();
+           var data = editor.getValue(); // or session.getValue
+           if (data.includes("#curdir0 ")) {
+              var data0 = "#curdir0 " + data.split("#curdir0 ")[1].split("\n")[0];
+              data = data.replace(data0,"#curdir0 " + pd);
+              editor.setValue(data,1);
+           }
+        }
+
+
+
         function definesecret() {
            var sc = document.getElementById("machine").value.trim();
            if ((sc=="etahoma") || (sc=="ccs-knl0") || (sc=="we31869") || (sc=="econstance") || (sc=="theta") || (sc=="erichome") || (sc=="ilton_tahoma")) { 
@@ -13101,8 +13114,13 @@ ul, li {
                </select>
          </td>
          <td>project name:</td>
-         <!--td> <input type="text" name="Label" id="queue_nwchem_projectname" size=30 value="PathOpt" oninput="cacheInput(this)"> </td-->
-         <td>  <select id="queue_nwchem_projectname"
+         <td> <input type="text" 
+                     name="Label" 
+                     id="queue_nwchem_projectname" 
+                     size=30 value="" 
+                     onChange="cacheInput(this)"> 
+         </td>
+         <!--td>  <select id="queue_nwchem_projectname"
                        style="font-size:13px;color:#6F4E37"
                        title=": set text projectname :" 
                        onChange="add_select_option0('Add project name','','queue_nwchem_projectname')"
@@ -13111,7 +13129,7 @@ ul, li {
                        <option>Add project name</option>
                        <option disabled>──────────</option>
                </select>
-         </td>
+         </td-->
          <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="include model number"/></td>
          <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="include date"/></td>
          <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="deletescratch option"/></td>
@@ -13120,18 +13138,16 @@ ul, li {
     <table>
        <tr>
          <td>curdir0:</td>
-         <!--td> <input type="text" list="queue_nwchem_curdir0_list" name="Label" id="queue_nwchem_curdir0" size=145 value="mymachine:/Projects/Simulations" oninput="cacheInput(this)"> </td-->
-           <td> <select id="queue_nwchem_curdir0"
-                    name="queue_nwchem_curdir0"
-                    style="font-size:13px;color:#6F4E37" 
-                    title=": set text queue_nwchem_curdir0 :" 
-                    onChange="add_select_option2('Add curdir0','','queue_nwchem_curdir0')"
-                    oninput="cacheInput(this)">
-                    <option>None</option>
-                    <option>Add curdir0</option> 
-                    <option disabled>──────────</option>
-                </select> 
-           </td>
+         <td> <input type="text" 
+                     oninput="cacheInput(this)" 
+                     name="Label" 
+                     id="queue_nwchem_curdir0" 
+                     size=145 
+                     value=""
+                     title=": set text queue_nwchem_curdir0 :" 
+                     onChange="changecurdir0()" >
+         </td>
+       <br>
        </tr>
        <tr>
           <td>permdir: </td> 
