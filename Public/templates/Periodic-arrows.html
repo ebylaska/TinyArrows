@@ -494,6 +494,25 @@ ul, li {
 
 
 
+   // **********************************
+   // *                                *
+   // *      submit_Script_Thomas      *
+   // *                                *
+   // **********************************
+   function submit_Script_Thomas() {
+     document.getElementById("speech2textbanner").value =  document.getElementById("scriptingtextbox").value;
+     resetfinalTranscript();
+     if (confirm("submit Thomas - run the Thomas script?")) {
+        returnfinalTranscript();
+     }
+   }
+
+
+   // **********************************
+   // *                                *
+   // *         submit_Thomas          *
+   // *                                *
+   // **********************************
    function submit_Thomas() {
      document.getElementById("speech2textbanner").value = editor.getValue();
      resetfinalTranscript();
@@ -660,40 +679,40 @@ ul, li {
       }
       else if (txt.includes("toggle") && txt.includes("builder")) { 
          openCity(event, 'Arrows Periodic 3D Builder'); 
-         SwapDivsWithClick(1,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3'); 
+         SwapDivsWithClick(1,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting'); 
          Text2Speech0("toggle builder");
          finish_Thomas_command("toggle builder"); }
       else if (txt.includes("toggle") && txt.includes("lattice")) { 
          openCity(event, 'Arrows Periodic 3D Builder'); 
-         SwapDivsWithClick(2,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3'); 
+         SwapDivsWithClick(2,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting'); 
          Text2Speech0("toggle lattice");
          finish_Thomas_command("toggle lattice"); }
       else if (txt.includes("toggle") && txt.includes("bulk")) { 
          openCity(event, 'Arrows Periodic 3D Builder'); 
-         SwapDivsWithClick(3,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3'); 
+         SwapDivsWithClick(3,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting'); 
          Text2Speech0("toggle bulk surface");
          finish_Thomas_command("toggle bulk surface"); }
       else if (txt.includes("toggle") && txt.includes("symmetry")) { 
          openCity(event, 'Arrows Periodic 3D Builder'); 
-         SwapDivsWithClick(4,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3'); 
+         SwapDivsWithClick(4,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting'); 
          Text2Speech0("toggle symmetry");
          finish_Thomas_command("toggle symmetry");
       }
       else if (txt.includes("toggle") && txt.includes("polyhedra")) { 
          openCity(event, 'Arrows Periodic 3D Builder'); 
-         SwapDivsWithClick(5,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3'); 
+         SwapDivsWithClick(5,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting'); 
          Text2Speech0("toggle polyhedra");
          finish_Thomas_command("toggle polyhedra");
       }
       else if (txt.includes("toggle") && txt.includes("reaction")) { 
          openCity(event, 'Arrows Periodic 3D Builder'); 
-         SwapDivsWithClick(6,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3'); 
+         SwapDivsWithClick(6,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting'); 
          Text2Speech0("toggle reaction");
          finish_Thomas_command("toggle reaction");
       }
       else if (txt.includes("toggle") && txt.includes("collective")) { 
          openCity(event, 'Arrows Periodic 3D Builder'); 
-         SwapDivsWithClick(7,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3'); 
+         SwapDivsWithClick(7,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting'); 
          Text2Speech0("toggle collective");
          finish_Thomas_command("toggle collective");
       }
@@ -13836,13 +13855,14 @@ ul, li {
           </td>
           <td>
              <!--p style="text-align:left"-->
-                 <input type="button" VALUE="Builder" onClick="SwapDivsWithClick(1,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
-                 <input type="button" VALUE="Lattice" onClick="SwapDivsWithClick(2,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
-                 <input type="button" VALUE="Bulk-Surface" onClick="SwapDivsWithClick(3,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
-                 <input type="button" VALUE="Symmetry" onClick="SwapDivsWithClick(4,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
-                 <input type="button" VALUE="Polyhedra" onClick="SwapDivsWithClick(5,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
-                 <input type="button" VALUE="Reaction" onClick="SwapDivsWithClick(6,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
-                 <input type="button" VALUE="Collective" onClick="SwapDivsWithClick(7,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
+                 <input type="button" VALUE="Builder" onClick="SwapDivsWithClick(1,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
+                 <input type="button" VALUE="Lattice" onClick="SwapDivsWithClick(2,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
+                 <input type="button" VALUE="Bulk-Surface" onClick="SwapDivsWithClick(3,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
+                 <input type="button" VALUE="Symmetry" onClick="SwapDivsWithClick(4,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
+                 <input type="button" VALUE="Polyhedra" onClick="SwapDivsWithClick(5,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
+                 <input type="button" VALUE="Reaction" onClick="SwapDivsWithClick(6,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
+                 <input type="button" VALUE="Collective" onClick="SwapDivsWithClick(7,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
+                 <input type="button" VALUE="Scripting" onClick="SwapDivsWithClick(8,'swapper-first','swapper-crystal','swapper-surface','swapper-symmetry','swapper-other','swapper-other2','swapper-other3','swapper-scripting')" style="background-color:#f8f8ff; color:#102DB0; font-size: 14px; font-weight:bold"/>
              <!--/p -->
           </td>
        </tr> 
@@ -14489,6 +14509,7 @@ ul, li {
 
                </div>
 
+
                 <!-- lattice input -->
                <div id="swapper-crystal" style="display:none; border:2px dashed;  border-color: #102DB0; background-color: white; padding:10px;">
                <p align="center" style="color:#102DB0"> Lattice </p>
@@ -14777,6 +14798,25 @@ ul, li {
                      </td>
                   </tr>
 
+               </table>
+               </div>
+
+
+                <!-- scripting input -->
+               <div id="swapper-scripting" style="display:none; border:2px dashed; border-color: #102DB0; background-color: white; padding:5px;">
+               <p align="center" style="color:#102DB0"> Thomas Scripting <br> </p>
+               <table>
+                  <tr>
+                      <textarea  id="scriptingtextbox" 
+                                 name="scriptingtextbox" 
+                                 rows="33" cols="70"
+                                 style="color: blue; font-size: 14px;"></textarea>
+                     <td> <input type="button"
+                                 VALUE="Submit Script to Thomas"
+                                 onClick="submit_Script_Thomas()" title="Submit Script to Thomas"
+                                 style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/> 
+                     </td>
+                  </tr>
                </table>
                </div>
 
