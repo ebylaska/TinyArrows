@@ -14,7 +14,7 @@ nsurface frame;
 
 Previous frame;
 
-Append frame 0;
+Append frame -1;
 
 Next frame 0;
 Delete frame;

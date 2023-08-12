@@ -2691,14 +2691,18 @@ ul, li {
               var amodel = fn;
               //var  amodel = parseInt(prompt("Please enter model to append:", (1+(window.xyzframes_cur+1) % window.xyzframes_ntotal)));
               if (amodel<1) {
-                 amodel = parseInt(prompt("Please enter model to append:", (1+(window.xyzframes_cur+1) % window.xyzframes_ntotal)));
+                 if (fn==-1) {
+                    amodel =  (1+(window.xyzframes_cur+1) % window.xyzframes_ntotal);
+                 } else{
+                    amodel = parseInt(prompt("Please enter model to append:", (1+(window.xyzframes_cur+1) % window.xyzframes_ntotal)));
+                 }
               }
               amodel -= 1;
               var xyzcell1 = window.xyzframes[amodel];
               var xyzdat1 = "\"append\"|" + xyzcell1[0].trim().replace(/\n/g,' | ') + "|end \"append\"";
               jms("set appendNew false; data "+xyzdat1);
 
-               if (fn==1) {
+               if ((fn==1) || (fn==-1)) {
                  document.getElementById("lattice_a1").value = xyzcell1[1];
                  document.getElementById("lattice_a2").value = xyzcell1[2];
                  document.getElementById("lattice_a3").value = xyzcell1[3];
