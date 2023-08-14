@@ -17878,6 +17878,8 @@ function resetpredictor() {
       <span class="close" onclick="closeNWChemInput()">&times;</span>
       <div id="editorpop"></div>
       <button onclick="submitNWChemInput()">Update & Close</button>
+      <button onclick="increaseFontSize(2)">Font+</button>
+      <button onclick="decreaseFontSize(1)">Font-</button>
    </div>
 </div>
 
@@ -17920,6 +17922,34 @@ function resetpredictor() {
       editorpop = null;
     }
 
+
+    // Function to get the current font size
+    function getCurrentFontSize() {
+      var fontSize = editorpop.getFontSize();
+      return parseFloat(fontSize); // Convert font size to a number
+    }
+
+    // Function to change font size and line height
+    function changeFontSize(newSize) {
+      editorpop.setFontSize(newSize + "px");
+      editorpop.setOption("lineHeight", 1.5); // Adjust as needed
+    }
+
+    // Function to increase font size by a specified step
+    function increaseFontSize(stepSize) {
+      var currentSize = getCurrentFontSize();
+      var newSize = currentSize + stepSize;
+      changeFontSize(newSize);
+    }
+
+    // Function to decrease font size by a specified step
+    function decreaseFontSize(stepSize) {
+      var currentSize = getCurrentFontSize();
+      var newSize = currentSize - stepSize;
+      changeFontSize(newSize);
+    }
+
+
     function submitNWChemInput() {
       var nwinput = editorpop.getValue();
       console.log("NWChem input:", nwinput);
@@ -17932,6 +17962,8 @@ function resetpredictor() {
       // unset screen lock
       document.getElementsByTagName('body')[0].style.overflow = 'visible' // the default for the css property
     }
+
+
 
 </script>
 
