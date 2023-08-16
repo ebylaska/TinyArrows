@@ -1,0 +1,21 @@
+default_args: C 2.46 30.0 5 :default_args
+
+New frame 0;
+
+Set text bulk_name $arg1;
+Set number bulk_a $arg2;
+Set number bulk_c 0.0;
+Set number bulk_c $arg3;
+Set text bulk_type graphene;
+Set radio bulk_cubic false;
+Generate bulk crystal;
+Supercell $arg4 $arg4 1;
+
+Previous frame;
+
+Append frame -1;
+
+Next frame 0;
+Delete frame;
+
+
