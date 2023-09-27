@@ -7,7 +7,7 @@ TinyArrows is a tiny version of EMSL Arrows
  
 "start Docker Desktop" see https://docs.docker.com/engine/install/ for installation
 
- install TinyArrows in directory ~/Public/TinyArrows
+ Install TinyArrows in the directory ~/Public/TinyArrows
  
  cd ~/Public/TinyArrows
  
