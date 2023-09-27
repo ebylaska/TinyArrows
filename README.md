@@ -4,10 +4,15 @@ TinyArrows is a tiny version of EMSL Arrows
 
 # Docker instructions
 ## Running using docker-compose (easiest way to run)
- "start Docker Desktop" see https://docs.docker.com/engine/install/ for installation
+ 
+ start Docker Desktop" see https://docs.docker.com/engine/install/ for installation
+
  install TinyArrows in directory ~/Public/TinyArrows
+ 
  cd ~/Public/TinyArrows
+ 
  docker-compose up
+ 
  http://localhost:5001/api
 
 
