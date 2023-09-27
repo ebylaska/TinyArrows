@@ -16,7 +16,7 @@ TinyArrows is a tiny version of EMSL Arrows
  http://localhost:5001/api
 
 
-# Non-docker instructions
+# Non-Docker instructions
 ## requirements ##
 pip3 install -r ./requirements.txt
 
