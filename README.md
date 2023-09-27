@@ -15,6 +15,15 @@ TinyArrows is a tiny version of EMSL Arrows
  
  http://localhost:5001/api
 
+ http://localhost:5001/api/periodic
+  
+ http://localhost:5001/api/3dbuilder
+ 
+ http://localhost:5001/api/expert
+
+ http://localhost:5001/api/qsharp_chem
+
+ http://localhost:5001/api/aerosol
 
 # Non-Docker instructions
 ## requirements ##
