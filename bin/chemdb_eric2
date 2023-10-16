@@ -1345,6 +1345,11 @@ def gcube2jsmol(backgroundcolor,xyzdat):
 
 def plotdatajs(edat):
 
+   eavelast = 0.0 
+   evarlast = 0.0 
+   havelast = 0.0 
+   hvarlast = 0.0 
+   templast = 0.0 
    xdat = "['x',"
    ydat1 = "['Energy',"
    ydat2 = "['Potential',"
@@ -1368,6 +1373,11 @@ def plotdatajs(edat):
          ydat7 += ss[3] + ", "
          ydat8 += ss[4] + ", "
          ydat9 += ss[18] + ", "
+         eavelast = "%.6f" % float(ss[12])
+         evarlast = "%.6f" % float(ss[13])
+         havelast = "%.6f" % float(ss[14])
+         hvarlast = "%.6f" % float(ss[15])
+         templast = "%.2f" % float(ss[18])
       else:
          xdat += ss[0] + ", "
          ydat1 += ss[1] + ", "
@@ -1379,6 +1389,11 @@ def plotdatajs(edat):
          ydat7 += ss[3] + ", "
          ydat8 += ss[4] + ", "
          ydat9 += ss[16] + ", "
+         eavelast = "%.6f" % float(ss[10])
+         evarlast = "%.6f" % float(ss[11])
+         havelast = "%.6f" % float(ss[12])
+         hvarlast = "%.6f" % float(ss[13])
+         templast = "%.2f" % float(ss[16])
    xdat  = xdat.rstrip(',') + "]"
    ydat1 = ydat1.rstrip(',') + "]"
    ydat2 = ydat2.rstrip(',') + "]"
@@ -1391,6 +1406,25 @@ def plotdatajs(edat):
    ydat9 = ydat9.rstrip(',') + "]"
 
    msg4 = "</pre>\n"
+   msg4 += "<br> <center><b> Averages from AIMD Simulation </b></center>\n"
+   msg4 += "<br><center>\n"
+   msg4 += "<table style='border: 2px solid black;text-align: right; border-collapse: collapse; width: 50%;'> \n"
+   msg4 += "   <tr> \n"
+   msg4 += "      <td> Average Potential  </td> \n"
+   msg4 += "      <td> Variance Potential </td> \n"
+   msg4 += "      <td> Average Enthalpy   </td> \n"
+   msg4 += "      <td> Variance Enthalpy  </td> \n"
+   msg4 += "      <td> Temperature </td> \n"
+   msg4 += "   </tr> \n"
+   msg4 += "   <tr> \n"
+   msg4 += "      <td> " + eavelast + " </td> \n"
+   msg4 += "      <td> " + evarlast + " </td> \n"
+   msg4 += "      <td> " + havelast + " </td> \n"
+   msg4 += "      <td> " + hvarlast + " </td> \n"
+   msg4 += "      <td> " + templast + " </td> \n"
+   msg4 += "   </tr> \n"
+   msg4 += "</table>\n"
+   msg4 += "</center>\n"
    msg4 += '''
     <!--link href="{{url_for('static',filename='c3js/c3.min.css')}}" rel="stylesheet"-->
     <!--script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script-->
@@ -1398,7 +1432,7 @@ def plotdatajs(edat):
     <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.6.9/c3.min.js"></script>
-    <br> <center><b> Energies from AIMD Simulation </b></center>
+    <br> <br> <center><b> Running Energies from AIMD Simulation </b></center>
     <div id="chart"></div>
     <script type="text/javascript">
     var chart = c3.generate({
@@ -1426,7 +1460,7 @@ def plotdatajs(edat):
     });
     </script>
 
-    <br> <center><b> Potential Energies from AIMD Simulation </b></center>
+    <br> <center><b> Running Potential Energies from AIMD Simulation </b></center>
     <div id="chart1"></div>
     <script type="text/javascript">
     var chart = c3.generate({
@@ -1454,7 +1488,7 @@ def plotdatajs(edat):
     </script>
 
 
-    <br><br> <center><b> Kinetic Energies from AIMD Simulation </b></center>
+    <br><br> <center><b> Running Kinetic Energies from AIMD Simulation </b></center>
     <div id="chart2"></div>
 
     <script type="text/javascript">
@@ -1512,7 +1546,7 @@ def plotdatajs(edat):
     </script>
     
 
-    <br><br> <center><b> Variances from AIMD Simulation </b></center>
+    <br><br> <center><b> Running Variances from AIMD Simulation </b></center>
     <div id="chart4"></div>
 
     <script type="text/javascript">
