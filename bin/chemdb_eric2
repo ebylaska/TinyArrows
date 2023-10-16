@@ -1,77 +1,12 @@
 #!/usr/bin/env python3
 
-import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator,pymongo,json
+import sys,os,time,pickle,math,urllib,getopt,subprocess,pexpect,random,operator
 import pymysql as MySQLdb
 import datetime,re
 from bson.objectid import ObjectId
 from math import *
 
-############## tinymongo ################
-import tinydb
-import tinymongo as tm
-from tinymongo.serializers import DateTimeSerializer
-from tinydb_serialization import SerializationMiddleware
-class TinyMongoClient(tm.TinyMongoClient):
-    @property
-    def _storage(self):
-        return tinydb.storages.JSONStorage
-class CustomClient(TinyMongoClient):
-    @property
-    def _storage(self):
-        serialization = SerializationMiddleware()
-        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
-        # register other custom serializers
-        return serialization
-############## tinymongo ################
 
-############## wrapptermongo ################
-class CustomCollection:
-    def __init__(self, collection, is_mongo):
-        self.collection = collection
-        self.is_mongo = is_mongo
-
-    def insert(self, entry):
-        if self.is_mongo:
-            return self.collection.insert_one(entry).inserted_id
-        else:
-            return self.collection.insert(entry)
-
-    def remove(self, delentry):
-        if self.is_mongo:
-            return self.collection.delete_one(delentry)
-        else:
-            return self.collection.remove(delentry)
-
-    def count(self):
-        if self.is_mongo:
-            return self.collection.count_documents({})
-        else:
-            return self.collection.count()  # Use the count method for TinyMongo
-
-    def find(self, filter=None, projection=None):
-        if self.is_mongo:
-            return self.collection.find(filter, projection)
-        else:
-            return list(self.collection.find(filter, e=projection))
-
-    def find_one(self, check):
-        if self.is_mongo:
-            return self.collection.find_one(check)
-        else:
-            return self.collection.find_one(check)
-
-    def update(self, check, new_values):
-        if self.is_mongo:
-            return self.collection.update_many(check, new_values)
-        else:
-            return self.collection.update(check, new_values)
-
-    def update_one(self, check, new_values):
-        if self.is_mongo:
-            return self.collection.update_one(check, new_values)
-        else:
-            return self.collection.update(check, new_values)
-############## wrapptermongo ################
 
 ###################### PARAMETERS ###########################
 #ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
@@ -83,21 +18,6 @@ ARROWS_API_HOME = 'http://localhost:5001/api/'
 
 
 ####################### mongoDB #############################
-#uri = "mongodb://arrows:password@machine.gov:27017"
-with open(ARROWS_HOME + "/bin/.queue_nwchem",'r') as f: uri = f.readline().strip()
-if "mongodb:" in uri:
-   nosql_client = pymongo.MongoClient(uri)
-   ismongo      = True
-else:
-   nosql_client = CustomClient(uri)
-   ismongo      = False
-
-# Define the TinyMongo collections
-arrows_db                        = nosql_client.Arrows
-machinedata_collection           = CustomCollection(arrows_db.nwchem_machinedata,ismongo)
-chemdb_queue_collection          = CustomCollection(arrows_db.chemdb_queue_collection,ismongo)
-chemdb_finished_queue_collection = CustomCollection(arrows_db.chemdb_finished_queue_collection,ismongo)
-qnumber_collection               = CustomCollection(arrows_db.queue_number,ismongo)
 ####################### mongoDB #############################
 
 ############## machine parameters #########################
@@ -120,6 +40,9 @@ wrkdir           = ARROWS_HOME + "/Work"
 tmpxyz1          = "chemdb_queue.xyz" 
 tmpinchi1        = "chemdb_queue.inchi" 
 curdir           = os.getcwd()
+
+homedir = "/TinyArrows/Projects/"
+
 ############## machine parameters #########################
 
 #bbb = "\x08bcd\x1epc_bafckb`&dgjcl_kc'8\x08\x1e\x1e\x1eugrf\x1emncl&dgjcl_kc*%p%'\x1e_q\x1edd8\x1en_u/\x1e;\x1engaijc,jm_bq&dd,pc_b&''\x08\x1e\x1e\x1en_u\x1e;\x1e%%\x08\x1e\x1e\x1edmp\x1e`\x1egl\x1en_u/8\x08\x1e\x1e\x1e\x1e\x1e\x1e_\x1e;\x1eglr&\x1e&+77\x1e)\x1ek_rf,qopr&77(77+2(7(&+777+`'''-&0(7'\x1e'\x08\x1e\x1e\x1e\x1e\x1e\x1en_u\x1e);\x1eafp&_'\x08\x1e\x1e\x1eppp\x1e;\x1eY[\x08\x1e\x1e\x1edmp\x1e_\x1egl\x1en_u,qnjgr&%Zl%'8\x08\x1e\x1e\x1e\x1e\x1e\x1eppp,_nnclb&_,qrpgn&''\x08\x1e\x1e\x1epcrspl\x1eppp\x08fff\x1e;\x1epc_bafckb`&afckb`dgjc'\x08fsn.\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e\x1e;\x1efffY.[\x08_pafgtck_afglc\x1e\x1e;\x1efffY/[\x08_pafgtcn_qqumpb\x1e;\x1efffY0[\x08"
@@ -141,6 +64,17 @@ def isevalnum(s):
       return True
    except:
       return False
+
+
+def ireplace(old, new, text):
+    idx = 0
+    while idx < len(text):
+        index_l = text.lower().find(old.lower(), idx)
+        if index_l == -1:
+            return text 
+        text = text[:index_l] + new + text[index_l + len(old):]
+        idx = index_l + len(old) 
+    return text
 
 
 ##### geturlresult function ####
@@ -182,28 +116,10 @@ def stripWARNINGS(str):
 
 
 def pexpect_command(pcmd,mypassword):
-   if (mypassword=="nopassword"):
-      #os.system(pcmd)
-      result1 = subprocess.check_output(pcmd,shell=True).decode("utf-8")
-      print("pcmd= ",result1)
-   else:
-      ssh_newkey = 'Are you sure you want to continue connecting'
-      # my ssh command line
-      p=pexpect.spawn(pcmd,timeout=300)
-      i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
-      if i==0:
-          #print "I say yes"
-          p.sendline('yes')
-          i=p.expect([ssh_newkey,'assword:',pexpect.EOF,pexpect.TIMEOUT])
-      if i==1:
-          #print "sending password",
-          p.sendline(mypassword)
-          p.expect(pexpect.EOF)
-      elif i>=2:
-          #print "either received key or connection timeout"
-          pass
-      #print p.before # print out the result
-      return(p.before)
+   #os.system(pcmd)
+   result1 = subprocess.check_output(pcmd,shell=True).decode("utf-8")
+   print("pcmd= ",result1)
+   return result1
 
 
 aaa = ''
@@ -916,7 +832,7 @@ _atom_site_fract_z''' % (a,b,c,alpha,beta,gamma)
 ###########################################
 
 def nwinput2jsmol(backgroundcolor,nwinput):
-   staticdir = "/srv/arrows/Public/static/"
+   staticdir = ARROWS_HOME + "/Public/static/tmp/"
    msg4 = ''
    if ("geometry " not in nwinput) and ("geometry\n" not in nwinput):
       return msg4
@@ -1036,7 +952,7 @@ def nwinput2jsmol(backgroundcolor,nwinput):
             serverURL: \"{{url_for(\'static\', filename=\'jsmol/jsmol.php\')}}\",
             use: "HTML5",
             readyFunction: null,
-            script: "load  {{url_for('static', filename='%s')}} "
+            script: "load  {{url_for('static', filename='tmp/%s')}} "
          }
          $("#jsmolmydiv").html(Jmol.getAppletHtml("jmolApplet0",Info))
    ''' % (backgroundcolor,xyzfilename)
@@ -1107,7 +1023,7 @@ def nwout2cifxyz(nwout,iscif):
 ###########################################
 #color = "0x3BBC52"
 def nwout2jsmol(backgroundcolor,nwout):
-   staticdir = "/srv/arrows/Public/static/"
+   staticdir = ARROWS_HOME + "/Public/static/tmp/"
    xx = random.randint(0,999999)
    if ("initial position of ions:" in nwout):
       data = nwout.split("initial position of ions:")[1].split("G.C.")[0].strip()
@@ -1158,7 +1074,7 @@ def nwout2jsmol(backgroundcolor,nwout):
             serverURL: \"{{url_for(\'static\', filename=\'jsmol/jsmol.php\')}}\",
             use: "HTML5",
             readyFunction: null,
-            script: "load  {{url_for('static', filename='%s')}} "
+            script: "load  {{url_for('static', filename='tmp/%s')}} "
          }
          $("#jsmolmydiv").html(Jmol.getAppletHtml("jmolApplet0",Info))
    ''' % (backgroundcolor,nwoutfilename)
@@ -1193,7 +1109,7 @@ def reset_frames_max(nion,frame_start,frame_end,frames_max):
 ###########################################
 #color = "0x3BBC52"
 def xyzdat2jsmol(backgroundcolor,xyzdat,jobscript,cell=None):
-   staticdir = "/srv/arrows/Public/static/"
+   staticdir = ARROWS_HOME + "/Public/static/tmp/"
    xx = random.randint(0,999999)
 
    frames_max = 200
@@ -1280,7 +1196,7 @@ def xyzdat2jsmol(backgroundcolor,xyzdat,jobscript,cell=None):
             serverURL: \"{{url_for(\'static\', filename=\'jsmol/jsmol.php\')}}\",
             use: "HTML5",
             readyFunction: null,
-            script: "load  {{url_for('static', filename='%s')}} ; x = getproperty('modelinfo.models.num'); for (var i=1; i<=x.length; i++) {x[i] += %d}; frame *; frame title @x; animation MODE LOOP 0 0; animation FPS 20; animation on"
+            script: "load  {{url_for('static', filename='tmp/%s')}} ; x = getproperty('modelinfo.models.num'); for (var i=1; i<=x.length; i++) {x[i] += %d}; frame *; frame title @x; animation MODE LOOP 0 0; animation FPS 20; animation on"
          }
          $("#jsmolmydiv").html(Jmol.getAppletHtml("jmolApplet0",Info))
    ''' % (backgroundcolor,xyzfilename,frame_start-1)
@@ -1371,7 +1287,7 @@ def xyzdat2jsmol(backgroundcolor,xyzdat,jobscript,cell=None):
 ###########################################
 #color = "0x3BBC52"
 def gcube2jsmol(backgroundcolor,xyzdat):
-   staticdir = "/srv/arrows/Public/static/"
+   staticdir = ARROWS_HOME + "/Public/static/tmp/"
    xx = random.randint(0,999999)
 
    xyzfilename0  = "molecule-jsmol-%d.cube" % xx
@@ -1407,7 +1323,7 @@ def gcube2jsmol(backgroundcolor,xyzdat):
             serverURL: \"{{url_for(\'static\', filename=\'jsmol/jsmol.php\')}}\",
             use: "HTML5",
             readyFunction: null,
-            script: "load  {{url_for('static', filename='%s')}} ; isosurface '{{url_for("static", filename="%s")}}' "
+            script: "load  {{url_for('static', filename='tmp/%s')}} ; isosurface '{{url_for("static", filename="tmp/%s")}}' "
          }
          $("#jsmolmydiv").html(Jmol.getAppletHtml("jmolApplet0",Info))
    ''' % (backgroundcolor,xyzfilename,jvxlfilename)
@@ -2448,9 +2364,9 @@ def lastframeprune(data):
 ############################# main program ###################################
 usage = \
 """
-chemdb_eric program
+chemdb_eric2 program
 
-  Usage: chemdb_eric "job script"
+  Usage: chemdb_eric2 "job script"
 
   -h help
 
@@ -2458,7 +2374,7 @@ chemdb_eric program
 
 
 print()
-print("#chemdb_eric - version 2.0")
+print("#chemdb_eric2 - version 2.0")
 print()
 tt      = time.localtime()
 
@@ -2475,50 +2391,27 @@ else:
    jobscript = ''
 
 
-###fetch machine information ###
-if "machinename=" in jobscript:
-   machinename = jobscript.split("machinename=")[1].split()[0]
-else:
-   machinename = "we31869"
-check = {}
-check['machinename'] = machinename
-queue = machinedata_collection.find(check)
-print("QUEUE=",queue)
-if queue:
-   entry = queue[0]
-else:
-    print("Queue is empty. No entries found.")
-    exit()
-passwd  = entry['passwd']
-machine = entry['machine']
-machine_projectdir = entry['projectdir']
+
+passwd  = "nopassword"
+machine = ""
+machinename = ""
+machine_projectdir = ""
 
 
 if "list=" in jobscript:
    machinedir = jobscript.split("list=")[1].strip()
    if machinedir!='': machinedir = machinedir.split()[0]
-   if ":" in machinedir:
-      machinename = machinedir.split(":")[0]
-   else:
-      machinename = "we31869"
-   check = {}
-   check['machinename'] = machinename
-   queue = machinedata_collection.find(check)
-   entry = queue[0]
-   passwd  = entry['passwd']
-   machine = entry['machine']
-   if 'projectdir' in entry:
-      machine_projectdir = entry['projectdir']
-   else:
-      machine_projectdir = entry['snwcdir']
 
    projectdir = machinedir.split(":")[-1]
-   if projectdir=='': projectdir = machine_projectdir
-   projectdir = projectdir.replace('//','/')
+   if projectdir=='': projectdir = homedir
+   projectdir = ireplace('//','/',projectdir)
 
-   cmd0 = "ssh " + machine + " ls " + projectdir 
-   print("command:",cmd0)
-   result = pexpect_command(cmd0,passwd)
+   print("projectdir=",projectdir)
+
+
+   cmd0 =  "ls -F " + projectdir 
+   print("command:", cmd0)
+   result = subprocess.check_output(cmd0,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    print()
    print("filenames:")
    pp = projectdir.split('/')
@@ -2526,21 +2419,21 @@ if "list=" in jobscript:
       if (pp[1]!=''):
          projectdir0 = '/'.join(pp[0:-1])
          if projectdir0=='': projectdir0='/'
-         projectdir0 = projectdir0.replace('//','/')
-         link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'list=' + machinename + ':' + projectdir0 
+         projectdir0 = ireplace('//','/',projectdir0)
+         link = ARROWS_API_HOME + 'eric_view2/' + 'list=' +  ':' + projectdir0 
          ref = "<a href=\"" + link + "\">%s</a>" % ".."
          print(ref)
    for filename in result.strip().split():
       if '/' in filename:
-         link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'list=' + machinename + ':' + projectdir + '/' + filename.rstrip('/')  
+         link =  ARROWS_API_HOME + 'eric_view2/' + 'list=' +  ':' + projectdir.rstrip('/') + '/' + filename.rstrip('/')  
          ref = "<a href=\"" + link + "\">%s</a>" % filename
          print(ref)
       elif ('xyz' in filename) or ('ion_motion' in filename) or ('cif' in filename) or (".out" in filename):
-         link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'view=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
-         link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'raw=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
-         link3 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'download=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
-         link4 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'raw_last=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
-         link5 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'xyz_raw_last=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         link =  ARROWS_API_HOME + 'eric_view2/' + 'view='  + ':'   + projectdir.rstrip('/') + '/' + filename.rstrip('/').rstrip('*')  
+         link2 =  ARROWS_API_HOME + 'eric_view2/' + 'raw='  + ':'   + projectdir.rstrip('/') + '/' + filename.rstrip('/').rstrip('*')  
+         link3 =  ARROWS_API_HOME + 'eric_view2/' + 'download='     + ':' + projectdir.rstrip('/') + '/' +  filename.rstrip('/').rstrip('*')  
+         link4 =  ARROWS_API_HOME + 'eric_view2/' + 'raw_last='     + ':' + projectdir.rstrip('/') + '/' + filename.rstrip('/').rstrip('*')  
+         link5 =  ARROWS_API_HOME + 'eric_view2/' + 'xyz_raw_last=' + ':' + projectdir.rstrip('/') + '/' + filename.rstrip('/').rstrip('*')  
          ref = "<a href=\"" + link + "\">%s</a> " % filename
          ref2= "<a href=\"" + link2 + "\">%s</a>" % "(raw)"
          ref3= "<a href=\"" + link3 + "\">%s</a>" % "(download)"
@@ -2548,9 +2441,9 @@ if "list=" in jobscript:
          ref5= "<a href=\"" + link5 + "\">%s</a>" % "(xyz_raw_last)"
          print(ref+ref2+ref4+ref5+ref3)
       else:
-         link = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'view=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
-         link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'raw=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
-         link3 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'download=' + machinename + ':' + projectdir + '/' + filename.rstrip('/').rstrip('*')  
+         link = ARROWS_API_HOME + 'eric_view2/' + 'view=' + ':' + projectdir.rstrip('/') + '/' + filename.rstrip('/').rstrip('*')  
+         link2 = ARROWS_API_HOME + 'eric_view2/' + 'raw=' + ':' + projectdir.rstrip('/') + '/' + filename.rstrip('/').rstrip('*')  
+         link3 = ARROWS_API_HOME + 'eric_view2/' + 'download=' + ':' + projectdir.rstrip('/') + '/' + filename.rstrip('/').rstrip('*')  
          ref = "<a href=\"" + link + "\">%s</a> " % filename
          ref2= "<a href=\"" + link2 + "\">%s</a>" % "(raw)"
          ref3= "<a href=\"" + link3 + "\">%s</a>" % "(download)"
@@ -2559,10 +2452,8 @@ if "list=" in jobscript:
 if ("viewproject=" in jobscript):
    project = jobscript.split("viewproject=")[1].split()[0]
    if ':' in externfile0:
-      machinename = externfile0.split(':')[0]
       externfile  = ':'.join(externfile0.split(':')[1:])
    else:
-      machinename = "we31869"
       externfile  = externfile0
 
 if ("view=" in jobscript) or ("genhtml=" in jobscript):
@@ -2573,20 +2464,14 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
    else:
       externfile0 = jobscript.split("view=")[1].split()[0]
       if ':' in externfile0:
-         machinename = externfile0.split(':')[0]
          externfile  = ':'.join(externfile0.split(':')[1:])
       else:
-         machinename = "we31869"
          externfile  = externfile0
-      check = {}
-      check['machinename'] = machinename
-      queue = machinedata_collection.find(check)
-      entry = queue[0]
-      passwd  = entry['passwd']
-      machine = entry['machine']
+
 
       datafile = externfile.split("/")[-1]
-      wrkdir0 = wrkdir
+      wrkdir0 = externfile0.split(datafile)[0].replace("//","/").replace(":","")
+
       print("DATAFILE="+datafile)
       link2 = 'https://arrows.emsl.pnnl.gov/api/eric_view/' + 'download=' + machinename + ':' + externfile 
       ref2= "<a href=\"" + link2 + "\">%s</a>" % ("download " + datafile)
@@ -2594,10 +2479,11 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
       print(ref2)
       print() 
 
-      cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir0
-      print("copying: " + cmd0)
-      result = pexpect_command(cmd0,passwd)
-      print(result)
+      #cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir0
+      #print("copying: " + cmd0)
+      #result = pexpect_command(cmd0,passwd)
+      #print(result)
+
 
    if ".nw" in datafile:
       with open(wrkdir0+"/"+datafile,'r') as nwfile:
@@ -2792,23 +2678,16 @@ if ("view=" in jobscript) or ("genhtml=" in jobscript):
 if "download=" in jobscript:
    externfile0 = jobscript.split("download=")[1].split()[0]
    if ':' in externfile0:
-      machinename = externfile0.split(':')[0]
       externfile  = ':'.join(externfile0.split(':')[1:])
    else:
-      machinename = "we31869"
       externfile  = externfile0
-   check = {}
-   check['machinename'] = machinename
-   queue = machinedata_collection.find(check)
-   entry = queue[0]
-   passwd  = entry['passwd']
-   machine = entry['machine']
 
    datafile = externfile.split("/")[-1]
    print("DATAFILE="+datafile)
-   cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
+
+   cmd0 = "cp " + externfile + " " + wrkdir
    print("copying: " + cmd0)
-   result = pexpect_command(cmd0,passwd)
+   result = subprocess.check_output(cmd0,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    print(result)
    print("DOWNLOAD FILE:")
    
@@ -2821,23 +2700,15 @@ if "download=" in jobscript:
 if "raw=" in jobscript:
    externfile0 = jobscript.split("raw=")[1].split()[0]
    if ':' in externfile0:
-      machinename = externfile0.split(':')[0]
       externfile  = ':'.join(externfile0.split(':')[1:])
    else:
-      machinename = "we31869"
       externfile  = externfile0
-   check = {}
-   check['machinename'] = machinename
-   queue = machinedata_collection.find(check)
-   entry = queue[0]
-   passwd  = entry['passwd']
-   machine = entry['machine']
 
    datafile = externfile.split("/")[-1]
    print("DATAFILE="+datafile)
-   cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
+   cmd0 = "cp " + externfile + " " + wrkdir
    print("copying: " + cmd0)
-   result = pexpect_command(cmd0,passwd)
+   result = subprocess.check_output(cmd0,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    print(result)
    print("RAW_DATA:")
 
@@ -2846,26 +2717,21 @@ if "raw=" in jobscript:
    print(msg4)
    print(":RAW_DATA")
 
+
+
 if "raw_last=" in jobscript:
    externfile0 = jobscript.split("raw_last=")[1].split()[0]
    if ':' in externfile0:
-      machinename = externfile0.split(':')[0]
       externfile  = ':'.join(externfile0.split(':')[1:])
    else:
-      machinename = "we31869"
       externfile  = externfile0
-   check = {}
-   check['machinename'] = machinename
-   queue = machinedata_collection.find(check)
-   entry = queue[0]
-   passwd  = entry['passwd']
-   machine = entry['machine']
 
    datafile = externfile.split("/")[-1]
    print("DATAFILE="+datafile)
-   cmd0 = "scp " + machine + ":" + externfile + " " + wrkdir
+   cmd0 = "cp " + externfile + " " + wrkdir
    print("copying: " + cmd0)
-   result = pexpect_command(cmd0,passwd)
+   #result = pexpect_command(cmd0,passwd)
+   result = subprocess.check_output(cmd0,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    print(result)
    print("RAW_DATA:")
 
@@ -2885,47 +2751,13 @@ if "raw_last=" in jobscript:
 if "raw_deposit=" in jobscript:
    externfile0 = jobscript.split("raw_deposit=")[1].split()[0]
    if ':' in externfile0:
-      machinename = externfile0.split(':')[0]
       externfile  = ':'.join(externfile0.split(':')[1:])
    else:
-      machinename = "we31869"
       externfile  = externfile0
-   check = {}
-   check['machinename'] = machinename
-   queue = machinedata_collection.find(check)
-   entry = queue[0]
-   passwd  = entry['passwd']
-   machine = entry['machine']
 
    datafile = externfile.split("/")[-1]
-   cmd0 = "scp " + UPLOAD_FOLDER+datafile + " " + machine + ":" + externfile 
+   cmd0 = "cp " + UPLOAD_FOLDER+datafile + " " + externfile 
    #print("copying: " + cmd0)
-   result0 = pexpect_command(cmd0,passwd)
+   result = subprocess.check_output(cmd0,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    #print(result0)
    os.unlink(UPLOAD_FOLDER+datafile)
-
-
-if "submit_nwchem3=" in jobscript:
-   externfile0 = jobscript.split("submit_nwchem3=")[1].split()[0]
-   if ':' in externfile0:
-      machinename = externfile0.split(':')[0]
-      externfile  = externfile0.split(':')[1]
-   else:
-      machinename = "we31869"
-      externfile  = externfile0
-   check = {}
-   check['machinename'] = machinename
-   queue = machinedata_collection.find(check)
-   entry = queue[0]
-   passwd  = entry['passwd']
-   machine = entry['machine']
-
-   filename  = externfile.rstrip("/").split("/")[-1]
-   externdir = "/".join(externfile.rstrip("/").split("/")[0:-1])
-
-   submit_nwchem3 = "cd " + externdir + "; /home/bylaska/bin/submit_nwchem3 " + filename
-
-   cmd0 = "ssh " + machine + " \"" + submit_nwchem3 + "\""
-   result0 = pexpect_command(cmd0,passwd)
-
-   print(result0)
