@@ -31,6 +31,7 @@ chemdb_queue_nwchem     = ARROWS_HOME + "/bin/chemdb_queue_nwchem "
 chemdb_fetch_esmiles5   = ARROWS_HOME + "/bin/chemdb_fetch_esmiles5 "
 chemdb_image0           = ARROWS_HOME + "/bin/chemdb_image0 -f "
 chemdb_eric             = ARROWS_HOME + "/bin/chemdb_eric  "
+chemdb_eric2            = ARROWS_HOME + "/bin/chemdb_eric2 "
 chemdb_osra             = ARROWS_HOME + "/bin/chemdb_osra  "
 chemdb_molcalc          = ARROWS_HOME + "/bin/chemdb_molcalc "
 queue_nwchem3           = ARROWS_HOME + "/bin/queue_nwchem3 -s -a"
@@ -57,7 +58,7 @@ headerfigure = [ '<a href="{{url_for(\'static\', filename=\'arrows-static/banner
 ArrowsHeader = '''
    <head> <meta http-equiv="content-type" content="text/html; charset=UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, target-densitydpi=device-dpi"> <meta charset="utf-8"><link rel="icon" type="image/png" sizes="32x32" href="%sarrows-static/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="%sarrows-static/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="%sarrows-static/favicon-16x16.png"><style type="text/css"> </style> </head>
 
-   <center> <font color="74A52B" size="+2"><p><b>Results from an EMSL Arrows Request</b></p></font></center>
+   <center> <font color="74A52B" size="+2"><p><b>Results from an TinyArrows Request</b></p></font></center>
    <center> <p>Making molecular modeling accessible by combining NWChem, databases, web APIs (<a href="%s">%s</a>), and email (arrows@emsl.pnnl.gov)</p> </center>
    <center> %s </center>
 ''' % (ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,ARROWS_API_HOME,headerfigure[3])
@@ -2368,6 +2369,65 @@ def eric_queue(input_data):
       #html += "</pre> </html>"
 
       with open(htmlfile1,'w') as ff: 
+         ff.write(html)
+         ff.write(calcs+"\n")
+         ff.write("</pre> </html>")
+      data =  render_template(name)
+
+      return data
+
+
+@app.route('/api/eric_view2/<path:input_data>', methods=['GET'])
+def eric2_queue2(input_data):
+   global namecount
+   name = "tmp/molecule%d.html" % namecount
+   namecount += 1
+   print("input_data",input_data)
+   try:
+      increment_apivisited()
+      cmd8 = chemdb_eric2 + '\"' + input_data + '\"'
+      #calcs = subprocess.check_output(cmd8,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      print("CMD8=",cmd8)
+      calcs = subprocess.check_output(cmd8,shell=True).decode("utf-8")
+   except:
+      calcs = "queue_entry = " + jobid + " was not found in arrows queue.\n"
+
+
+   if ("DOWNLOAD FILE:" in calcs) and (":DOWNLOAD FILE" in calcs):
+      dname = input_data.split("download=")[1].split()[0].split("/")[-1]
+      data = calcs.split("DOWNLOAD FILE:")[1].split(":DOWNLOAD FILE")[0].strip()
+      ddfile = chemdbdir + "/"+dname
+      with open(ddfile,"w") as ff:
+         ff.write(data)
+      zname = dname +".zip"
+      zipf = zipfile.ZipFile("chemdb_hold/"+zname,'w', zipfile.ZIP_DEFLATED)
+      zipf.write(ddfile,arcname=dname)
+      zipf.close()
+      return send_from_directory(directory='chemdb_hold', filename=zname,as_attachment=True)
+   elif ("RAW_DATA:" in calcs) and (":RAW_DATA" in calcs):
+      data = calcs.split("RAW_DATA:")[1].split(":RAW_DATA")[0].strip()
+      return data
+   else:
+      htmlfile1 = templatedir + "/"+name
+
+      #if "START NWCHEM INPUT DECK - NWJOB" in calcs:
+      #   queuenumber = calcs.split("START NWCHEM INPUT DECK - NWJOB")[1].split("#")[0].strip()
+      #else:
+      #   queuenumber = "unknown"
+
+      html = "<html>\n"
+      html += ArrowsHeader
+      html += "<pre style=\"font-size:2.0em;color:black\">\n"
+      html += "input_data = %s\n" % input_data
+      #if queuenumber!="unknown":
+      #   link   = "https://arrows.emsl.pnnl.gov/api/queue_html"
+      #   hlink  = "Arrows <a href=\"" + link + "\">queue</a> entry:" + queuenumber
+      #   html += hlink + "\n"
+      #   html += nwinput2jsmol("0x8c0101",calcs)
+      #html +=  calcs
+      #html += "</pre> </html>"
+
+      with open(htmlfile1,'w') as ff:
          ff.write(html)
          ff.write(calcs+"\n")
          ff.write("</pre> </html>")

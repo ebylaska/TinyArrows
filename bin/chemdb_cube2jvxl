@@ -1,12 +1,24 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-import sys,os,time,urllib2,getopt,subprocess
+import sys,os,time,getopt,subprocess
 from math import *
 
 
 ############## machine parameters #########################
-jmol      = "/srv/arrows/bin/jmol-spt "
-wrkdir    = "/srv/arrows/Projects/Work"
+
+
+###################### PARAMETERS ###########################
+#ARROWS_HOME     = '/Users/bylaska/Public/TinyArrows'
+ARROWS_HOME           = __file__.split("TinyArrows")[0] + "TinyArrows"
+MY_ENV                = os.environ.copy()
+MY_ENV["ARROWS_HOME"] = ARROWS_HOME
+
+ARROWS_API_HOME = 'http://localhost:5001/api/'
+
+jmol      = ARROWS_HOME + "/bin/jmol-spt "
+wrkdir    = ARROWS_HOME + "/Work"
+
+
 ############## machine parameters #########################
 
 def evalnum(s):
@@ -27,18 +39,18 @@ Remote chemdb_cube2jvxl program
 
 """
 
-print "chemdb_cube2jvxl"
+print("chemdb_cube2jvxl")
 tt      = time.localtime()
 
 largeimage = False
 opts, args = getopt.getopt(sys.argv[1:], "h")
 for o, a in opts:
   if o in ("-h","--help"):
-    print usage
+    print(usage)
     exit()
 
 if (len(args)<3): 
-   print usage
+   print(usage)
    exit()
 
 cubefile      = args[0]
@@ -50,9 +62,9 @@ with open(cubefile,'r') as ff:
    cubedata = ff.read()
 
 cubedatalist = cubedata.split('\n')
-print "jjj=",cubedatalist[2].split()[0]
+print("jjj=",cubedatalist[2].split()[0])
 nion = abs(evalnum(cubedatalist[2].split()[0]))
-print "nion=",nion
+print("nion=",nion)
 smallcubedata = '\n'.join(cubedatalist[:nion+6])
 
 with open(smallcubefile,'w') as ff:
@@ -66,24 +78,24 @@ try:
 
    with open(sfilename,"w") as ff: ff.write(ttt)
    cmd6 = jmol + sfilename
-   print "HELLO=",cmd6
+   print("HELLO=",cmd6)
    try:
       result1 = subprocess.check_output("/usr/bin/timeout 20 " + cmd6,shell=True)
    except:
-      print "Attempt 1 failed, trying 40 second timeout"
+      print("Attempt 1 failed, trying 40 second timeout")
       try:
          result2 = subprocess.check_output("/usr/bin/timeout 40 " + cmd6,shell=True)
       except:
-         print "Attempt 2 failed, trying 80 second timeout"
+         print("Attempt 2 failed, trying 80 second timeout")
          try:
             result3 = subprocess.check_output("/usr/bin/timeout 80 " + cmd6,shell=True)
          except:
-            print "Attempt 3 failed, trying 160 second timeout"
+            print("Attempt 3 failed, trying 160 second timeout")
             try:
                result4 = subprocess.check_output("/usr/bin/timeout 160 " + cmd6,shell=True)
             except:
-               print "JMOL Failed to create JVXL"
-               print "chemdb_cube2jvxlfile: generation not successful"
+               print("JMOL Failed to create JVXL")
+               print("chemdb_cube2jvxlfile: generation not successful")
                exit()
 except:
    foundfiles = False

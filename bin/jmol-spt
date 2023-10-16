@@ -1,6 +1,6 @@
-#!/bin/csh
+#!/bin/bash
 
 
 #java -jar /Users/bylaska/Codes/jmol-14.31.36/JmolData.jar -ion -s $1 
-java -jar $ARROWS_HOME/bin/JmolData.jar -ion -s $1 
+java -jar /TinyArrows/bin/JmolData.jar -ion -s $1 
 

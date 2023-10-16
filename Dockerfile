@@ -27,7 +27,9 @@ RUN pip3 install -r requirements.txt
 # Install Open Babel
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openbabel gnuplot \
+    && apt-get install -y openjdk-11-jdk \
     && rm -rf /var/lib/apt/lists/*
+
 
 COPY . .
 

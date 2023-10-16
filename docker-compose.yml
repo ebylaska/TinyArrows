@@ -11,6 +11,7 @@ services:
     volumes:
       - ../MyArrows/archive:/TinyArrows/archive
       - ../MyArrows/Work:/TinyArrows/Work
+      - ../MyArrows/Projects:/TinyArrows/Projects
     depends_on:
       - mariadb
       - mongodb
