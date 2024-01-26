@@ -6408,7 +6408,9 @@ for esmiles in esmiles_reactants:
       inchikey = ''
    else:
       cmd    = esmiles2xyz + '\"' + esmiles2 + '\" ' + wrkdir+"/"+tmpxyz1
+      print("cmd=",cmd)
       result = subprocess.check_output(cmd,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
+      print("result=",result)
       if "inchikey =" in result: 
          inchikey = result.split("inchikey =")[1].split("\n")[0].strip()
       else:
