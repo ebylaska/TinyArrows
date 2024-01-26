@@ -12754,6 +12754,17 @@ ul, li {
            }
         }
 
+        function changedeletescratch() {
+           var data = editor.getValue(); // or session.getValue
+           var data0 = "#deletescratch " + data.split("#deletescratch ")[1].split("\n")[0];
+           console.log("DATA0 deletescratch=",data0);
+           if (document.getElementById("queue_nwchem_jobdeletescratch").checked) {  
+              data = data.replace(data0,"#deletescratch yes");
+           } else {
+              data = data.replace(data0,"#deletescratch no");
+           }
+           editor.setValue(data,1);
+        }
 
 
         function definesecret() {
@@ -13294,7 +13305,9 @@ ul, li {
          </td-->
          <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobmodel :"/></td>
          <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobdate :"/></td>
-         <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobdeletescratch :"/></td>
+         <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" 
+                              onClick="ClearRd(this,1); changedeletescratch()" 
+                              title="Thomas: set radio queue_nwchem_jobdeletescratch :"/></td>
        </tr>
     </table>
     <table>
