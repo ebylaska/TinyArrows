@@ -19,6 +19,7 @@ ARROWS_API_HOME = 'http://localhost:5001/api/'
 UPLOAD_FOLDER = ARROWS_HOME + '/Public/uploads/'
 ALLOWED_EXTENSIONS = set(['cube', 'out', 'nwout', 'nwo', 'nw', 'eap', 'xyz', 'emotion', 'ion_motion', 'fei','eigmotion','dipole_motion','POWER_SPECTRUM','dipole_powerspectrum','VELOCITY_SPECTRUM','yaml','note','txt', 'inp', 'dat', 'mol', 'psp', 'hist', 'gr', 'cif', 'meta_gaussians','neb_epath','neb_final_epath', 'json','csv','PAIR_DISTRIBUTION'])
 
+print("UPLOAD_FOLDER=",UPLOAD_FOLDER);
 
 tar                     = "/bin/tar -czf " 
 chemdb_fetch_reactions  = ARROWS_HOME + "/bin/chemdb_fetch_reactions5 --arrows_api=" + ARROWS_API_HOME + " -e "
@@ -3846,6 +3847,7 @@ def image_reset(arrows_id):
 def genhash_reaction(filename):
    increment_apivisited()
    reaction_hash = ''
+   print("genhash_reaction FILENAME=",filename);
     
    filename = filename.replace("\"",'')
    filename = filename.replace("\'",'')
@@ -3868,6 +3870,7 @@ def genhash_reaction(filename):
                user_reaction_type = moldata.split('user_reaction_type{')[1].split('}')[0].strip()
                cmd9 += "-m \"" + user_reaction_type + "\" "
             cmd9 += "-x \"0 0 0 0 0 " + reaction_genhash0.replace("==>","-->") + "\""
+            print("cmd9=",cmd9);
             result9 = subprocess.check_output(cmd9,shell=True).decode("utf-8")
             if "bstringsall =" in result9:
                bstringsall = eval(result9.split("bstringsall = ")[1].split('\n')[0].strip())
