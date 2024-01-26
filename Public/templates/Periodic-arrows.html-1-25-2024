@@ -3645,73 +3645,30 @@ ul, li {
                     var header0  = header.replace(tt,uu);
                     var nwinput0 = nwinputs[i];
 
-                    if (nwinputs[i].includes("#ncpus ")) {
-                       tt = "#ncpus " +      header.split("#ncpus ")[1].split("\n")[0];
-                       uu = "#ncpus " + nwinputs[i].split("#ncpus ")[1].split("\n")[0];
+                    if (nwinputs[i].includes("#ncpus")) {
+                       tt = "#ncpus" +      header.split("#ncpus")[1].split("\n")[0];
+                       uu = "#ncpus" + nwinputs[i].split("#ncpus")[1].split("\n")[0];
                        header0  = header0.replace(tt,uu);
                        nwinput0 = nwinput0.replace(uu,"");
                     } 
-                    if (nwinputs[i].includes("#machine ")) {
-                       tt = "#machine " +      header.split("#machine ")[1].split("\n")[0];
-                       uu = "#machine " + nwinputs[i].split("#machine ")[1].split("\n")[0];
+                    if (nwinputs[i].includes("#machine")) {
+                       tt = "#machine" +      header.split("#machine")[1].split("\n")[0];
+                       uu = "#machine" + nwinputs[i].split("#machine")[1].split("\n")[0];
                        header0  = header0.replace(tt,uu);
                        nwinput0 = nwinput0.replace(uu,"");
                     } 
-                    if (nwinputs[i].includes("#queue ")) {
-                       tt = "#queue " +      header.split("#queue ")[1].split("\n")[0];
-                       uu = "#queue " + nwinputs[i].split("#queue ")[1].split("\n")[0];
+                    if (nwinputs[i].includes("#queue")) {
+                       tt = "#queue" +      header.split("#queue")[1].split("\n")[0];
+                       uu = "#queue" + nwinputs[i].split("#queue")[1].split("\n")[0];
                        header0  = header0.replace(tt,uu);
                        nwinput0 = nwinput0.replace(uu,"");
                     } 
-                    if (nwinputs[i].includes("#queuesave ")) {
-                       tt = "#queuesave " +      header.split("#queuesave ")[1].split("\n")[0];
-                       uu = "#queuesave " + nwinputs[i].split("#queuesave ")[1].split("\n")[0];
+                    if (nwinputs[i].includes("#cputime")) {
+                       tt = "#cputime" +      header.split("#cputime")[1].split("\n")[0];
+                       uu = "#cputime" + nwinputs[i].split("#cputime")[1].split("\n")[0];
                        header0  = header0.replace(tt,uu);
                        nwinput0 = nwinput0.replace(uu,"");
                     } 
-                    if (nwinputs[i].includes("#cputime ")) {
-                       tt = "#cputime " +      header.split("#cputime ")[1].split("\n")[0];
-                       uu = "#cputime " + nwinputs[i].split("#cputime ")[1].split("\n")[0];
-                       header0  = header0.replace(tt,uu);
-                       nwinput0 = nwinput0.replace(uu,"");
-                    } 
-                    if (nwinputs[i].includes("#deletescratch")) {
-                       tt = "#deletescratch" +      header.split("#deletescratch")[1].split("\n")[0];
-                       uu = "#deletescratch" + nwinputs[i].split("#deletescratch")[1].split("\n")[0];
-                       header0  = header0.replace(tt,uu);
-                       nwinput0 = nwinput0.replace(uu,"");
-                    }
-                    if (nwinputs[i].includes("#curdir ")) {
-                       tt = "#curdir " +      header.split("#curdir ")[1].split("\n")[0];
-                       uu = "#curdir " + nwinputs[i].split("#curdir ")[1].split("\n")[0];
-                       header0  = header0.replace(tt,uu);
-                       nwinput0 = nwinput0.replace(uu,"");
-                    }
-                    if (nwinputs[i].includes("#permdir ")) {
-                       tt = "#permdir " +      header.split("#permdir ")[1].split("\n")[0];
-                       uu = "#permdir " + nwinputs[i].split("#permdir ")[1].split("\n")[0];
-                       header0  = header0.replace(tt,uu);
-                       nwinput0 = nwinput0.replace(uu,"");
-                    }
-                    if (nwinputs[i].includes("#auxiliary_files ")) {
-                       tt = "#auxiliary_files " +      header.split("#auxiliary_files ")[1].split("\n")[0];
-                       uu = "#auxiliary_files " + nwinputs[i].split("#auxiliary_files ")[1].split("\n")[0];
-                       header0  = header0.replace(tt,uu);
-                       nwinput0 = nwinput0.replace(uu,"");
-                    }
-                    if (nwinputs[i].includes("#transfer_files ")) {
-                       tt = "#transfer_files " +      header.split("#transfer_files ")[1].split("\n")[0];
-                       uu = "#transfer_files " + nwinputs[i].split("#transfer_files ")[1].split("\n")[0];
-                       header0  = header0.replace(tt,uu);
-                       nwinput0 = nwinput0.replace(uu,"");
-                    }
-                    if (nwinputs[i].includes("#startup_files ")) {
-                       tt = "#startup_files " +      header.split("#startup_files ")[1].split("\n")[0];
-                       uu = "#startup_files " + nwinputs[i].split("#startup_files ")[1].split("\n")[0];
-                       header0  = header0.replace(tt,uu);
-                       nwinput0 = nwinput0.replace(uu,"");
-                    }
-
                     nwinputs[i] = header0 + nwinput0;
  
                     //console.log("i=",i);
@@ -5790,13 +5747,7 @@ ul, li {
            document.getElementById("centercell0").value = "Origin";
            document.getElementById("centercell1").value = "Origin";
 
-           var xyz = "";
-           if (textFromUrl.includes("geometry noautosym nocenter noautoz")) {
-              xyz = textFromUrl.split("geometry noautosym nocenter noautoz")[1].split("end")[0].trim();
-           } else {
-              xyz = textFromUrl.split("geometry noautosym noautoz")[1].split("end")[0].trim();
-           }
-
+           var xyz = textFromUrl.split("geometry noautosym nocenter noautoz")[1].split("end")[0].trim();
            var nion = xyz.split("\n").length;
            var xyzdat = nion + "\n\n" + xyz;
 
@@ -5986,7 +5937,6 @@ ul, li {
                data = ss[0] + surfacemm + "      fragment spc" + ss[1];
            }
 
-
            editor.setValue(data,1);
            document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running solvatewhaminput\n","");
            callback("solvatewhaminput");
@@ -6014,16 +5964,14 @@ ul, li {
            var ispspw4 = document.getElementById("bandpspw").value == "pspw4";
            //var xyz = jmvar("data({1.1},\"xyz\")").trim();
            var xyz = jmvar("data({thisModel},\"xyz\")").trim();
-
            xyz = " xyzdata{" + xyz.trim().replace(/\n/g,' | ') + "}";
            if (ispspw4) {
               xyz += " theory{aimd-mm4}";
            } else {
               xyz += " theory{aimd-mm}";
            }
-           xyz += " ^{"+ charge_arrowsdata(true)+"}";
-           xyz += " mult{"+ mult_arrowsdata(true)+"}";
-
+           xyz += " ^{"+ charge_arrowsdata()+"}";
+           xyz += " mult{"+ mult_arrowsdata()+"}";
            if (document.getElementById("showcell").value=="Unit cell off") {;
               xyz += " unitcell{lattice_vectors | ";
               xyz += document.getElementById("lattice_a1").value + " | ";
@@ -6667,13 +6615,11 @@ ul, li {
            jms('set picking off; set picking ON;set atomPicking true;set picking dragmolecule;set allowRotateSelected TRUE;bind "drag" "_rotateselected";bind "double" "javascript moveMol(3)";');
         }
 
-        function charge_arrowsdata(nwchemopt=false) {
+        function charge_arrowsdata() {
            var arrows_input = document.form.smi.value;
            //var charge  = eval(jmvar("{*}.formalCharge.sum"));
            var charge  = eval(jmvar("{thisModel}.formalCharge.sum"));
            var charge0 = document.getElementById("nwchemcharge").value;
-           if (nwchemopt) charge = charge0;
-
            if (arrows_input.includes("^{")) {
               charge = eval(arrows_input.split("^{")[1].split("}")[0].trim());
            } else { 
@@ -6683,12 +6629,11 @@ ul, li {
            }
            return charge;
         }
-        function mult_arrowsdata(nwchemopt=false) {
+        function mult_arrowsdata() {
            var arrows_input = document.form.smi.value;
            //var charge  = eval(jmvar("{*}.formalCharge.sum"));
            var charge  = eval(jmvar("{thisModel}.formalCharge.sum"));
            var charge0 = eval(document.getElementById("nwchemcharge").value);
-           if (nwchemopt) charge = charge0;
            if (arrows_input.includes("^{")) {
               charge = eval(arrows_input.split("^{")[1].split("}")[0].trim());
            } else {
@@ -6700,7 +6645,6 @@ ul, li {
            var mult  = (eval(jmvar("{thisModel}.elemno.sum")) + charge) % 2 + 1;
            var odd0  = ((mult%2)==1);
            var mult0 = document.getElementById("nwchemmult").value;
-           if (nwchemopt) mult=mult0;
            if (arrows_input.includes("mult{")) {
               mult = eval(arrows_input.split("mult{")[1].split("}")[0].trim());
            } else {
@@ -8982,7 +8926,6 @@ ul, li {
         // *                              *
         // ********************************
         function changenwchemcutoff() {
-           console.log("in changenwchemcutoff!");
            var cutoff = basis_arrowsdata();
            if (isNaN(cutoff)) { cutoff = 0.0; }
            var data   = editor.getValue(); // or session.getValue
@@ -9004,26 +8947,6 @@ ul, li {
               data = beforeline;
               data += "  ### pseudopotential block end   ###\n";
               data += "  cutoff " + cutoff.toString() + "\n";
-              data += afterline;
-              editor.setValue(data,1);
-           }
-        }
-
-        // ********************************
-        // *                              *
-        // *      changeboundary          *
-        // *                              *
-        // ********************************
-        function changeboundary() {
-           console.log("in changeboundary!");
-           var ispspw4 = document.getElementById("bandpspw").value == "pspw4";
-           if (ispspw4) {
-              var data   = editor.getValue(); // or session.getValue
-              var beforeline = data.split("   simulation_cell\n")[0];
-              var afterline  = data.split("   simulation_cell\n")[1];
-              data = beforeline;
-              data += "   simulation_cell\n";
-              data += "      boundary_conditions aperiodic\n";
               data += afterline;
               editor.setValue(data,1);
            }
@@ -11801,12 +11724,10 @@ ul, li {
            var calc_url        = document.getElementById("arrows_url").value;
            var arrows_post_url0 = calc_url + 'upload/';
            var arrows_get_url   = calc_url + 'genhash/';
-           console.log("GEN_RHASH2, arrows_post_url0=", arrows_post_url0);
 
 
 
            var reaction = document.getElementById("reaction_genhash00").value;
-           console.log("REACTION:", reaction);
            if (reaction.trim().length>5) {
               document.getElementById('apirunning').value += "+ running gen_rhash2\n";
               document.getElementById('runmebanner4p').innerHTML= "Generating reaction_hash from reaction";
@@ -11815,7 +11736,6 @@ ul, li {
               if (rtypeindx>20) {
                  mol = "user_reaction_type{" + document.getElementById("reaction_type").value + "} " + mol
               }
-           console.log("MOL:", mol);
 
               var textToSaveAsBlob = new Blob([mol], {type:"text/plain"});
               var textToSaveAsURL  = window.URL.createObjectURL(textToSaveAsBlob);
@@ -11826,14 +11746,11 @@ ul, li {
 
               //console.log(fileNameToSaveAs);
               //console.log(mol);
-           console.log("JERA");
 
               var formD = new FormData();
               formD.append('file', textToSaveAsBlob,fileNameToSaveAs);
               formD.append('title', fileNameToSaveAs);
-              console.log(formD);
-
-           console.log("JERB");
+              //console.log(formD);
 
               document.getElementById("reaction_hash").value = "Processing request";
               set_color_reaction([]);
@@ -11841,26 +11758,21 @@ ul, li {
               xhr.open("POST", arrows_post_url0, true);
               xhr.send(formD);
               sleep(2000.0);
-           console.log("JERC:",arrows_post_url0);
 
               var request = new XMLHttpRequest();
               request.onreadystatechange = function() {
-                   console.log("AA=",request.readyState," BB=",request.status);
                  if (request.readyState == 4 && request.status == 200) {
                     var textFromUrl = request.responseText;
-                    console.log("CC=", textFromUrl);
                     document.getElementById("reaction_hash").value = textFromUrl;
                     document.getElementById('runmebanner4p').innerHTML= "";
                     document.getElementById('apirunning').value = document.getElementById('apirunning').value.replace("+ running gen_rhash2\n","");
                     callback("gen_rhash2");
                   }
               };
-           console.log("FERA get:",arrows_get_url+fileNameToSaveAs);
               request.open('GET', arrows_get_url+fileNameToSaveAs, true);
               request.send();
 
            }
-           console.log("FERZ");
         }
 
         function gen_bondings() {
@@ -13086,7 +12998,7 @@ ul, li {
     screen lock<input type="radio" 
                       id="editor_lock" 
                       onClick="ClearRd(this,9); set_lock();" 
-                      title="Thomas: set radio editor_lock :"/>
+                      title="editor lock"/>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <input type="button" 
            class="rbutton4" 
@@ -13281,9 +13193,9 @@ ul, li {
                        <option disabled>──────────</option>
                </select>
          </td-->
-         <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobmodel :"/></td>
-         <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobdate :"/></td>
-         <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobdeletescratch :"/></td>
+         <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="include model number"/></td>
+         <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="include date"/></td>
+         <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="deletescratch option"/></td>
        </tr>
     </table>
     <table>
@@ -13796,7 +13708,7 @@ ul, li {
        </tr>
        <tr>
           <td> 
-              Born Model <input type="radio" id="nwchem_born" onClick="ClearRd(this,7)" title="Thomas: set radio nwchem_born :"/>
+              Born Model <input type="radio" id="nwchem_born" onClick="ClearRd(this,7)" title="include Born solvation"/>
               <select id="nwchemfractional" 
                       title=": set text nwchemfractional :"
                       onChange="changenwchemfractional()">
@@ -13892,12 +13804,12 @@ ul, li {
                                     id="nwchem_translation_off" 
                                     onClick="ClearRd(this,10)" 
                                     oninput="cacheInput(this)" 
-                                    title="Thomas: set radio nwchem_translation_off :"/>
+                                    title="include translation off"/>
              rotation off    <input type="radio" 
                                     id="nwchem_rotation_off"    
                                     onClick="ClearRd(this,11)" 
                                     oninput="cacheInput(this)" 
-                                    title="Thomas: set radio nwchem_rotation_off :"/>
+                                    title="include rotation off"/>
           </td>
        </tr>
        <tr>
@@ -14552,7 +14464,7 @@ ul, li {
                       ztemp: <input type="number" id="tamd_ztemp" size="15" min="0.0" max="99000.0" step="1" value="1000.0" oninput="cacheInput(this)">
                       zinitial: <input type="2array" id="tamd_zinitial" size="19"  value="" oninput="cacheInput(this)"> 
                       <input type="button" class="button" id="setzinitial" value="set zinitial" onClick="set_zinitial();"/>
-                      zfixed: <input type="radio" id="tamd_zfixed" onClick="ClearRd(this,0)" title="Thomas: set radio tamd_zfixed :"/><br>
+                      zfixed: <input type="radio" id="tamd_zfixed" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/><br>
                       range: <input type="2array" id="tamd_range" size="19"  value="" oninput="cacheInput(this)">
                       nrange: <input type="number" id="tamd_nrange" size="9" min="1" max="5000" step="1" value="" > 
                    </div>
@@ -14598,7 +14510,7 @@ ul, li {
                       atom indexes1: <input type="atomarray" id="collective_coord_number_indexes1"  size="70" value="" onChange="set_color_alist('translucent green','collective_coord_number_indexes1');evalcollective()" oninput="cacheInput(this)"> <br>
                       atom indexes2: <input type="atomarray" id="collective_coord_number_indexes2"  size="70" value="" onChange="set_color_alist('translucent blue','collective_coord_number_indexes2');evalcollective()" oninput="cacheInput(this)"> <br>
                       n12: <input type="number" id="collective_coord_number_n12" size="9" min="0.001" max="50000000.100" step="0.001" value="1.000" onChange="evalcollective()" oninput="cacheInput(this)"> 
-                      Sprik: <input type="radio" id="collective_coord_number_sprik" onClick="ClearRd(this,1);evalcollective(); set_Sprik()" title="Thomas: set radio collective_coord_number_sprik :"  />
+                      Sprik: <input type="radio" id="collective_coord_number_sprik" onClick="ClearRd(this,1);evalcollective(); set_Sprik()" title="Sprik"  />
                       n: <input type="number" id="collective_coord_number_n" size="9" min="0.001" max="50.100" step="0.001" value="6.000" onChange="evalcollective()" oninput="cacheInput(this)"> 
                       R0: <input type="number" id="collective_coord_number_r0" size="9" min="0.001" max="50.000" step="0.001" value="1.200" onChange="evalcollective()" oninput="cacheInput(this)"> 
                       <div id="Sprik_m" style="display:block">
@@ -14706,7 +14618,7 @@ ul, li {
                <table>
                   <tr>
                      <td> Cartesian Coordinates  </td>
-                     <td> Fractional Coordinates - locked: <input type="radio" id="lock_frac" onClick="ClearRd(this,2)" title="Thomas: set radio lock_frac :"/> 
+                     <td> Fractional Coordinates - locked: <input type="radio" id="lock_frac" onClick="ClearRd(this,2)" title="Load xyz data from url into jsmol"/> 
                           <input type="button" class="button" id="center_fractional" value="Cntr." 
                            onClick="document.getElementById('fractionalCoords').textContent = centercoords(document.getElementById('fractionalCoords').textContent); jmsupdatefracbox();"/>
                      </td>
@@ -14762,10 +14674,8 @@ ul, li {
                          c/a: <input type="number" id="bulk_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          alpha: <input type="number" id="bulk_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          lat_u: <input type="number" id="bulk_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
-
-                         primitive: <input type="radio" id="bulk_primitive" onClick="ClearRd(this,0)" title="Thomas: set radio bulk_primitive : "/>
-                         cubic: <input type="radio" id="bulk_cubic" onClick="ClearRd(this,1)" title="Thomas: set radio bulk_cubic :"/>
-
+                         primitive: <input type="radio" id="bulk_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
+                         cubic: <input type="radio" id="bulk_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/>
                      </td>
                   </tr>
                   <tr><td><br><br></td></tr>
@@ -14801,7 +14711,7 @@ ul, li {
                         scaling: <input type="text" id="surface_scaling" SIZE=15 value="1.0 1.0 1.0" oninput="cacheInput(this)"/>
                         nzplane: <input type="number" id="surface_nzplane" SIZE=5 min="1" max="100" step="1" value="" oninput="cacheInput(this)"/>
                         <br>tolerance: <input type="number" id="surface_tolerance" size="9" min="-3.000" max="3.000" step="0.001" value="0.0010" onChange="jsmcellchange(1,1)" oninput="cacheInput(this)">
-                        align c: <input type="radio" id="surface_alignc" onClick="ClearRd(this,1)" title="Thomas: set radio surface_alignc :" oninput="cacheInput(this)"/>
+                        align c: <input type="radio" id="surface_alignc" onClick="ClearRd(this,1)" title="align c axis" oninput="cacheInput(this)"/>
                      </td>
                   </tr>
                </table>
@@ -14842,8 +14752,8 @@ ul, li {
                          c/a:   <input type="number" id="bulk1_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          alpha: <input type="number" id="bulk1_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          lat_u: <input type="number" id="bulk1_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
-                         primitive: <input type="radio" id="bulk1_primitive" onClick="ClearRd(this,0)" title="Thomas: set radio bulk_primitive :"/>
-                         cubic: <input type="radio" id="bulk1_cubic" onClick="ClearRd(this,1)" title="Thomas: set radio bulk_cubic :"/><br>
+                         primitive: <input type="radio" id="bulk1_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
+                         cubic: <input type="radio" id="bulk1_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/><br>
                          a(hkl): <input type="text" id="surface1_a" SIZE=15 value="1.5 -1.5 0.0" oninput="cacheInput(this)"/>
                          b(hkl): <input type="text" id="surface1_b" SIZE=15 value="0.0 1.5 -1.5" oninput="cacheInput(this)"/>
                          c(hkl): <input type="text" id="surface1_c" SIZE=15 value="-1.0 -1.0 -1.0" oninput="cacheInput(this)"/>
@@ -14898,8 +14808,8 @@ ul, li {
                          c/a:   <input type="number" id="bulk2_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          alpha: <input type="number" id="bulk2_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          lat_u: <input type="number" id="bulk2_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
-                         primitive: <input type="radio" id="bulk2_primitive" onClick="ClearRd(this,0)" title="Thomas: set radio bulk2_primitive :"/>
-                         cubic: <input type="radio" id="bulk2_cubic" onClick="ClearRd(this,1)" title="Thomas: set radio bulk2_cubic :"/><br>
+                         primitive: <input type="radio" id="bulk2_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
+                         cubic: <input type="radio" id="bulk2_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/><br>
                          a(hkl): <input type="text" id="surface2_a" SIZE=15 value="1.5 -1.5 0.0" oninput="cacheInput(this)"/>
                          b(hkl): <input type="text" id="surface2_b" SIZE=15 value="0.0 1.5 -1.5" oninput="cacheInput(this)"/>
                          c(hkl): <input type="text" id="surface2_c" SIZE=15 value="-1.0 -1.0 -1.0" oninput="cacheInput(this)"/>
@@ -17196,7 +17106,7 @@ xdoc.close();
     machine_type: <input type="text" list="machinelist" id="queue_machine_type" onChange="definesecret()" value="" oninput="cacheInput(this)"/>
     queue_name: <input type="text" id="queue_nwchem_name" value="nwchem" oninput="cacheInput(this)"/>
     <input type="button" VALUE="queue_nwchem" onClick="queue_nwchem_fetch()" title="queue_nwchem" style="background-color:#f8f8ff; color:#0000ff; font-size: 14px; font-weight:bold"/>
-    <input type="radio" id="show_window" onClick="ClearRd(this,12)" oninput="cacheInput(this)" title="Thomas: set radio show_window :"/>
+    <input type="radio" id="show_window" onClick="ClearRd(this,12)" oninput="cacheInput(this)" title="show window"/>
    <br>
    <br>
    <section  class="listWrapper" style="color: black" id="queue_nwchem_area"> 
@@ -18158,11 +18068,11 @@ changenwchemefieldtype();
 <table>
    <tr> 
       <td>
-         <input type="radio" id="text2speech_on" onClick="ClearRd(this,3)" title="Thomas: set radio text2speech_on :"/>
+         <input type="radio" id="text2speech_on" onClick="ClearRd(this,3)" title="Turn on/off Text 2 Speech"/>
          <b style="color: green; font-size: 14px;">Arrows: </b> 
          <font color="298DB4" style="color: green; font-size: 14px;" id="text2speechbanner">Hello</font> 
          <br>
-         <input type="radio" id="speech2text_on" onClick="ClearRd(this,4);Speech2Text();" title="Thomas: set radio speech2text_on :"/>
+         <input type="radio" id="speech2text_on" onClick="ClearRd(this,4);Speech2Text();" title="Turn on/off Speech 2 Text"/>
          <b style="color: blue; font-size: 14px;">You: </b> 
       </td>
    </tr>

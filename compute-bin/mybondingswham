@@ -1,0 +1,734 @@
+#!/usr/bin/env python3
+
+import sys,os,getopt,requests,pickle
+from scipy import special
+from math import *
+from numpy import *
+from numpy.linalg import *
+from numpy.fft import *
+
+KB = 0.316679E-5
+
+
+
+######################################
+#                                    #
+#           util_simpson             #
+#                                    #
+######################################
+def util_simpson(n,y,h):
+   s = -y[0]-y[n-1]
+   for i in range(0,n,2):
+      s += 2.0*y[i]
+   for i in range(1,n,2):
+      s += 4.0*y[i]
+
+   return s*h/3.0
+
+######################################
+#                                    #
+#           data_averages            #
+#                                    #
+######################################
+#compute the sample mean
+#compute the unbiased sample variance
+def data_averages(data):
+   n = len(data)
+   xbar = 0.0
+   for x in data: xbar += x
+   xbar /= n
+
+   s2 = 0.0
+   for x in data: s2 += (x-xbar)*(x-xbar)
+   s2 /= (n-1)
+
+   return (xbar,s2)
+
+def data_average_exp(RT,xmin,data):
+   n = len(data)
+   expbar = 0.0
+   for x in data: expbar += exp((x-xmin)/RT)
+   expbar /= n
+
+   return expbar
+
+
+######################################
+#                                    #
+#           data_range               #
+#                                    #
+######################################
+#compute the xmin and xmax
+def data_range(delta,data):
+   xmin = 9.0e99
+   xmax = -9.0e99
+   for x in data:
+      if (x<xmin): xmin = x-delta
+      if (x>xmax): xmax = x+delta
+
+   return (xmin,xmax)
+
+######################################
+#                                    #
+#           data_histogram           #
+#                                    #
+######################################
+def data_histogram(k,delta,data):
+   (xmin,xmax) = data_range(delta,data)
+   n = len(data)
+   #k = int(ceil(2*n**0.33333333))
+   h = (xmax-xmin)/(k-1)
+
+   #compute histogram
+   uhist = [0.0]*k
+   for x in data:
+      i = int(round( (x-xmin)/h ) )
+      uhist[i] += 1.0
+   norm = 0.5*h*(uhist[0]+uhist[k-1])
+   for i in range(1,k-1): norm += h*uhist[i]
+
+   #compute histogram pdf
+   for i in range(k): uhist[i] /= norm
+
+   return uhist
+
+
+######################################
+#                                    #
+#           data_normdist            #
+#                                    #
+######################################
+#generate the normal distribution
+def data_normdist(kbig,delta,data):
+   (xmin,xmax) = data_range(delta,data)
+   (xbar,s2)   = data_averages(data)
+
+   #compute standard normal pdf
+   h = (xmax-xmin)/float(kbig-1)
+   unorm = [0.0]*kbig
+   for i in range(kbig):
+      x = xmin + i*h
+      fnorm  = (1.0/sqrt(2*pi*s2))*exp(-0.5*(x-xbar)**2/s2)
+      unorm[i] = fnorm
+
+   return unorm
+
+
+
+######################################
+#                                    #
+#       data_gamma_loglikelyhood     #
+#                                    #
+######################################
+#maximizing the log-likelyhood of the gamma distributions
+def data_gamma_loglikelyhood(xmin,xbar,alpha0,data):
+   s = 0.0
+   for x in data:
+      s -= log(x-xmin)
+   s /= len(data)
+   s += log(xbar-xmin)
+   alpha = alpha0
+   dalpha = 1.0
+   done = False
+   while (not done):
+      dalpha =  -(log(alpha)-special.polygamma(0,alpha)-s)/((1.0/alpha)-special.polygamma(1,alpha))
+      alpha += dalpha
+      done = (abs(dalpha)>1.0e-9) or (alpha<0.0)
+
+   if (alpha < 0.0): alpha = alpha0
+   beta = alpha/(xbar-xmin)
+
+   return (alpha,beta)
+
+
+######################################
+#                                    #
+#          data_gammadists           #
+#                                    #
+######################################
+#generate the gamma distributions
+def data_gammadists(kbig,delta,data):
+   (xmin,xmax) = data_range(delta,data)
+   (xbar,s2)   = data_averages(data)
+
+   beta0  = (xbar-xmin)/s2
+   alpha0 = (xbar-xmin)**2/s2
+
+   #maximizing the log-likelyhood of the gamma distributions
+   (alpha,beta) = data_gamma_loglikelyhood(xmin,xbar,alpha0,data)
+   if ((abs(alpha-alpha0)>100.0) or (abs(beta-beta0)>1000.0)):
+      #print "failed? alpha,beta=",alpha,beta,alpha0,beta0
+      alpha = alpha0
+      beta  = beta0
+
+   #generate the gamma distributions
+   ugamma0 = [0.0]*kbig
+   ugamma  = [0.0]*kbig
+   h = (xmax-xmin)/float(kbig-1)
+   for i in range(kbig):
+      x = xmin + i*h
+      try:
+         fgamma0 = ((beta0**alpha0)/gamma(alpha0))*((x-xmin)**(alpha0-1))*exp(-beta0*(x-xmin))
+         fgamma = ((beta**alpha)/gamma(alpha))*((x-xmin)**(alpha-1))*exp(-beta*(x-xmin))
+      except:
+         fgamma0 = 0.0
+         fgamma = 0.0
+      ugamma0[i] = fgamma0
+      ugamma[i]  = fgamma
+
+   return (ugamma0,ugamma)
+
+
+######################################
+#                                    #
+#           hausdorff_Amatrix        #
+#                                    #
+######################################
+def hausdorff_Amatrix(gmax,pmax):
+   dx  = 1.0/(gmax-1.0)
+   A = []
+   for prow in range(pmax):
+      row = []
+      for pcolumn in range(gmax):
+         y = dx*(pcolumn*dx)**prow
+         if ((pcolumn==0) or (pcolumn==(gmax-1))): y *= 0.5
+         row.append(y)
+      A.append(row)
+   A = matrix(A)
+
+   return A
+
+######################################
+#                                    #
+#         hausdorff_fit              #
+#                                    #
+######################################
+
+# Given a set of pmax moments this function finds the pdf u(0:gmax-1) on 0 <= x <=1 
+# that satisfies the following equations
+#
+#         / 1
+#         | 
+# mu(p) = | x^p * u(x) dx  for p=1...pmax
+#         |
+#         / 0
+#
+def hausdorff_fit(gmax,pmax,moments):
+   mu = matrix(moments)
+   mu = mu.T
+   A = hausdorff_Amatrix(gmax,pmax)
+   Ainv_lm = A.I
+   u = Ainv_lm*mu
+
+   return u
+
+
+######################################
+#                                    #
+#          data_hausdorff_moments    #
+#                                    #
+######################################
+def data_hausdorff_moments(pmax,xmin,xmax,data):
+   n = len(data)
+   mu = [0.0]*pmax
+   scal = 1.0/(xmax-xmin)
+   count = 0.0
+   for x in data:
+      y = (x-xmin)*scal
+      for p in range(pmax):
+         mu[p] += y**(p)
+      count += 1.0
+   for p in range(pmax):  mu[p] /= n
+
+   return mu
+
+######################################
+#                                    #
+#          data_hausdorff            #
+#                                    #
+######################################
+def data_hausdorff(gmax,pmax,delta,data):
+   (xmin,xmax) = data_range(delta,data)
+   scal = 1.0/(xmax-xmin)
+
+   #make a hausdorff distributions
+   mu = data_hausdorff_moments(pmax,xmin,xmax,data)
+   tmp = hausdorff_fit(gmax,pmax,mu)
+   uhd = [0.0]*gmax
+   for i in range(gmax): uhd[i] = tmp.item(i)*scal
+
+   return uhd
+
+
+
+
+
+######################################
+#                                    #
+#        GenerateBondingsData        #
+#                                    #
+######################################
+
+def GenerateBondingsData(bondings_string,ion_motion_file):
+
+   bondings=[eval(x) for x in bondings_string.split()]
+   if "https:" in ion_motion_file:
+      rr = requests.get(ion_motion_file)
+      aa = rr.text
+   else:
+      with open(ion_motion_file,'r') as rr:
+         aa = rr.read()
+   aaa = aa.split("\n")
+  
+   nion = eval(aaa[0].split()[1])
+   unita = []
+   unita.append(eval(aaa[0].split()[3]))
+   unita.append(eval(aaa[0].split()[4]))
+   unita.append(eval(aaa[0].split()[5]))
+   unita.append(eval(aaa[0].split()[6]))
+   unita.append(eval(aaa[0].split()[7]))
+   unita.append(eval(aaa[0].split()[8]))
+   unita.append(eval(aaa[0].split()[9]))
+   unita.append(eval(aaa[0].split()[10]))
+   unita.append(eval(aaa[0].split()[11]))
+
+   nframes = len(aaa)/(nion+1)
+   #print "#nion=",nion
+   #print "#nframes=",nframes
+   #print "#bondings=",bondings
+   nb = len(bondings)/3
+
+   xmin = 9.9e99
+   xmax = -9.9e99
+   data = []
+   for f in range(nframes):
+      shift = (nion+1)*f
+
+      gamma = 0.0
+      for b in range(nb):
+         xx = bondings[3*b]
+         i1 = bondings[3*b+1]
+         i2 = bondings[3*b+2]
+         xyz1 = [eval(aaa[shift+i1].split()[j]) for j in range(3,6)]
+         xyz2 = [eval(aaa[shift+i2].split()[j]) for j in range(3,6)]
+
+         r2min = 99.9e54
+         for i3 in range(-1,2):
+            for i2 in range(-1,2):
+               for i1 in range(-1,2):
+                  dx = xyz1[0] - xyz2[0] + i1*unita[0] + i2*unita[3] + i3*unita[6]
+                  dy = xyz1[1] - xyz2[1] + i1*unita[1] + i2*unita[4] + i3*unita[7]
+                  dz = xyz1[2] - xyz2[2] + i1*unita[2] + i2*unita[5] + i3*unita[8]
+                  r2 = dx*dx + dy*dy + dz*dz
+                  if (r2<r2min): r2min = r2
+         r = sqrt(r2min)
+         gamma += xx*r
+      data.append(gamma)
+
+   return data
+
+
+######################################
+#                                    #
+#        makehistograms              #
+#                                    #
+######################################
+def makehistograms(data):
+
+   nframes = len(data)
+   delta = 0.01
+   (xmin,xmax) = data_range(delta,data)
+   nbins = int(ceil(2*nframes**0.33333333))
+   h = (xmax-xmin)/(nbins-1)
+
+   uhist = data_histogram(nbins,delta,data)
+
+   #generate the std normal distribution
+   unorm = data_normdist(nbins,delta,data)
+
+   #generate the gamma distributions
+   (ugamma0,ugamma) = data_gammadists(nbins,delta,data)
+
+
+   myhist = []
+   for i in range(len(uhist)):
+      myhist.append((xmin+i*h,uhist[i],unorm[i],ugamma0[i],ugamma[i]))
+
+   return myhist
+
+
+
+######################################
+#                                    #
+#    makehausdorffdistributions      #
+#                                    #
+######################################
+def makehausdorffdistributions(data):
+
+   delta = 0.01
+   ngrid = 1500
+   gmax = ngrid
+   pmax = 15
+   (xmin,xmax) = data_range(delta,data)
+   h           = (xmax-xmin)/float(ngrid-1)
+
+   #generate the gamma distributions
+   (ugamma0,ugamma) = data_gammadists(ngrid,delta,data)
+
+   #make a hausdorff distributions
+   uhd = data_hausdorff(ngrid,pmax,delta,data)
+
+   nsum = 0.0
+   pcount = 0
+   for x in uhd:
+      if (x<0.0): 
+         nsum += x
+      else:
+         pcount += 1
+
+   dym = nsum/pcount
+   adym = abs(nsum/pcount)
+   tsum = 0.0
+   for i in range(len(uhd)):
+      y = 0.0
+      if (uhd[i]>adym):
+         y = uhd[i]+dym
+         if (tsum < (-1.0e-7)):
+           dyt = tsum/10.0
+           if ((y+dyt)>0.0):
+              tsum -= dyt
+              y += dyt
+      else:
+         tsum += dym
+      uhd[i] = y
+
+   myhist = []
+   for i in range(len(uhd)):
+      myhist.append((xmin+i*h,uhd[i],uhd[i]-ugamma0[i]))
+
+   return myhist
+
+
+def find_rhohaus(x,jj,hdist):
+   j = jj
+   xm = hdist[j][0]
+   xp = hdist[j+1][0]
+   while (x<xm):
+      j = j-1
+      xm = hdist[j][0]
+      xp = hdist[j+1][0]
+   while (x>xp):
+      j = j+1
+      xm = hdist[j][0]
+      xp = hdist[j+1][0]
+
+   alpha = (x-xm)/(xp-xm)
+   rhointerpolate = (1-alpha)*hdist[j][1] + alpha*hdist[j+1][1]
+
+   return rhointerpolate
+
+
+
+
+def generate_whamdata(bondings_string,bias_filedat,archive_file,reload_files):
+   nwindows = len(bias_filedat)/3
+
+   if (len(archive_file)>0):
+      try:
+         haus_data0 = pickle.load(open(archive_file,"rb"))
+      except:
+         haus_data0 = None
+   
+
+   haus_data = []
+   xmin =  9.9e9
+   xmax = -9.9e9
+   for i in range(nwindows):
+      print("# Reaction coordinate = ", bias_filedat[3*i+2])
+      print("# Reaction Spring K   = ", bias_filedat[3*i+1])
+      print("# Filename            = ", bias_filedat[3*i])
+
+      old_data = []
+      if (haus_data0 is not None):
+         for xx in haus_data0:
+            if (xx[7]==bias_filedat[3*i]) and (xx[8]==bias_filedat[3*i+1]) and (xx[9]==bias_filedat[3*i+2]):
+               old_data = xx
+
+      if (len(old_data)>0) and (bias_filedat[3*i] not in reload_files):
+         print("# haus_data in archive")
+         print("# ni (num. snapshots) = ", old_data[2])
+         print("# x0,x1               = ", old_data[3],old_data[4])
+         print("# <f_bondings>        = ", old_data[6])
+         print("#")
+         haus_data.append(old_data)
+         x0 = old_data[3]
+         x1 = old_data[4]
+         if (x0<xmin): xmin = x0
+         if (x0>xmax): xmax = x0
+         if (x1<xmin): xmin = x1
+         if (x1>xmax): xmax = x1
+
+      else:
+         data    = GenerateBondingsData(bondings_string,bias_filedat[3*i])
+         ni      = len(data)
+         rhohaus = makehausdorffdistributions(data)
+         xr = eval(bias_filedat[3*i+2])
+         Kr = eval(bias_filedat[3*i+1])
+         x0 = rhohaus[0][0]
+         x1 = rhohaus[-1][0]
+         if (xr<xmin): xmin = xr
+         if (xr>xmax): xmax = xr
+
+         if (x0<xmin): xmin = x0
+         if (x0>xmax): xmax = x0
+
+         if (x1<xmin): xmin = x1
+         if (x1>xmax): xmax = x1
+      
+         fave = 0.0
+         for x in data:
+            fave += 2.0*Kr*(x-xr)
+         fave /= ni
+
+         print("# ni (num. snapshots) = ", ni)
+         print("# x0,x1               = ", x0,x1)
+         print("# <f_bondings>        = ", fave)
+         print("#")
+         haus_data.append( [xr,Kr, ni,x0,x1,rhohaus,fave,bias_filedat[3*i],bias_filedat[3*i+1],bias_filedat[3*i+2] ] )
+
+   if (len(archive_file)>0):
+      pickle.dump(haus_data, open(archive_file,"wb"), protocol=pickle.HIGHEST_PROTOCOL)
+
+
+   #xmin -= 0.200
+   #xmin -= 0.200
+   #xmax += 0.200
+
+   xmin -= 0.00001
+   xmax += 0.00001
+
+   ngrid = 501
+   h = (xmax-xmin)/float(ngrid-1)
+   print("#xmin,xmax = ", xmin,xmax)
+
+   whamdata = []
+   for i in range(nwindows):
+      gamma = haus_data[i][0]
+      Kbias = haus_data[i][1]
+      ni    = haus_data[i][2]
+      x0    = haus_data[i][3]
+      x1    = haus_data[i][4]
+      hdist = haus_data[i][5]
+      ng = len(hdist)
+      mu    = 1.0
+      rhobias = [0.0]*ngrid
+      vbias   = [0.0]*ngrid
+      nsum = 0.0
+      for k in range(ngrid):
+         x = xmin + k*h
+         vbias[k] = Kbias*(x-gamma)*(x-gamma)
+         if ((x>=x0) and (x<=x1)):
+            jj = int((x-x0)*(ng-1)/(x1-x0))
+            rr =find_rhohaus(x,jj,hdist);
+            if (rr>0.0):
+               rhobias[k] = rr
+               
+      ## renormalize rhobias here ##
+      ss = 0.0
+      for k in range(ngrid):
+         ss += rhobias[k]
+      ss -= 0.5*(rhobias[0] + rhobias[-1])
+      print("#renormalize norm = ", i,ss*h, util_simpson(ngrid,rhobias,h))
+      for k in range(ngrid):
+         rhobias[k] /= ss*h
+              
+
+      whamdata.append([gamma,Kbias,ni,xmin,xmax,mu,ngrid,rhobias,vbias])
+
+   return (whamdata,haus_data)
+
+
+def rho_wham(nwindows,RT,whamdata):
+   ngrid = whamdata[0][6]
+   rho = [1.0e-15]*ngrid
+
+   for k in range(ngrid):
+      numerator   = 0.0
+      denominator = 0.0
+      for i in range(nwindows):
+         numerator   += whamdata[i][2]*whamdata[i][7][k]
+         denominator += (whamdata[i][2]/whamdata[i][5])*exp(-whamdata[i][8][k]/RT)
+      rho[k] += numerator/denominator
+      #print "k,num,denom=",k,numerator,denominator,rho[k]
+
+   return rho
+
+
+
+################################## main program ###################################
+def main():
+
+   usage = \
+   """
+   bondingswham
+
+     Usage: mybondingswham  -b bondings_string -f [bias_simulation_files] simulation_file
+
+     -f bias_simulation_files
+     -b bondings_string
+     -a archive_file
+     -h help
+
+   """
+
+   temperature = 300.0
+
+   #bondings_string = "1.0 7 16 -1.0 7 22"
+   bondings_string = ""
+   archive_file = ""
+   bias_simulation_files = ""
+   simulation_file = ""
+   reload_files = []
+
+   opts, args = getopt.getopt(sys.argv[1:], "a:b:f:h")
+   for o, a in opts:
+     if '-a' in o:
+        archive_file = a
+     if '-b' in o:
+        bondings_string = a
+     if '-f' in o:
+        bias_simulation_files = a
+
+     if o in ("-h","--help"):
+       print(usage)
+       exit()
+
+   if (len(args)<1):
+      if (len(bias_simulation_files)<1) and (len(bondings_string)<1):
+         print(usage)
+         exit()
+   else:
+      simulations_file = args[0]
+      with open(simulations_file,'r') as ff: aa = ff.read()
+      if "bias_simulations_files" in aa: bias_simulations_files = aa.split("bias_simulations_files")[1].split("\n")[0].strip()
+      if "bondings_string" in aa:        bondings_string = aa.split("bondings_string")[1].split("\n")[0].strip()
+      if "archive_file" in aa:           archive_file = aa.split("archive_file")[1].split("\n")[0].strip()
+      if "reload_files" in aa:           reload_files = aa.split("reload_files")[1].split("\n")[0].strip().split()
+
+
+
+   with open(bias_simulations_files,'r') as ff:
+      bias_filedat = ff.read().strip().split()
+   nwindows = len(bias_filedat)/3
+
+   RT = 0.316679E-5*temperature
+
+   print("# simulations_input     = ",simulations_file)
+   print("# archive file          = ",archive_file)
+   print("# bias_simulation_files = ",bias_simulations_files)
+   print("# nwindows              = ",nwindows)
+   print("# bondings              = ",bondings_string)
+   print("# RT                    = ",RT)
+   if (len(reload_files)>0): print("# reloading files       = ",reload_files)
+   print("#")
+
+
+   (whamdata,hausdata) = generate_whamdata(bondings_string,bias_filedat,archive_file,reload_files)
+
+   xmin  = whamdata[0][3]
+   xmax  = whamdata[0][4]
+   ngrid = whamdata[0][6]
+   h = (xmax-xmin)/float(ngrid-1)
+
+   for i in range(nwindows):
+      ss = 0.0
+      for k in range(ngrid):
+         ss += whamdata[i][7][k]
+      ss -= 0.5*(whamdata[i][7][0] + whamdata[i][7][-1])
+      print("#norm = ", i,ss*h, util_simpson(ngrid,whamdata[i][7],h))
+
+
+   err = 1.0
+   it  = 0
+   while ((err>1.0e-7) and (it<25000)):
+      it += 1
+
+      ## generate rho ##
+      rho = rho_wham(nwindows,RT,whamdata)
+
+      ## generate mui ##
+      err = 0.0
+      for i in range(nwindows):
+         mui = 0.0
+         for k in range(ngrid):
+            mui += rho[k]*exp(-whamdata[i][8][k]/RT)
+         mui -= 0.5*rho[0]*exp(-whamdata[i][8][0]/RT)
+         mui -= 0.5*rho[-1]*exp(-whamdata[i][8][-1]/RT)
+         mui = mui*h
+
+         eee = (1.0 - mui/whamdata[i][5]) 
+         err += eee*eee
+         #print "i,mui=",i,mui,whamdata[i][5]
+
+         whamdata[i][5] = mui
+
+      if ((it%100)==0):
+         print("# it  wham_error = ", it, err)
+
+ 
+   print("#")
+
+
+   xmin0 = 9.99e99
+   xmax0 = -9.99e99
+   for hh in hausdata:
+      if (hh[0]<xmin0): xmin0 = hh[0]
+      if (hh[0]>xmax0): xmax0 = hh[0]
+   #
+
+   Fshift = 0.0
+   Fshiftnotset = True
+
+   F0 = -RT*log(rho[0])
+   rho = rho_wham(nwindows,RT,whamdata)
+   print("#Labels  gamma   delta_F   delta_F(kcal/mol)   rho")
+   for k in range(ngrid):
+      x = xmin + k*h
+      if (x>=xmin0) and (x<=xmax0):
+         if (Fshiftnotset):
+            Fshiftnotset = False
+            Fshift = -(-RT*log(rho[k])-F0)
+         print("%14.6f %18.6f %10.2f %14.6e" % (x, (-RT*log(rho[k])-F0+Fshift), (-RT*log(rho[k])-F0+Fshift)*27.2116*23.06, rho[k]))
+
+   print()
+   print()
+   print("#CSV Labels  gamma  delta_F(kcal/mol)  delta_F  rho")
+   print("---------------------------------------------------")
+   print("gamma,DeltaF (kcal/mol),DeltaF,Rho")
+   for k in range(ngrid):
+      x = xmin + k*h
+      if (x>=xmin0) and (x<=xmax0):
+         if (Fshiftnotset):
+            Fshiftnotset = False
+            Fshift = -(-RT*log(rho[k])-F0)
+         print("%.6f,%.6f,%.2f,%.6e" % (x, (-RT*log(rho[k])-F0+Fshift)*27.2116*23.06, (-RT*log(rho[k])-F0+Fshift), rho[k]))
+
+
+
+   #data = GenerateBondingsData(bondings_string,ion_motion_filename)
+   #
+   ### simple histograms
+   #myhist = makehistograms(data)
+   #for xx in myhist:
+   #   print xx[0], xx[1], xx[2], xx[3], xx[4]
+   #
+   #print
+   #myhist2 = makehausdorffdistributions(data)
+   #for xx in myhist2:
+   #   print xx[0], xx[1], xx[2]
+   #
+   #
+
+
+if __name__=='__main__':
+    main()

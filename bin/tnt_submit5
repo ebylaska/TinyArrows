@@ -1627,7 +1627,11 @@ def maketheory(jobtheory,xc,mult,pspw4,paw,basis,basisHZ,job):
          solutejob = job['solutejob']
          tstr += "nwpw\n"
          tstr += "   simulation_cell\n"
-         tstr += "      SC %.6f\n" % (solutejob['L']/0.529177)
+         if (job['pspw4']):
+            tstr += "      boundary_conditions aperiodic";  tstr += eoln
+            tstr += "      SC 26.0"; tstr += eoln
+         else:
+            tstr += "      SC %.6f\n" % (solutejob['L']/0.529177)
          tstr += "   end\n"
          tstr += "   qmmm\n"
          tstr += "      mm_tags %d:%d\n" % (solutejob['solute_size']+1,solutejob['solute_size']+solutejob['solvent_size'])
@@ -3280,7 +3284,7 @@ else:
 esmiles = addspaces_esmiles(xyzsmiles.strip())
 
 ##### this is an aimd-mm simulation #####
-if "theory{aimd-mm}" in esmiles.lower():
+if (("theory{aimd-mm}" in esmiles.lower()) or ("theory{aimd-mm4}" in esmiles.lower())):
    cmd6 = solvatedsolute_esmiles + '\"' + esmiles + '\"'
    result = subprocess.check_output(cmd6,shell=True,stderr=subprocess.STDOUT).decode("utf-8")
    print(result)

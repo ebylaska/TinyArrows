@@ -532,6 +532,7 @@ def main():
   solute_q = q
   solute_mult = mult
   henry = False
+  theory = "aimd-mm"
   xc = "pbe"
   unitcell = False
   unitcell3 = False
@@ -543,6 +544,7 @@ def main():
       solute_q = evalnum(esmiles.split('^{')[1].split('}')[0])
   if 'molarity' in esmiles:
       molarity = evalnum(esmiles.split('molarity{')[1].split('}')[0])
+  if 'theory' in esmiles: theory = esmiles.split('theory{')[1].split('}')[0]
   if 'xc' in esmiles: xc = esmiles.split('xc{')[1].split('}')[0]
   if xc=='pbe0':
      xc0 = 'pbe'
@@ -752,7 +754,10 @@ def main():
      print("set nwpw:cif_filename solutesolvent\n")
      print("nwpw")
      print("   simulation_cell")
-     if (unitcell9):
+     if (theory=="aimd-mm4"):
+        print("      boundary_conditions aperiodic")
+        print("      SC 26.0");
+     elif (unitcell9):
         print("      lattice_vectors")
         print("          %.6f %.6f %.6f"   % (L[0]/0.529177,L[1]/0.529177,L[2]/0.529177))
         print("          %.6f %.6f %.6f"   % (L[3]/0.529177,L[4]/0.529177,L[5]/0.529177))
