@@ -6014,6 +6014,7 @@ ul, li {
               xyz += document.getElementById("lattice_a2").value + " | ";
               xyz += document.getElementById("lattice_a3").value + "}";
            } else {
+              console.log("MOLARITY=",molarity);
               var molarity0 = molarity;
               if (molarity0<0.0) {
                  molarity0 = prompt("Please enter molarity:", "1.0");
@@ -9011,6 +9012,30 @@ ul, li {
               editor.setValue(data,1);
            }
         }
+
+
+        // ********************************
+        // *                              *
+        // *      changeboundary          *
+        // *                              *
+        // ********************************
+        function changeboundary() {
+           console.log("in changeboundary!");
+           var ispspw4 = document.getElementById("bandpspw").value == "pspw4";
+           if (ispspw4) {
+              var data   = editor.getValue(); // or session.getValue
+              var beforeline = data.split("   simulation_cell\n")[0];
+              var afterline  = data.split("   simulation_cell\n")[1];
+              data = beforeline;
+              data += "   simulation_cell\n";
+              data += "      boundary_conditions aperiodic\n";
+              data += afterline;
+              editor.setValue(data,1);
+           }
+        }
+
+
+
 
 
 
@@ -12362,7 +12387,7 @@ ul, li {
                     console.log("rg1=",rg1);
                     console.log("rg2=",rg2);
                     console.log("rg3=",rg3);
-                    wgamma = document.getElementById("umbrella_gamma").value;
+                    var wgamma = document.getElementById("umbrella_gamma").value;
                     console.log("wgamma=",wgamma);
 
                     if (wgamma<=(rg1)) {
@@ -14390,7 +14415,7 @@ ul, li {
                                       title="Thomas: set number umbrella_spring :" 
                                       oninput="cacheInput(this)">}
                    WHAM_gamma{<input type="number" 
-                                     id="umbrella_gamma" value="0.00" min="-100" max="+100.00" step="0.10" 
+                                     id="umbrella_gamma" value="0.00" min="-100" max="100.00" step="0.10" 
                                      title="Thomas: set number umbrella_gamma :" 
                                      oninput="cacheInput(this)">}
                    <br>
