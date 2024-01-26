@@ -5899,11 +5899,7 @@ ul, li {
            x += "#curdir " + curdir + "\n"
            x += "#\n";
            x += "#permdir " + projectname+"_"+jobname + "\n";
-           if (document.getElementById("queue_nwchem_jobdeletescratch").checked) {
-              x += "#deletescratch yes\n";
-           } else {
-              x += "#deletescratch no\n";
-           }
+           x += "#deletescratch no\n";
            x += "#queuesave no\n"
            x += "#\n";
            x += "#machine " + machine + "\n";
