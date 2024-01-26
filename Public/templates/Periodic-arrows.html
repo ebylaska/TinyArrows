@@ -13265,9 +13265,9 @@ ul, li {
                        <option disabled>──────────</option>
                </select>
          </td-->
-         <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="include model number"/></td>
-         <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="include date"/></td>
-         <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="deletescratch option"/></td>
+         <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobmodel :"/></td>
+         <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobdate :"/></td>
+         <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobdeletescratch :"/></td>
        </tr>
     </table>
     <table>
@@ -13780,7 +13780,7 @@ ul, li {
        </tr>
        <tr>
           <td> 
-              Born Model <input type="radio" id="nwchem_born" onClick="ClearRd(this,7)" title="include Born solvation"/>
+              Born Model <input type="radio" id="nwchem_born" onClick="ClearRd(this,7)" title="Thomas: set radio nwchem_born :"/>
               <select id="nwchemfractional" 
                       title=": set text nwchemfractional :"
                       onChange="changenwchemfractional()">
@@ -13876,12 +13876,12 @@ ul, li {
                                     id="nwchem_translation_off" 
                                     onClick="ClearRd(this,10)" 
                                     oninput="cacheInput(this)" 
-                                    title="include translation off"/>
+                                    title="Thomas: set radio nwchem_translation_off :"/>
              rotation off    <input type="radio" 
                                     id="nwchem_rotation_off"    
                                     onClick="ClearRd(this,11)" 
                                     oninput="cacheInput(this)" 
-                                    title="include rotation off"/>
+                                    title="Thomas: set radio nwchem_rotation_off :"/>
           </td>
        </tr>
        <tr>
@@ -14536,7 +14536,7 @@ ul, li {
                       ztemp: <input type="number" id="tamd_ztemp" size="15" min="0.0" max="99000.0" step="1" value="1000.0" oninput="cacheInput(this)">
                       zinitial: <input type="2array" id="tamd_zinitial" size="19"  value="" oninput="cacheInput(this)"> 
                       <input type="button" class="button" id="setzinitial" value="set zinitial" onClick="set_zinitial();"/>
-                      zfixed: <input type="radio" id="tamd_zfixed" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/><br>
+                      zfixed: <input type="radio" id="tamd_zfixed" onClick="ClearRd(this,0)" title="Thomas: set radio tamd_zfixed :"/><br>
                       range: <input type="2array" id="tamd_range" size="19"  value="" oninput="cacheInput(this)">
                       nrange: <input type="number" id="tamd_nrange" size="9" min="1" max="5000" step="1" value="" > 
                    </div>
@@ -14582,7 +14582,7 @@ ul, li {
                       atom indexes1: <input type="atomarray" id="collective_coord_number_indexes1"  size="70" value="" onChange="set_color_alist('translucent green','collective_coord_number_indexes1');evalcollective()" oninput="cacheInput(this)"> <br>
                       atom indexes2: <input type="atomarray" id="collective_coord_number_indexes2"  size="70" value="" onChange="set_color_alist('translucent blue','collective_coord_number_indexes2');evalcollective()" oninput="cacheInput(this)"> <br>
                       n12: <input type="number" id="collective_coord_number_n12" size="9" min="0.001" max="50000000.100" step="0.001" value="1.000" onChange="evalcollective()" oninput="cacheInput(this)"> 
-                      Sprik: <input type="radio" id="collective_coord_number_sprik" onClick="ClearRd(this,1);evalcollective(); set_Sprik()" title="Sprik"  />
+                      Sprik: <input type="radio" id="collective_coord_number_sprik" onClick="ClearRd(this,1);evalcollective(); set_Sprik()" title="Thomas: set radio collective_coord_number_sprik :"  />
                       n: <input type="number" id="collective_coord_number_n" size="9" min="0.001" max="50.100" step="0.001" value="6.000" onChange="evalcollective()" oninput="cacheInput(this)"> 
                       R0: <input type="number" id="collective_coord_number_r0" size="9" min="0.001" max="50.000" step="0.001" value="1.200" onChange="evalcollective()" oninput="cacheInput(this)"> 
                       <div id="Sprik_m" style="display:block">
@@ -14690,7 +14690,7 @@ ul, li {
                <table>
                   <tr>
                      <td> Cartesian Coordinates  </td>
-                     <td> Fractional Coordinates - locked: <input type="radio" id="lock_frac" onClick="ClearRd(this,2)" title="Load xyz data from url into jsmol"/> 
+                     <td> Fractional Coordinates - locked: <input type="radio" id="lock_frac" onClick="ClearRd(this,2)" title="Thomas: set radio loc_frac :"/> 
                           <input type="button" class="button" id="center_fractional" value="Cntr." 
                            onClick="document.getElementById('fractionalCoords').textContent = centercoords(document.getElementById('fractionalCoords').textContent); jmsupdatefracbox();"/>
                      </td>
@@ -14746,8 +14746,8 @@ ul, li {
                          c/a: <input type="number" id="bulk_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          alpha: <input type="number" id="bulk_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          lat_u: <input type="number" id="bulk_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
-                         primitive: <input type="radio" id="bulk_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
-                         cubic: <input type="radio" id="bulk_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/>
+                         primitive: <input type="radio" id="bulk_primitive" onClick="ClearRd(this,0)" title="Thomas: set radio bulk_primitive : "/>
+                         cubic: <input type="radio" id="bulk_cubic" onClick="ClearRd(this,1)" title="Thomas: set radio bulk_cubic :"/>
                      </td>
                   </tr>
                   <tr><td><br><br></td></tr>
@@ -14783,7 +14783,7 @@ ul, li {
                         scaling: <input type="text" id="surface_scaling" SIZE=15 value="1.0 1.0 1.0" oninput="cacheInput(this)"/>
                         nzplane: <input type="number" id="surface_nzplane" SIZE=5 min="1" max="100" step="1" value="" oninput="cacheInput(this)"/>
                         <br>tolerance: <input type="number" id="surface_tolerance" size="9" min="-3.000" max="3.000" step="0.001" value="0.0010" onChange="jsmcellchange(1,1)" oninput="cacheInput(this)">
-                        align c: <input type="radio" id="surface_alignc" onClick="ClearRd(this,1)" title="align c axis" oninput="cacheInput(this)"/>
+                        align c: <input type="radio" id="surface_alignc" onClick="ClearRd(this,1)" title="Thomas: set radio surface_alignc :" oninput="cacheInput(this)"/>
                      </td>
                   </tr>
                </table>
@@ -14824,8 +14824,8 @@ ul, li {
                          c/a:   <input type="number" id="bulk1_covera" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          alpha: <input type="number" id="bulk1_alpha" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
                          lat_u: <input type="number" id="bulk1_u" size="9" min="0.000" max="30.000" step="0.01" value="0.000" oninput="cacheInput(this)">
-                         primitive: <input type="radio" id="bulk1_primitive" onClick="ClearRd(this,0)" title="Load xyz data from url into jsmol"/>
-                         cubic: <input type="radio" id="bulk1_cubic" onClick="ClearRd(this,1)" title="Load xyz data from url into jsmol"/><br>
+                         primitive: <input type="radio" id="bulk1_primitive" onClick="ClearRd(this,0)" title="Thomas: set radio bulk1_u :"/>
+                         cubic: <input type="radio" id="bulk1_cubic" onClick="ClearRd(this,1)" title="Thomas: set radio bulk1_cubic :"/><br>
                          a(hkl): <input type="text" id="surface1_a" SIZE=15 value="1.5 -1.5 0.0" oninput="cacheInput(this)"/>
                          b(hkl): <input type="text" id="surface1_b" SIZE=15 value="0.0 1.5 -1.5" oninput="cacheInput(this)"/>
                          c(hkl): <input type="text" id="surface1_c" SIZE=15 value="-1.0 -1.0 -1.0" oninput="cacheInput(this)"/>
