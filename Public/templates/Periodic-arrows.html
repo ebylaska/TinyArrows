@@ -5620,7 +5620,11 @@ ul, li {
            x += "#curdir " + curdir + "\n"
            x += "#\n";
            x += "#permdir " + jobname + "\n";
-           x += "#deletescratch no\n";
+           if (document.getElementById("queue_nwchem_jobdeletescratch").checked) {
+              x += "#deletescratch yes\n";
+           } else {
+              x += "#deletescratch no\n";
+           }
            x += "#queuesave no\n"
            x += "#\n";
            x += "#machine " + machine + "\n";
@@ -5895,7 +5899,11 @@ ul, li {
            x += "#curdir " + curdir + "\n"
            x += "#\n";
            x += "#permdir " + projectname+"_"+jobname + "\n";
-           x += "#deletescratch no\n";
+           if (document.getElementById("queue_nwchem_jobdeletescratch").checked) {
+              x += "#deletescratch yes\n";
+           } else {
+              x += "#deletescratch no\n";
+           }
            x += "#queuesave no\n"
            x += "#\n";
            x += "#machine " + machine + "\n";
@@ -5923,7 +5931,9 @@ ul, li {
            } else {
               x += "#queue regular\n";
            }
-           x += "#account " + account + "\n";
+           if (account.trim().length>0) {
+              x += "#account " + account + "\n";
+           }
            //x += "#account emslc51527\n";
            //x += "#account mq_bylaska\n";
            //x += "#account br20_bylaska\n";
@@ -12696,6 +12706,7 @@ ul, li {
 
         function changeaccount() {
            var qa   = document.getElementById("queue_account").value.trim();
+           console.log("CHANGEACCOUNT=",qa);
            if ( !(qa.includes("Add Account") || qa.includes("None")) ) {
               var data = editor.getValue(); // or session.getValue
               if (data.includes("#account ")) {
@@ -13169,7 +13180,7 @@ ul, li {
                        name="queue_account"
                        style="font-size:13px;color:#6F4E37"
                        title=": set text queue_account :" 
-                       onChange="add_select_option0('Add Account','','queue_account')"
+                       onChange="add_select_option0('Add Account','','queue_account'); changeaccount();"
                        oninput="cacheInput(this)">
                        <option>None</option>
                        <option>Add Account</option>
