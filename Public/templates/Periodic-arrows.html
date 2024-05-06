@@ -9558,7 +9558,9 @@ ul, li {
                 morph = true;
 
               } else {
-                 var geoms  = prompt("NEB Optimization - Please enter path model numbers:", "1 2 3 4 5");
+
+                 var numbers = Array.from({length:  window.xyzframes_ntotal}, (_, i) => i + 1).join(' ');
+                 var geoms  = prompt("NEB Optimization - Please enter path model numbers:", numbers);
                  data += "\n### Custom path geometries for NEB ###\n"
                  data += "set neb:custom_path .true.\n\n";
                  nbeads = geoms.trim().split(/[ ,]+/).length;
