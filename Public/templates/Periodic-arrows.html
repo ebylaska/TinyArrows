@@ -1,9 +1,4 @@
-<!doctype html>
-<!-- The DOCTYPE declaration above will set the     -->
-<!-- browser's rendering engine into                -->
-<!-- "Standards Mode". Replacing this declaration   -->
-<!-- with a "Quirks Mode" doctype is not supported. -->
-
+<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
@@ -1037,6 +1032,9 @@ ul, li {
              xx = parseFloat(vvv[1]);
          }
          solvatewhaminput(xx,finish_Thomas_command);
+      }
+      else if (txt.includes("generate") && txt.includes("solvate") && txt.includes("wham button2")) {  
+         handleSolvatedButtonClick2();
       }
       else if (txt.includes("generate") && txt.includes("bulk") && txt.includes("crystal")) {  
          document.getElementById('apirunning').value += "+ running jsmol script\n";
@@ -3645,6 +3643,7 @@ ul, li {
                     var header0  = header.replace(tt,uu);
                     var nwinput0 = nwinputs[i];
 
+
                     if (nwinputs[i].includes("#ncpus ")) {
                        tt = "#ncpus " +      header.split("#ncpus ")[1].split("\n")[0];
                        uu = "#ncpus " + nwinputs[i].split("#ncpus ")[1].split("\n")[0];
@@ -3675,9 +3674,15 @@ ul, li {
                        header0  = header0.replace(tt,uu);
                        nwinput0 = nwinput0.replace(uu,"");
                     } 
+
+                    //console.log("i=",i," NWINPUTS=",nwinputs[i]);
+                    //console.log("i=",i," nwinput0=",nwinput0);
+                    //console.log("i=",i," HEASer0=",header0);
                     if (nwinputs[i].includes("#deletescratch")) {
                        tt = "#deletescratch" +      header.split("#deletescratch")[1].split("\n")[0];
                        uu = "#deletescratch" + nwinputs[i].split("#deletescratch")[1].split("\n")[0];
+                       //console.log("tt=",tt);
+                       //console.log("uu=",uu);
                        header0  = header0.replace(tt,uu);
                        nwinput0 = nwinput0.replace(uu,"");
                     }
@@ -3720,6 +3725,15 @@ ul, li {
                     //console.log("numtag=",numtag, "  ",(numtag+num.toString()).slice(-2));
                     //console.log("nwinputs=",nwinputs[i]);
                  }
+
+                 for (i=0; i<(nwlen-1); ++i) {
+                    if (nwinputs[i].includes("#deletescratch yes") && (nwlen>1)) {
+                       let nwinput0 = nwinputs[i];
+                       let uu = "#deletescratch" + nwinputs[i].split("#deletescratch")[1].split("\n")[0];
+                       nwinputs[i] = nwinput0.replace(uu,"");
+                    }
+                 }
+
                  console.log("NWINPuts=",nwinputs);
                  submit_splitnwchemjob_sub(nwinputs,"",callback);
                  editor.setValue("#JOB HAS ALREADY BEEN SUBMITTED" + " - Multiple Submissions\n"  + data,1);
@@ -3731,8 +3745,7 @@ ul, li {
 
         function submit_splitnwchemjob_sub(nwinputs,qwaitInput,callback) {
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
-           //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/';
-           //var arrows_post_url = '{{ arrows_api }}upload/';
+           //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/queue_nwchem_add/'; //var arrows_post_url = '{{ arrows_api }}upload/';
            //var arrows_get_url  = '{{ arrows_api }}queue_nwchem_add/';
            var calc_url        = document.getElementById("arrows_calculation_url").value;
            var arrows_post_url = calc_url + 'upload/';
@@ -5601,6 +5614,10 @@ ul, li {
               var imm =  window.xyzframes_cur + 1;
               jobname += "-m-"+imm.toString();
            }
+           if (document.getElementById("queue_nwchem_jobgamma").checked) {
+              let rgamma =  parseFloat(document.getElementById("umbrella_gamma").value).toFixed(2);
+              jobname += "-g-"+rgamma.toString();
+           }
            if (document.getElementById("queue_nwchem_jobdate").checked) {
               var today = new Date();
               var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
@@ -6007,6 +6024,8 @@ ul, li {
         // *                                      *
         // ****************************************
         function solvatewhaminput(molarity,callback) {
+
+
            //var arrows_post_url = 'https://arrows.emsl.pnnl.gov/api/upload/';
            //var arrows_get_url  = 'https://arrows.emsl.pnnl.gov/api/molecular_calculation/';
            //var arrows_post_url = '{{ arrows_api }}upload/';
@@ -7717,6 +7736,10 @@ ul, li {
               permdir = jobname;
               if (document.getElementById("queue_nwchem_jobmodel").checked) {
                  permdir += "-m-"+i.toString();
+              }
+              if (document.getElementById("queue_nwchem_jobgamma").checked) {
+                 let rgamma =  parseFloat(document.getElementById("umbrella_gamma").value).toFixed(2);
+                 permdir += "-g-"+rgamma.toString();
               }
               if (document.getElementById("queue_nwchem_jobdate").checked) {
                  var today = new Date();
@@ -13302,6 +13325,7 @@ ul, li {
                </select>
          </td-->
          <td>model label?<input type="radio" id="queue_nwchem_jobmodel" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobmodel :"/></td>
+         <td>gamma label?<input type="radio" id="queue_nwchem_jobgamma" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobgamma :"/></td>
          <td>date label?<input type="radio" id="queue_nwchem_jobdate" onClick="ClearRd(this,1)" title="Thomas: set radio queue_nwchem_jobdate :"/></td>
          <td>delete scratch?<input type="radio" id="queue_nwchem_jobdeletescratch" 
                               onClick="ClearRd(this,1); changedeletescratch()" 
@@ -13417,7 +13441,7 @@ ul, li {
        </tr>
        <tr>
           <td> <input type="button" class="button4" value="Add Energy task" onClick="addenergy('')"/></td>
-          <td> <input type="button" class="button4" value="Add Optimization task" onClick="addoptimization(true)"/></td>
+          <td> <input type="button" class="button4" value="dd Optimization task" onClick="addoptimization(true)"/></td>
           <td> <input type="button" class="button4" value="Add Frequency task" onClick="addfrequency()"/></td>
           <td> <input type="button" class="button4" value="Add NEB task" style="color:darkmagenta;" onClick="addneb()"/></td>
           <td> <input type="button" class="button4" value="Add String task" style="color:darkmagenta;" onClick="addstring()"/></td>
@@ -14481,22 +14505,60 @@ ul, li {
                           title="Generate a new xyz model by morphing 3 point reaction path"/>
 
                    <input type="button" value="Generate WHAM input" 
-                          onClick="if (document.getElementById('check_buildreactants').checked) {
-                                      if (confirm('Do you want to append the initial model?')){
-                                         loadframe2jsmol(false,true,0);
-                                      }
-                                   }
-                                   jmoltoeditor();convert2geometry(false);addreactionconstraint(true);addcpmd(false,'','');" 
-                          title="Load next xyz model into jsmol"/>
+                          onClick="handleButtonClick()" 
+                          title="Load next xyz model into jsmol" />
+                   <script>
+                    function handleButtonClick() {
+                        const checkBuildReactants = document.getElementById('check_buildreactants').checked;
+                        const isDFT = document.getElementById('bandpspw').value === 'dft';
+
+                        if (checkBuildReactants) {
+                            if (confirm('Do you want to append the initial model?')) {
+                                loadframe2jsmol(false, true, 0);
+                            }
+                        }
+
+                        jmoltoeditor();
+                        convert2geometry(false);
+                        addreactionconstraint(true);
+
+                        if (isDFT) {
+                            addoptimization(true);
+                        } else {
+                            addcpmd(false, '', '');
+                        }
+                    }
+                   </script>
 
                    <input type="button" value="Generate solvated WHAM input" 
-                          onClick="if (document.getElementById('check_buildreactants').checked) {
-                                      if (confirm('Do you want to append the initial model?')){
-                                         loadframe2jsmol(false,true,0);
-                                      }
-                                   }
-                                   solvatewhaminput(-1.0,dummy_callback);" 
-                          title="Load next xyz model into jsmol"/>
+                          onClick="handleSolvatedButtonClick2()" 
+                          title="Load next xyz model into jsmol" />
+
+                   <script>
+                   function handleSolvatedButtonClick2() {
+                       const checkBuildReactants = document.getElementById('check_buildreactants').checked;
+                       const isDFT = document.getElementById('bandpspw').value === 'dft';
+
+                       if (checkBuildReactants) {
+                           if (confirm('Do you want to append the initial model?')) {
+                               loadframe2jsmol(false, true, 0);
+                           }
+                       }
+
+                       if (isDFT) {
+                           jmoltoeditor();
+                           convert2geometry(false);
+                           addreactionconstraint(true);
+                           addoptimization(true);
+                           addcosmo_smd();
+                       } else {
+                           solvatewhaminput(-1.0, dummy_callback);
+                       }
+                   }
+                   </script>
+
+
+
                    posteriori analysis: 
                       <input type="radio" id="wham_posteriori" onClick="ClearRd(this,6)" 
                               title="Thomas: set radio wham_postiriori : Generate posteriori WHAM DATA block"/>
