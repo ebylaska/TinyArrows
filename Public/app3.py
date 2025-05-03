@@ -3,7 +3,7 @@
 from flask import Flask, jsonify, render_template, request, redirect, url_for, send_from_directory, Response, session
 from flask import abort
 from werkzeug.utils import secure_filename
-import os,subprocess,urllib,time,random,requests,zipfile,math,yaml
+import os,subprocess,urllib,time,random,requests,zipfile,math,yaml,datetime,csv
 import paramiko,secrets
 
 ###################### ARROWS Locations #######################
@@ -4174,6 +4174,114 @@ def ssh_tunnel_route():
     output_textbox = session.get('output', '')
 
     return render_template('ssh_tunnel.html', arrows_api=ARROWS_API_HOME, output_textbox=output_textbox)
+
+
+
+@app.route('/api/cpu_log_json/<window>')
+def cpu_log_json(window):
+    now = datetime.datetime.now()
+    if window == "1h":
+        cutoff = now - datetime.timedelta(hours=1)
+    elif window == "24h":
+        cutoff = now - datetime.timedelta(days=1)
+    elif window == "7d":
+        cutoff = now - datetime.timedelta(days=7)
+    else:
+        cutoff = now - datetime.timedelta(days=30)
+
+    LOG_PATH = os.path.join(os.path.dirname(__file__), 'Logs', 'arrows_cpu_log.csv')
+    data = []
+    with open(LOG_PATH, 'r') as f:
+        for row in csv.reader(f):
+            try:
+                timestamp = datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
+                if timestamp >= cutoff:
+                    data.append({
+                        'timestamp': row[0],
+                        'cpu': float(row[1]),
+                        'count': int(row[2])
+                    })
+            except:
+                continue
+
+    return jsonify(data)
+
+
+@app.route('/api/cpu_plot')
+def cpu_plot():
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>CPU and Job Count</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+    <body>
+        <h2>Arrows Usage Dashboard</h2>
+    
+        <canvas id="cpuChart" width="450" height="150"></canvas>
+        <canvas id="jobChart" width="450" height="150"></canvas>
+    
+        <script>
+        fetch('/api/cpu_log_json/7d')
+          .then(response => response.json())
+          .then(data => {
+            const labels = data.map(d => d.timestamp);
+            const cpuValues = data.map(d => d.cpu);
+            const jobCounts = data.map(d => d.count);
+    
+            new Chart(document.getElementById('cpuChart'), {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: 'CPU %',
+                  data: cpuValues,
+                  borderColor: 'blue',
+                  backgroundColor: 'rgba(0,0,255,0.1)',
+                  fill: false,
+                  tension: 0.1,
+                  pointRadius: 2
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: { title: { display: true, text: 'CPU Usage Over Time' }},
+                scales: {
+                  x: { display: true, title: { display: true, text: 'Time' }},
+                  y: { title: { display: true, text: 'CPU %' }}
+                }
+              }
+            });
+    
+            new Chart(document.getElementById('jobChart'), {
+             type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: 'Job Count',
+                  data: jobCounts,
+                  borderColor: 'orange',
+                  backgroundColor: 'rgba(255,165,0,0.1)',
+                  fill: false,
+                  tension: 0.1,
+                  pointRadius: 2
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: { title: { display: true, text: 'Job Count Over Time' }},
+                scales: {
+                  x: { display: true, title: { display: true, text: 'Time' }},
+                  y: { title: { display: true, text: 'Count' }}
+                }
+              }
+            });
+          });
+        </script>
+    </body>
+    </html>
+    '''
 
 
 
