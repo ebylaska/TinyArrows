@@ -235,10 +235,11 @@
             //var mytext = "Your Arrows job for " + document.form.smi.value + " is running. Please be patient for it to finish.";
             const molName = document.form.smi.value.trim().toLowerCase();
             let mytext = "Your Arrows job for " + molName + " is running. Please be patient for it to finish.";
+
             // Append Easter egg if match found
-            if (arrowsEasterEggs[molName]) {
-               const egg = `<br><br><span style="color: #28a745; font-style: italic;">${arrowsEasterEggs[molName]}</span>`;
-               mytext += egg;
+            const egg = getEasterEgg(molName);
+            if (egg) {
+               mytext += `<br><br><span style="color: #28a745; font-style: italic;">${egg}</span>`;
             }
 
             document.getElementById('runmebanner').innerHTML=mytext;
@@ -270,15 +271,63 @@
           "formaldehyde": "☠️ A little goes a long way — especially in preservation.",
           "nitroglycerin": "💣 From heart medicine to boom — duality in chemistry.",
           "acetylene": "🔥 The welder’s favorite hydrocarbon.",
-          "penicillin": "💊 Moldy bread: 1, Bacterial infection: 0."
+          "penicillin": "💊 Moldy bread: 1, Bacterial infection: 0.",
+          "theory{pspw}": "📦⛓️  Yeah, periodic calculations.",
+          "theory{pspw4}": "🧠 Now you're talking good calculations."
         };
+        const randomEasterFallbacks = [
+          "🧪 Science is just organized curiosity.",
+          "⏳ Good things come to those who converge.",
+          "🔬 Keep calm and trust the basis set.",
+          "💻 Compiling your chemical destiny...",
+          "🚀 May your SCF converge in one cycle.",
+          "🌈 Hidden states await discovery.",
+          "📉 Optimizing geometry... and your patience.",
+          "🧠 This molecule thinks it's stable.",
+          "🧭 Let the potential energy surface guide you.",
+          "🤖 Electron density doesn’t lie.",
+          "⚙️ Cranking up the quantum engine...",
+          "☁️ Cloud chemistry: because your laptop said no.",
+          "🧊 If this freezes, it's not your fault — it's the optimizer's.",
+          "🪐 DFT is the telescope for your molecular universe.",
+          "🎯 Finding the minimum... eventually.",
+          "👻 Ghost orbitals may or may not be real.",
+          "🔄 If it doesn’t converge, flip the spin and try again.",
+          "🪄 Let symmetry do the work.",
+          "🎲 This job is more random than a Monte Carlo walker.",
+          "📚 Cited by zero, respected by electrons.",
+          "🧱 Periodic boundary conditions: the illusion of infinity.",
+          "🧼 Cleaning your virtual lab bench...",
+          "🧵 Unraveling entangled wavefunctions.",
+          "🕳️ Falling into a potential energy well... with style.",
+          "🐢 Slow job? Blame the k-points. Always blame the k-points.",
+          "🔋 Charging up your simulation... quantum style.",
+          "🐇 Following the eigenvalue rabbit hole.",
+          "📦 Your box is smaller than it thinks.",
+          "🦠 Warning: simulation may reveal unphysical truths.",
+          "🧯 Fire in the SCF! Calling the preconditioner.",
+          "🪞 Mirror symmetry says hi."
+        ];
 
         function getEasterEgg(nameOrSmiles) {
-             const key = nameOrSmiles.toLowerCase().trim();
-             return arrowsEasterEggs[key] || "";
+           const input = nameOrSmiles.toLowerCase();
+           let messages = [];
+         
+           for (const key in arrowsEasterEggs) {
+             if (input.includes(key.toLowerCase())) {
+               messages.push(arrowsEasterEggs[key]);
+             }
+           }
+
+           if (messages.length === 0) {
+              // Pick a random fallback
+              const fallback = randomEasterFallbacks[Math.floor(Math.random() * randomEasterFallbacks.length)];
+              messages.push(fallback);
+           }
+         
+           return messages.join("<br>");  // use "\n" if not in HTML
         }
-
-
+  
 
 
 
