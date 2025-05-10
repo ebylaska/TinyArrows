@@ -232,7 +232,15 @@
 
         function Confirm(form){
             //alert("Record insert successfully!"); 
-            var mytext = "Your Arrows job for " + document.form.smi.value + " is running. Please be patient for it to finish.";
+            //var mytext = "Your Arrows job for " + document.form.smi.value + " is running. Please be patient for it to finish.";
+            const molName = document.form.smi.value.trim().toLowerCase();
+            let mytext = "Your Arrows job for " + molName + " is running. Please be patient for it to finish.";
+            // Append Easter egg if match found
+            if (arrowsEasterEggs[molName]) {
+               const egg = `<br><br><span style="color: #28a745; font-style: italic;">${arrowsEasterEggs[molName]}</span>`;
+               mytext += egg;
+            }
+
             document.getElementById('runmebanner').innerHTML=mytext;
 
             //var node = document.getElementById('runmebanner');
@@ -241,6 +249,35 @@
             sleep(500);
             form.submit();
         }
+
+        const arrowsEasterEggs = {
+          "aspirin": "💡 Fun fact: Aspirin was first synthesized in 1897 by a chemist trying to ease his father’s arthritis.",
+          "caffeine": "☕ Fueling chemists, coders, and reviewers since the Enlightenment.",
+          "tnt": "💥 Handle with care... digitally.",
+          "ethanol": "🍷 For best results: don’t mix reaction design with happy hour.",
+          "nicotine": "🚬 Highly addictive... also a pretty interesting alkaloid.",
+          "glycine": "🧬 The simplest amino acid, but the start of something complex.",
+          "benzene": "🔁 Kekulé dreamed of snakes — and gave us aromaticity.",
+          "methane": "💨 Tiny, but mighty... especially with a spark.",
+          "acetone": "💅 Nail polish remover or lab solvent of the gods? You decide.",
+          "vitamin c": "🍊 100 mg/day keeps scurvy and bad SCF convergence away.",
+          "serotonin": "😊 Molecular happiness... and occasional existential dread.",
+          "dmt": "🌌 According to some... a gateway to the fifth dimension.",
+          "water": "💧 The most underappreciated solvent in history.",
+          "glucose": "🍬 Sweet... but watch those diastereomers.",
+          "thc": "🌿 Legally complex. Orbitally relaxed.",
+          "adrenaline": "⚡ Fight, flight, or Fourier transform?",
+          "formaldehyde": "☠️ A little goes a long way — especially in preservation.",
+          "nitroglycerin": "💣 From heart medicine to boom — duality in chemistry.",
+          "acetylene": "🔥 The welder’s favorite hydrocarbon.",
+          "penicillin": "💊 Moldy bread: 1, Bacterial infection: 0."
+        };
+
+        function getEasterEgg(nameOrSmiles) {
+             const key = nameOrSmiles.toLowerCase().trim();
+             return arrowsEasterEggs[key] || "";
+        }
+
 
 
 
